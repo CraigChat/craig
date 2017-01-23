@@ -8,6 +8,11 @@ function newConnection(connection) {
     var userStreams = {};
     var userProcs = {};
 
+    var recDir = "rec/" + connection.channel.name + "." + (new Date().toISOString());
+
+    fs.mkdirSync("rec");
+    fs.mkdirSync(recDir);
+
     receiver.on('opus', (user, chunk) => {
         if (user in userStreams) return;
 
@@ -17,7 +22,7 @@ function newConnection(connection) {
                 "-ar", "48000", "-ac", "1", "-f", "s32le", "-i", "-",
                 "-af", "asetpts=(RTCTIME - RTCSTART) / (TB * 1000000)",
                 "-c:a", "flac",
-                connection.channel.name + "." + user.username + "." + user.id + "." + (new Date().toISOString()) + ".mkv"],
+                recDir + "/" + user.username + "." + user.id + "." + (new Date().toISOString()) + ".mkv"],
                 {stdio: ["pipe", 1, 2]});
         }
         var ffmpeg = userProcs[user];
@@ -55,7 +60,6 @@ client.on('ready', () => {
 const craigCommand = /^(<:craig:[0-9]*> )([^ ]*) (.*)$/;
 
 client.on('message', (msg) => {
-    console.log(msg);
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
     var op = cmd[2].toLowerCase();
