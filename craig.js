@@ -1,55 +1,82 @@
-const cp = require("child_process");
 const fs = require("fs");
 const Discord = require("discord.js");
+const opus = require("node-opus");
+const ogg = require("ogg");
+const ogg_packet = require("ogg-packet");
 const client = new Discord.Client();
 
 function newConnection(connection) {
     const receiver = connection.createReceiver();
-    var userStreams = {};
-    var userProcs = {};
+    var userOpusStreams = {};
+    var userOggStreams = {};
 
-    var recDir = "rec/" + connection.channel.name + "." + (new Date().toISOString());
+    // Set up our recording OGG file
+    var startTime = process.hrtime();
+    var recFile = "rec/" + connection.channel.name + "." + (new Date().toISOString()) + ".ogg";
+    try { fs.mkdirSync("rec"); } catch (ex) {}
 
-    fs.mkdirSync("rec");
-    fs.mkdirSync(recDir);
+    var recFStream = fs.createWriteStream(recFile);
+    var recOggStream = new ogg.Encoder();
+    recOggStream.on("data", (chunk) => {
+        recFStream.write(chunk);
+    });
+    recOggStream.on("end", () => {
+        recFStream.end();
+    });
 
+    // Function to encode a single Opus chunk to the ogg file
+    function encodeChunk(oggStream, chunk, packetNo, b_o_s) {
+        var chunkTime = process.hrtime(startTime);
+        var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
+        var oggPacket = new ogg_packet();
+        oggPacket.packet = chunk;
+        oggPacket.bytes = chunk.length;
+        oggPacket.b_o_s = b_o_s ? 1 : 0;
+        oggPacket.e_o_s = 0;
+        oggPacket.granulepos = chunkGranule;
+        oggPacket.packetno = packetNo;
+        oggStream.packetin(oggPacket);
+        oggStream.flush(() => {});
+    }
+
+    // And receiver for the actual data
     receiver.on('opus', (user, chunk) => {
-        if (user in userStreams) return;
+        var userStr = user.username + "#" + user.id;
+        if (userStr in userOpusStreams) return;
 
-        if (!(user in userProcs)) {
-            userProcs[user] = cp.spawn("ffmpeg", [
-                "-fflags", "nobuffer", "-probesize", "32", "-packetsize", "1", "-blocksize", "4",
-                "-ar", "48000", "-ac", "1", "-f", "s32le", "-i", "-",
-                "-af", "asetpts=(RTCTIME - RTCSTART) / (TB * 1000000)",
-                "-c:a", "flac",
-                recDir + "/" + user.username + "." + user.id + "." + (new Date().toISOString()) + ".mkv"],
-                {stdio: ["pipe", 1, 2]});
+        var opusStream = userOpusStreams[userStr] = receiver.createOpusStream(user);
+        if (!(userStr in userOggStreams)) {
+            userOggStreams[userStr] = recOggStream.stream();
+
+            // Start with a valid Opus header
+            var opusEncoder = new opus.Encoder(48000, 1, 960); // FIXME: Magic numbers
+            opusEncoder.on("data", (chunk) => {
+                userOggStreams[userStr].packetin(chunk);
+            });
+            opusEncoder.write(Buffer.alloc(480*4));
         }
-        var ffmpeg = userProcs[user];
-        //var ffmpeg = {stdin: fs.createWriteStream("test.pcm")};
+        var oggStream = userOggStreams[userStr];
+        var packetNo = 1;
 
-        var stream = userStreams[user] = receiver.createPCMStream(user);
+        encodeChunk(oggStream, chunk, 0, true);
 
-        function endHandler() {
-            delete userStreams[user];
-        }
-
-        stream.on("data", (chunk) => {
-            try {
-                ffmpeg.stdin.write(chunk);
-            } catch(ex) {
-            }
+        opusStream.on("data", (chunk) => {
+            encodeChunk(oggStream, chunk, packetNo++);
         });
-        stream.on("end", () => {
-            delete userStreams[user];
+        opusStream.on("end", () => {
+            delete userOpusStreams[userStr];
         });
     });
 
+    // When we're disconnected from the channel...
     connection.on("disconnect", () => {
-        for (var user in userProcs) {
-            var ffmpeg = userProcs[user];
-            ffmpeg.stdin.end();
+        // Close all our OGG streams
+        for (var user in userOggStreams) {
+            userOggStreams[user].end();
         }
+
+        // And close the overall OGG stream
+        // ???
     });
 }
 
@@ -78,7 +105,7 @@ client.on('message', (msg) => {
                 found = true;
                 if (op === "join" || op === "record" || op === "rec") {
                     channel.join().then(newConnection).catch((err) => {
-                        msg.reply(cmd[1] + "<(Failed to join!)");
+                        msg.reply(cmd[1] + "<(Failed to join! " + err + ")");
                     });
                 } else {
                     channel.leave();
