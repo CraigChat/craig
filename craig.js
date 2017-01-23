@@ -25,7 +25,7 @@ function newConnection(connection) {
 
         var stream = userStreams[user] = receiver.createPCMStream(user);
 
-        function closeHandler() {
+        function endHandler() {
             delete userStreams[user];
         }
 
@@ -35,30 +35,53 @@ function newConnection(connection) {
             } catch(ex) {
             }
         });
-        stream.on("end", closeHandler);
+        stream.on("end", () => {
+            delete userStreams[user];
+        });
+    });
+
+    connection.on("disconnect", () => {
+        for (var user in userProcs) {
+            var ffmpeg = userProcs[user];
+            ffmpeg.stdin.end();
+        }
     });
 }
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.username}!`);
-    client.guilds.every((guild) => {
-        guild.channels.every((channel) =>{
+});
+
+const craigCommand = /^(<:craig:[0-9]*> )([^ ]*) (.*)$/;
+
+client.on('message', (msg) => {
+    console.log(msg);
+    var cmd = msg.content.match(craigCommand);
+    if (cmd === null) return;
+    var op = cmd[2].toLowerCase();
+    if (op === "join" || op === "leave" || op === "part") {
+        var cname = cmd[3].toLowerCase();
+        var found = false;
+        if (!msg.guild)
+            return;
+
+        msg.guild.channels.every((channel) => {
             if (channel.type !== "voice")
                 return true;
 
-            if (channel.name.substr(0, 2) != "C ")
-                return true;
-
-            channel.join().then(newConnection);
+            if (channel.name.toLowerCase() === cname) {
+                found = true;
+                if (op === "join") {
+                    channel.join().then(newConnection);
+                } else {
+                    channel.leave();
+                }
+            }
         });
-        return true;
-    });
-});
 
-client.on('message', msg => {
-  if (msg.content === 'ping') {
-    msg.reply('Pong!');
-  }
+        if (!found)
+            msg.reply(cmd[1] + "<(What channel?)");
+    }
 });
 
 client.login('MjcyOTM3NjA0MzM5NDY2MjQw.C2cQgg.KgqXiB_BJgdZmAuGY1_P837zwIU');
