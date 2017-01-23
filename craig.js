@@ -57,13 +57,14 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.username}!`);
 });
 
-const craigCommand = /^(<:craig:[0-9]*> )([^ ]*) (.*)$/;
+const craigCommand = /^(:craig: |<:craig:[0-9]*> )([^ ]*) (.*)$/;
 
 client.on('message', (msg) => {
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
     var op = cmd[2].toLowerCase();
-    if (op === "join" || op === "leave" || op === "part") {
+    if (op === "join" || op === "record" || op === "rec" ||
+        op === "leave" || op === "part") {
         var cname = cmd[3].toLowerCase();
         var found = false;
         if (!msg.guild)
@@ -75,8 +76,10 @@ client.on('message', (msg) => {
 
             if (channel.name.toLowerCase() === cname) {
                 found = true;
-                if (op === "join") {
-                    channel.join().then(newConnection);
+                if (op === "join" || op === "record" || op === "rec") {
+                    channel.join().then(newConnection).catch((err) => {
+                        msg.reply(cmd[1] + "<(Failed to join!)");
+                    });
                 } else {
                     channel.leave();
                 }
