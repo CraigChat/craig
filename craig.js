@@ -112,9 +112,21 @@ function newConnection(connection, id) {
 
         // And then receive the real data into the data stream
         var oggStream = userOggStreams[userStr];
-        var packetNo = 3;
+        var packetNo = 2;
 
-        encodeChunk(userOggStream, chunk, 2);
+        // Give it some empty audio data to start it out
+        var opusEncoder = new opus.OpusEncoder(48000);
+        var oggPacket = new ogg_packet();
+        oggPacket.packet = opusEncoder.encode(Buffer.alloc(480*2), 480);
+        oggPacket.bytes = oggPacket.packet.length;
+        oggPacket.b_o_s = 0;
+        oggPacket.e_o_s = 0;
+        oggPacket.granulepos = 0;
+        oggPacket.packetno = packetNo++;
+        oggStream.packetin(oggPacket);
+        oggStream.flush(() => {});
+
+        encodeChunk(userOggStream, chunk, packetNo++);
 
         opusStream.on("data", (chunk) => {
             encodeChunk(userOggStream, chunk, packetNo++);
