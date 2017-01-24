@@ -26,6 +26,9 @@ const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 if (!("nick" in config))
     config.nick = "Craig";
 
+// Set to true when we've been gracefully restarted
+var dead = false;
+
 function accessSyncer(file) {
     try {
         fs.accessSync(file);
@@ -192,6 +195,11 @@ function newConnection(guildId, channelId, connection, id) {
             try {
                 connection.channel.guild.members.get(client.user.id).setNickname(config.nick);
             } catch (ex) {}
+            delete activeRecordings[guildId];
+
+            // And maybe quit
+            if (dead && Object.keys(activeRecordings).length === 0)
+                client.destroy();
         }
 
         // And delete our leave timeout
@@ -203,7 +211,7 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.username}!`);
 });
 
-const craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) (.*)$/;
+const craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) ?(.*)$/;
 
 function userIsAuthorized(member) {
     if (!member) return false;
@@ -220,10 +228,41 @@ function userIsAuthorized(member) {
     return false;
 }
 
+// Special commands from the owner
+function ownerCommand(msg, cmd) {
+    var op = cmd[2].toLowerCase();
+
+    if (op === "graceful-restart") {
+        // Start a new craig
+        var ccp = cp.spawn(
+            process.argv[0], ["craig.js"],
+            {"stdio": "inherit", "detached": true});
+
+        // Stop responding to input
+        dead = true;
+
+        // And if we're not recording anything, disconnect
+        if (Object.keys(activeRecordings).length === 0)
+            client.destroy();
+
+    } else {
+        msg.reply(cmd[1] + " <(Huh? '" + op + "')");
+
+    }
+}
+
 client.on('message', (msg) => {
+    if (dead) return;
+
     // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
+
+    // Is this from our glorious leader?
+    if (msg.channel.type === "dm" && msg.author.id && msg.author.id === config.owner) {
+        ownerCommand(msg, cmd);
+        return;
+    }
 
     // Ignore it if it's from an unauthorized user
     if (!userIsAuthorized(msg.member)) return;
