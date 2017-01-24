@@ -1,8 +1,10 @@
 <?PHP
 $base = "/home/yahweasel/craig/rec";
 
-if (!isset($_REQUEST["id"]))
-    die("Hello.");
+if (!isset($_REQUEST["id"])) {
+    header("Location: /home/");
+    die();
+}
 $id = intval($_REQUEST["id"]);
 
 if (!file_exists("$base/$id.ogg.header1") ||
@@ -19,8 +21,8 @@ Note: Most audio editors will NOT support the raw version. Heck, some won't supp
 </body></html>
 <?PHP
 } else if ($_REQUEST["fetch"] === "cooked") {
-    header("Content-disposition: attachment; filename=$id.mkv");
-    header("Content-type: video/x-matroska");
+    header("Content-disposition: attachment; filename=$id.zip");
+    header("Content-type: application/zip");
     passthru("/home/yahweasel/craig/cook.sh $id");
 
 } else {
