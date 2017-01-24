@@ -184,4 +184,4 @@ client.on('message', (msg) => {
     }
 });
 
-client.login('MjcyOTM3NjA0MzM5NDY2MjQw.C2cQgg.KgqXiB_BJgdZmAuGY1_P837zwIU');
+client.login(JSON.parse(fs.readFileSync("config.json", "utf8")).token);
