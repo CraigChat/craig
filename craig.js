@@ -14,8 +14,11 @@ function accessSyncer(file) {
     return true;
 }
 
+// Active recording IDs
+var activeRecordings = {};
+
 // Given a connection, our recording session proper
-function newConnection(connection, id) {
+function newConnection(channelStr, connection, id) {
     const receiver = connection.createReceiver();
 
     // Our input Opus streams by user
@@ -141,6 +144,9 @@ function newConnection(connection, id) {
         // Close all our OGG streams
         for (var user in userOggStreams)
             userOggStreams[user].end();
+
+        // And delete the active recording
+        delete activeRecordings[channelStr];
     });
 }
 
@@ -188,23 +194,34 @@ client.on('message', (msg) => {
             if (channel.name.toLowerCase() === cname) {
                 found = true;
                 if (op === "join" || op === "record" || op === "rec") {
-                    channel.join().then((connection) => {
-                        // Make a random ID for it
-                        var id;
-                        do {
-                            id = ~~(Math.random() * 1000000000);
-                        } while (accessSyncer("rec/" + id + ".ogg.header"));
+                    var channelStr = channel.name + "#" + channel.id;
+                    if (channelStr in activeRecordings) {
+                        msg.author.send("I'm already recording that channel: http://craigrecords.yahweasel.com/?id=" + activeRecordings[channelStr]);
 
-                        // Tell them
-                        msg.author.send("Recording! http://craigrecords.yahweasel.com/?id=" + id);
+                    } else {
+                        channel.join().then((connection) => {
+                            // Make a random ID for it
+                            var id;
+                            do {
+                                id = ~~(Math.random() * 1000000000);
+                            } while (accessSyncer("rec/" + id + ".ogg.header1"));
 
-                        // Then start the connection
-                        newConnection(connection, id);
-                    }).catch((err) => {
-                        msg.reply(cmd[1] + " <(Failed to join! " + err + ")");
-                    });
+                            // Tell them
+                            activeRecordings[channelStr] = id;
+                            msg.author.send("Recording! http://craigrecords.yahweasel.com/?id=" + id);
+
+                            // Then start the connection
+                            newConnection(channelStr, connection, id);
+
+                        }).catch((err) => {
+                            msg.reply(cmd[1] + " <(Failed to join! " + err + ")");
+                        });
+
+                    }
+
                 } else {
                     channel.leave();
+
                 }
             }
 
