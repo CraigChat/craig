@@ -46,7 +46,7 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
 <!doctype html><html><head><title>Craig Records!</title></head><body>
 ID: <?PHP print $id; ?><br/><br/>
 
-Download: <a href="?id=<?PHP print $id; ?>&amp;fetch=cooked">processed</a>, <a href="?id=<?PHP print $id; ?>&amp;fetch=raw">raw</a><br/><br/>
+Download: <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=cooked">processed</a>, <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=raw">raw</a><br/><br/>
 
 Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
 
