@@ -45,8 +45,15 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
 ?>
 <!doctype html><html><head><title>Craig Records!</title></head><body>
 ID: <?PHP print $id; ?><br/><br/>
+
 Download: <a href="?id=<?PHP print $id; ?>&amp;fetch=cooked">processed</a>, <a href="?id=<?PHP print $id; ?>&amp;fetch=raw">raw</a><br/><br/>
-Note: Most audio editors will NOT correctly decode the raw version.
+
+Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
+
+Craig is restricted to six hours of recording in any recording session.
+Recordings are deleted automatically after 48 hours from the <em>start</em> of
+recording. Both the raw and processed audio can be downloaded even if Craig is
+still recording at the time.
 </body></html>
 <?PHP
 
