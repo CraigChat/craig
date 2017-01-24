@@ -14,8 +14,9 @@ do
         nice -n10 ionice -c3 \
         ffmpeg -codec libopus -copyts -i - \
         -map 0:$c -af aresample=async=480,asyncts=first_pts=0 \
-        $tmpdir/$((c+1)).wav
-    ffmpeg -i $tmpdir/$((c+1)).wav $tmpdir/$((c+1)).flac
+        -f wav - |
+        nice -n10 ionice -c3 \
+        flac - -o $tmpdir/$((c+1)).flac
 done
 
 cd $tmpdir
