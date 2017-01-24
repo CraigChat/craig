@@ -21,6 +21,9 @@ var activeRecordings = {};
 // Given a connection, our recording session proper
 function newConnection(channelStr, connection, id) {
     const receiver = connection.createReceiver();
+    const partTimeout = setTimeout(() => {
+        connection.channel.leave();
+    }, 1000*60*60*6);
 
     // Our input Opus streams by user
     var userOpusStreams = {};
@@ -152,8 +155,11 @@ function newConnection(channelStr, connection, id) {
         for (var user in userOggStreams)
             userOggStreams[user].end();
 
-        // And delete the active recording
+        // Delete the active recording
         delete activeRecordings[channelStr];
+
+        // And delete our leave timeout
+        clearTimeout(partTimeout);
     });
 }
 
