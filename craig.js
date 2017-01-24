@@ -33,14 +33,28 @@ function newConnection(connection, id) {
     try { fs.mkdirSync("rec"); } catch (ex) {}
 
     // Set up our recording streams
-    var recFHStream = fs.createWriteStream(recFileBase + ".header");
+    var recFHStream = [
+        fs.createWriteStream(recFileBase + ".header1"),
+        fs.createWriteStream(recFileBase + ".header2")
+    ];
     var recFStream = fs.createWriteStream(recFileBase + ".data");
-    var recOggHStream = new ogg.Encoder();
-    recOggHStream.on("data", (chunk) => { recFHStream.write(chunk); });
-    recOggHStream.on("end", () => { recFHStream.end(); });
-    var recOggStream = new ogg.Encoder();
-    recOggStream.on("data", (chunk) => { recFStream.write(chunk); });
-    recOggStream.on("end", () => { recFStream.end(); });
+
+    // And our ogg encoders
+    function mkEncoder(fstream, allow_b_o_s) {
+        var encoder = new ogg.Encoder();
+        encoder.on("data", (chunk) => {
+            if (!allow_b_o_s) {
+                /* Manually hack out b_o_s, assume (correctly) we'll never have
+                 * inter-page chunks */
+                chunk[5] &= 0xFD;
+            }
+            fstream.write(chunk);
+        });
+        encoder.on("end", () => { fstream.end(); });
+        return encoder;
+    }
+    var recOggHStream = [ mkEncoder(recFHStream[0], true), mkEncoder(recFHStream[1]) ];
+    var recOggStream = mkEncoder(recFStream);
 
     // Function to encode a single Opus chunk to the ogg file
     function encodeChunk(oggStream, chunk, packetNo) {
@@ -66,7 +80,10 @@ function newConnection(connection, id) {
         var userOggStream;
         if (!(userStr in userOggStreams)) {
             var serialNo = trackNo++;
-            var userOggHStream = recOggHStream.stream(serialNo);
+            var userOggHStream = [
+                recOggHStream[0].stream(serialNo),
+                recOggHStream[1].stream(serialNo)
+            ];
             userOggStream = recOggStream.stream(serialNo);
             userOggStreams[userStr] = userOggStream;
 
@@ -74,11 +91,20 @@ function newConnection(connection, id) {
             var opusEncoder = new opus.Encoder(48000, 1, 480);
             opusEncoder.on("data", (chunk) => {
                 if (!chunk.e_o_s) {
-                    chunk.granulepos = 0;
-                    userOggHStream.write(chunk);
+                    if (chunk.granulepos == 0)
+                        userOggHStream[0].write(chunk);
+                    else
+                        userOggHStream[1].write(chunk);
                 }
             });
-            opusEncoder.on("end", () => { userOggHStream.end(); });
+            opusEncoder.on("end", () => {
+                userOggHStream[0].flush(() => {
+                    userOggHStream[0].end();
+                });
+                userOggHStream[1].flush(() => {
+                    userOggHStream[1].end();
+                });
+            });
             opusEncoder.write(Buffer.alloc(480*2));
             opusEncoder.end();
         }
@@ -86,9 +112,9 @@ function newConnection(connection, id) {
 
         // And then receive the real data into the data stream
         var oggStream = userOggStreams[userStr];
-        var packetNo = 1;
+        var packetNo = 3;
 
-        encodeChunk(userOggStream, chunk, 0);
+        encodeChunk(userOggStream, chunk, 2);
 
         opusStream.on("data", (chunk) => {
             encodeChunk(userOggStream, chunk, packetNo++);
