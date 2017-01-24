@@ -1,3 +1,4 @@
+const cp = require("child_process");
 const fs = require("fs");
 const Discord = require("discord.js");
 const opus = require("node-opus");
@@ -41,6 +42,12 @@ function newConnection(channelStr, connection, id) {
         fs.createWriteStream(recFileBase + ".header2")
     ];
     var recFStream = fs.createWriteStream(recFileBase + ".data");
+
+    // Make sure they get destroyed
+    var atcp = cp.spawn("at", ["now + 48 hours"],
+        {"stdio": ["pipe", 1, 2]});
+    atcp.stdin.write("rm -f " + recFileBase + ".header1 " + recFileBase + ".header2 " + recFileBase + ".data " + recFileBase + ".delete");
+    atcp.stdin.end();
 
     // And our ogg encoders
     function mkEncoder(fstream, allow_b_o_s) {
@@ -206,9 +213,15 @@ client.on('message', (msg) => {
                                 id = ~~(Math.random() * 1000000000);
                             } while (accessSyncer("rec/" + id + ".ogg.header1"));
 
+                            // Make a deletion key for it
+                            var deleteKey = ~~(Math.random() * 10000000000);
+                            fs.writeFileSync("rec/" + id + ".ogg.delete", ""+deleteKey, "utf8");
+
                             // Tell them
                             activeRecordings[channelStr] = id;
-                            msg.author.send("Recording! http://craigrecords.yahweasel.com/?id=" + id);
+                            msg.author.send(
+                                "Recording! http://craigrecords.yahweasel.com/?id=" + id + "\n\n" +
+                                "To delete: http://craigrecords.yahweasel.com/?id=" + id + "&delete=" + deleteKey + "\n\n");
 
                             // Then start the connection
                             newConnection(channelStr, connection, id);
