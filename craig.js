@@ -203,7 +203,7 @@ client.on('message', (msg) => {
                 if (op === "join" || op === "record" || op === "rec") {
                     var channelStr = channel.name + "#" + channel.id;
                     if (channelStr in activeRecordings) {
-                        msg.author.send("I'm already recording that channel: http://craigrecords.yahweasel.com/?id=" + activeRecordings[channelStr]);
+                        msg.author.send("I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[channelStr]);
 
                     } else {
                         channel.join().then((connection) => {
@@ -220,8 +220,8 @@ client.on('message', (msg) => {
                             // Tell them
                             activeRecordings[channelStr] = id;
                             msg.author.send(
-                                "Recording! http://craigrecords.yahweasel.com/?id=" + id + "\n\n" +
-                                "To delete: http://craigrecords.yahweasel.com/?id=" + id + "&delete=" + deleteKey + "\n\n");
+                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "\n\n" +
+                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&delete=" + deleteKey + "\n\n");
 
                             // Then start the connection
                             newConnection(channelStr, connection, id);
