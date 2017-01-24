@@ -136,11 +136,31 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.username}!`);
 });
 
-const craigCommand = /^(:craig: |<:craig:[0-9]*> )([^ ]*) (.*)$/;
+const craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) (.*)$/;
+
+function userIsAuthorized(member) {
+    if (!member) return false;
+
+    // Guild owners are always allowed
+    if (member.hasPermission("MANAGE_GUILD"))
+        return true;
+
+    // Otherwise, they must be a member of the right role
+    if (member.roles.some((role) => { return role.name.toLowerCase() === "craig"; }))
+        return true;
+
+    // Not for you!
+    return false;
+}
 
 client.on('message', (msg) => {
+    // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
+
+    // Ignore it if it's from an unauthorized user
+    if (!userIsAuthorized(msg.member)) return;
+
     var op = cmd[2].toLowerCase();
     if (op === "join" || op === "record" || op === "rec" ||
         op === "leave" || op === "part") {
@@ -164,12 +184,12 @@ client.on('message', (msg) => {
                         } while (accessSyncer("rec/" + id + ".ogg.header"));
 
                         // Tell them
-                        msg.author.send("Recording with ID " + id);
+                        msg.author.send("Recording! http://craigrecords.yahweasel.com/?id=" + id);
 
                         // Then start the connection
                         newConnection(connection, id);
                     }).catch((err) => {
-                        msg.reply(cmd[1] + "<(Failed to join! " + err + ")");
+                        msg.reply(cmd[1] + " <(Failed to join! " + err + ")");
                     });
                 } else {
                     channel.leave();
@@ -180,7 +200,7 @@ client.on('message', (msg) => {
         });
 
         if (!found)
-            msg.reply(cmd[1] + "<(What channel?)");
+            msg.reply(cmd[1] + " <(What channel?)");
     }
 });
 
