@@ -37,7 +37,6 @@ function newConnection(channelStr, connection, id) {
     // Set up our recording OGG header and data file
     var startTime = process.hrtime();
     var recFileBase = "rec/" + id + ".ogg";
-    try { fs.mkdirSync("rec"); } catch (ex) {}
 
     // Set up our recording streams
     var recFHStream = [
