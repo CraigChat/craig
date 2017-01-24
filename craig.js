@@ -21,6 +21,10 @@ const opus = require("node-opus");
 const ogg = require("ogg");
 const ogg_packet = require("ogg-packet");
 const client = new Discord.Client();
+const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+
+if (!("nick" in config))
+    config.nick = "Craig";
 
 function accessSyncer(file) {
     try {
@@ -31,15 +35,18 @@ function accessSyncer(file) {
     return true;
 }
 
-// Active recording IDs
+// Active recordings by guild, channel
 var activeRecordings = {};
 
 // Given a connection, our recording session proper
-function newConnection(channelStr, connection, id) {
+function newConnection(guildId, channelId, connection, id) {
     const receiver = connection.createReceiver();
     const partTimeout = setTimeout(() => {
         connection.channel.leave();
     }, 1000*60*60*6);
+
+    // Rename ourself to indicate that we're recording
+    connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]");
 
     // Our input Opus streams by user
     var userOpusStreams = {};
@@ -80,7 +87,6 @@ function newConnection(channelStr, connection, id) {
             }
             fstream.write(chunk);
         });
-        encoder.on("end", () => { fstream.end(); });
         return encoder;
     }
     var recOggHStream = [ mkEncoder(recFHStream[0], true), mkEncoder(recFHStream[1]) ];
@@ -103,19 +109,18 @@ function newConnection(channelStr, connection, id) {
 
     // And receiver for the actual data
     receiver.on('opus', (user, chunk) => {
-        var userStr = user.username + "#" + user.id;
-        if (userStr in userOpusStreams) return;
+        if (user.id in userOpusStreams) return;
 
-        var opusStream = userOpusStreams[userStr] = receiver.createOpusStream(user);
+        var opusStream = userOpusStreams[user.id] = receiver.createOpusStream(user);
         var userOggStream;
-        if (!(userStr in userOggStreams)) {
+        if (!(user.id in userOggStreams)) {
             var serialNo = trackNo++;
             var userOggHStream = [
                 recOggHStream[0].stream(serialNo),
                 recOggHStream[1].stream(serialNo)
             ];
             userOggStream = recOggStream.stream(serialNo);
-            userOggStreams[userStr] = userOggStream;
+            userOggStreams[user.id] = userOggStream;
 
             // Put a valid Opus header at the beginning
             var opusEncoder = new opus.Encoder(48000, 1, 480);
@@ -138,10 +143,10 @@ function newConnection(channelStr, connection, id) {
             opusEncoder.write(Buffer.alloc(480*2));
             opusEncoder.end();
         }
-        userOggStream = userOggStreams[userStr];
+        userOggStream = userOggStreams[user.id];
 
         // And then receive the real data into the data stream
-        var oggStream = userOggStreams[userStr];
+        var oggStream = userOggStreams[user.id];
         var packetNo = 2;
 
         // Give it some empty audio data to start it out
@@ -162,7 +167,7 @@ function newConnection(channelStr, connection, id) {
             encodeChunk(userOggStream, chunk, packetNo++);
         });
         opusStream.on("end", () => {
-            delete userOpusStreams[userStr];
+            delete userOpusStreams[user.id];
         });
     });
 
@@ -172,8 +177,17 @@ function newConnection(channelStr, connection, id) {
         for (var user in userOggStreams)
             userOggStreams[user].end();
 
+        // Close the output files
+        recFHStream[0].end();
+        recFHStream[1].end();
+        recFStream.end();
+
         // Delete the active recording
-        delete activeRecordings[channelStr];
+        delete activeRecordings[guildId][channelId];
+
+        // If it was the last one, rename ourself in that guild
+        if (Object.keys(activeRecordings[guildId]).length === 0)
+            connection.channel.guild.members.get(client.user.id).setNickname(config.nick);
 
         // And delete our leave timeout
         clearTimeout(partTimeout);
@@ -224,9 +238,13 @@ client.on('message', (msg) => {
             if (channel.name.toLowerCase() === cname) {
                 found = true;
                 if (op === "join" || op === "record" || op === "rec") {
-                    var channelStr = channel.name + "#" + channel.id;
-                    if (channelStr in activeRecordings) {
-                        msg.author.send("I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[channelStr]);
+                    var guildId = channel.guild.id;
+                    var channelId = channel.id;
+                    if (!(guildId in activeRecordings))
+                        activeRecordings[guildId] = {};
+
+                    if (channelId in activeRecordings[guildId]) {
+                        msg.author.send("I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId]);
 
                     } else {
                         channel.join().then((connection) => {
@@ -245,13 +263,13 @@ client.on('message', (msg) => {
                             fs.writeFileSync("rec/" + id + ".ogg.delete", ""+deleteKey, "utf8");
 
                             // Tell them
-                            activeRecordings[channelStr] = id;
+                            activeRecordings[guildId][channelId] = id;
                             msg.author.send(
                                 "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "\n\n" +
                                 "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n");
 
                             // Then start the connection
-                            newConnection(channelStr, connection, id);
+                            newConnection(guildId, channelId, connection, id);
 
                         }).catch((err) => {
                             msg.reply(cmd[1] + " <(Failed to join! " + err + ")");
@@ -273,4 +291,4 @@ client.on('message', (msg) => {
     }
 });
 
-client.login(JSON.parse(fs.readFileSync("config.json", "utf8")).token);
+client.login(config.token);
