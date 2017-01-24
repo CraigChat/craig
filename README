@@ -1,0 +1,18 @@
+Craig is a multi-track voice recorder for Discord. Craig requires the following
+NPM libraries:
+
+discord.js ( http://discord.js.org/ )
+node-opus ( https://github.com/Rantanen/node-opus )
+node-ogg ( https://github.com/TooTallNate/node-ogg )
+node-ogg-packet ( https://github.com/TooTallNate/node-ogg-packet )
+
+Craig also requires a web server running PHP, and the following command line
+tools:
+
+ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
+flac ( https://xiph.org/flac/ )
+zip ( http://infozip.org/ )
+
+No documentation is provided for running your own instances of Craig. More
+information on the main instance of Craig can be found at
+https://craigrecords.yahweasel.com/
