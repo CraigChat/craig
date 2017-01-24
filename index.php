@@ -1,18 +1,30 @@
 <?PHP
 $base = "/home/yahweasel/craig/rec";
 
+// No ID => Send them to homepage
 if (!isset($_REQUEST["id"])) {
     header("Location: /home/");
     die();
 }
 $id = intval($_REQUEST["id"]);
 
+// Make sure the recording exists
 if (!file_exists("$base/$id.ogg.header1") ||
     !file_exists("$base/$id.ogg.header2") ||
     !file_exists("$base/$id.ogg.data") ||
+    !file_exists("$base/$id.ogg.key") ||
     !file_exists("$base/$id.ogg.delete"))
     die("Invalid ID.");
 
+// Check the key
+if (!isset($_REQUEST["key"]))
+    die("Invalid ID.");
+$key = intval($_REQUEST["key"]);
+$corrKey = intval(file_get_contents("$base/$id.ogg.key"));
+if ($key !== $corrKey)
+    die("Invalid ID.");
+
+// Present them their options
 if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
 ?>
 <!doctype html><html><head><title>Craig Records!</title></head><body>
@@ -33,8 +45,8 @@ Note: Most audio editors will NOT correctly decode the raw version.
 ?>
 <!doctype html><html><head><title>Craig Records!</title></head><body>
 This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
-<a href="?id=<?PHP print $id; ?>&amp;delete=<?PHP print $deleteKey; ?>&amp;sure=yes">Yes</a><br/><br/>
-<a href="?id=<?PHP print $id; ?>">No</a>
+<a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;delete=<?PHP print $deleteKey; ?>&amp;sure=yes">Yes</a><br/><br/>
+<a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>">No</a>
 </body></html>
 <?PHP
 
@@ -44,6 +56,7 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
         unlink("$base/$id.ogg.header2");
         unlink("$base/$id.ogg.data");
         unlink("$base/$id.ogg.delete");
+        // We do NOT delete the key, so that it's not replaced before it times out naturally
         die("Deleted!");
     }
 

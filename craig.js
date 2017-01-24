@@ -48,7 +48,9 @@ function newConnection(channelStr, connection, id) {
     // Make sure they get destroyed
     var atcp = cp.spawn("at", ["now + 48 hours"],
         {"stdio": ["pipe", 1, 2]});
-    atcp.stdin.write("rm -f " + recFileBase + ".header1 " + recFileBase + ".header2 " + recFileBase + ".data " + recFileBase + ".delete");
+    atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
+        recFileBase + ".header2 " + recFileBase + ".data " +
+        recFileBase + ".key " + recFileBase + ".delete\n");
     atcp.stdin.end();
 
     // And our ogg encoders
@@ -216,17 +218,21 @@ client.on('message', (msg) => {
                             var id;
                             do {
                                 id = ~~(Math.random() * 1000000000);
-                            } while (accessSyncer("rec/" + id + ".ogg.header1"));
+                            } while (accessSyncer("rec/" + id + ".ogg.key"));
+
+                            // Make an access key for it
+                            var accessKey = ~~(Math.random() * 1000000000);
+                            fs.writeFileSync("rec/" + id + ".ogg.key", ""+accessKey, "utf8");
 
                             // Make a deletion key for it
-                            var deleteKey = ~~(Math.random() * 10000000000);
+                            var deleteKey = ~~(Math.random() * 1000000000);
                             fs.writeFileSync("rec/" + id + ".ogg.delete", ""+deleteKey, "utf8");
 
                             // Tell them
                             activeRecordings[channelStr] = id;
                             msg.author.send(
-                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "\n\n" +
-                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&delete=" + deleteKey + "\n\n");
+                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "\n\n" +
+                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n");
 
                             // Then start the connection
                             newConnection(channelStr, connection, id);
