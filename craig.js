@@ -5,33 +5,51 @@ const ogg = require("ogg");
 const ogg_packet = require("ogg-packet");
 const client = new Discord.Client();
 
-function newConnection(connection) {
+function accessSyncer(file) {
+    try {
+        fs.accessSync(file);
+    } catch (ex) {
+        return false;
+    }
+    return true;
+}
+
+// Given a connection, our recording session proper
+function newConnection(connection, id) {
     const receiver = connection.createReceiver();
+
+    // Our input Opus streams by user
     var userOpusStreams = {};
+
+    // Our output streams by user
     var userOggStreams = {};
 
-    // Set up our recording OGG file
+    // Our current track number
+    var trackNo = 1;
+
+    // Set up our recording OGG header and data file
     var startTime = process.hrtime();
-    var recFile = "rec/" + connection.channel.name + "." + (new Date().toISOString()) + ".ogg";
+    var recFileBase = "rec/" + id + ".ogg";
     try { fs.mkdirSync("rec"); } catch (ex) {}
 
-    var recFStream = fs.createWriteStream(recFile);
+    // Set up our recording streams
+    var recFHStream = fs.createWriteStream(recFileBase + ".header");
+    var recFStream = fs.createWriteStream(recFileBase + ".data");
+    var recOggHStream = new ogg.Encoder();
+    recOggHStream.on("data", (chunk) => { recFHStream.write(chunk); });
+    recOggHStream.on("end", () => { recFHStream.end(); });
     var recOggStream = new ogg.Encoder();
-    recOggStream.on("data", (chunk) => {
-        recFStream.write(chunk);
-    });
-    recOggStream.on("end", () => {
-        recFStream.end();
-    });
+    recOggStream.on("data", (chunk) => { recFStream.write(chunk); });
+    recOggStream.on("end", () => { recFStream.end(); });
 
     // Function to encode a single Opus chunk to the ogg file
-    function encodeChunk(oggStream, chunk, packetNo, b_o_s) {
+    function encodeChunk(oggStream, chunk, packetNo) {
         var chunkTime = process.hrtime(startTime);
         var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
         var oggPacket = new ogg_packet();
         oggPacket.packet = chunk;
         oggPacket.bytes = chunk.length;
-        oggPacket.b_o_s = b_o_s ? 1 : 0;
+        oggPacket.b_o_s = 0;
         oggPacket.e_o_s = 0;
         oggPacket.granulepos = chunkGranule;
         oggPacket.packetno = packetNo;
@@ -45,23 +63,35 @@ function newConnection(connection) {
         if (userStr in userOpusStreams) return;
 
         var opusStream = userOpusStreams[userStr] = receiver.createOpusStream(user);
+        var userOggStream;
         if (!(userStr in userOggStreams)) {
-            userOggStreams[userStr] = recOggStream.stream();
+            var serialNo = trackNo++;
+            var userOggHStream = recOggHStream.stream(serialNo);
+            userOggStream = recOggStream.stream(serialNo);
+            userOggStreams[userStr] = userOggStream;
 
-            // Start with a valid Opus header
-            var opusEncoder = new opus.Encoder(48000, 1, 960); // FIXME: Magic numbers
+            // Put a valid Opus header at the beginning
+            var opusEncoder = new opus.Encoder(48000, 1, 480);
             opusEncoder.on("data", (chunk) => {
-                userOggStreams[userStr].packetin(chunk);
+                if (!chunk.e_o_s) {
+                    chunk.granulepos = 0;
+                    userOggHStream.write(chunk);
+                }
             });
-            opusEncoder.write(Buffer.alloc(480*4));
+            opusEncoder.on("end", () => { userOggHStream.end(); });
+            opusEncoder.write(Buffer.alloc(480*2));
+            opusEncoder.end();
         }
+        userOggStream = userOggStreams[userStr];
+
+        // And then receive the real data into the data stream
         var oggStream = userOggStreams[userStr];
         var packetNo = 1;
 
-        encodeChunk(oggStream, chunk, 0, true);
+        encodeChunk(userOggStream, chunk, 0);
 
         opusStream.on("data", (chunk) => {
-            encodeChunk(oggStream, chunk, packetNo++);
+            encodeChunk(userOggStream, chunk, packetNo++);
         });
         opusStream.on("end", () => {
             delete userOpusStreams[userStr];
@@ -71,12 +101,8 @@ function newConnection(connection) {
     // When we're disconnected from the channel...
     connection.on("disconnect", () => {
         // Close all our OGG streams
-        for (var user in userOggStreams) {
+        for (var user in userOggStreams)
             userOggStreams[user].end();
-        }
-
-        // And close the overall OGG stream
-        // ???
     });
 }
 
@@ -104,13 +130,27 @@ client.on('message', (msg) => {
             if (channel.name.toLowerCase() === cname) {
                 found = true;
                 if (op === "join" || op === "record" || op === "rec") {
-                    channel.join().then(newConnection).catch((err) => {
+                    channel.join().then((connection) => {
+                        // Make a random ID for it
+                        var id;
+                        do {
+                            id = ~~(Math.random() * 1000000000);
+                        } while (accessSyncer("rec/" + id + ".ogg.header"));
+
+                        // Tell them
+                        msg.author.send("Recording with ID " + id);
+
+                        // Then start the connection
+                        newConnection(connection, id);
+                    }).catch((err) => {
                         msg.reply(cmd[1] + "<(Failed to join! " + err + ")");
                     });
                 } else {
                     channel.leave();
                 }
             }
+
+            return true;
         });
 
         if (!found)
