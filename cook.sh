@@ -16,6 +16,24 @@
 set -e
 [ "$1" ]
 
+if [ "$2" ]
+then
+    FORMAT="$2"
+else
+    FORMAT="flac"
+fi
+
+case "$FORMAT" in
+    mp3)
+        ext=mp3
+        ENCODE="lame -V 2 - -"
+        ;;
+    *)
+        ext=flac
+        ENCODE="flac - -c"
+        ;;
+esac
+
 cd `dirname "$0"`/rec
 
 tmpdir=`mktemp -d`
@@ -31,17 +49,17 @@ NB_STREAMS=`cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data | ffprobe -print_forma
 NICE="nice -n10 ionice -c3"
 for c in `seq 0 $((NB_STREAMS-1))`
 do
-    mkfifo $tmpdir/$((c+1)).flac
+    mkfifo $tmpdir/$((c+1)).$ext
     $NICE cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
         $NICE ffmpeg -codec libopus -copyts -i - \
         -map 0:$c -af aresample=async=480,asyncts=first_pts=0 \
         -f wav - |
-        $NICE flac - -c > $tmpdir/$((c+1)).flac &
+        $NICE $ENCODE > $tmpdir/$((c+1)).$ext &
 done
 
 # Zip them up
 cd $tmpdir
-zip -1 -FI - *.flac | cat
+zip -1 -FI - *.$ext | cat
 cd
 
 # And clean up after ourselves

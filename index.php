@@ -46,7 +46,7 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
 <!doctype html><html><head><title>Craig Records!</title></head><body>
 ID: <?PHP print $id; ?><br/><br/>
 
-Download: <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=cooked">processed</a>, <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=raw">raw</a><br/><br/>
+Download: <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=cooked">FLAC</a>, <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=cooked&amp;format=mp3">MP3</a>, <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=raw">raw</a><br/><br/>
 
 Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
 
@@ -84,9 +84,14 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
     }
 
 } else if ($_REQUEST["fetch"] === "cooked") {
+    $format = "flac";
+    if (isset($_REQUEST["format"])) {
+        if ($_REQUEST["format"] === "mp3")
+            $format = "mp3";
+    }
     header("Content-disposition: attachment; filename=$id.zip");
     header("Content-type: application/zip");
-    passthru("/home/yahweasel/craig/cook.sh $id");
+    passthru("/home/yahweasel/craig/cook.sh $id $format");
 
 } else {
     header("Content-disposition: attachment; filename=$id.ogg");
