@@ -46,7 +46,9 @@ function newConnection(guildId, channelId, connection, id) {
     }, 1000*60*60*6);
 
     // Rename ourself to indicate that we're recording
-    connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]");
+    try {
+        connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]");
+    } catch (ex) {}
 
     // Our input Opus streams by user
     var userOpusStreams = {};
@@ -186,8 +188,11 @@ function newConnection(guildId, channelId, connection, id) {
         delete activeRecordings[guildId][channelId];
 
         // If it was the last one, rename ourself in that guild
-        if (Object.keys(activeRecordings[guildId]).length === 0)
-            connection.channel.guild.members.get(client.user.id).setNickname(config.nick);
+        if (Object.keys(activeRecordings[guildId]).length === 0) {
+            try {
+                connection.channel.guild.members.get(client.user.id).setNickname(config.nick);
+            } catch (ex) {}
+        }
 
         // And delete our leave timeout
         clearTimeout(partTimeout);
