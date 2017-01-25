@@ -11,6 +11,9 @@ tools:
 
 ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
 flac ( https://xiph.org/flac/ )
+oggenc ( https://xiph.org/vorbis/ )
+fdkaac ( https://github.com/nu774/fdkaac )
+lame ( http://lame.sourceforge.net/ )
 zip ( http://infozip.org/ )
 
 No documentation is provided for running your own instances of Craig. More
