@@ -306,6 +306,8 @@ function desperation(guild, msg) {
             channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
             return true;
         }
+
+        return false;
     });
 
     // And give ourself a name indicating error
