@@ -290,6 +290,30 @@ function ownerCommand(msg, cmd) {
     }
 }
 
+// Desperation function to try to tell them "I can't talk!"
+function desperation(guild, msg) {
+    // Try to get a message out
+    guild.channels.some((channel) => {
+        if (channel.type !== "text")
+            return false;
+
+        var perms = channel.permissionsFor(client.user);
+        if (!perms)
+            return false;
+
+        if (perms.hasPermission("SEND_MESSAGES")) {
+            // Finally!
+            channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
+            return true;
+        }
+    });
+
+    // And give ourself a name indicating error
+    try {
+        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES");
+    } catch (ex) {}
+}
+
 client.on('message', (msg) => {
     if (dead) return;
 
@@ -334,7 +358,9 @@ client.on('message', (msg) => {
                     if (channelId in activeRecordings[guildId]) {
                         var rmsg = "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId];
                         msg.author.send(rmsg).catch((err) => {
-                            msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")");
+                            msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")").catch((err) => {
+                                desperation(msg.guild, rmsg);
+                            });
                         });
 
                     } else {
@@ -359,14 +385,18 @@ client.on('message', (msg) => {
                             msg.author.send(
                                 rmsg + "\n\n" +
                                 "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n").catch((err) => {
-                                msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")");
+                                msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")").catch((err) => {
+                                    desperation(msg.guild, rmsg);
+                                });
                             });
 
                             // Then start the connection
                             newConnection(guildId, channelId, connection, id);
 
                         }).catch((err) => {
-                            msg.reply(cmd[1] + " <(Failed to join! " + err + ")");
+                            msg.reply(cmd[1] + " <(Failed to join! " + err + ")").catch((err) => {
+                                desperation(msg.guild, ""+err);
+                            });
                         });
 
                     }
