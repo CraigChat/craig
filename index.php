@@ -76,9 +76,16 @@ Recordings are deleted automatically after 48 hours from the <em>start</em> of
 recording. Both the raw and processed audio can be downloaded even if Craig is
 still recording at the time.<br/><br/>
 
+<br/><br/>
+
 Other download formats:
 <?PHP
-    download("FLAC in multi-track Matroska", "flac", "matroska");
+    print("Single Matroska file (");
+    download("FLAC", "flac", "matroska");
+    download("Vorbis", "vorbis", "matroska");
+    download("AAC", "aac", "matroska");
+    download("MP3", "mp3", "matroska", "");
+    print("), ");
     download("Raw", "raw", "raw", "");
 ?>
 <br/><br/>
