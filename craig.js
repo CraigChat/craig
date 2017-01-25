@@ -26,6 +26,18 @@ const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 if (!("nick" in config))
     config.nick = "Craig";
 
+var log;
+if ("log" in config) {
+    const logStream = fs.createWriteStream(config.log, {"flags": "a"});
+    log = function(line) {
+        logStream.write((new Date().toISOString()) + ": " + line + "\n");
+    }
+} else {
+    log = function(line) {
+        console.log((new Date().toISOString()) + ": " + line);
+    }
+}
+
 // Set to true when we've been gracefully restarted
 var dead = false;
 
@@ -36,6 +48,19 @@ function accessSyncer(file) {
         return false;
     }
     return true;
+}
+
+// Convenience functions to turn entities into name#id strings:
+function nameId(entity) {
+    var nick = "";
+    if ("displayName" in entity) {
+        nick = entity.displayName;
+    } else if ("username" in entity) {
+        nick = entity.username;
+    } else if ("name" in entity) {
+        nick = entity.name;
+    }
+    return nick + "#" + entity.id;
 }
 
 // Active recordings by guild, channel
@@ -52,6 +77,11 @@ function newConnection(guildId, channelId, connection, id) {
     try {
         connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]");
     } catch (ex) {}
+
+    // Log it
+    try {
+        log("Started recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+    } catch(ex) {}
 
     // Our input Opus streams by user
     var userOpusStreams = {};
@@ -178,6 +208,11 @@ function newConnection(guildId, channelId, connection, id) {
 
     // When we're disconnected from the channel...
     connection.on("disconnect", () => {
+        // Log it
+        try {
+            log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+        } catch (ex) {}
+
         // Close all our OGG streams
         for (var user in userOggStreams)
             userOggStreams[user].end();
@@ -208,7 +243,7 @@ function newConnection(guildId, channelId, connection, id) {
 }
 
 client.on('ready', () => {
-    console.log(`Logged in as ${client.user.username}!`);
+    log("Logged in as " + client.user.username);
 });
 
 const craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) ?(.*)$/;
@@ -231,6 +266,10 @@ function userIsAuthorized(member) {
 // Special commands from the owner
 function ownerCommand(msg, cmd) {
     var op = cmd[2].toLowerCase();
+
+    try {
+        log("Owner command: " + nameId(msg.author) + ": " + msg.content);
+    } catch (ex) {}
 
     if (op === "graceful-restart") {
         // Start a new craig
@@ -266,6 +305,11 @@ client.on('message', (msg) => {
 
     // Ignore it if it's from an unauthorized user
     if (!userIsAuthorized(msg.member)) return;
+
+    // Log it
+    try {
+        log("Command: " + nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content);
+    } catch (ex) {}
 
     var op = cmd[2].toLowerCase();
     if (op === "join" || op === "record" || op === "rec" ||
