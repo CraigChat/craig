@@ -30,7 +30,8 @@ case "$FORMAT" in
         ;;
     aac)
         ext=aac
-        ENCODE="faac -q 100 -o /dev/stdout -"
+        #ENCODE="faac -q 100 -o /dev/stdout -"
+        ENCODE="fdkaac -f 2 -m 4 -o - -"
         ;;
     mp3)
         ext=mp3
