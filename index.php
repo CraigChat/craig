@@ -40,13 +40,39 @@ $corrKey = intval(file_get_contents("$base/$id.ogg.key"));
 if ($key !== $corrKey)
     die("Invalid ID.");
 
+// Function to present a download link
+function download($title, $format) {
+    global $id, $key;
+    print "<a href=\"?id=$id&amp;key=$key";
+    if ($format === "raw") {
+        print "&amp;fetch=raw";
+    } else {
+        print "&amp;fetch=cooked";
+        if ($format !== "flac") {
+            print "&amp;format=$format";
+        }
+    }
+    print "\">$title</a>";
+    if ($format !== "raw") {
+        print ", ";
+    }
+}
+
 // Present them their options
 if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
 ?>
 <!doctype html><html><head><title>Craig Records!</title></head><body>
 ID: <?PHP print $id; ?><br/><br/>
 
-Download: <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=cooked">FLAC</a>, <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=cooked&amp;format=mp3">MP3</a>, <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;fetch=raw">raw</a><br/><br/>
+Download:
+<?PHP
+    download("FLAC", "flac");
+    download("Ogg (Vorbis)", "vorbis");
+    download("AAC", "aac");
+    download("MP3", "mp3");
+    download("Raw", "raw");
+?>
+<br/><br/>
 
 Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
 
@@ -86,10 +112,12 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
 } else if ($_REQUEST["fetch"] === "cooked") {
     $format = "flac";
     if (isset($_REQUEST["format"])) {
-        if ($_REQUEST["format"] === "mp3")
-            $format = "mp3";
+        if ($_REQUEST["format"] === "aac" ||
+            $_REQUEST["format"] === "vorbis" ||
+            $_REQUEST["format"] === "mp3")
+            $format = $_REQUEST["format"];
     }
-    header("Content-disposition: attachment; filename=$id.zip");
+    header("Content-disposition: attachment; filename=$id.$format.zip");
     header("Content-type: application/zip");
     passthru("/home/yahweasel/craig/cook.sh $id $format");
 

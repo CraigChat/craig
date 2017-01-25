@@ -24,6 +24,14 @@ else
 fi
 
 case "$FORMAT" in
+    vorbis)
+        ext=ogg
+        ENCODE="oggenc -q 6 -"
+        ;;
+    aac)
+        ext=aac
+        ENCODE="faac -q 100 -o /dev/stdout -"
+        ;;
     mp3)
         ext=mp3
         ENCODE="lame -V 2 - -"
