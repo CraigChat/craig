@@ -41,21 +41,19 @@ if ($key !== $corrKey)
     die("Invalid ID.");
 
 // Function to present a download link
-function download($title, $format) {
+function download($title, $format="flac", $container="zip", $then=", ") {
     global $id, $key;
     print "<a href=\"?id=$id&amp;key=$key";
     if ($format === "raw") {
         print "&amp;fetch=raw";
     } else {
         print "&amp;fetch=cooked";
-        if ($format !== "flac") {
+        if ($format !== "flac")
             print "&amp;format=$format";
-        }
+        if ($container !== "zip")
+            print "&amp;container=$container";
     }
-    print "\">$title</a>";
-    if ($format !== "raw") {
-        print ", ";
-    }
+    print "\">$title</a>$then";
 }
 
 // Present them their options
@@ -69,17 +67,23 @@ Download:
     download("FLAC", "flac");
     download("Ogg (Vorbis)", "vorbis");
     download("AAC", "aac");
-    download("MP3", "mp3");
-    download("Raw", "raw");
+    download("MP3", "mp3", "zip", "");
 ?>
 <br/><br/>
-
-Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
 
 Craig is restricted to six hours of recording in any recording session.
 Recordings are deleted automatically after 48 hours from the <em>start</em> of
 recording. Both the raw and processed audio can be downloaded even if Craig is
-still recording at the time.
+still recording at the time.<br/><br/>
+
+Other download formats:
+<?PHP
+    download("FLAC in multi-track Matroska", "flac", "matroska");
+    download("Raw", "raw", "raw", "");
+?>
+<br/><br/>
+
+Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
 </body></html>
 <?PHP
 
@@ -117,9 +121,19 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
             $_REQUEST["format"] === "mp3")
             $format = $_REQUEST["format"];
     }
-    header("Content-disposition: attachment; filename=$id.$format.zip");
-    header("Content-type: application/zip");
-    passthru("/home/yahweasel/craig/cook.sh $id $format");
+    $container="zip";
+    $ext="$format.zip";
+    $mime="application/zip";
+    if (isset($_REQUEST["container"])) {
+        if ($_REQUEST["container"] === "matroska") {
+            $container = "matroska";
+            $ext = "mkv";
+            $mime = "video/x-matroska";
+        }
+    }
+    header("Content-disposition: attachment; filename=$id.$ext");
+    header("Content-type: $mime");
+    passthru("/home/yahweasel/craig/cook.sh $id $format $container");
 
 } else {
     header("Content-disposition: attachment; filename=$id.ogg");

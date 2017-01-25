@@ -16,12 +16,11 @@
 set -e
 [ "$1" ]
 
-if [ "$2" ]
-then
-    FORMAT="$2"
-else
-    FORMAT="flac"
-fi
+FORMAT=flac
+[ "$2" ] && FORMAT="$2"
+
+CONTAINER=zip
+[ "$3" ] && CONTAINER="$3"
 
 case "$FORMAT" in
     vorbis)
@@ -66,10 +65,27 @@ do
         $NICE $ENCODE > $tmpdir/$((c+1)).$ext &
 done
 
-# Zip them up
+# Put them into their container
 cd $tmpdir
-zip -1 -FI - *.$ext | cat
-cd
+case "$CONTAINER" in
+    matroska)
+        INPUT=""
+        MAP=""
+        c=0
+        for i in *.$ext
+        do
+            INPUT="$INPUT -i $i"
+            MAP="$MAP -map $c"
+            c=$((c+1))
+        done
+        $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER -
+        ;;
+
+    *)
+        zip -1 -FI - *.$ext
+        ;;
+esac | cat
 
 # And clean up after ourselves
+cd
 rm -rf $tmpdir
