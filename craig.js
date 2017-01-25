@@ -332,7 +332,10 @@ client.on('message', (msg) => {
                         activeRecordings[guildId] = {};
 
                     if (channelId in activeRecordings[guildId]) {
-                        msg.author.send("I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId]);
+                        var rmsg = "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId];
+                        msg.author.send(rmsg).catch((err) => {
+                            msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")");
+                        });
 
                     } else {
                         channel.join().then((connection) => {
@@ -352,9 +355,12 @@ client.on('message', (msg) => {
 
                             // Tell them
                             activeRecordings[guildId][channelId] = id;
+                            var rmsg = "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey;
                             msg.author.send(
-                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "\n\n" +
-                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n");
+                                rmsg + "\n\n" +
+                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n").catch((err) => {
+                                msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")");
+                            });
 
                             // Then start the connection
                             newConnection(guildId, channelId, connection, id);
