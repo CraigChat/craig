@@ -25,6 +25,8 @@ const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
 if (!("nick" in config))
     config.nick = "Craig";
+if (!("hardLimit" in config))
+    config.hardLimit = 536870912;
 
 var log;
 if ("log" in config) {
@@ -70,7 +72,7 @@ var activeRecordings = {};
 function newConnection(guildId, channelId, connection, id) {
     const receiver = connection.createReceiver();
     const partTimeout = setTimeout(() => {
-        connection.channel.leave();
+        connection.disconnect();
     }, 1000*60*60*6);
 
     // Rename ourself to indicate that we're recording
@@ -114,6 +116,7 @@ function newConnection(guildId, channelId, connection, id) {
     // And our ogg encoders
     function mkEncoder(fstream, allow_b_o_s) {
         var encoder = new ogg.Encoder();
+        var size = 0;
         encoder.on("data", (chunk) => {
             if (!allow_b_o_s) {
                 /* Manually hack out b_o_s, assume (correctly) we'll never have
@@ -121,6 +124,10 @@ function newConnection(guildId, channelId, connection, id) {
                 chunk[5] &= 0xFD;
             }
             fstream.write(chunk);
+
+            size += chunk.length;
+            if (config.hardLimit && size >= config.hardLimit)
+                connection.disconnect();
         });
         return encoder;
     }
@@ -223,7 +230,9 @@ function newConnection(guildId, channelId, connection, id) {
         recFStream.end();
 
         // Delete the active recording
-        delete activeRecordings[guildId][channelId];
+        try {
+            delete activeRecordings[guildId][channelId];
+        } catch (ex) {}
 
         // If it was the last one, rename ourself in that guild
         if (Object.keys(activeRecordings[guildId]).length === 0) {
