@@ -427,6 +427,10 @@ client.on('message', (msg) => {
 
         if (!found)
             msg.reply(cmd[1] + " <(What channel?)");
+
+    } else if (op === "help" || op === "commands" || op === "hello") {
+        msg.reply(cmd[1] + " <(Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ )");
+
     }
 });
 
