@@ -123,7 +123,9 @@ function newConnection(guildId, channelId, connection, id) {
                  * inter-page chunks */
                 chunk[5] &= 0xFD;
             }
-            fstream.write(chunk);
+            try {
+                fstream.write(chunk);
+            } catch (ex) {}
 
             size += chunk.length;
             if (config.hardLimit && size >= config.hardLimit)
@@ -168,10 +170,12 @@ function newConnection(guildId, channelId, connection, id) {
             var opusEncoder = new opus.Encoder(48000, 1, 480);
             opusEncoder.on("data", (chunk) => {
                 if (!chunk.e_o_s) {
-                    if (chunk.granulepos == 0)
-                        userOggHStream[0].write(chunk);
-                    else
-                        userOggHStream[1].write(chunk);
+                    try {
+                        if (chunk.granulepos == 0)
+                            userOggHStream[0].write(chunk);
+                        else
+                            userOggHStream[1].write(chunk);
+                    } catch (ex) {}
                 }
             });
             opusEncoder.on("end", () => {
