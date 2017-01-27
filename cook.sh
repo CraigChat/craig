@@ -54,7 +54,7 @@ NB_STREAMS=`cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data | ffprobe -print_forma
     sed 's/^[^=]*=//'`
 
 # Make all the fifos
-NICE="nice -n10 ionice -c3"
+NICE="nice -n10 ionice -c3 chrt -i 0"
 for c in `seq 0 $((NB_STREAMS-1))`
 do
     mkfifo $tmpdir/$((c+1)).$ext
