@@ -1,0 +1,17 @@
+{
+    "name": "craig",
+    "homepage": "http://craigrecords.yahweasel.com/home/",
+    "license": "ISC",
+    "repository": {
+        "type": "hg",
+        "url": "https://bitbucket.org/Yahweasel/craig"
+    },
+    "dependencies": {
+        "discord.js": "*",
+        "node-opus": "*",
+        "uws": "*",
+        "erlpack": "*",
+        "ogg": "*",
+        "ogg-packet": "*"
+    }
+}
