@@ -298,10 +298,6 @@ function newConnection(msg, guildId, channelId, connection, id) {
                 connection.channel.guild.members.get(client.user.id).setNickname(config.nick);
             } catch (ex) {}
             delete activeRecordings[guildId];
-
-            // And maybe quit
-            if (dead && Object.keys(activeRecordings).length === 0)
-                client.destroy();
         }
 
         // And delete our leave timeout
@@ -343,15 +339,10 @@ function ownerCommand(msg, cmd) {
 
         // Start a new craig
         var ccp = cp.spawn(
-            process.argv[0], ["craig.js"],
-            {"detached": true});
+            process.argv[0], ["craig.js"]);
 
         // Stop responding to input
         dead = true;
-
-        // And if we're not recording anything, disconnect
-        if (Object.keys(activeRecordings).length === 0)
-            client.destroy();
 
     } else {
         reply(msg, false, cmd[1], "Huh?");
