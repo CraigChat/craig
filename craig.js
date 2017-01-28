@@ -424,7 +424,7 @@ client.on('message', (msg) => {
                             activeRecordings[guildId][channelId] = id;
                             reply(msg, true, cmd[1],
                                 "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
-                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n");
+                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
 
                             // Then start the connection
                             newConnection(msg, guildId, channelId, connection, id);
