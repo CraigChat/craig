@@ -340,7 +340,7 @@ function ownerCommand(msg, cmd) {
         // Start a new craig
         var ccp = cp.spawn(
             process.argv[0], ["craig.js"],
-            {"detached": true});
+            {"stdio": "inherit", "detached": true});
         ccp.on("exit", (code) => {
             process.exit(code ? code : 1);
         });
