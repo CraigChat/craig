@@ -341,6 +341,9 @@ function ownerCommand(msg, cmd) {
         var ccp = cp.spawn(
             process.argv[0], ["craig.js"],
             {"detached": true});
+        ccp.on("exit", (code) => {
+            process.exit(code ? code : 1);
+        });
 
         // Stop responding to input
         dead = true;
