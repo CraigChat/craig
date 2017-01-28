@@ -344,7 +344,7 @@ function ownerCommand(msg, cmd) {
         // Start a new craig
         var ccp = cp.spawn(
             process.argv[0], ["craig.js"],
-            {"stdio": "inherit", "detached": true});
+            {"detached": true});
 
         // Stop responding to input
         dead = true;
