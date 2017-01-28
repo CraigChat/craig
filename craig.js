@@ -68,10 +68,62 @@ function nameId(entity) {
 // Active recordings by guild, channel
 var activeRecordings = {};
 
+// Function to respond to a message by any means necessary
+function reply(msg, dm, prefix, pubtext, privtext) {
+    if (dm) {
+        // Try to send the message privately
+        if (typeof privtext === "undefined")
+            privtext = pubtext;
+        else
+            privtext = pubtext + "\n\n" + privtext;
+        msg.author.send(privtext).catch((err) => {
+            reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
+        });
+        return;
+    }
+
+    // Try to send it by conventional means
+    msg.reply((prefix ? (prefix + " <(") : "") +
+              pubtext +
+              (prefix ? ")" : "")).catch((err) => {
+
+    // If this wasn't a guild message, nothing to be done
+    var guild = msg.guild;
+    if (!guild)
+        return;
+
+    /* We can't get a message to them properly, so try to get a message out
+     * that we're stimied */
+    guild.channels.some((channel) => {
+        if (channel.type !== "text")
+            return false;
+
+        var perms = channel.permissionsFor(client.user);
+        if (!perms)
+            return false;
+
+        if (perms.hasPermission("SEND_MESSAGES")) {
+            // Finally!
+            channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
+            return true;
+        }
+
+        return false;
+    });
+
+    // And give ourself a name indicating error
+    try {
+        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES");
+    } catch (ex) {}
+
+    });
+}
+
 // Given a connection, our recording session proper
-function newConnection(guildId, channelId, connection, id) {
+function newConnection(msg, guildId, channelId, connection, id) {
     const receiver = connection.createReceiver();
     const partTimeout = setTimeout(() => {
+        reply(msg, true, false, "Sorry, but you've hit the recording time limit. Recording stopped.");
         connection.disconnect();
     }, 1000*60*60*6);
 
@@ -128,8 +180,10 @@ function newConnection(guildId, channelId, connection, id) {
             } catch (ex) {}
 
             size += chunk.length;
-            if (config.hardLimit && size >= config.hardLimit)
+            if (config.hardLimit && size >= config.hardLimit) {
+                reply(msg, true, false, "Sorry, but you've hit the recording size limit. Recording stopped.");
                 connection.disconnect();
+            }
         });
         return encoder;
     }
@@ -285,6 +339,8 @@ function ownerCommand(msg, cmd) {
     } catch (ex) {}
 
     if (op === "graceful-restart") {
+        reply(msg, false, cmd[1], "Restarting!");
+
         // Start a new craig
         var ccp = cp.spawn(
             process.argv[0], ["craig.js"],
@@ -298,35 +354,9 @@ function ownerCommand(msg, cmd) {
             client.destroy();
 
     } else {
-        msg.reply(cmd[1] + " <(Huh? '" + op + "')");
+        reply(msg, false, cmd[1], "Huh?");
 
     }
-}
-
-// Desperation function to try to tell them "I can't talk!"
-function desperation(guild, msg) {
-    // Try to get a message out
-    guild.channels.some((channel) => {
-        if (channel.type !== "text")
-            return false;
-
-        var perms = channel.permissionsFor(client.user);
-        if (!perms)
-            return false;
-
-        if (perms.hasPermission("SEND_MESSAGES")) {
-            // Finally!
-            channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
-            return true;
-        }
-
-        return false;
-    });
-
-    // And give ourself a name indicating error
-    try {
-        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES");
-    } catch (ex) {}
 }
 
 client.on('message', (msg) => {
@@ -371,12 +401,8 @@ client.on('message', (msg) => {
                         activeRecordings[guildId] = {};
 
                     if (channelId in activeRecordings[guildId]) {
-                        var rmsg = "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId];
-                        msg.author.send(rmsg).catch((err) => {
-                            msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")").catch((err) => {
-                                desperation(msg.guild, rmsg);
-                            });
-                        });
+                        reply(msg, true, cmd[1],
+                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId]);
 
                     } else {
                         channel.join().then((connection) => {
@@ -396,22 +422,16 @@ client.on('message', (msg) => {
 
                             // Tell them
                             activeRecordings[guildId][channelId] = id;
-                            var rmsg = "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey;
-                            msg.author.send(
-                                rmsg + "\n\n" +
-                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n").catch((err) => {
-                                msg.reply(cmd[1] + " <(I can't DM you. " + rmsg + ")").catch((err) => {
-                                    desperation(msg.guild, rmsg);
-                                });
-                            });
+                            reply(msg, true, cmd[1],
+                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
+                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n\n");
 
                             // Then start the connection
-                            newConnection(guildId, channelId, connection, id);
+                            newConnection(msg, guildId, channelId, connection, id);
 
                         }).catch((err) => {
-                            msg.reply(cmd[1] + " <(Failed to join! " + err + ")").catch((err) => {
-                                desperation(msg.guild, ""+err);
-                            });
+                            reply(msg, false, cmd[1], "Failed to join! " + err);
+
                         });
 
                     }
@@ -426,10 +446,11 @@ client.on('message', (msg) => {
         });
 
         if (!found)
-            msg.reply(cmd[1] + " <(What channel?)");
+            reply(msg, false, cmd[1], "What channel?");
 
     } else if (op === "help" || op === "commands" || op === "hello") {
-        msg.reply(cmd[1] + " <(Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ )");
+        reply(msg, false, cmd[1],
+            "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ ");
 
     }
 });
