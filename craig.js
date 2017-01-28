@@ -111,9 +111,16 @@ function reply(msg, dm, prefix, pubtext, privtext) {
         return false;
     });
 
-    // And give ourself a name indicating error
     try {
+        // Give ourself a name indicating error
         guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES");
+
+        // And leave any voice channels
+        guild.channels.every((channel) => {
+            if (channel.type === "voice")
+                channel.leave();
+            return true;
+        });
     } catch (ex) {}
 
     });
