@@ -399,6 +399,10 @@ client.on('message', (msg) => {
                         reply(msg, true, cmd[1],
                             "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId]);
 
+                    } else if (msg.guild.voiceConnection) {
+                        reply(msg, false, cmd[1],
+                            "Sorry, but I can only record one channel per server! Please ask me to leave the channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
+
                     } else {
                         channel.join().then((connection) => {
                             // Make a random ID for it
@@ -443,11 +447,41 @@ client.on('message', (msg) => {
         if (!found)
             reply(msg, false, cmd[1], "What channel?");
 
+    } else if (op === "stop") {
+        if (msg.guild && msg.guild.voiceConnection)
+            msg.guild.voiceConnection.disconnect();
+        else
+            reply(msg, false, cmd[1], "But I haven't started!");
+
     } else if (op === "help" || op === "commands" || op === "hello") {
         reply(msg, false, cmd[1],
             "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ ");
 
     }
+});
+
+client.on("voiceStateUpdate", (from, to) => {
+    try {
+        if (from.id === client.user.id) {
+            if (from.voiceChannelID != to.voiceChannelID) {
+                // We do not tolerate being moved
+                to.guild.voiceConnection.disconnect();
+            }
+
+/*
+        } else if (to.guild.voiceConnection) {
+            if (from.voiceChannelID === to.guild.voiceConnection.channel.id &&
+                to.voiceChannelID !== from.voiceChannelID) {
+                // Somebody left, see if it's empty aside from us
+                if (!to.guild.voiceConnection.channel.members.some((member) => { return member.id !== client.user.id; })) {
+                    // I'm alone! Heck with this!
+                    to.guild.voiceConnection.disconnect();
+                }
+            }
+*/
+
+        }
+    } catch (err) {}
 });
 
 client.login(config.token);
