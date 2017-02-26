@@ -36,7 +36,6 @@ function die() {
 
 // Host control messages
 process.on("message", (msg) => {
-    console.log("Received " + JSON.stringify(msg));
     switch (msg.type) {
         case "config":
             config = msg.config;
