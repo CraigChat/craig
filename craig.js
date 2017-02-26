@@ -197,8 +197,10 @@ client.on('message', (msg) => {
                         activeRecordings[guildId] = {};
 
                     if (channelId in activeRecordings[guildId]) {
+                        var rec = activeRecordings[guildId][channelId];
                         reply(msg, true, cmd[1],
-                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId].id);
+                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
+                                rec.id + "&key=" + rec.accessKey);
 
                     } else if (msg.guild.voiceConnection) {
                         reply(msg, false, cmd[1],
@@ -231,7 +233,7 @@ client.on('message', (msg) => {
 
                             // Spawn off the child process
                             var ccp = cp.fork("./craig-rec.js");
-                            activeRecordings[guildId][channelId] = {"id": id, "cp": ccp};
+                            activeRecordings[guildId][channelId] = {"id": id, "accessKey": accessKey, "cp": ccp};
 
                             ccp.send({"type": "config", "config": config});
                             ccp.send({"type": "record", "record":
