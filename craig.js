@@ -17,11 +17,11 @@
 const cp = require("child_process");
 const fs = require("fs");
 const Discord = require("discord.js");
-const opus = require("node-opus");
-const ogg = require("ogg");
-const ogg_packet = require("ogg-packet");
+const cshared = require("./craig-shared.js");
+
 const client = new Discord.Client();
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const nameId = cshared.nameId;
 
 if (!("nick" in config))
     config.nick = "Craig";
@@ -50,19 +50,6 @@ function accessSyncer(file) {
         return false;
     }
     return true;
-}
-
-// Convenience functions to turn entities into name#id strings:
-function nameId(entity) {
-    var nick = "";
-    if ("displayName" in entity) {
-        nick = entity.displayName;
-    } else if ("username" in entity) {
-        nick = entity.username;
-    } else if ("name" in entity) {
-        nick = entity.name;
-    }
-    return nick + "#" + entity.id;
 }
 
 // Active recordings by guild, channel
@@ -116,192 +103,6 @@ function reply(msg, dm, prefix, pubtext, privtext) {
         guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES");
     } catch (ex) {}
 
-    });
-}
-
-// Given a connection, our recording session proper
-function newConnection(msg, guildId, channelId, connection, id) {
-    const receiver = connection.createReceiver();
-    const partTimeout = setTimeout(() => {
-        reply(msg, true, false, "Sorry, but you've hit the recording time limit. Recording stopped.");
-        connection.disconnect();
-    }, 1000*60*60*6);
-
-    // Rename ourself to indicate that we're recording
-    try {
-        connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]");
-    } catch (ex) {}
-
-    // Log it
-    try {
-        log("Started recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
-    } catch(ex) {}
-
-    // Our input Opus streams by user
-    var userOpusStreams = {};
-
-    // Our output streams by user
-    var userOggStreams = {};
-
-    // Our current track number
-    var trackNo = 1;
-
-    // Set up our recording OGG header and data file
-    var startTime = process.hrtime();
-    var recFileBase = "rec/" + id + ".ogg";
-
-    // Set up our recording streams
-    var recFHStream = [
-        fs.createWriteStream(recFileBase + ".header1"),
-        fs.createWriteStream(recFileBase + ".header2")
-    ];
-    var recFStream = fs.createWriteStream(recFileBase + ".data");
-
-    // Make sure they get destroyed
-    var atcp = cp.spawn("at", ["now + 48 hours"],
-        {"stdio": ["pipe", 1, 2]});
-    atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
-        recFileBase + ".header2 " + recFileBase + ".data " +
-        recFileBase + ".key " + recFileBase + ".delete\n");
-    atcp.stdin.end();
-
-    // And our ogg encoders
-    function mkEncoder(fstream, allow_b_o_s) {
-        var encoder = new ogg.Encoder();
-        var size = 0;
-        encoder.on("data", (chunk) => {
-            if (!allow_b_o_s) {
-                /* Manually hack out b_o_s, assume (correctly) we'll never have
-                 * inter-page chunks */
-                chunk[5] &= 0xFD;
-            }
-            try {
-                fstream.write(chunk);
-            } catch (ex) {}
-
-            size += chunk.length;
-            if (config.hardLimit && size >= config.hardLimit) {
-                reply(msg, true, false, "Sorry, but you've hit the recording size limit. Recording stopped.");
-                connection.disconnect();
-            }
-        });
-        return encoder;
-    }
-    var recOggHStream = [ mkEncoder(recFHStream[0], true), mkEncoder(recFHStream[1]) ];
-    var recOggStream = mkEncoder(recFStream);
-
-    // Function to encode a single Opus chunk to the ogg file
-    function encodeChunk(oggStream, chunk, packetNo) {
-        var chunkTime = process.hrtime(startTime);
-        var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-        var oggPacket = new ogg_packet();
-        oggPacket.packet = chunk;
-        oggPacket.bytes = chunk.length;
-        oggPacket.b_o_s = 0;
-        oggPacket.e_o_s = 0;
-        oggPacket.granulepos = chunkGranule;
-        oggPacket.packetno = packetNo;
-        oggStream.packetin(oggPacket);
-        oggStream.flush(() => {});
-    }
-
-    // And receiver for the actual data
-    receiver.on('opus', (user, chunk) => {
-        if (user.id in userOpusStreams) return;
-
-        var opusStream = userOpusStreams[user.id] = receiver.createOpusStream(user);
-        var userOggStream;
-        if (!(user.id in userOggStreams)) {
-            var serialNo = trackNo++;
-            var userOggHStream = [
-                recOggHStream[0].stream(serialNo),
-                recOggHStream[1].stream(serialNo)
-            ];
-            userOggStream = recOggStream.stream(serialNo);
-            userOggStreams[user.id] = userOggStream;
-
-            // Put a valid Opus header at the beginning
-            var opusEncoder = new opus.Encoder(48000, 1, 480);
-            opusEncoder.on("data", (chunk) => {
-                if (!chunk.e_o_s) {
-                    try {
-                        if (chunk.granulepos == 0)
-                            userOggHStream[0].write(chunk);
-                        else
-                            userOggHStream[1].write(chunk);
-                    } catch (ex) {}
-                }
-            });
-            opusEncoder.on("end", () => {
-                userOggHStream[0].flush(() => {
-                    userOggHStream[0].end();
-                });
-                userOggHStream[1].flush(() => {
-                    userOggHStream[1].end();
-                });
-            });
-            opusEncoder.write(Buffer.alloc(480*2));
-            opusEncoder.end();
-        }
-        userOggStream = userOggStreams[user.id];
-
-        // And then receive the real data into the data stream
-        var oggStream = userOggStreams[user.id];
-        var packetNo = 2;
-
-        // Give it some empty audio data to start it out
-        var opusEncoder = new opus.OpusEncoder(48000);
-        var oggPacket = new ogg_packet();
-        oggPacket.packet = opusEncoder.encode(Buffer.alloc(480*2), 480);
-        oggPacket.bytes = oggPacket.packet.length;
-        oggPacket.b_o_s = 0;
-        oggPacket.e_o_s = 0;
-        oggPacket.granulepos = 0;
-        oggPacket.packetno = packetNo++;
-        oggStream.packetin(oggPacket);
-        oggStream.flush(() => {});
-
-        encodeChunk(userOggStream, chunk, packetNo++);
-
-        opusStream.on("data", (chunk) => {
-            encodeChunk(userOggStream, chunk, packetNo++);
-        });
-        opusStream.on("end", () => {
-            delete userOpusStreams[user.id];
-        });
-    });
-
-    // When we're disconnected from the channel...
-    connection.on("disconnect", () => {
-        // Log it
-        try {
-            log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
-        } catch (ex) {}
-
-        // Close all our OGG streams
-        for (var user in userOggStreams)
-            userOggStreams[user].end();
-
-        // Close the output files
-        recFHStream[0].end();
-        recFHStream[1].end();
-        recFStream.end();
-
-        // Delete the active recording
-        try {
-            delete activeRecordings[guildId][channelId];
-        } catch (ex) {}
-
-        // If it was the last one, rename ourself in that guild
-        if (Object.keys(activeRecordings[guildId]).length === 0) {
-            try {
-                connection.channel.guild.members.get(client.user.id).setNickname(config.nick);
-            } catch (ex) {}
-            delete activeRecordings[guildId];
-        }
-
-        // And delete our leave timeout
-        clearTimeout(partTimeout);
     });
 }
 
@@ -389,54 +190,94 @@ client.on('message', (msg) => {
 
             if (channel.name.toLowerCase() === cname) {
                 found = true;
+                var guildId = channel.guild.id;
+                var channelId = channel.id;
                 if (op === "join" || op === "record" || op === "rec") {
-                    var guildId = channel.guild.id;
-                    var channelId = channel.id;
                     if (!(guildId in activeRecordings))
                         activeRecordings[guildId] = {};
 
                     if (channelId in activeRecordings[guildId]) {
                         reply(msg, true, cmd[1],
-                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId]);
+                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" + activeRecordings[guildId][channelId].id);
 
                     } else if (msg.guild.voiceConnection) {
                         reply(msg, false, cmd[1],
                             "Sorry, but I can only record one channel per server! Please ask me to leave the channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
 
                     } else {
-                        channel.join().then((connection) => {
+                        if (channel.joinable) {
                             // Make a random ID for it
                             var id;
                             do {
                                 id = ~~(Math.random() * 1000000000);
                             } while (accessSyncer("rec/" + id + ".ogg.key"));
+                            var recFileBase = "rec/" + id + ".ogg";
 
                             // Make an access key for it
                             var accessKey = ~~(Math.random() * 1000000000);
-                            fs.writeFileSync("rec/" + id + ".ogg.key", ""+accessKey, "utf8");
+                            fs.writeFileSync(recFileBase + ".key", ""+accessKey, "utf8");
 
                             // Make a deletion key for it
                             var deleteKey = ~~(Math.random() * 1000000000);
-                            fs.writeFileSync("rec/" + id + ".ogg.delete", ""+deleteKey, "utf8");
+                            fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
 
-                            // Tell them
-                            activeRecordings[guildId][channelId] = id;
-                            reply(msg, true, cmd[1],
-                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
-                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
+                            // Make sure they get destroyed
+                            var atcp = cp.spawn("at", ["now + 48 hours"],
+                                {"stdio": ["pipe", 1, 2]});
+                            atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
+                                recFileBase + ".header2 " + recFileBase + ".data " +
+                                recFileBase + ".key " + recFileBase + ".delete\n");
+                            atcp.stdin.end();
 
-                            // Then start the connection
-                            newConnection(msg, guildId, channelId, connection, id);
+                            // Spawn off the child process
+                            var ccp = cp.fork("./craig-rec.js");
+                            activeRecordings[guildId][channelId] = {"id": id, "cp": ccp};
 
-                        }).catch((err) => {
-                            reply(msg, false, cmd[1], "Failed to join! " + err);
+                            ccp.send({"type": "config", "config": config});
+                            ccp.send({"type": "record", "record":
+                                {"guild": msg.guild.id,
+                                 "channel": channel.id,
+                                 "id": id,
+                                 "accessKey": accessKey,
+                                 "deleteKey": deleteKey}});
 
-                        });
+                            ccp.on("message", (cmsg) => {
+                                switch (cmsg.type) {
+                                    case "log":
+                                        log(cmsg.line);
+                                        break;
+
+                                    case "reply":
+                                        reply(msg, cmsg.dm, cmd[1], cmsg.pubtext, cmsg.privtext);
+                                        break;
+                                }
+                            });
+
+                            ccp.on("disconnect", () => {
+                                delete activeRecordings[guildId][channelId];
+                                if (Object.keys(activeRecordings[guildId]).length === 0) {
+                                    delete activeRecordings[guildId];
+                                    
+                                    // This was the last one, so rename ourself in this guild
+                                    try {
+                                        msg.guild.members.get(client.user.id).setNickname(config.nick);
+                                    } catch (ex) {}
+                                }
+                            });
+
+                        } else {
+                            reply(msg, false, cmd[1], "I don't have permission to join that channel!");
+
+                        }
 
                     }
 
                 } else {
-                    channel.leave();
+                    if (guildId in activeRecordings &&
+                        channelId in activeRecordings[guildId])
+                        activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+                    else
+                        reply(msg, false, cmd[1], "But I'm not recording that channel!");
 
                 }
             }
@@ -448,10 +289,13 @@ client.on('message', (msg) => {
             reply(msg, false, cmd[1], "What channel?");
 
     } else if (op === "stop") {
-        if (msg.guild && msg.guild.voiceConnection)
-            msg.guild.voiceConnection.disconnect();
-        else
+        var guildId = msg.guild.id;
+        if (guildId in activeRecordings) {
+            for (var channelId in activeRecordings[guildId])
+                activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+        } else {
             reply(msg, false, cmd[1], "But I haven't started!");
+        }
 
     } else if (op === "help" || op === "commands" || op === "hello") {
         reply(msg, false, cmd[1],
