@@ -43,6 +43,11 @@ process.on("message", (msg) => {
                 client.login(config.token);
             break;
 
+        case "client":
+            config.token = msg.config.token;
+            config.nick = msg.config.nick;
+            break;
+
         case "record":
             toRec = msg.record;
             if (config && toRec)

@@ -20,6 +20,7 @@ const Discord = require("discord.js");
 const cshared = require("./craig-shared.js");
 
 const client = new Discord.Client();
+const clients = [client]; // For secondary connections
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const nameId = cshared.nameId;
 
@@ -27,6 +28,14 @@ if (!("nick" in config))
     config.nick = "Craig";
 if (!("hardLimit" in config))
     config.hardLimit = 536870912;
+if (!("secondary" in config))
+    config.secondary = [];
+
+// If there are secondary Craigs, log them in
+for (var si = 0; si < config.secondary.length; si++) {
+    clients.push(new Discord.Client());
+    clients[si+1].login(config.secondary[si].token);
+}
 
 var log;
 if ("log" in config) {
@@ -190,21 +199,68 @@ client.on('message', (msg) => {
 
             if (channel.name.toLowerCase() === cname) {
                 found = true;
-                var guildId = channel.guild.id;
+                var guild = msg.guild;
+                var guildId = guild.id;
                 var channelId = channel.id;
                 if (op === "join" || op === "record" || op === "rec") {
                     if (!(guildId in activeRecordings))
                         activeRecordings[guildId] = {};
 
+                    // Choose the right client
+                    var takenClients = {};
+                    var chosenClient = null;
+                    var chosenClientNum = -1;
+                    for (var oChannelId in activeRecordings[guildId]) {
+                        var recording = activeRecordings[guildId][oChannelId];
+                        takenClients[recording.clientNum] = true;
+                    }
+                    for (var ci = 0; ci < clients.length; ci++) {
+                        if (takenClients[ci]) continue;
+                        chosenClient = clients[ci];
+                        chosenClientNum = ci;
+                        break;
+                    }
+
+                    // Translate the guild and channel to the secondary client
+                    if (chosenClient && chosenClient !== client) {
+                        guild = null;
+                        chosenClient.guilds.some((cGuild) => {
+                            if (cGuild.id === guildId) {
+                                guild = cGuild;
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (guild) {
+                            channel = null;
+                            guild.channels.some((cChannel) => {
+                                if (cChannel.id === channelId) {
+                                    channel = cChannel;
+                                    return true;
+                                }
+                                return false;
+                            });
+                        }
+                    }
+
+                    // Choose the right action
                     if (channelId in activeRecordings[guildId]) {
                         var rec = activeRecordings[guildId][channelId];
                         reply(msg, true, cmd[1],
                             "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
                                 rec.id + "&key=" + rec.accessKey);
 
-                    } else if (msg.guild.voiceConnection) {
+                    } else if (!chosenClient) {
                         reply(msg, false, cmd[1],
-                            "Sorry, but I can only record one channel per server! Please ask me to leave the channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
+                            "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
+
+                    } else if (!guild) {
+                        reply(msg, false, cmd[1],
+                            "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: " + config.secondary[chosenClientNum-1].invite);
+
+                    } else if (!channel) {
+                        reply(msg, false, cmd[1],
+                            "My brother can't see that channel. Make sure his permissions are correct.");
 
                     } else {
                         if (channel.joinable) {
@@ -233,9 +289,15 @@ client.on('message', (msg) => {
 
                             // Spawn off the child process
                             var ccp = cp.fork("./craig-rec.js");
-                            activeRecordings[guildId][channelId] = {"id": id, "accessKey": accessKey, "cp": ccp};
+                            activeRecordings[guildId][channelId] = {
+                                "id": id, "accessKey": accessKey,
+                                "clientNum": chosenClientNum,
+                                "cp": ccp
+                            };
 
                             ccp.send({"type": "config", "config": config});
+                            if (chosenClient !== client)
+                                ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
                             ccp.send({"type": "record", "record":
                                 {"guild": msg.guild.id,
                                  "channel": channel.id,
@@ -266,12 +328,15 @@ client.on('message', (msg) => {
                                 delete activeRecordings[guildId][channelId];
                                 if (Object.keys(activeRecordings[guildId]).length === 0) {
                                     delete activeRecordings[guildId];
-                                    
-                                    // This was the last one, so rename ourself in this guild
-                                    try {
-                                        msg.guild.members.get(client.user.id).setNickname(config.nick);
-                                    } catch (ex) {}
                                 }
+
+                                // Rename the bot in this guild
+                                var reNick = config.nick;
+                                if (chosenClient !== client)
+                                    reNick = config.secondary[chosenClientNum-1].nick;
+                                try {
+                                    guild.members.get(chosenClient.user.id).setNickname(reNick);
+                                } catch (ex) {}
                             });
 
                         } else {
