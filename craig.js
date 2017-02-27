@@ -28,8 +28,41 @@ if (!("nick" in config))
     config.nick = "Craig";
 if (!("hardLimit" in config))
     config.hardLimit = 536870912;
+if (!("guildMembershipTimeout" in config))
+    config.guildMembershipTimeout = 604800;
 if (!("secondary" in config))
     config.secondary = [];
+
+function accessSyncer(file) {
+    try {
+        fs.accessSync(file);
+    } catch (ex) {
+        return false;
+    }
+    return true;
+}
+
+// Our guild membership status
+var guildMembershipStatus = {};
+if (accessSyncer("craig-guild-membership-status.json")) {
+    var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
+    guildMembershipStatus = journal[0];
+    for (var ji = 1; ji < journal.length; ji++) {
+        var step = journal[ji];
+        if ("v" in step)
+            guildMembershipStatus[step.k] = step.v;
+        else
+            delete guildMembershipStatus[step.k];
+    }
+}
+var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
+guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
+
+function guildRefresh(guild) {
+    var step = {"k": guild.id, "v": (new Date().getTime())};
+    guildMembershipStatus[step.k] = step.v;
+    guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+}
 
 // If there are secondary Craigs, log them in
 for (var si = 0; si < config.secondary.length; si++) {
@@ -51,15 +84,6 @@ if ("log" in config) {
 
 // Set to true when we've been gracefully restarted
 var dead = false;
-
-function accessSyncer(file) {
-    try {
-        fs.accessSync(file);
-    } catch (ex) {
-        return false;
-    }
-    return true;
-}
 
 // Active recordings by guild, channel
 var activeRecordings = {};
@@ -183,6 +207,11 @@ client.on('message', (msg) => {
     // Log it
     try {
         log("Command: " + nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content);
+    } catch (ex) {}
+
+    // Keep this guild alive
+    try {
+        guildRefresh(msg.guild);
     } catch (ex) {}
 
     var op = cmd[2].toLowerCase();
@@ -403,3 +432,30 @@ client.on("voiceStateUpdate", (from, to) => {
 });
 
 client.login(config.token);
+
+// Check our guild membership status occasionally
+setInterval(() => {
+    for (var ci = 0; ci < clients.length; ci++) {
+        var client = clients[ci];
+        client.guilds.every((guild) => {
+            if (!(guild.id in guildMembershipStatus))
+                guildRefresh(guild);
+
+            if (guildMembershipStatus[guild.id] + config.guildMembershipTimeout < (new Date().getTime())) {
+                // Time's up!
+                for (var sci = 0; sci < clients.length; sci++)
+                    clients[sci].guilds.every((sGuild) => {
+                        if (sGuild.id === guild.id)
+                            sGuild.leave().catch(() => {});
+                        return true;
+                    });
+
+                var step = {"k": guild.id};
+                delete guildMembershipStatus[guild.id];
+                guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+            }
+
+            return true;
+        });
+    }
+}, 3600000);
