@@ -256,6 +256,13 @@ client.on('message', (msg) => {
                             });
 
                             ccp.on("disconnect", () => {
+                                /* The only way to reliably make sure we leave
+                                 * the channel is to join it, then leave it */
+                                channel.join()
+                                    .then(() => { channel.leave(); })
+                                    .catch(() => {});
+
+                                // Now get rid of it
                                 delete activeRecordings[guildId][channelId];
                                 if (Object.keys(activeRecordings[guildId]).length === 0) {
                                     delete activeRecordings[guildId];
