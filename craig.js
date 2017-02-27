@@ -29,7 +29,7 @@ if (!("nick" in config))
 if (!("hardLimit" in config))
     config.hardLimit = 536870912;
 if (!("guildMembershipTimeout" in config))
-    config.guildMembershipTimeout = 604800;
+    config.guildMembershipTimeout = 604800000;
 if (!("secondary" in config))
     config.secondary = [];
 
