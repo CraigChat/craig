@@ -250,6 +250,9 @@ function session(guildId, channelId, id) {
 
 // When we connect, it's time to record
 client.on('ready', () => {
+    if (connection)
+        return;
+
     var guild = null;
     client.guilds.some((maybeGuild) => {
         if (maybeGuild.id === toRec.guild) {
