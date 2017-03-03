@@ -13,6 +13,34 @@
 # OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+timeout() {
+    local timeout
+    local sspid
+    timeout="$1"
+    shift
+    (
+        sspid=`sh -c 'echo $PPID'`
+        (
+            while [ "$timeout" -gt "0" ]
+            do
+                sleep 1
+                kill -0 $sspid 2> /dev/null || exit 0
+                timeout=$((timeout-1))
+            done
+
+            kill -s SIGTERM $sspid 2> /dev/null || exit 0
+            sleep 5
+            kill -0 $sspid 2> /dev/null || exit 0
+            kill -s SIGKILL $sspid 2> /dev/null
+            exit 0
+        ) &
+        exec "$@"
+    )
+}
+
+DEF_TIMEOUT=1800
+ulimit -v $(( 1024 * 1024 ))
+
 set -e
 [ "$1" ]
 
@@ -49,7 +77,8 @@ tmpdir=`mktemp -d`
 
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
-NB_STREAMS=`cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data | ffprobe -print_format flat -show_format - 2> /dev/null |
+NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+    timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
 
@@ -58,11 +87,11 @@ NICE="nice -n10 ionice -c3 chrt -i 0"
 for c in `seq 0 $((NB_STREAMS-1))`
 do
     mkfifo $tmpdir/$((c+1)).$ext
-    $NICE cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-        $NICE ffmpeg -codec libopus -copyts -i - \
+    $NICE timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+        $NICE timeout $DEF_TIMEOUT ffmpeg -codec libopus -copyts -i - \
         -map 0:$c -af aresample=async=480,asyncts=first_pts=0 \
         -f wav - |
-        $NICE $ENCODE > $tmpdir/$((c+1)).$ext &
+        $NICE timeout $DEF_TIMEOUT $ENCODE > $tmpdir/$((c+1)).$ext &
 done
 
 # Put them into their container
@@ -78,14 +107,14 @@ case "$CONTAINER" in
             MAP="$MAP -map $c"
             c=$((c+1))
         done
-        $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER -
+        $NICE timeout $DEF_TIMEOUT ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER -
         ;;
 
     *)
-        zip -1 -FI - *.$ext
+        $NICE timeout $DEF_TIMEOUT zip -1 -FI - *.$ext
         ;;
 esac | cat
 
 # And clean up after ourselves
 cd
-rm -rf $tmpdir
+rm -f $tmpdir/*
