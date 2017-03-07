@@ -432,6 +432,9 @@ client.on("voiceStateUpdate", (from, to) => {
 });
 
 client.login(config.token);
+client.on("disconnect", () => {
+    client.login(config.token);
+});
 
 // Check our guild membership status occasionally
 setInterval(() => {
