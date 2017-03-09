@@ -324,15 +324,17 @@ client.on('message', (msg) => {
                                 "cp": ccp
                             };
 
-                            ccp.send({"type": "config", "config": config});
-                            if (chosenClient !== client)
-                                ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
-                            ccp.send({"type": "record", "record":
-                                {"guild": msg.guild.id,
-                                 "channel": channel.id,
-                                 "id": id,
-                                 "accessKey": accessKey,
-                                 "deleteKey": deleteKey}});
+                            try {
+                                ccp.send({"type": "config", "config": config});
+                                if (chosenClient !== client)
+                                    ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
+                                ccp.send({"type": "record", "record":
+                                    {"guild": msg.guild.id,
+                                     "channel": channel.id,
+                                     "id": id,
+                                     "accessKey": accessKey,
+                                     "deleteKey": deleteKey}});
+                            } catch (ex) {}
 
                             ccp.on("message", (cmsg) => {
                                 switch (cmsg.type) {
@@ -377,10 +379,13 @@ client.on('message', (msg) => {
 
                 } else {
                     if (guildId in activeRecordings &&
-                        channelId in activeRecordings[guildId])
-                        activeRecordings[guildId][channelId].cp.send({"type": "stop"});
-                    else
+                        channelId in activeRecordings[guildId]) {
+                        try {
+                            activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+                        } catch (ex) {}
+                    } else {
                         reply(msg, false, cmd[1], "But I'm not recording that channel!");
+                    }
 
                 }
             }
@@ -394,8 +399,11 @@ client.on('message', (msg) => {
     } else if (op === "stop") {
         var guildId = msg.guild.id;
         if (guildId in activeRecordings) {
-            for (var channelId in activeRecordings[guildId])
-                activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+            for (var channelId in activeRecordings[guildId]) {
+                try {
+                    activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+                } catch (ex) {}
+            }
         } else {
             reply(msg, false, cmd[1], "But I haven't started!");
         }
@@ -433,7 +441,10 @@ client.on("voiceStateUpdate", (from, to) => {
 
 client.login(config.token);
 client.on("disconnect", () => {
-    client.login(config.token);
+    setTimeout(() => {
+        if (client.status !== 0)
+            client.login(config.token);
+    }, 10000);
 });
 
 // Check our guild membership status occasionally
