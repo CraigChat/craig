@@ -69,7 +69,7 @@ function log(line) {
 }
 
 function reply(dm, pubtext, privtext) {
-    process.send({"type": "reply", "dm": !!dm, "pubtext": pubtext+"", "privtext": privtext+""});
+    process.send({"type": "reply", "dm": !!dm, "pubtext": pubtext+"", "privtext": privtext?(privtext+""):undefined});
 }
 
 // Our recording session proper
@@ -82,7 +82,10 @@ function session(guildId, channelId, id) {
 
     // Rename ourself to indicate that we're recording
     try {
-        connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]");
+        connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]").catch((err) => {
+            reply(true, "I do not have permission to change my nickname on this server. I will not record without this permission.");
+            connection.disconnect();
+        });
     } catch (ex) {}
 
     // Log it

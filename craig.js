@@ -133,7 +133,7 @@ function reply(msg, dm, prefix, pubtext, privtext) {
 
     try {
         // Give ourself a name indicating error
-        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES");
+        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
     } catch (ex) {}
 
     });
@@ -366,7 +366,7 @@ client.on('message', (msg) => {
                                 if (chosenClient !== client)
                                     reNick = config.secondary[chosenClientNum-1].nick;
                                 try {
-                                    guild.members.get(chosenClient.user.id).setNickname(reNick);
+                                    guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
                                 } catch (ex) {}
                             });
 
