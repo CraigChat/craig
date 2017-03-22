@@ -440,10 +440,16 @@ client.on("voiceStateUpdate", (from, to) => {
 });
 
 client.login(config.token);
+var reconnectTimeout = null;
 client.on("disconnect", () => {
-    setTimeout(() => {
+    if (reconnectTimeout !== null) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+    reconnectTimeout = setTimeout(() => {
         if (client.status !== 0)
             client.login(config.token);
+        reconnectTimeout = null;
     }, 10000);
 });
 
