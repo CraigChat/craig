@@ -151,6 +151,24 @@ function session(guildId, channelId, id) {
         var chunkTime = process.hrtime(startTime);
         var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
         var oggPacket = new ogg_packet();
+
+        if (chunk.length > 4 && chunk[0] === 0xBE && chunk[1] === 0xDE) {
+            // There's an RTP header extension here. Strip it.
+            var rtpHLen = chunk.readUInt16BE(2);
+            var off = 4;
+
+            for (var rhs = 0; rhs < rtpHLen && off < chunk.length; rhs++) {
+                var subLen = (chunk[off]&0xF)+2;
+                off += subLen;
+            }
+            while (off < chunk.length && chunk[off] === 0)
+                off++;
+            if (off >= chunk.length)
+                off = chunk.length;
+
+            chunk = chunk.slice(off);
+        }
+
         oggPacket.packet = chunk;
         oggPacket.bytes = chunk.length;
         oggPacket.b_o_s = 0;
@@ -177,7 +195,7 @@ function session(guildId, channelId, id) {
             userOggStreams[user.id] = userOggStream;
 
             // Put a valid Opus header at the beginning
-            var opusEncoder = new opus.Encoder(48000, 1, 480);
+            var opusEncoder = new opus.Encoder(48000, 2);
             opusEncoder.on("data", (chunk) => {
                 if (!chunk.e_o_s) {
                     try {
@@ -204,18 +222,6 @@ function session(guildId, channelId, id) {
         // And then receive the real data into the data stream
         var oggStream = userOggStreams[user.id];
         var packetNo = 2;
-
-        // Give it some empty audio data to start it out
-        var opusEncoder = new opus.OpusEncoder(48000);
-        var oggPacket = new ogg_packet();
-        oggPacket.packet = opusEncoder.encode(Buffer.alloc(480*2), 480);
-        oggPacket.bytes = oggPacket.packet.length;
-        oggPacket.b_o_s = 0;
-        oggPacket.e_o_s = 0;
-        oggPacket.granulepos = 0;
-        oggPacket.packetno = packetNo++;
-        oggStream.packetin(oggPacket);
-        oggStream.flush(() => {});
 
         encodeChunk(userOggStream, chunk, packetNo++);
 
