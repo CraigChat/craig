@@ -10,7 +10,7 @@
         "discord.js": "*",
         "node-opus": "*",
         "uws": "*",
-        "erlpack": "*",
+        "erlpack": "hammerandchisel/erlpack#master",
         "ogg": "*",
         "ogg-packet": "*"
     }

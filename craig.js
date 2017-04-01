@@ -59,6 +59,7 @@ var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status
 guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
 
 function guildRefresh(guild) {
+    if (dead) return;
     var step = {"k": guild.id, "v": (new Date().getTime())};
     guildMembershipStatus[step.k] = step.v;
     guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
@@ -139,8 +140,10 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     });
 }
 
+var lastLogin = new Date().getTime();
 client.on('ready', () => {
     log("Logged in as " + client.user.username);
+    lastLogin = new Date().getTime();
 });
 
 const craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) ?(.*)$/;
@@ -453,8 +456,15 @@ client.on("disconnect", () => {
     }, 10000);
 });
 
-// Check our guild membership status occasionally
+/* Reset our connection every 24 hours, and check our guild membership status
+ * every hour */
 setInterval(() => {
+    if (new Date().getTime() >= lastLogin + 86400000 &&
+        Object.keys(activeRecordings).length === 0) {
+        lastLogin = new Date().getTime();
+        client.login(config.token);
+    }
+
     for (var ci = 0; ci < clients.length; ci++) {
         var client = clients[ci];
         client.guilds.every((guild) => {
