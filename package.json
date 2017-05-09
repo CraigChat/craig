@@ -7,7 +7,7 @@
         "url": "https://bitbucket.org/Yahweasel/craig"
     },
     "dependencies": {
-        "discord.js": "*",
+        "discord.js": "11.0.0",
         "node-opus": "*",
         "uws": "*",
         "erlpack": "hammerandchisel/erlpack#master",

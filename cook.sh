@@ -38,6 +38,11 @@ timeout() {
     )
 }
 
+catngo() {
+    "$@"
+    cat > /dev/null
+}
+
 DEF_TIMEOUT=1800
 ulimit -v $(( 1024 * 1024 ))
 
@@ -78,7 +83,7 @@ tmpdir=`mktemp -d`
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-    timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
+    catngo timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
 
@@ -88,7 +93,7 @@ for c in `seq 0 $((NB_STREAMS-1))`
 do
     mkfifo $tmpdir/$((c+1)).$ext
     $NICE timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-        $NICE timeout $DEF_TIMEOUT ffmpeg -codec libopus -copyts -i - \
+        catngo $NICE timeout $DEF_TIMEOUT ffmpeg -codec libopus -copyts -i - \
         -map 0:$c -af aresample=async=480,asyncts=first_pts=0 \
         -f wav - |
         $NICE timeout $DEF_TIMEOUT $ENCODE > $tmpdir/$((c+1)).$ext &
