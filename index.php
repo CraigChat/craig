@@ -66,8 +66,7 @@ Download:
 <?PHP
     download("FLAC", "flac");
     download("Ogg (Vorbis)", "vorbis");
-    download("AAC", "aac");
-    download("MP3", "mp3", "zip", "");
+    download("AAC", "aac", "zip", "");
 ?>
 <br/><br/>
 
@@ -83,14 +82,15 @@ Other download formats:
     print("Single Matroska file (");
     download("FLAC", "flac", "matroska");
     download("Vorbis", "vorbis", "matroska");
-    download("AAC", "aac", "matroska");
-    download("MP3", "mp3", "matroska", "");
+    download("AAC", "aac", "matroska", "");
     print("), ");
     download("Raw", "raw", "raw", "");
 ?>
 <br/><br/>
 
-Note: Most audio editors will NOT correctly decode the raw version.<br/><br/>
+Note: Most audio editors will NOT correctly decode the single Matroska file or raw version.<br/><br/>
+
+Note 2: The MP3 format is no longer provided. Do not request it; it will not be reinstated.<br/><br/>
 </body></html>
 <?PHP
 
@@ -124,8 +124,7 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
     $format = "flac";
     if (isset($_REQUEST["format"])) {
         if ($_REQUEST["format"] === "aac" ||
-            $_REQUEST["format"] === "vorbis" ||
-            $_REQUEST["format"] === "mp3")
+            $_REQUEST["format"] === "vorbis")
             $format = $_REQUEST["format"];
     }
     $container="zip";
