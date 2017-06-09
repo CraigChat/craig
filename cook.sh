@@ -28,10 +28,10 @@ timeout() {
                 timeout=$((timeout-1))
             done
 
-            kill -s SIGTERM $sspid 2> /dev/null || exit 0
+            kill -s TERM $sspid 2> /dev/null || exit 0
             sleep 5
             kill -0 $sspid 2> /dev/null || exit 0
-            kill -s SIGKILL $sspid 2> /dev/null
+            kill -s KILL $sspid 2> /dev/null
             exit 0
         ) &
         exec "$@"
@@ -44,7 +44,7 @@ catngo() {
 }
 
 DEF_TIMEOUT=1800
-ulimit -v $(( 1024 * 1024 ))
+ulimit -v $(( 2 * 1024 * 1024 ))
 
 set -e
 [ "$1" ]
@@ -92,11 +92,11 @@ NICE="nice -n10 ionice -c3 chrt -i 0"
 for c in `seq 0 $((NB_STREAMS-1))`
 do
     mkfifo $tmpdir/$((c+1)).$ext
-    $NICE timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-        catngo $NICE timeout $DEF_TIMEOUT ffmpeg -codec libopus -copyts -i - \
-        -map 0:$c -af aresample=async=480,asyncts=first_pts=0 \
+    timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+        catngo timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
+        -map 0:$c -af aresample=flags=res:min_comp=0.001:min_hard_comp=0.1:first_pts=0 \
         -f wav - |
-        $NICE timeout $DEF_TIMEOUT $ENCODE > $tmpdir/$((c+1)).$ext &
+        timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/$((c+1)).$ext &
 done
 
 # Put them into their container
@@ -112,11 +112,11 @@ case "$CONTAINER" in
             MAP="$MAP -map $c"
             c=$((c+1))
         done
-        $NICE timeout $DEF_TIMEOUT ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER -
+        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER -
         ;;
 
     *)
-        $NICE timeout $DEF_TIMEOUT zip -1 -FI - *.$ext
+        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext
         ;;
 esac | cat
 
