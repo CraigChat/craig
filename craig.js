@@ -97,6 +97,7 @@ function reply(msg, dm, prefix, pubtext, privtext) {
             privtext = pubtext;
         else
             privtext = pubtext + "\n\n" + privtext;
+        log("Reply to " + nameId(msg.author) + ": " + privtext);
         msg.author.send(privtext).catch((err) => {
             reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
         });
@@ -104,9 +105,12 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     }
 
     // Try to send it by conventional means
+    log("Public reply to " + nameId(msg.author) + ": " + pubtext);
     msg.reply((prefix ? (prefix + " <(") : "") +
               pubtext +
               (prefix ? ")" : "")).catch((err) => {
+
+    log("Failed to reply to " + nameId(msg.author));
 
     // If this wasn't a guild message, nothing to be done
     var guild = msg.guild;
@@ -351,7 +355,12 @@ client.on('message', (msg) => {
                                 }
                             });
 
-                            ccp.on("disconnect", () => {
+                            var closed = false;
+                            function close() {
+                                if (closed)
+                                    return;
+                                closed = true;
+
                                 /* The only way to reliably make sure we leave
                                  * the channel is to join it, then leave it */
                                 channel.join()
@@ -371,7 +380,12 @@ client.on('message', (msg) => {
                                 try {
                                     guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
                                 } catch (ex) {}
-                            });
+                            }
+
+                            ccp.on("close", close);
+                            ccp.on("disconnect", close);
+                            ccp.on("error", close);
+                            ccp.on("exit", close);
 
                         } else {
                             reply(msg, false, cmd[1], "I don't have permission to join that channel!");

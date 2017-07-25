@@ -94,7 +94,7 @@ do
     mkfifo $tmpdir/$((c+1)).$ext
     timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
         catngo timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
-        -map 0:$c -af aresample=flags=res:min_comp=0.001:min_hard_comp=0.1:first_pts=0 \
+        -map 0:$c -af aresample=flags=res:min_comp=0.25:min_hard_comp=0.25:first_pts=0 \
         -f wav - |
         timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/$((c+1)).$ext &
 done
