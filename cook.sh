@@ -46,6 +46,9 @@ catngo() {
 DEF_TIMEOUT=1800
 ulimit -v $(( 2 * 1024 * 1024 ))
 
+PATH="/opt/node/bin:$PATH"
+export PATH
+
 set -e
 [ "$1" ]
 
@@ -89,14 +92,15 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
 
 # Make all the fifos
 NICE="nice -n10 ionice -c3 chrt -i 0"
-for c in `seq 0 $((NB_STREAMS-1))`
+for c in `seq 1 $NB_STREAMS`
 do
-    mkfifo $tmpdir/$((c+1)).$ext
+    mkfifo $tmpdir/$c.$ext
     timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+        ../oggstender.js $c |
         catngo timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
-        -map 0:$c -af aresample=flags=res:min_comp=0.25:min_hard_comp=0.25:first_pts=0 \
+        -af aresample=flags=res:min_comp=0.25:min_hard_comp=0.25:first_pts=0 \
         -f wav - |
-        timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/$((c+1)).$ext &
+        timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/$c.$ext &
 done
 
 # Put them into their container
