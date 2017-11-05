@@ -24,6 +24,7 @@ var encoder = new ogg.Encoder();
 var opusEncoder = new opus.OpusEncoder(48000);
 var packetTime = 960; // 2/100ths of a second, which is what Discord always uses
 var oggS = Buffer.from("OggS");
+var opusHeader = Buffer.from("Opus");
 var zeroPacket = opusEncoder.encode(Buffer.alloc(packetTime*2), packetTime);
 
 // Data goes to stdout
@@ -55,7 +56,7 @@ process.stdin.on("data", (chunk) => {
             break;
 
         // Make sure this is an ogg packet
-        if (chunk.compare(oggS, 0, 4, 0, 4) != 0) {
+        if (chunk.compare(oggS, 0, 4, 0, 4) !== 0) {
             console.error(inputPos + " not an ogg packet!");
             break;
         }
@@ -94,8 +95,16 @@ process.stdin.on("data", (chunk) => {
                 packetNo = streamPNos[streamNo];
             }
 
+            // Extract the data
+            var packetData = chunk.slice(headerEnd, packetEnd);
+
             // Get our current time
             var curTime = (chunk.readUInt32LE(10) << 32) + chunk.readUInt32LE(6);
+
+            /* The first packet gets stuck at time 0 even though that's not the
+             * correct time, so drop it, but don't drop headers */
+            if (curTime === 0 && packetData.compare(opusHeader, 0, 4, 0, 4) !== 0)
+                packetData = zeroPacket;
 
             // If there's a big gap, add a break
             if (curTime - lastTime > packetTime*10) {
@@ -109,14 +118,12 @@ process.stdin.on("data", (chunk) => {
                     packet.granulepos = lastTime;
                     packet.packetno = packetNo++;
                     stream.packetin(packet);
+                    stream.flush();
                     lastTime += packetTime;
                     gapTime -= packetTime;
                 }
             }
             streamTimes[streamNo] = curTime;
-
-            // Extract the data
-            var packetData = chunk.slice(headerEnd, packetEnd);
 
             // Now form the packet
             var packet = new ogg_packet();
