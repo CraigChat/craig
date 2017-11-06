@@ -14,33 +14,7 @@
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 timeout() {
-    local timeout
-    local sspid
-    timeout="$1"
-    shift
-    (
-        sspid=`sh -c 'echo $PPID'`
-        (
-            while [ "$timeout" -gt "0" ]
-            do
-                sleep 1
-                kill -0 $sspid 2> /dev/null || exit 0
-                timeout=$((timeout-1))
-            done
-
-            kill -s TERM $sspid 2> /dev/null || exit 0
-            sleep 5
-            kill -0 $sspid 2> /dev/null || exit 0
-            kill -s KILL $sspid 2> /dev/null
-            exit 0
-        ) &
-        exec "$@"
-    )
-}
-
-catngo() {
-    "$@"
-    cat > /dev/null
+    /usr/bin/timeout -k 5 "$@"
 }
 
 DEF_TIMEOUT=1800
@@ -86,7 +60,7 @@ tmpdir=`mktemp -d`
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-    catngo timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
+    timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
 
@@ -96,8 +70,8 @@ for c in `seq 1 $NB_STREAMS`
 do
     mkfifo $tmpdir/$c.$ext
     timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-        ../oggstender.js $c |
-        catngo timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
+        timeout $DEF_TIMEOUT $NICE ../oggstender.js $c |
+        timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
         -af aresample=flags=res:min_comp=0.25:min_hard_comp=0.25:first_pts=0 \
         -f wav - |
         timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/$c.$ext &
