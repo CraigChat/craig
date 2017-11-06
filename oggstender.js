@@ -103,7 +103,8 @@ process.stdin.on("data", (chunk) => {
 
             /* The first packet gets stuck at time 0 even though that's not the
              * correct time, so drop it, but don't drop headers */
-            if (curTime === 0 && packetData.compare(opusHeader, 0, 4, 0, 4) !== 0)
+            if (curTime === 0 && packetData.length > 4 &&
+                packetData.compare(opusHeader, 0, 4, 0, 4) !== 0)
                 packetData = zeroPacket;
 
             // If there's a big gap, add a break
