@@ -19,6 +19,7 @@ timeout() {
 
 DEF_TIMEOUT=1800
 ulimit -v $(( 2 * 1024 * 1024 ))
+echo 10 > /proc/self/oom_adj
 
 PATH="/opt/node/bin:$PATH"
 export PATH
@@ -59,26 +60,31 @@ tmpdir=`mktemp -d`
 
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
+mkdir "$tmpdir/in" "$tmpdir/out"
+
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
 
-# Make all the fifos
+# Fix timing
+timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+    timeout $DEF_TIMEOUT $NICE ../oggstender.js > "$tmpdir/in/in.ogg"
+
+# Encode thru fifos
 NICE="nice -n10 ionice -c3 chrt -i 0"
 for c in `seq 1 $NB_STREAMS`
 do
-    mkfifo $tmpdir/$c.$ext
-    timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-        timeout $DEF_TIMEOUT $NICE ../oggstender.js $c |
-        timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
+    mkfifo $tmpdir/out/$c.$ext
+    timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i "$tmpdir/in/in.ogg" \
+        -map 0:$((c-1)) \
         -af aresample=flags=res:min_comp=0.25:min_hard_comp=0.25:first_pts=0 \
         -f wav - |
         timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/$c.$ext &
 done
 
 # Put them into their container
-cd $tmpdir
+cd $tmpdir/out
 case "$CONTAINER" in
     matroska)
         INPUT=""

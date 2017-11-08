@@ -96,7 +96,7 @@ process.stdin.on("data", (chunk) => {
             }
 
             // Extract the data
-            var packetData = chunk.slice(headerEnd, packetEnd);
+            var packetData = Buffer.from(chunk.slice(headerEnd, packetEnd));
 
             // Get our current time
             var curTime = (chunk.readUInt32LE(10) << 32) + chunk.readUInt32LE(6);

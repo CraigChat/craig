@@ -139,6 +139,8 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
     }
     header("Content-disposition: attachment; filename=$id.$ext");
     header("Content-type: $mime");
+    ob_flush();
+    flush();
     passthru("/home/yahweasel/craig/cook.sh $id $format $container");
 
 } else {
