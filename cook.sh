@@ -68,16 +68,13 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     sed 's/^[^=]*=//'`
 NICE="nice -n10 ionice -c3 chrt -i 0"
 
-# Fix timing
-cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-    timeout $DEF_TIMEOUT $NICE ../oggstender.js > "$tmpdir/in/in.ogg"
-
 # Encode thru fifos
 for c in `seq 1 $NB_STREAMS`
 do
     mkfifo $tmpdir/out/$c.$ext
-    timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i "$tmpdir/in/in.ogg" \
-        -map 0:$((c-1)) \
+    timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+        timeout $DEF_TIMEOUT ../oggstender $c |
+        timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
         -af aresample=flags=res:min_comp=0.25:min_hard_comp=0.25:first_pts=0 \
         -f wav - |
         timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
