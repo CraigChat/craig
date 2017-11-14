@@ -45,6 +45,18 @@ const unsigned char zeroPacket[] = { 0xF8, 0xFF, 0xFE };
 const uint32_t zeroPacketCRC = 0xD8881845;
 const uint32_t packetTime = 960;
 
+ssize_t readAll(int fd, void *vbuf, size_t count)
+{
+    unsigned char *buf = (unsigned char *) vbuf;
+    ssize_t rd = 0, ret;
+    while (rd < count) {
+        ret = read(fd, buf + rd, count - rd);
+        if (ret <= 0) return ret;
+        rd += ret;
+    }
+    return rd;
+}
+
 void writeOgg(struct OggHeader *header, const unsigned char *data, uint32_t size)
 {
     unsigned char sequencePart;
@@ -87,21 +99,21 @@ int main(int argc, char **argv)
     }
     keepStreamNo = atoi(argv[1]);
 
-    while (read(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
+    while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
         struct OggHeader oggHeader;
         if (memcmp(preHeader.capturePattern, "OggS", 4))
             break;
 
         // It's an ogg header, get the header data
-        if (read(0, &oggHeader, sizeof(oggHeader)) != sizeof(oggHeader))
+        if (readAll(0, &oggHeader, sizeof(oggHeader)) != sizeof(oggHeader))
             break;
 
         // Get the data size
         packetSize = 0;
-        if (read(0, &segmentCount, 1) != 1)
+        if (readAll(0, &segmentCount, 1) != 1)
             break;
         for (; segmentCount; segmentCount--) {
-            if (read(0, &segmentVal, 1) != 1)
+            if (readAll(0, &segmentVal, 1) != 1)
                 break;
             packetSize += (uint32_t) segmentVal;
         }
@@ -113,7 +125,7 @@ int main(int argc, char **argv)
                 break;
             bufSz = packetSize;
         }
-        if (read(0, buf, packetSize) != packetSize)
+        if (readAll(0, buf, packetSize) != packetSize)
             break;
 
         // Do we care?
