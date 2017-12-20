@@ -144,13 +144,14 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     });
 }
 
+var craigCommand = /not yet connected/;
+
 var lastLogin = new Date().getTime();
 client.on('ready', () => {
     log("Logged in as " + client.user.username);
     lastLogin = new Date().getTime();
+    craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">),? *([^ ]*) ?(.*)$");
 });
-
-const craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) ?(.*)$/;
 
 function userIsAuthorized(member) {
     if (!member) return false;
@@ -225,193 +226,203 @@ client.on('message', (msg) => {
     if (op === "join" || op === "record" || op === "rec" ||
         op === "leave" || op === "part") {
         var cname = cmd[3].toLowerCase();
-        var found = false;
+        var channel = null;
         if (!msg.guild)
             return;
 
-        msg.guild.channels.every((channel) => {
-            if (channel.type !== "voice")
+        msg.guild.channels.every((schannel) => {
+            if (schannel.type !== "voice")
                 return true;
 
-            if (channel.name.toLowerCase() === cname) {
-                found = true;
-                var guild = msg.guild;
-                var guildId = guild.id;
-                var channelId = channel.id;
-                if (op === "join" || op === "record" || op === "rec") {
-                    if (!(guildId in activeRecordings))
-                        activeRecordings[guildId] = {};
+            if (schannel.name.toLowerCase() === cname ||
+                (cname === "" && msg.member.voiceChannel === schannel)) {
+                channel = schannel;
+                return false;
 
-                    // Choose the right client
-                    var takenClients = {};
-                    var chosenClient = null;
-                    var chosenClientNum = -1;
-                    for (var oChannelId in activeRecordings[guildId]) {
-                        var recording = activeRecordings[guildId][oChannelId];
-                        takenClients[recording.clientNum] = true;
-                    }
-                    for (var ci = 0; ci < clients.length; ci++) {
-                        if (takenClients[ci]) continue;
-                        chosenClient = clients[ci];
-                        chosenClientNum = ci;
-                        break;
-                    }
+            } else if (channel === null && schannel.name.toLowerCase().startsWith(cname)) {
+                channel = schannel;
 
-                    // Translate the guild and channel to the secondary client
-                    if (chosenClient && chosenClient !== client) {
-                        guild = null;
-                        chosenClient.guilds.some((cGuild) => {
-                            if (cGuild.id === guildId) {
-                                guild = cGuild;
-                                return true;
-                            }
-                            return false;
-                        });
-                        if (guild) {
-                            channel = null;
-                            guild.channels.some((cChannel) => {
-                                if (cChannel.id === channelId) {
-                                    channel = cChannel;
-                                    return true;
-                                }
-                                return false;
-                            });
-                        }
-                    }
-
-                    // Choose the right action
-                    if (channelId in activeRecordings[guildId]) {
-                        var rec = activeRecordings[guildId][channelId];
-                        reply(msg, true, cmd[1],
-                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
-                                rec.id + "&key=" + rec.accessKey);
-
-                    } else if (!chosenClient) {
-                        reply(msg, false, cmd[1],
-                            "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
-
-                    } else if (!guild) {
-                        reply(msg, false, cmd[1],
-                            "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: " + config.secondary[chosenClientNum-1].invite);
-
-                    } else if (!channel) {
-                        reply(msg, false, cmd[1],
-                            "My brother can't see that channel. Make sure his permissions are correct.");
-
-                    } else {
-                        if (channel.joinable) {
-                            // Make a random ID for it
-                            var id;
-                            do {
-                                id = ~~(Math.random() * 1000000000);
-                            } while (accessSyncer("rec/" + id + ".ogg.key"));
-                            var recFileBase = "rec/" + id + ".ogg";
-
-                            // Make an access key for it
-                            var accessKey = ~~(Math.random() * 1000000000);
-                            fs.writeFileSync(recFileBase + ".key", ""+accessKey, "utf8");
-
-                            // Make a deletion key for it
-                            var deleteKey = ~~(Math.random() * 1000000000);
-                            fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
-
-                            // Make sure they get destroyed
-                            var atcp = cp.spawn("at", ["now + 48 hours"],
-                                {"stdio": ["pipe", 1, 2]});
-                            atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
-                                recFileBase + ".header2 " + recFileBase + ".data " +
-                                recFileBase + ".key " + recFileBase + ".delete\n");
-                            atcp.stdin.end();
-
-                            // Spawn off the child process
-                            var ccp = cp.fork("./craig-rec.js");
-                            activeRecordings[guildId][channelId] = {
-                                "id": id, "accessKey": accessKey,
-                                "clientNum": chosenClientNum,
-                                "cp": ccp
-                            };
-
-                            try {
-                                ccp.send({"type": "config", "config": config});
-                                if (chosenClient !== client)
-                                    ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
-                                ccp.send({"type": "record", "record":
-                                    {"guild": msg.guild.id,
-                                     "channel": channel.id,
-                                     "id": id,
-                                     "accessKey": accessKey,
-                                     "deleteKey": deleteKey}});
-                            } catch (ex) {}
-
-                            ccp.on("message", (cmsg) => {
-                                switch (cmsg.type) {
-                                    case "log":
-                                        log(cmsg.line);
-                                        break;
-
-                                    case "reply":
-                                        reply(msg, cmsg.dm, cmd[1], cmsg.pubtext, cmsg.privtext);
-                                        break;
-                                }
-                            });
-
-                            var closed = false;
-                            function close() {
-                                if (closed)
-                                    return;
-                                closed = true;
-
-                                /* The only way to reliably make sure we leave
-                                 * the channel is to join it, then leave it */
-                                channel.join()
-                                    .then(() => { channel.leave(); })
-                                    .catch(() => {});
-
-                                // Now get rid of it
-                                delete activeRecordings[guildId][channelId];
-                                if (Object.keys(activeRecordings[guildId]).length === 0) {
-                                    delete activeRecordings[guildId];
-                                }
-
-                                // Rename the bot in this guild
-                                var reNick = config.nick;
-                                if (chosenClient !== client)
-                                    reNick = config.secondary[chosenClientNum-1].nick;
-                                try {
-                                    guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
-                                } catch (ex) {}
-                            }
-
-                            ccp.on("close", close);
-                            ccp.on("disconnect", close);
-                            ccp.on("error", close);
-                            ccp.on("exit", close);
-
-                        } else {
-                            reply(msg, false, cmd[1], "I don't have permission to join that channel!");
-
-                        }
-
-                    }
-
-                } else {
-                    if (guildId in activeRecordings &&
-                        channelId in activeRecordings[guildId]) {
-                        try {
-                            activeRecordings[guildId][channelId].cp.send({"type": "stop"});
-                        } catch (ex) {}
-                    } else {
-                        reply(msg, false, cmd[1], "But I'm not recording that channel!");
-                    }
-
-                }
             }
 
             return true;
         });
 
-        if (!found)
+        if (channel !== null) {
+            var guild = msg.guild;
+            var guildId = guild.id;
+            var channelId = channel.id;
+            if (op === "join" || op === "record" || op === "rec") {
+                if (!(guildId in activeRecordings))
+                    activeRecordings[guildId] = {};
+
+                // Choose the right client
+                var takenClients = {};
+                var chosenClient = null;
+                var chosenClientNum = -1;
+                for (var oChannelId in activeRecordings[guildId]) {
+                    var recording = activeRecordings[guildId][oChannelId];
+                    takenClients[recording.clientNum] = true;
+                }
+                for (var ci = 0; ci < clients.length; ci++) {
+                    if (takenClients[ci]) continue;
+                    chosenClient = clients[ci];
+                    chosenClientNum = ci;
+                    break;
+                }
+
+                // Translate the guild and channel to the secondary client
+                if (chosenClient && chosenClient !== client) {
+                    guild = null;
+                    chosenClient.guilds.some((cGuild) => {
+                            if (cGuild.id === guildId) {
+                            guild = cGuild;
+                            return true;
+                            }
+                            return false;
+                            });
+                    if (guild) {
+                        channel = null;
+                        guild.channels.some((cChannel) => {
+                                if (cChannel.id === channelId) {
+                                channel = cChannel;
+                                return true;
+                                }
+                                return false;
+                                });
+                    }
+                }
+
+                // Choose the right action
+                if (channelId in activeRecordings[guildId]) {
+                    var rec = activeRecordings[guildId][channelId];
+                    reply(msg, true, cmd[1],
+                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
+                            rec.id + "&key=" + rec.accessKey);
+
+                } else if (!chosenClient) {
+                    reply(msg, false, cmd[1],
+                            "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
+
+                } else if (!guild) {
+                    reply(msg, false, cmd[1],
+                            "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: " + config.secondary[chosenClientNum-1].invite);
+
+                } else if (!channel) {
+                    reply(msg, false, cmd[1],
+                            "My brother can't see that channel. Make sure his permissions are correct.");
+
+                } else {
+                    if (channel.joinable) {
+                        // Make a random ID for it
+                        var id;
+                        do {
+                            id = ~~(Math.random() * 1000000000);
+                        } while (accessSyncer("rec/" + id + ".ogg.key"));
+                        var recFileBase = "rec/" + id + ".ogg";
+
+                        // Make an access key for it
+                        var accessKey = ~~(Math.random() * 1000000000);
+                        fs.writeFileSync(recFileBase + ".key", ""+accessKey, "utf8");
+
+                        // Make a deletion key for it
+                        var deleteKey = ~~(Math.random() * 1000000000);
+                        fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
+
+                        // Make sure they get destroyed
+                        var atcp = cp.spawn("at", ["now + 48 hours"],
+                                {"stdio": ["pipe", 1, 2]});
+                        atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
+                                recFileBase + ".header2 " + recFileBase + ".data " +
+                                recFileBase + ".key " + recFileBase + ".delete\n");
+                        atcp.stdin.end();
+
+                        // Spawn off the child process
+                        var ccp = cp.fork("./craig-rec.js");
+                        activeRecordings[guildId][channelId] = {
+                            "id": id, "accessKey": accessKey,
+                            "clientNum": chosenClientNum,
+                            "cp": ccp
+                        };
+
+                        try {
+                            ccp.send({"type": "config", "config": config});
+                            if (chosenClient !== client)
+                                ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
+                            ccp.send({"type": "record", "record":
+                                    {"guild": msg.guild.id,
+                                    "channel": channel.id,
+                                    "id": id,
+                                    "accessKey": accessKey,
+                                    "deleteKey": deleteKey}});
+                        } catch (ex) {}
+
+                        ccp.on("message", (cmsg) => {
+                                switch (cmsg.type) {
+                                case "log":
+                                log(cmsg.line);
+                                break;
+
+                                case "reply":
+                                reply(msg, cmsg.dm, cmd[1], cmsg.pubtext, cmsg.privtext);
+                                break;
+                                }
+                                });
+
+                        var closed = false;
+                        function close() {
+                            if (closed)
+                                return;
+                            closed = true;
+
+                            /* The only way to reliably make sure we leave
+                             * the channel is to join it, then leave it */
+                            channel.join()
+                                .then(() => { channel.leave(); })
+                                .catch(() => {});
+
+                            // Now get rid of it
+                            delete activeRecordings[guildId][channelId];
+                            if (Object.keys(activeRecordings[guildId]).length === 0) {
+                                delete activeRecordings[guildId];
+                            }
+
+                            // Rename the bot in this guild
+                            var reNick = config.nick;
+                            if (chosenClient !== client)
+                                reNick = config.secondary[chosenClientNum-1].nick;
+                            try {
+                                guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
+                            } catch (ex) {}
+                        }
+
+                        ccp.on("close", close);
+                        ccp.on("disconnect", close);
+                        ccp.on("error", close);
+                        ccp.on("exit", close);
+
+                    } else {
+                        reply(msg, false, cmd[1], "I don't have permission to join that channel!");
+
+                    }
+
+                }
+
+            } else {
+                if (guildId in activeRecordings &&
+                        channelId in activeRecordings[guildId]) {
+                    try {
+                        activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+                    } catch (ex) {}
+                } else {
+                    reply(msg, false, cmd[1], "But I'm not recording that channel!");
+                }
+
+            }
+
+        } else {
             reply(msg, false, cmd[1], "What channel?");
+
+        }
 
     } else if (op === "stop") {
         var guildId = msg.guild.id;

@@ -9,9 +9,8 @@
     "dependencies": {
         "discord.js": "11.0.0",
         "node-opus": "*",
-        "uws": "*",
-        "erlpack": "hammerandchisel/erlpack#master",
         "ogg": "*",
-        "ogg-packet": "*"
+        "ogg-packet": "*",
+        "erlpack": "hammerandchisel/erlpack#master"
     }
 }
