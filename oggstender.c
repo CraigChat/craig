@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
         // Fix timestamps
         if (correctTimestamps) {
-            if (oggHeader.granulePos <= trueGranulePos + packetTime * 5) {
+            if (oggHeader.granulePos <= trueGranulePos + packetTime) {
                 // We've adjusted enough
                 correctTimestamps = 0;
 
