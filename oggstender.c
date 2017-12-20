@@ -86,12 +86,14 @@ int main(int argc, char **argv)
 {
     uint32_t keepStreamNo;
     uint64_t lastGranulePos = 0;
+    uint64_t trueGranulePos = 0;
     uint32_t lastSequenceNo = 0;
     uint32_t packetSize;
     unsigned char segmentCount, segmentVal;
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
+    unsigned char correctTimestamps = 0;
 
     if (argc != 2) {
         fprintf(stderr, "Use: oggstender <track no>\n");
@@ -136,24 +138,49 @@ int main(int argc, char **argv)
         if (oggHeader.granulePos == 0 && packetSize > 4 && memcmp(buf, "Opus", 4))
             continue;
 
-        // Insert buffer audio
-        if (oggHeader.granulePos > lastGranulePos &&
-            oggHeader.granulePos - lastGranulePos > packetTime * 10) {
-            uint64_t gapTime = oggHeader.granulePos - lastGranulePos - packetTime;
-            lastGranulePos += packetTime;
-            while (gapTime >= packetTime) {
-                struct OggHeader gapHeader;
-                gapHeader.type = 0;
-                gapHeader.granulePos = lastGranulePos;
-                gapHeader.streamNo = keepStreamNo;
-                gapHeader.sequenceNo = lastSequenceNo++;
-                gapHeader.crc = zeroPacketCRC;
-                writeOgg(&gapHeader, zeroPacket, sizeof(zeroPacket));
-                lastGranulePos += packetTime;
-                gapTime -= packetTime;
+        // Account for gaps
+        if (oggHeader.granulePos > trueGranulePos + packetTime * 5) {
+            // We are behind
+            if (oggHeader.granulePos > lastGranulePos + packetTime * 5) {
+                // There was a real gap, fill it
+                uint64_t gapTime = oggHeader.granulePos - trueGranulePos;
+                while (gapTime >= packetTime) {
+                    struct OggHeader gapHeader;
+                    gapHeader.type = 0;
+                    gapHeader.granulePos = trueGranulePos;
+                    gapHeader.streamNo = keepStreamNo;
+                    gapHeader.sequenceNo = lastSequenceNo++;
+                    gapHeader.crc = zeroPacketCRC;
+                    writeOgg(&gapHeader, zeroPacket, sizeof(zeroPacket));
+                    trueGranulePos += packetTime;
+                    gapTime -= packetTime;
+                }
+                correctTimestamps = 0;
+
+            } else {
+                // No real gap, just adjust timestamps a bit and fix the audio in post
+                correctTimestamps = 1;
+
             }
         }
+
+        // Fix timestamps
+        if (correctTimestamps) {
+            if (oggHeader.granulePos <= trueGranulePos + packetTime * 5) {
+                // We've adjusted enough
+                correctTimestamps = 0;
+
+            } else {
+                // Jump a bit
+                trueGranulePos += packetTime / 10;
+
+            }
+        }
+
+        // Now fix up our own granule positions
         lastGranulePos = oggHeader.granulePos;
+        oggHeader.granulePos = trueGranulePos;
+        trueGranulePos += packetTime;
 
         // Then insert the current packet
         oggHeader.sequenceNo = lastSequenceNo++;
