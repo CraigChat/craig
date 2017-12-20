@@ -75,8 +75,8 @@ function reply(dm, pubtext, privtext) {
 }
 
 // Our recording session proper
-function session(guildId, channelId, id) {
-    const receiver = connection.createReceiver();
+function session(guildId, channelId, channel, id) {
+    var receiver = connection.createReceiver();
     const partTimeout = setTimeout(() => {
         reply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
         disconnected = true;
@@ -185,7 +185,7 @@ function session(guildId, channelId, id) {
     }
 
     // And receiver for the actual data
-    receiver.on('opus', (user, chunk) => {
+    function onReceive(user, chunk) {
         if (user.id in userOpusStreams) return;
 
         var opusStream = userOpusStreams[user.id] = receiver.createOpusStream(user);
@@ -236,23 +236,43 @@ function session(guildId, channelId, id) {
         opusStream.on("end", () => {
             delete userOpusStreams[user.id];
         });
-    });
+    }
+    receiver.on("opus", onReceive);
 
     // When we're disconnected from the channel...
-    connection.on("disconnect", () => {
+    function onDisconnect() {
         if (!disconnected) {
             try {
-                log("Unexpected disconnect from " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+                log("Unexpected disconnect from " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
             } catch (ex) {}
             try {
-                reply(true, "I've been unexpectedly disconnected! If you kicked me from the voice channel, that's why. Otherwise, Discord screwed up, and you might want to reinvite me! If you didn't kick me, consider joining my Discord channel and telling my implementer, Yahweasel, about this, so he can make me reconnect automatically when this happens.");
+                reply(true, "I've been unexpectedly disconnected! If you want me to stop recording, please command me to with :craig:, stop. Otherwise, I'm trying to reconnect now.");
             } catch (ex) {}
-            disconnected = true;
+            channel.join().then((theConnection) => {
+                connection = theConnection;
+                receiver = connection.createReceiver();
+                receiver.on("opus", onReceive);
+                connection.on("disconnect", onDisconnect);
+                connection.on("error", onDisconnect);
+                try {
+                    reply(true, "Reconnected.");
+                } catch (ex) {}
+            }).catch((err) => {
+                try {
+                    log("Failed to reconnect to " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
+                } catch (ex) {}
+                try {
+                    reply(true, "I couldn't reconnect!");
+                } catch (ex) {}
+                disconnected = true;
+                onDisconnect();
+            });
+            return;
         }
 
         // Log it
         try {
-            log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+            log("Finished recording " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
         } catch (ex) {}
 
         // Close all our OGG streams
@@ -269,7 +289,9 @@ function session(guildId, channelId, id) {
 
         // And disconnect
         die();
-    });
+    }
+    connection.on("disconnect", onDisconnect);
+    connection.on("error", onDisconnect);
 }
 
 // When we connect, it's time to record
@@ -318,7 +340,7 @@ client.on('ready', () => {
             "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + toRec.accessKey + "&delete=" + toRec.deleteKey + "\n.");
 
         // Then start the recording session
-        session(guildId, channelId, id);
+        session(guildId, channelId, channel, id);
 
     }).catch((err) => {
         reply(false, "Failed to join! " + err);
@@ -330,23 +352,22 @@ client.on('ready', () => {
 client.on("voiceStateUpdate", (from, to) => {
     try {
         if (from.id === client.user.id) {
-            if (from.voiceChannelID != to.voiceChannelID) {
+            if (from.voiceChannelID !== to.voiceChannelID ||
+                from.voiceSessionID !== to.voiceSessionID) {
                 // We do not tolerate being moved
                 to.guild.voiceConnection.disconnect();
             }
+        }
+    } catch (err) {}
+});
 
-/*
-        } else if (to.guild.voiceConnection) {
-            if (from.voiceChannelID === to.guild.voiceConnection.channel.id &&
-                to.voiceChannelID !== from.voiceChannelID) {
-                // Somebody left, see if it's empty aside from us
-                if (!to.guild.voiceConnection.channel.members.some((member) => { return member.id !== client.user.id; })) {
-                    // I'm alone! Heck with this!
-                    to.guild.voiceConnection.disconnect();
-                }
+client.on("guildUpdate", (from, to) => {
+    try {
+        if (from.id === connection.channel.guild.id) {
+            if (from.region !== to.region) {
+                // The server has moved regions. This breaks recording.
+                to.voiceConnection.disconnect();
             }
-*/
-
         }
     } catch (err) {}
 });
