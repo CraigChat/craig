@@ -197,8 +197,6 @@ function ownerCommand(msg, cmd) {
 }
 
 client.on('message', (msg) => {
-    if (dead) return;
-
     // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
@@ -229,6 +227,11 @@ client.on('message', (msg) => {
         var channel = null;
         if (!msg.guild)
             return;
+
+        if (dead && (op === "join" || op === "record" || op === "rec")) {
+            // Not our job
+            return;
+        }
 
         msg.guild.channels.every((schannel) => {
             if (schannel.type !== "voice")
@@ -414,12 +417,13 @@ client.on('message', (msg) => {
                         activeRecordings[guildId][channelId].cp.send({"type": "stop"});
                     } catch (ex) {}
                 } else {
-                    reply(msg, false, cmd[1], "But I'm not recording that channel!");
+                    if (!dead)
+                        reply(msg, false, cmd[1], "But I'm not recording that channel!");
                 }
 
             }
 
-        } else {
+        } else if (!dead) {
             reply(msg, false, cmd[1], "What channel?");
 
         }
@@ -432,11 +436,11 @@ client.on('message', (msg) => {
                     activeRecordings[guildId][channelId].cp.send({"type": "stop"});
                 } catch (ex) {}
             }
-        } else {
+        } else if (!dead) {
             reply(msg, false, cmd[1], "But I haven't started!");
         }
 
-    } else if (op === "help" || op === "commands" || op === "hello") {
+    } else if (!dead && (op === "help" || op === "commands" || op === "hello")) {
         reply(msg, false, cmd[1],
             "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ ");
 
