@@ -27,6 +27,7 @@ const nameId = cshared.nameId;
 var config = null;
 var toRec = null;
 var connection = null;
+var disconnected = false;
 
 // To end the process, disconnect from all
 function die() {
@@ -55,6 +56,7 @@ process.on("message", (msg) => {
             break;
 
         case "stop":
+            disconnected = true;
             if (connection)
                 connection.disconnect();
             else
@@ -77,6 +79,7 @@ function session(guildId, channelId, id) {
     const receiver = connection.createReceiver();
     const partTimeout = setTimeout(() => {
         reply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
+        disconnected = true;
         connection.disconnect();
     }, 1000*60*60*6);
 
@@ -84,6 +87,7 @@ function session(guildId, channelId, id) {
     try {
         connection.channel.guild.members.get(client.user.id).setNickname(config.nick + " [RECORDING]").catch((err) => {
             reply(true, "I do not have permission to change my nickname on this server. I will not record without this permission.");
+            disconnected = true;
             connection.disconnect();
         });
     } catch (ex) {}
@@ -138,6 +142,7 @@ function session(guildId, channelId, id) {
             size += chunk.length;
             if (config.hardLimit && size >= config.hardLimit) {
                 reply(true, "Sorry, but you've hit the recording size limit. Recording stopped.");
+                disconnected = true;
                 connection.disconnect();
             }
         });
@@ -235,6 +240,16 @@ function session(guildId, channelId, id) {
 
     // When we're disconnected from the channel...
     connection.on("disconnect", () => {
+        if (!disconnected) {
+            try {
+                log("Unexpected disconnect from " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+            } catch (ex) {}
+            try {
+                reply(true, "I've been unexpectedly disconnected! If you kicked me from the voice channel, that's why. Otherwise, Discord screwed up, and you might want to reinvite me! If you didn't kick me, consider joining my Discord channel and telling my implementer, Yahweasel, about this, so he can make me reconnect automatically when this happens.");
+            } catch (ex) {}
+            disconnected = true;
+        }
+
         // Log it
         try {
             log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
