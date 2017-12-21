@@ -79,6 +79,11 @@ do
         -f wav - |
         timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
 done
+if [ "$CONTAINER" = "zip" ]
+then
+    mkfifo $tmpdir/out/raw.dat
+    timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data > $tmpdir/out/raw.dat &
+fi
 
 # Put them into their container
 cd $tmpdir/out
@@ -97,10 +102,12 @@ case "$CONTAINER" in
         ;;
 
     *)
-        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext
+        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext raw.dat
         ;;
 esac | cat
 
 # And clean up after ourselves
 cd
 rm -rf "$tmpdir/"
+
+wait
