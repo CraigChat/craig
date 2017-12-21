@@ -151,6 +151,8 @@ client.on('ready', () => {
     log("Logged in as " + client.user.username);
     lastLogin = new Date().getTime();
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">),? *([^ ]*) ?(.*)$");
+    if ("url" in config)
+        client.user.setPresence({game: {name: config.url, type: 0}}).catch(()=>{});
 });
 
 function userIsAuthorized(member) {
