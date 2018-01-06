@@ -31,8 +31,17 @@ var disconnected = false;
 
 // To end the process, disconnect from all
 function die() {
+    try {
+        connection.channel.guild.members.get(client.user.id).setNickname(config.nick).then(die2).catch(die2);
+    } catch(ex) {
+        die2();
+    }
+}
+
+function die2() {
     client.destroy();
     process.disconnect();
+    setTimeout(() => { process.exit(0); }, 5);
 }
 
 // Host control messages
@@ -47,6 +56,10 @@ process.on("message", (msg) => {
         case "client":
             config.token = msg.config.token;
             config.nick = msg.config.nick;
+            break;
+
+        case "requester":
+            config.requester = msg.config.requester;
             break;
 
         case "record":
@@ -67,11 +80,35 @@ process.on("message", (msg) => {
 
 // We log and reply via the host
 function log(line) {
-    process.send({"type": "log", "line": line+""});
+    if (process.connected)
+        process.send({"type": "log", "line": line+""});
+    else
+        console.log(line);
 }
 
 function reply(dm, pubtext, privtext) {
-    process.send({"type": "reply", "dm": !!dm, "pubtext": pubtext+"", "privtext": privtext?(privtext+""):undefined});
+    if (process.connected)
+        process.send({"type": "reply", "dm": !!dm, "pubtext": pubtext+"", "privtext": privtext?(privtext+""):undefined});
+    else if (config.requester) {
+        if (typeof privtext === "undefined")
+            privtext = pubtext;
+        else
+            privtext = pubtext + "\n\n" + privtext;
+        client.fetchUser(config.requester).then((u) => {
+            u.send(privtext).catch((err) => {
+                disconnected = true;
+                if (connection)
+                    connection.disconnect();
+                else
+                    die();
+            });
+        }).catch((err) => {
+            if (connection)
+                connection.disconnect();
+            else
+                die();
+        });
+    }
 }
 
 // Our recording session proper
@@ -370,4 +407,8 @@ client.on("guildUpdate", (from, to) => {
             }
         }
     } catch (err) {}
+});
+
+process.on("disconnect", () => {
+    reply(true, "Craig is currently undergoing problems or maintenance. I'm still recording, but don't be surprised if I refuse to leave the room when you ask; when parts of my brain die, I forget where I am. Sorry about that!");
 });

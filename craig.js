@@ -351,6 +351,7 @@ client.on('message', (msg) => {
 
                         try {
                             ccp.send({"type": "config", "config": config});
+                            ccp.send({"type": "requester", "config": {"requester": msg.author.id}});
                             if (chosenClient !== client)
                                 ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
                             ccp.send({"type": "record", "record":
@@ -456,18 +457,6 @@ client.on("voiceStateUpdate", (from, to) => {
                 // We do not tolerate being moved
                 to.guild.voiceConnection.disconnect();
             }
-
-/*
-        } else if (to.guild.voiceConnection) {
-            if (from.voiceChannelID === to.guild.voiceConnection.channel.id &&
-                to.voiceChannelID !== from.voiceChannelID) {
-                // Somebody left, see if it's empty aside from us
-                if (!to.guild.voiceConnection.channel.members.some((member) => { return member.id !== client.user.id; })) {
-                    // I'm alone! Heck with this!
-                    to.guild.voiceConnection.disconnect();
-                }
-            }
-*/
 
         }
     } catch (err) {}

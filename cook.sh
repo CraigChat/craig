@@ -21,6 +21,9 @@ DEF_TIMEOUT=1800
 ulimit -v $(( 2 * 1024 * 1024 ))
 echo 10 > /proc/self/oom_adj
 
+# Don't get HUP'd
+trap "" HUP
+
 PATH="/opt/node/bin:$PATH"
 export PATH
 
@@ -98,13 +101,13 @@ case "$CONTAINER" in
             MAP="$MAP -map $c"
             c=$((c+1))
         done
-        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER -
+        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - || true
         ;;
 
     *)
-        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext raw.dat
+        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext raw.dat || true
         ;;
-esac | cat
+esac | (cat || cat > /dev/null)
 
 # And clean up after ourselves
 cd
