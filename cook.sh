@@ -78,7 +78,7 @@ do
     timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
         timeout $DEF_TIMEOUT ../oggstender $c |
         timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
-        -af aresample=flags=res:min_comp=0.01:max_soft_comp=0.01:min_hard_comp=1:first_pts=0 \
+        -af aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0 \
         -f wav - |
         timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
 done
