@@ -277,8 +277,12 @@ function session(guildId, channelId, channel, id) {
     receiver.on("opus", onReceive);
 
     // When we're disconnected from the channel...
+    var tryingReconnect = false;
     function onDisconnect() {
         if (!disconnected) {
+            if (tryingReconnect)
+                return;
+            tryingReconnect = true;
             try {
                 log("Unexpected disconnect from " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
             } catch (ex) {}
@@ -294,6 +298,7 @@ function session(guildId, channelId, channel, id) {
                 try {
                     reply(true, "Reconnected.");
                 } catch (ex) {}
+                tryingReconnect = false;
             }).catch((err) => {
                 try {
                     log("Failed to reconnect to " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
