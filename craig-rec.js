@@ -134,6 +134,9 @@ function session(guildId, channelId, channel, id) {
         log("Started recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
     } catch(ex) {}
 
+    // Have we received any data?
+    var received = false;
+
     // Our input Opus streams by user
     var userOpusStreams = {};
 
@@ -224,6 +227,7 @@ function session(guildId, channelId, channel, id) {
     // And receiver for the actual data
     function onReceive(user, chunk) {
         if (user.id in userOpusStreams) return;
+        received = true;
 
         var opusStream = userOpusStreams[user.id] = receiver.createOpusStream(user);
         var userOggStream;
@@ -292,22 +296,25 @@ function session(guildId, channelId, channel, id) {
             channel.join().then((theConnection) => {
                 connection = theConnection;
                 receiver = connection.createReceiver();
+                userOpusStreams = {};
                 receiver.on("opus", onReceive);
                 connection.on("disconnect", onDisconnect);
                 connection.on("error", onDisconnect);
-                try {
-                    reply(true, "Reconnected.");
-                } catch (ex) {}
-                tryingReconnect = false;
+
+                // Don't trust being connected until we receive data
+                received = false;
+                setTimeout(() => {
+                    if (!received) {
+                        failReconnect();
+                        return;
+                    }
+                    try {
+                        reply(true, "Reconnected.");
+                    } catch (ex) {}
+                    tryingReconnect = false;
+                }, 5000);
             }).catch((err) => {
-                try {
-                    log("Failed to reconnect to " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
-                } catch (ex) {}
-                try {
-                    reply(true, "I couldn't reconnect!");
-                } catch (ex) {}
-                disconnected = true;
-                onDisconnect();
+                failReconnect();
             });
             return;
         }
@@ -334,6 +341,18 @@ function session(guildId, channelId, channel, id) {
     }
     connection.on("disconnect", onDisconnect);
     connection.on("error", onDisconnect);
+
+    // When we fail to reconnect
+    function failReconnect() {
+        try {
+            log("Failed to reconnect to " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
+        } catch (ex) {}
+        try {
+            reply(true, "I couldn't reconnect!");
+        } catch (ex) {}
+        disconnected = true;
+        onDisconnect();
+    }
 }
 
 // When we connect, it's time to record
