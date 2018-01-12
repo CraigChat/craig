@@ -542,6 +542,9 @@ function dms() {
         var channelFromMain = null, channelFromDMS = null;
         var mainMessage = null, dmsMessage = null;
 
+        if (dead)
+            return;
+
         if (client && client.user)
             mainId = client.user.id;
 
