@@ -68,7 +68,7 @@ function guildRefresh(guild) {
 // If there are secondary Craigs, log them in
 for (var si = 0; si < config.secondary.length; si++) {
     clients.push(new Discord.Client());
-    clients[si+1].login(config.secondary[si].token);
+    clients[si+1].login(config.secondary[si].token).catch(()=>{});
 }
 
 var log;
@@ -462,7 +462,7 @@ client.on("voiceStateUpdate", (from, to) => {
     } catch (err) {}
 });
 
-client.login(config.token);
+client.login(config.token).catch(()=>{});
 var reconnectTimeout = null;
 client.on("disconnect", () => {
     if (reconnectTimeout !== null) {
@@ -471,7 +471,7 @@ client.on("disconnect", () => {
     }
     reconnectTimeout = setTimeout(() => {
         if (client.status !== 0)
-            client.login(config.token);
+            client.login(config.token).catch(()=>{});
         reconnectTimeout = null;
     }, 10000);
 });
@@ -482,7 +482,7 @@ setInterval(() => {
     if (new Date().getTime() >= lastLogin + 86400000 &&
         Object.keys(activeRecordings).length === 0) {
         lastLogin = new Date().getTime();
-        client.login(config.token);
+        client.login(config.token).catch(()=>{});
     }
 
     for (var ci = 0; ci < clients.length; ci++) {

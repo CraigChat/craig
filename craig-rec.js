@@ -50,7 +50,7 @@ process.on("message", (msg) => {
         case "config":
             config = msg.config;
             if (config && toRec)
-                client.login(config.token);
+                client.login(config.token).catch(()=>{});
             break;
 
         case "client":
@@ -65,7 +65,7 @@ process.on("message", (msg) => {
         case "record":
             toRec = msg.record;
             if (config && toRec)
-                client.login(config.token);
+                client.login(config.token).catch(()=>{});
             break;
 
         case "stop":
