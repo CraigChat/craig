@@ -198,7 +198,16 @@ function ownerCommand(msg, cmd) {
     }
 }
 
+// Variables for the DMS (below)
+var dmsReceived = false;
+var dmsId = null;
+
 client.on('message', (msg) => {
+    if (dmsId && msg.author.id === dmsId) {
+        dmsReceived = true;
+        return;
+    }
+
     // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
@@ -509,3 +518,83 @@ setInterval(() => {
         });
     }
 }, 3600000);
+
+// The DMS (dead man's switch) to check bot connectivity
+function dms() {
+    var mainReceived = false;
+    var mainId = null;
+
+    var dmsChannel = config.dmsChannel.split("@");
+    if (dmsChannel[0][0] === "#")
+        dmsChannel[0] = dmsChannel[0].slice(1);
+
+    var dmsClient = new Discord.Client();
+    dmsClient.login(config.dms).catch(() => {});
+
+    dmsClient.on("message", (msg) => {
+        if (msg.author.id === mainId)
+            mainReceived = true;
+    });
+
+    // Send ping messages once a minute
+    function ping() {
+        var guildFromMain, guildFromDMS;
+        var channelFromMain = null, channelFromDMS = null;
+        var mainMessage = null, dmsMessage = null;
+
+        if (client && client.user)
+            mainId = client.user.id;
+
+        if (dmsClient && dmsClient.user)
+            dmsId = dmsClient.user.id;
+
+        if (!mainId || !dmsId)
+            return;
+
+        // Get the ping channel
+        guildFromMain = client.guilds.get(dmsChannel[1]);
+        if (!guildFromMain) return;
+        guildFromMain.channels.some((channel) => {
+            if (channel.name === dmsChannel[0]) {
+                channelFromMain = channel;
+                return true;
+            }
+            return false;
+        });
+        if (!channelFromMain) return;
+        guildFromDMS = dmsClient.guilds.get(dmsChannel[1]);
+        if (!guildFromDMS) return;
+        guildFromDMS.channels.some((channel) => {
+            if (channel.name === dmsChannel[0]) {
+                channelFromDMS = channel;
+                return true;
+            }
+            return false;
+        });
+        if (!channelFromDMS) return;
+
+        // Send the pings
+        dmsReceived = mainReceived = false;
+        channelFromMain.send("PING").then((msg) => { mainMessage = msg; }).catch(()=>{});
+        channelFromDMS.send("PING").then((msg) => { dmsMessage = msg; }).catch(()=>{});
+
+        // And wait to see if they're received
+        setTimeout(() => {
+            if (!dmsReceived || !mainReceived) {
+                // They weren't received!
+                client.login(config.token).catch(()=>{});
+                dmsClient.login(config.dms).catch(()=>{});
+            }
+
+            if (mainMessage)
+                mainMessage.delete().catch(()=>{});
+            if (dmsMessage)
+                dmsMessage.delete().catch(()=>{});
+        }, 2000);
+    }
+
+    setTimeout(ping, 10000);
+    setInterval(ping, 60000);
+}
+if (config.dms)
+    dms();
