@@ -170,6 +170,20 @@ function userIsAuthorized(member) {
     return false;
 }
 
+// Graceful restart
+function gracefulRestart() {
+    // Start a new craig
+    var ccp = cp.spawn(
+        process.argv[0], ["craig.js"],
+        {"stdio": "inherit", "detached": true});
+    ccp.on("exit", (code) => {
+        process.exit(code ? code : 1);
+    });
+
+    // Stop responding to input
+    dead = true;
+}
+
 // Special commands from the owner
 function ownerCommand(msg, cmd) {
     var op = cmd[2].toLowerCase();
@@ -180,17 +194,7 @@ function ownerCommand(msg, cmd) {
 
     if (op === "graceful-restart") {
         reply(msg, false, cmd[1], "Restarting!");
-
-        // Start a new craig
-        var ccp = cp.spawn(
-            process.argv[0], ["craig.js"],
-            {"stdio": "inherit", "detached": true});
-        ccp.on("exit", (code) => {
-            process.exit(code ? code : 1);
-        });
-
-        // Stop responding to input
-        dead = true;
+        gracefulRestart();
 
     } else {
         reply(msg, false, cmd[1], "Huh?");
@@ -536,6 +540,8 @@ function dms() {
             mainReceived = true;
     });
 
+    var fails = 0;
+
     // Send ping messages once a minute
     function ping() {
         var guildFromMain, guildFromDMS;
@@ -584,9 +590,19 @@ function dms() {
         // And wait to see if they're received
         setTimeout(() => {
             if (!dmsReceived || !mainReceived) {
-                // They weren't received!
-                client.login(config.token).catch(()=>{});
-                dmsClient.login(config.dms).catch(()=>{});
+                fails++;
+
+                if (fails > 1) {
+                    gracefulRestart();
+
+                } else {
+                    // They weren't received!
+                    client.login(config.token).catch(()=>{});
+                    dmsClient.login(config.dms).catch(()=>{});
+
+                }
+            } else {
+                fails = 0;
             }
 
             if (mainMessage)
