@@ -50,6 +50,10 @@ case "$FORMAT" in
         ext=mp3
         ENCODE="lame -V 2 - -"
         ;;
+    ra)
+        ext=ra
+        ENCODE="ffmpeg -f wav -i - -f rm -"
+        ;;
     *)
         ext=flac
         ENCODE="flac - -c"
