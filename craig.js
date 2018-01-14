@@ -66,15 +66,17 @@ const opusHeader = [
 // Our guild membership status
 var guildMembershipStatus = {};
 if (accessSyncer("craig-guild-membership-status.json")) {
-    var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
-    guildMembershipStatus = journal[0];
-    for (var ji = 1; ji < journal.length; ji++) {
-        var step = journal[ji];
-        if ("v" in step)
-            guildMembershipStatus[step.k] = step.v;
-        else
-            delete guildMembershipStatus[step.k];
-    }
+    try {
+        var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
+        guildMembershipStatus = journal[0];
+        for (var ji = 1; ji < journal.length; ji++) {
+            var step = journal[ji];
+            if ("v" in step)
+                guildMembershipStatus[step.k] = step.v;
+            else
+                delete guildMembershipStatus[step.k];
+        }
+    } catch (ex) {}
 }
 var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
 guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
