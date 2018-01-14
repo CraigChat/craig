@@ -19,7 +19,9 @@ const fs = require("fs");
 const Discord = require("discord.js");
 const ogg = require("./craig-ogg.js");
 
-const client = new Discord.Client();
+const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
+
+const client = new Discord.Client(clientOptions);
 const clients = [client]; // For secondary connections
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
@@ -88,9 +90,12 @@ function guildRefresh(guild) {
     guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
 }
 
+// Log in
+client.login(config.token).catch(()=>{});
+
 // If there are secondary Craigs, log them in
 for (var si = 0; si < config.secondary.length; si++) {
-    clients.push(new Discord.Client());
+    clients.push(new Discord.Client(clientOptions));
     clients[si+1].login(config.secondary[si].token).catch(()=>{});
 }
 
@@ -334,12 +339,10 @@ function session(msg, prefix, rec) {
 }
 
 // Our command regex changes to match our user ID
-var craigCommand = /not yet connected/;
+var craigCommand = /^(:craig:|<:craig:[0-9]*>),? *([^ ]*) ?(.*)$/;
 
-var lastLogin = new Date().getTime();
-client.on('ready', () => {
+client.on("ready", () => {
     log("Logged in as " + client.user.username);
-    lastLogin = new Date().getTime();
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">),? *([^ ]*) ?(.*)$");
     if ("url" in config)
         client.user.setPresence({game: {name: config.url, type: 0}}).catch(()=>{});
@@ -394,7 +397,7 @@ function ownerCommand(msg, cmd) {
 }
 
 // Our message receiver and command handler
-client.on('message', (msg) => {
+client.on("message", (msg) => {
     // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
@@ -431,21 +434,21 @@ client.on('message', (msg) => {
             return;
         }
 
-        msg.guild.channels.every((schannel) => {
+        msg.guild.channels.some((schannel) => {
             if (schannel.type !== "voice")
-                return true;
+                return false;
 
             if (schannel.name.toLowerCase() === cname ||
                 (cname === "" && msg.member.voiceChannel === schannel)) {
                 channel = schannel;
-                return false;
+                return true;
 
             } else if (channel === null && schannel.name.toLowerCase().startsWith(cname)) {
                 channel = schannel;
 
             }
 
-            return true;
+            return false;
         });
 
         if (channel !== null) {
@@ -566,6 +569,18 @@ client.on('message', (msg) => {
                             } catch (ex) {}
                         }
 
+                        var rec = {
+                            connection: null,
+                            id: id,
+                            accessKey: accessKey,
+                            client: chosenClient,
+                            clientNum: chosenClientNum,
+                            nick: reNick,
+                            disconnected: false,
+                            close: close
+                        };
+                        activeRecordings[guildId][channelId] = rec;
+
                         // Join the channel
                         channel.join().then((connection) => {
                             // Tell them
@@ -574,17 +589,7 @@ client.on('message', (msg) => {
                                 "Download link: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
                                 "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
 
-                            var rec = {
-                                connection: connection,
-                                id: id,
-                                accessKey: accessKey,
-                                client: chosenClient,
-                                clientNum: chosenClientNum,
-                                nick: reNick,
-                                disconnected: false,
-                                close: close
-                            };
-                            activeRecordings[guildId][channelId] = rec;
+                            rec.connection = connection;
 
                             session(msg, cmd[1], rec);
                         }).catch((ex) => {
@@ -604,8 +609,10 @@ client.on('message', (msg) => {
                         channelId in activeRecordings[guildId]) {
                     try {
                         var rec = activeRecordings[guildId][channelId];
-                        rec.disconnected = true;
-                        rec.connection.disconnect();
+                        if (rec.connection) {
+                            rec.disconnected = true;
+                            rec.connection.disconnect();
+                        }
                     } catch (ex) {}
                 } else {
                     if (!dead)
@@ -625,8 +632,10 @@ client.on('message', (msg) => {
             for (var channelId in activeRecordings[guildId]) {
                 try {
                     var rec = activeRecordings[guildId][channelId];
-                    rec.disconnected = true;
-                    rec.connection.disconnect();
+                    if (rec.connection) {
+                        rec.disconnected = true;
+                        rec.connection.disconnect();
+                    }
                 } catch (ex) {}
             }
         } else if (!dead) {
@@ -645,8 +654,11 @@ clients.forEach((client) => {
     client.on("voiceStateUpdate", (from, to) => {
         try {
             if (from.id === client.user.id) {
-                if (from.voiceChannelID !== to.voiceChannelID ||
-                    from.voiceSessionID !== to.voiceSessionID) {
+                var guildId = from.guild.id;
+                var channelId = from.voiceChannel.id;
+                if (guildId in activeRecordings &&
+                    channelId in activeRecordings[guildId] &&
+                    from.voiceChannelID !== to.voiceChannelId) {
                     // We do not tolerate being moved
                     to.guild.voiceConnection.disconnect();
                 }
@@ -664,8 +676,7 @@ clients.forEach((client) => {
     });
 });
 
-// Finally, let's actually log in
-client.login(config.token).catch(()=>{});
+// Reconnect when we disconnect
 var reconnectTimeout = null;
 client.on("disconnect", () => {
     if (reconnectTimeout !== null) {
