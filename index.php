@@ -68,15 +68,24 @@ Download:
     download("Ogg (Vorbis)", "vorbis");
     download("AAC", "aac", "zip", "");
 ?>
-<br/><br/>
+<br/><br/><br/><br/>
 
-Craig is restricted to six hours of recording in any recording session.
-Recordings are deleted automatically after 48 hours from the <em>start</em> of
-recording. Both the raw and processed audio can be downloaded even if Craig is
-still recording at the time.<br/><br/>
+<script type="text/javascript">
+function toggleAdvanced() {
+    var advanced = document.getElementById("advanced");
+    switch (advanced.style.visibility) {
+        case "visible":
+        case "show":
+            advanced.style.visibility = "hidden";
+            break;
+        default:
+            advanced.style.visibility = "visible";
+    }
+}
+</script>
+<a href="javascript:toggleAdvanced();">Advanced options</a><br/><br/>
 
-<br/><br/>
-
+<div id="advanced" style="visibility:visible;">
 Other download formats:
 <?PHP
     print("Single Matroska file (");
@@ -88,9 +97,12 @@ Other download formats:
 ?>
 <br/><br/>
 
-Note: Most audio editors will NOT correctly decode the single Matroska file or raw version.<br/><br/>
+Note: Most audio editors will NOT correctly decode the single Matroska file or raw version.
+</div>
 
-Note 2: The MP3 format is no longer provided. Do not request it; it will not be reinstated.<br/><br/>
+<script type="text/javascript">
+toggleAdvanced();
+</script>
 </body></html>
 <?PHP
 
@@ -124,7 +136,8 @@ This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
     $format = "flac";
     if (isset($_REQUEST["format"])) {
         if ($_REQUEST["format"] === "aac" ||
-            $_REQUEST["format"] === "vorbis")
+            $_REQUEST["format"] === "vorbis" ||
+            $_REQUEST["format"] === "ra")
             $format = $_REQUEST["format"];
     }
     $container="zip";
