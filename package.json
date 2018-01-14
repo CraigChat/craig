@@ -12,6 +12,6 @@
         "erlpack": "hammerandchisel/erlpack",
         "node-opus": "*",
         "sodium": "*",
-        "uws": "*"
+        "uws": "^0.14.5"
     }
 }
