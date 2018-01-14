@@ -387,8 +387,10 @@ function ownerCommand(msg, cmd) {
     } catch (ex) {}
 
     if (op === "graceful-restart") {
-        reply(msg, false, cmd[1], "Restarting!");
-        gracefulRestart();
+        if (!dead) {
+            reply(msg, false, cmd[1], "Restarting!");
+            gracefulRestart();
+        }
 
     } else {
         reply(msg, false, cmd[1], "Huh?");
