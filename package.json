@@ -8,9 +8,8 @@
     },
     "dependencies": {
         "discord.js": "11.0.0",
-        "node-opus": "0.2.6",
-        "ogg": "*",
-        "ogg-packet": "*",
-        "erlpack": "hammerandchisel/erlpack#master"
+        "node-opus": "*",
+        "erlpack": "hammerandchisel/erlpack#master",
+        "cyclic-32": "*"
     }
 }

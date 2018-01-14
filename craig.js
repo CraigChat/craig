@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Yahweasel
+ * Copyright (c) 2017, 2018 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,12 +17,11 @@
 const cp = require("child_process");
 const fs = require("fs");
 const Discord = require("discord.js");
-const cshared = require("./craig-shared.js");
+const ogg = require("./craig-ogg.js");
 
 const client = new Discord.Client();
 const clients = [client]; // For secondary connections
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-const nameId = cshared.nameId;
 
 if (!("nick" in config))
     config.nick = "Craig";
@@ -41,6 +40,28 @@ function accessSyncer(file) {
     }
     return true;
 }
+
+// Convenience functions to turn entities into name#id strings:
+function nameId(entity) {
+    var nick = "";
+    if ("displayName" in entity) {
+        nick = entity.displayName;
+    } else if ("username" in entity) {
+        nick = entity.username;
+    } else if ("name" in entity) {
+        nick = entity.name;
+    }
+    return nick + "#" + entity.id;
+}
+
+// A precomputed Opus header, made by node-opus 
+const opusHeader = [
+    Buffer.from([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02,
+        0x00, 0x0f, 0x80, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00]),
+    Buffer.from([0x4f, 0x70, 0x75, 0x73, 0x54, 0x61, 0x67, 0x73, 0x09, 0x00,
+        0x00, 0x00, 0x6e, 0x6f, 0x64, 0x65, 0x2d, 0x6f, 0x70, 0x75, 0x73, 0x00,
+        0x00, 0x00, 0x00, 0xff])
+];
 
 // Our guild membership status
 var guildMembershipStatus = {};
@@ -144,6 +165,173 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     });
 }
 
+// Our recording session proper
+function session(msg, prefix, rec) {
+    var connection = rec.connection;
+    var id = rec.id;
+    var client = rec.client;
+    var nick = rec.nick;
+
+    function sReply(dm, pubtext, privtext) {
+        reply(msg, dm, prefix, pubtext, privtext);
+    }
+
+    var receiver = connection.createReceiver();
+    const partTimeout = setTimeout(() => {
+        sReply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
+        rec.disconnected = true;
+        connection.disconnect();
+    }, 1000*60*60*6);
+
+    // Rename ourself to indicate that we're recording
+    try {
+        connection.channel.guild.members.get(client.user.id).setNickname(nick + " [RECORDING]").catch((err) => {
+            sReply(true, "I do not have permission to change my nickname on this server. I will not record without this permission.");
+            rec.disconnected = true;
+            connection.disconnect();
+        });
+    } catch (ex) {}
+
+    // Log it
+    try {
+        log("Started recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+    } catch(ex) {}
+
+    // Our input Opus streams by user
+    var userOpusStreams = {};
+
+    // Track numbers for each active user
+    var userTrackNos = {};
+
+    // Packet numbers for each active user
+    var userPacketNos = {};
+
+    // Our current track number
+    var trackNo = 1;
+
+    // Set up our recording OGG header and data file
+    var startTime = process.hrtime();
+    var recFileBase = "rec/" + id + ".ogg";
+
+    // Set up our recording streams
+    var recFHStream = [
+        fs.createWriteStream(recFileBase + ".header1"),
+        fs.createWriteStream(recFileBase + ".header2")
+    ];
+    var recFStream = fs.createWriteStream(recFileBase + ".data");
+
+    // And our ogg encoders
+    var size = 0;
+    function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
+        size += chunk.length;
+        if (config.hardLimit && size >= config.hardLimit) {
+            reply(true, "Sorry, but you've hit the recording size limit. Recording stopped.");
+            rec.disconnected = true;
+            connection.disconnect();
+        } else {
+            stream.write(granulePos, streamNo, packetNo, chunk, flags);
+        }
+    }
+    var recOggHStream = [ new ogg.OggEncoder(recFHStream[0]), new ogg.OggEncoder(recFHStream[1]) ];
+    var recOggStream = new ogg.OggEncoder(recFStream);
+
+    // Function to encode a single Opus chunk to the ogg file
+    function encodeChunk(oggStream, streamNo, packetNo, chunk) {
+        var chunkTime = process.hrtime(startTime);
+        var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
+
+        if (chunk.length > 4 && chunk[0] === 0xBE && chunk[1] === 0xDE) {
+            // There's an RTP header extension here. Strip it.
+            var rtpHLen = chunk.readUInt16BE(2);
+            var off = 4;
+
+            for (var rhs = 0; rhs < rtpHLen && off < chunk.length; rhs++) {
+                var subLen = (chunk[off]&0xF)+2;
+                off += subLen;
+            }
+            while (off < chunk.length && chunk[off] === 0)
+                off++;
+            if (off >= chunk.length)
+                off = chunk.length;
+
+            chunk = chunk.slice(off);
+        }
+
+        write(oggStream, chunkGranule, streamNo, packetNo, chunk);
+    }
+
+    // And receiver for the actual data
+    function onReceive(user, chunk) {
+        if (user.id in userOpusStreams) return;
+
+        var opusStream = userOpusStreams[user.id] = receiver.createOpusStream(user);
+        var userTrackNo, packetNo;
+        if (!(user.id in userTrackNos)) {
+            userTrackNo = trackNo++;
+            userTrackNos[user.id] = userTrackNo;
+            packetNo = userPacketNos[user.id] = 0;
+
+            // Put a valid Opus header at the beginning
+            try {
+                write(recOggHStream[0], 0, userTrackNo, 0, opusHeader[0], ogg.BOS);
+                write(recOggHStream[1], 0, userTrackNo, 0, opusHeader[1]);
+            } catch (ex) {}
+        } else {
+            userTrackNo = userTrackNos[user.id];
+            packetNo = userPacketNos[user.id];
+        }
+
+        try {
+            encodeChunk(recOggStream, userTrackNo, packetNo++, chunk);
+            userPacketNos[user.id] = packetNo;
+        } catch (ex) {}
+
+        opusStream.on("data", (chunk) => {
+            try {
+                encodeChunk(recOggStream, userTrackNo, packetNo++, chunk);
+                userPacketNos[user.id] = packetNo;
+            } catch (ex) {}
+        });
+        opusStream.on("end", () => {
+            delete userOpusStreams[user.id];
+        });
+    }
+    receiver.on("opus", onReceive);
+
+    // When we're disconnected from the channel...
+    function onDisconnect() {
+        if (!rec.disconnected) {
+            // Not an intentional disconnect
+            try {
+                log("Unexpected disconnect from " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
+            } catch (ex) {}
+            try {
+                sReply(true, "I've been unexpectedly disconnected! If you want me to stop recording, please command me to with :craig:, stop.");
+            } catch (ex) {}
+            rec.disconnected = true;
+        }
+
+        // Log it
+        try {
+            log("Finished recording " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
+        } catch (ex) {}
+
+        // Close the output files
+        recOggHStream[0].end();
+        recOggHStream[1].end();
+        recOggStream.end();
+
+        // Delete our leave timeout
+        clearTimeout(partTimeout);
+
+        // And callback
+        rec.close();
+    }
+    connection.on("disconnect", onDisconnect);
+    connection.on("error", onDisconnect);
+}
+
+// Our command regex changes to match our user ID
 var craigCommand = /not yet connected/;
 
 var lastLogin = new Date().getTime();
@@ -155,6 +343,7 @@ client.on('ready', () => {
         client.user.setPresence({game: {name: config.url, type: 0}}).catch(()=>{});
 });
 
+// Only admins and those with the Craig role are authorized to use Craig
 function userIsAuthorized(member) {
     if (!member) return false;
 
@@ -202,16 +391,8 @@ function ownerCommand(msg, cmd) {
     }
 }
 
-// Variables for the DMS (below)
-var dmsReceived = false;
-var dmsId = null;
-
+// Our message receiver and command handler
 client.on('message', (msg) => {
-    if (dmsId && msg.author.id === dmsId) {
-        dmsReceived = true;
-        return;
-    }
-
     // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
@@ -354,38 +535,10 @@ client.on('message', (msg) => {
                                 recFileBase + ".key " + recFileBase + ".delete\n");
                         atcp.stdin.end();
 
-                        // Spawn off the child process
-                        var ccp = cp.fork("./craig-rec.js");
-                        activeRecordings[guildId][channelId] = {
-                            "id": id, "accessKey": accessKey,
-                            "clientNum": chosenClientNum,
-                            "cp": ccp
-                        };
-
-                        try {
-                            ccp.send({"type": "config", "config": config});
-                            ccp.send({"type": "requester", "config": {"requester": msg.author.id}});
-                            if (chosenClient !== client)
-                                ccp.send({"type": "client", "config": config.secondary[chosenClientNum-1]});
-                            ccp.send({"type": "record", "record":
-                                    {"guild": msg.guild.id,
-                                    "channel": channel.id,
-                                    "id": id,
-                                    "accessKey": accessKey,
-                                    "deleteKey": deleteKey}});
-                        } catch (ex) {}
-
-                        ccp.on("message", (cmsg) => {
-                                switch (cmsg.type) {
-                                case "log":
-                                log(cmsg.line);
-                                break;
-
-                                case "reply":
-                                reply(msg, cmsg.dm, cmd[1], cmsg.pubtext, cmsg.privtext);
-                                break;
-                                }
-                                });
+                        // We have a nick per the specific client
+                        var reNick = config.nick;
+                        if (chosenClient !== client)
+                            reNick = config.secondary[chosenClientNum-1].nick;
 
                         var closed = false;
                         function close() {
@@ -406,18 +559,35 @@ client.on('message', (msg) => {
                             }
 
                             // Rename the bot in this guild
-                            var reNick = config.nick;
-                            if (chosenClient !== client)
-                                reNick = config.secondary[chosenClientNum-1].nick;
                             try {
                                 guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
                             } catch (ex) {}
                         }
 
-                        ccp.on("close", close);
-                        ccp.on("disconnect", close);
-                        ccp.on("error", close);
-                        ccp.on("exit", close);
+                        // Join the channel
+                        channel.join().then((connection) => {
+                            // Tell them
+                            reply(msg, true, cmd[1],
+                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
+                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
+
+                            var rec = {
+                                connection: connection,
+                                id: id,
+                                accessKey: accessKey,
+                                client: chosenClient,
+                                clientNum: chosenClientNum,
+                                nick: reNick,
+                                disconnected: false,
+                                close: close
+                            };
+                            activeRecordings[guildId][channelId] = rec;
+
+                            session(msg, cmd[1], rec);
+                        }).catch((ex) => {
+                            reply(msg, false, cmd[1], "Failed to join! " + ex);
+                            close();
+                        });
 
                     } else {
                         reply(msg, false, cmd[1], "I don't have permission to join that channel!");
@@ -430,7 +600,9 @@ client.on('message', (msg) => {
                 if (guildId in activeRecordings &&
                         channelId in activeRecordings[guildId]) {
                     try {
-                        activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+                        var rec = activeRecordings[guildId][channelId];
+                        rec.disconnected = true;
+                        rec.connection.disconnect();
                     } catch (ex) {}
                 } else {
                     if (!dead)
@@ -449,7 +621,9 @@ client.on('message', (msg) => {
         if (guildId in activeRecordings) {
             for (var channelId in activeRecordings[guildId]) {
                 try {
-                    activeRecordings[guildId][channelId].cp.send({"type": "stop"});
+                    var rec = activeRecordings[guildId][channelId];
+                    rec.disconnected = true;
+                    rec.connection.disconnect();
                 } catch (ex) {}
             }
         } else if (!dead) {
@@ -463,18 +637,31 @@ client.on('message', (msg) => {
     }
 });
 
-client.on("voiceStateUpdate", (from, to) => {
-    try {
-        if (from.id === client.user.id) {
-            if (from.voiceChannelID != to.voiceChannelID) {
-                // We do not tolerate being moved
-                to.guild.voiceConnection.disconnect();
+// Checks for catastrophic recording errors
+clients.forEach((client) => {
+    client.on("voiceStateUpdate", (from, to) => {
+        try {
+            if (from.id === client.user.id) {
+                if (from.voiceChannelID !== to.voiceChannelID ||
+                    from.voiceSessionID !== to.voiceSessionID) {
+                    // We do not tolerate being moved
+                    to.guild.voiceConnection.disconnect();
+                }
             }
+        } catch (err) {}
+    });
 
-        }
-    } catch (err) {}
+    client.on("guildUpdate", (from, to) => {
+        try {
+            if (from.region !== to.region) {
+                // The server has moved regions. This breaks recording.
+                to.voiceConnection.disconnect();
+            }
+        } catch (err) {}
+    });
 });
 
+// Finally, let's actually log in
 client.login(config.token).catch(()=>{});
 var reconnectTimeout = null;
 client.on("disconnect", () => {
@@ -489,15 +676,8 @@ client.on("disconnect", () => {
     }, 10000);
 });
 
-/* Reset our connection every 24 hours, and check our guild membership status
- * every hour */
+// Check our guild membership status every hour
 setInterval(() => {
-    if (new Date().getTime() >= lastLogin + 86400000 &&
-        Object.keys(activeRecordings).length === 0) {
-        lastLogin = new Date().getTime();
-        client.login(config.token).catch(()=>{});
-    }
-
     for (var ci = 0; ci < clients.length; ci++) {
         var client = clients[ci];
         client.guilds.every((guild) => {
@@ -522,98 +702,3 @@ setInterval(() => {
         });
     }
 }, 3600000);
-
-// The DMS (dead man's switch) to check bot connectivity
-function dms() {
-    var mainReceived = false;
-    var mainId = null;
-
-    var dmsChannel = config.dmsChannel.split("@");
-    if (dmsChannel[0][0] === "#")
-        dmsChannel[0] = dmsChannel[0].slice(1);
-
-    var dmsClient = new Discord.Client();
-    dmsClient.login(config.dms).catch(() => {});
-
-    dmsClient.on("message", (msg) => {
-        if (msg.author.id === mainId)
-            mainReceived = true;
-    });
-
-    var fails = 0;
-
-    // Send ping messages once a minute
-    function ping() {
-        var guildFromMain, guildFromDMS;
-        var channelFromMain = null, channelFromDMS = null;
-        var mainMessage = null, dmsMessage = null;
-
-        if (dead)
-            return;
-
-        if (client && client.user)
-            mainId = client.user.id;
-
-        if (dmsClient && dmsClient.user)
-            dmsId = dmsClient.user.id;
-
-        if (!mainId || !dmsId)
-            return;
-
-        // Get the ping channel
-        guildFromMain = client.guilds.get(dmsChannel[1]);
-        if (!guildFromMain) return;
-        guildFromMain.channels.some((channel) => {
-            if (channel.name === dmsChannel[0]) {
-                channelFromMain = channel;
-                return true;
-            }
-            return false;
-        });
-        if (!channelFromMain) return;
-        guildFromDMS = dmsClient.guilds.get(dmsChannel[1]);
-        if (!guildFromDMS) return;
-        guildFromDMS.channels.some((channel) => {
-            if (channel.name === dmsChannel[0]) {
-                channelFromDMS = channel;
-                return true;
-            }
-            return false;
-        });
-        if (!channelFromDMS) return;
-
-        // Send the pings
-        dmsReceived = mainReceived = false;
-        channelFromMain.send("PING").then((msg) => { mainMessage = msg; }).catch(()=>{});
-        channelFromDMS.send("PING").then((msg) => { dmsMessage = msg; }).catch(()=>{});
-
-        // And wait to see if they're received
-        setTimeout(() => {
-            if (!dmsReceived || !mainReceived) {
-                fails++;
-
-                if (fails > 1) {
-                    gracefulRestart();
-
-                } else {
-                    // They weren't received!
-                    client.login(config.token).catch(()=>{});
-                    dmsClient.login(config.dms).catch(()=>{});
-
-                }
-            } else {
-                fails = 0;
-            }
-
-            if (mainMessage)
-                mainMessage.delete().catch(()=>{});
-            if (dmsMessage)
-                dmsMessage.delete().catch(()=>{});
-        }, 2000);
-    }
-
-    setTimeout(ping, 10000);
-    setInterval(ping, 60000);
-}
-if (config.dms)
-    dms();
