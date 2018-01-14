@@ -305,7 +305,7 @@ function session(msg, prefix, rec) {
         if (!rec.disconnected) {
             // Not an intentional disconnect
             try {
-                log("Unexpected disconnect from " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
+                log("Unexpected disconnect from " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
             } catch (ex) {}
             try {
                 sReply(true, "I've been unexpectedly disconnected! If you want me to stop recording, please command me to with :craig:, stop.");
@@ -315,7 +315,7 @@ function session(msg, prefix, rec) {
 
         // Log it
         try {
-            log("Finished recording " + nameId(channel) + "@" + nameId(channel.guild) + " with ID " + id);
+            log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
         } catch (ex) {}
 
         // Close the output files
