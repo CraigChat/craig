@@ -570,7 +570,8 @@ client.on('message', (msg) => {
                         channel.join().then((connection) => {
                             // Tell them
                             reply(msg, true, cmd[1],
-                                "Recording! https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
+                                "Recording! I will record up to six hours. Recordings are deleted automatically after 48 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
+                                "Download link: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
                                 "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
 
                             var rec = {
