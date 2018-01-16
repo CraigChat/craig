@@ -427,8 +427,10 @@ function ownerCommand(msg, cmd) {
         }
 
         ret = "";
-        if (ex)
+        if (ex) {
+            ex = ex+"";
             ret += "Exception: " + quote(ex) + "\n";
+        }
         ret += "Result: " + quote(res);
 
         reply(msg, true, null, "", ret);
