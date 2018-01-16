@@ -385,6 +385,9 @@ function gracefulRestart() {
 
 // Special commands from the owner
 function ownerCommand(msg, cmd) {
+    if (dead)
+        return;
+
     var op = cmd[2].toLowerCase();
 
     try {
@@ -392,10 +395,43 @@ function ownerCommand(msg, cmd) {
     } catch (ex) {}
 
     if (op === "graceful-restart") {
-        if (!dead) {
-            reply(msg, false, cmd[1], "Restarting!");
-            gracefulRestart();
+        reply(msg, false, cmd[1], "Restarting!");
+        gracefulRestart();
+
+    } else if (op === "eval") {
+        var ex, res, ret;
+
+        function stringify(x) {
+            var r = "(unprintable)";
+            try {
+                r = JSON.stringify(x);
+                if (typeof r !== "string")
+                    throw new Exception();
+            } catch (ex) {
+                try {
+                    r = x+"";
+                } catch (ex) {}
+            }
+            return r;
         }
+
+        function quote(x) {
+            return "```" + stringify(x).replace("```", "` ` `") + "```";
+        }
+
+        res = ex = undefined;
+        try {
+            res = eval(cmd[3]);
+        } catch (ex2) {
+            ex = ex2;
+        }
+
+        ret = "";
+        if (ex)
+            ret += "Exception: " + quote(ex) + "\n";
+        ret += "Result: " + quote(res);
+
+        reply(msg, true, null, "", ret);
 
     } else {
         reply(msg, false, cmd[1], "Huh?");
