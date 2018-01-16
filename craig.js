@@ -331,6 +331,11 @@ function session(msg, prefix, rec) {
         // Delete our leave timeout
         clearTimeout(partTimeout);
 
+        // Destroy the receiver
+        try {
+            receiver.destroy();
+        } catch (ex) {}
+
         // And callback
         rec.close();
     }
