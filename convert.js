@@ -102,7 +102,7 @@
                         tracks = detectedTracks;
                         if (duration <= 0)
                             duration = 6*3600;
-                        maybeReady();
+                        startWorker();
 
                     } else {
                         // Actual transcoding
@@ -157,26 +157,38 @@
                     ];
 
                     if (options.mix) {
-                        /* Because ffmpeg tries to read synchronously, we need
-                         * to open the input once for every track. Otherwise,
-                         * it will get stuck when one track ends. */
-                        var inargs = args.slice(0);
-                        for (var ti = 1; ti < tracks; ti++)
-                            args.push.apply(args, inargs);
-                        var filter = "";
-                        for (var ti = 0; ti < tracks; ti++)
-                            filter += "[" + ti + ":" + ti + "]" + resampler + ",apad,atrim=0:" + duration + ",aformat=channel_layouts=mono[aud" + ti + "];";
-                        for (var ti = 0; ti < tracks; ti++)
-                            filter += "[aud" + ti + "]";
-                        filter += "amerge=" + tracks + "[aud]";
-                        args.push(
-                            "-filter_complex", filter,
-                            "-map", "[aud]",
-                            "-ac", "1",
-                            "-f", format,
-                            "-c:a", codec,
-                            "craig." + ext
-                        );
+                        if (tracks > 1) {
+                            /* Because ffmpeg tries to read synchronously, we need
+                             * to open the input once for every track. Otherwise,
+                             * it will get stuck when one track ends. */
+                            var inargs = args.slice(0);
+                            for (var ti = 1; ti < tracks; ti++)
+                                args.push.apply(args, inargs);
+                            var filter = "";
+                            for (var ti = 0; ti < tracks; ti++)
+                                filter += "[" + ti + ":" + ti + "]" + resampler + ",apad,atrim=0:" + duration + ",aformat=channel_layouts=mono[aud" + ti + "];";
+                            for (var ti = 0; ti < tracks; ti++)
+                                filter += "[aud" + ti + "]";
+                            filter += "amerge=" + tracks + "[aud]";
+                            args.push(
+                                "-filter_complex", filter,
+                                "-map", "[aud]",
+                                "-ac", "1",
+                                "-f", format,
+                                "-c:a", codec,
+                                "craig." + ext
+                            );
+
+                        } else {
+                            args.push(
+                                "-af", resampler,
+                                "-ac", "1",
+                                "-f", format,
+                                "-c:a", codec,
+                                "craig." + ext
+                            );
+
+                        }
 
                     } else if (options.multitrack) {
                         args.push(
@@ -211,6 +223,15 @@
             }
         }
 
+        // Start a fresh web worker
+        function startWorker() {
+            if (ffm)
+                ffm.terminate();
+            ffmReady = false;
+            ffm = new Worker("ffmpeg-worker-craig.js");
+            ffm.onmessage = onmessage;
+        }
+
         // Fetch the data
         if (xhr === null || lastUrl !== url) {
             xhr = new XMLHttpRequest();
@@ -226,9 +247,8 @@
             onreadystatechange({});
         }
 
-        // Prepare our ffmpeg worker
-        ffm = new Worker("ffmpeg-worker-craig.js");
-        ffm.onmessage = onmessage;
+        // Start the worker
+        startWorker();
 
         // And delete any now-obsolete files
         for (var fi = 0; fi < fileURLs.length; fi++)
