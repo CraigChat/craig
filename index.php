@@ -108,7 +108,6 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
         a(format,opt);
     }
     af("FLAC", "flac,flac");
-    af("Ogg (Vorbis)", "ogg,vorbis");
     af("M4A (MP4 audio)", "mp4,aac");
     af("MP3 (MPEG-1)", "mp3,mp3");
     af("Multi-track MKV", "matroska,flac");
