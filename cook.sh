@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2017 Yahweasel
+# Copyright (c) 2017, 2018 Yahweasel
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -37,6 +37,9 @@ CONTAINER=zip
 [ "$3" ] && CONTAINER="$3"
 
 case "$FORMAT" in
+    copy)
+        ext=ogg
+        ;;
     vorbis)
         ext=ogg
         ENCODE="oggenc -q 6 -"
@@ -79,12 +82,21 @@ NICE="nice -n10 ionice -c3 chrt -i 0"
 for c in `seq 1 $NB_STREAMS`
 do
     mkfifo $tmpdir/out/$c.$ext
-    timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-        timeout $DEF_TIMEOUT ../oggstender $c |
-        timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
-        -af aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0 \
-        -f wav - |
-        timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
+    if [ "$FORMAT" = "copy" ]
+    then
+        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+            timeout $DEF_TIMEOUT ../oggstender $c > $tmpdir/out/$c.$ext &
+
+    else
+        true
+        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+            timeout $DEF_TIMEOUT ../oggstender $c |
+            timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
+            -af aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0 \
+            -f wav - |
+            timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
+
+    fi
 done
 if [ "$CONTAINER" = "zip" ]
 then
@@ -95,17 +107,18 @@ fi
 # Put them into their container
 cd $tmpdir/out
 case "$CONTAINER" in
-    matroska)
+    ogg|matroska)
         INPUT=""
         MAP=""
         c=0
         for i in *.$ext
         do
+            [ "$CONTAINER" = "matroska" ] || INPUT="$INPUT -copyts"
             INPUT="$INPUT -i $i"
             MAP="$MAP -map $c"
             c=$((c+1))
         done
-        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - || true
+        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - < /dev/null || true
         ;;
 
     *)
