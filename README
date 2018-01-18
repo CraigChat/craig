@@ -1,19 +1,24 @@
-Craig is a multi-track voice recorder for Discord. Craig requires the following
-NPM libraries:
+Craig is a multi-track voice recorder for Discord. Craig is divided into three
+components: The actual recording bot, the web page (for downloading
+recordings), and the audio processing scripts.
 
-discord.js ( http://discord.js.org/ )
-node-opus ( https://github.com/Rantanen/node-opus )
-node-ogg ( https://github.com/TooTallNate/node-ogg )
-node-ogg-packet ( https://github.com/TooTallNate/node-ogg-packet )
+The recording bot is craig.js. It is a Node.js application written with
+discord.js. Its dependencies can be installed with `npm install`. In principle
+the recording bot works fine without the other components, but the audio files
+it produce aren't really usable without processing.
 
-Craig also requires a web server running PHP, and the following command line
-tools:
+The web page is in PHP (yuck), but otherwise has essentially no dependencies.
+The "other formats" feature, which performs audio processing in the browser,
+requires ffmpeg.js. The patch for ffmpeg.js to build it with the required
+modules is in ffmpeg-js-craig.diff. ffmpeg.js should be built to
+ffmpeg-worker-craig.js.
+
+The audio processing scripts require the following command-line tools:
 
 ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
 flac ( https://xiph.org/flac/ )
 oggenc ( https://xiph.org/vorbis/ )
 fdkaac ( https://github.com/nu774/fdkaac )
-lame ( http://lame.sourceforge.net/ )
 zip ( http://infozip.org/ )
 
 No documentation is provided for running your own instances of Craig. More
