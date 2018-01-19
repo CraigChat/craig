@@ -722,6 +722,18 @@ clients.forEach((client) => {
             }
         } catch (err) {}
     });
+
+    client.on("guildMemberUpdate", (from, to) => {
+        try {
+            if (from.id === client.user.id &&
+                from.nickname !== to.nickname &&
+                to.guild.voiceConnection &&
+                to.nickname.indexOf("[RECORDING]") === -1) {
+                // They attempted to hide the fact that Craig is recording. Not acceptable.
+                to.guild.voiceConnection.disconnect();
+            }
+        } catch (err) {}
+    });
 });
 
 // Reconnect when we disconnect
