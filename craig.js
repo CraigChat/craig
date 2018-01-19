@@ -16,6 +16,7 @@
 
 const cp = require("child_process");
 const fs = require("fs");
+const https = require("https");
 const Discord = require("discord.js");
 const ogg = require("./craig-ogg.js");
 
@@ -735,22 +736,24 @@ client.on("disconnect", () => {
     }, 10000);
 });
 
-// Check our guild membership status every hour
+// Check/report our guild membership status every hour
+var lastServerCount = 0;
 setInterval(() => {
+    var client;
+
     for (var ci = 0; ci < clients.length; ci++) {
-        var client = clients[ci];
+        client = clients[ci];
         client.guilds.every((guild) => {
             if (!(guild.id in guildMembershipStatus))
                 guildRefresh(guild);
 
             if (guildMembershipStatus[guild.id] + config.guildMembershipTimeout < (new Date().getTime())) {
                 // Time's up!
-                for (var sci = 0; sci < clients.length; sci++)
-                    clients[sci].guilds.every((sGuild) => {
-                        if (sGuild.id === guild.id)
-                            sGuild.leave().catch(() => {});
-                        return true;
-                    });
+                for (var sci = 0; sci < clients.length; sci++) {
+                    var g = clients[sci].guilds.get(guild.id);
+                    if (g)
+                        g.leave().catch(()=>{});
+                }
 
                 var step = {"k": guild.id};
                 delete guildMembershipStatus[guild.id];
@@ -759,5 +762,31 @@ setInterval(() => {
 
             return true;
         });
+    }
+
+    if (config.discordbotstoken) {
+        // Report to discordbots.org
+        client = clients[0];
+        try {
+            var curServerCount = client.guilds.size;
+            if (lastServerCount === curServerCount)
+                return;
+            lastServerCount = curServerCount;
+            var postData = JSON.stringify({
+                server_count: curServerCount
+            });
+            var req = https.request({
+                hostname: "discordbots.org",
+                path: "/api/bots/" + client.user.id + "/stats",
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Content-Length": postData.length,
+                    "Authorization": config.discordbotstoken
+                }
+            }, () => {});
+            req.write(postData);
+            req.end();
+        } catch(ex) {}
     }
 }, 3600000);
