@@ -66,7 +66,7 @@ index 30137c3..4187cf0 100644
  ==============================================================================
  
 diff --git a/Makefile b/Makefile
-index 1b90983..c91ef5a 100644
+index 1b90983..9f7cea6 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -6,15 +6,9 @@ PRE_JS = build/pre.js
@@ -83,7 +83,7 @@ index 1b90983..c91ef5a 100644
 -	mp3 ac3 aac \
 -	ass ssa srt webvtt
 +COMMON_FILTERS = pan aresample apad atrim amerge
-+COMMON_DEMUXERS = ogg concat
++COMMON_DEMUXERS = ogg
 +COMMON_DECODERS = libopus
  
  WEBM_MUXERS = webm ogg null image2
@@ -94,8 +94,8 @@ index 1b90983..c91ef5a 100644
  
 -MP4_MUXERS = mp4 mp3 null
 -MP4_ENCODERS = libx264 libmp3lame aac
-+MP4_MUXERS = matroska mp4 mp3 ogg flac null
-+MP4_ENCODERS = libmp3lame aac libopus flac
++MP4_MUXERS = matroska mp4 mp3 ogg flac wav null
++MP4_ENCODERS = libmp3lame aac libopus flac pcm_s16le
  FFMPEG_MP4_BC = build/ffmpeg-mp4/ffmpeg.bc
 -FFMPEG_MP4_PC_PATH = ../x264/dist/lib/pkgconfig
 +FFMPEG_MP4_PC_PATH = ../opus/dist/lib/pkgconfig
