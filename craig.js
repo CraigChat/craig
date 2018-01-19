@@ -738,6 +738,13 @@ client.on("disconnect", () => {
     }, 10000);
 });
 
+// Keep track of "important" servers
+var importantServers = {};
+(function() {
+    for (var ii = 0; ii < config.importantServers.length; ii++)
+        importantServers[config.importantServers[ii]] = true;
+})();
+
 // Check/report our guild membership status every hour
 var lastServerCount = 0;
 setInterval(() => {
@@ -749,10 +756,17 @@ setInterval(() => {
     for (var ci = 0; ci < clients.length; ci++) {
         client = clients[ci];
         client.guilds.every((guild) => {
-            if (!(guild.id in guildMembershipStatus))
+            if (!(guild.id in guildMembershipStatus)) {
                 guildRefresh(guild);
+                return true;
+            }
 
             if (guildMembershipStatus[guild.id] + config.guildMembershipTimeout < (new Date().getTime())) {
+                if (guild.id in importantServers) {
+                    guildRefresh(guild);
+                    return true;
+                }
+
                 // Time's up!
                 for (var sci = 0; sci < clients.length; sci++) {
                     var g = clients[sci].guilds.get(guild.id);
