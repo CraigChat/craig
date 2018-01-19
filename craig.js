@@ -741,6 +741,9 @@ var lastServerCount = 0;
 setInterval(() => {
     var client;
 
+    if (dead)
+        return;
+
     for (var ci = 0; ci < clients.length; ci++) {
         client = clients[ci];
         client.guilds.every((guild) => {
