@@ -34,6 +34,8 @@ if (!("guildMembershipTimeout" in config))
     config.guildMembershipTimeout = 604800000;
 if (!("secondary" in config))
     config.secondary = [];
+if (!("importantServers" in config))
+    config.importantServers = [];
 
 function accessSyncer(file) {
     try {
