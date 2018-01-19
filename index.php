@@ -108,15 +108,18 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
         a(format,opt);
     }
     af("FLAC", "flac,flac");
-    af("M4A (MP4 audio)", "mp4,aac");
-    af("MP3 (MPEG-1)", "mp3,mp3");
+    af("M4A (MPEG-4 audio)", "mp4,aac");
+    af("MP3 (MPEG-1 audio)", "mp3,mp3");
+    af("WAV (uncompressed)", "wav,pcm_s16le");
     af("Multi-track MKV", "matroska,flac");
 
     format.onchange = function() {
+        ludditeBox.style.display = "none";
+        wavBox.style.display = "none";
         if (format.value === "mp3,mp3") {
             ludditeBox.style.display = "block";
-        } else {
-            ludditeBox.style.display = "none";
+        } else if (format.value === "wav,pcm_s16le") {
+            wavBox.style.display = "block";
         }
     }
 
@@ -158,12 +161,32 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
     a(ludditeBox,dce("br"));
     a(other,ludditeBox);
 
+    var wavBox = dce("div");
+    wavBox.style.display = "none";
+
+    var wav = dce("input");
+    wav.id = "wav";
+    wav.type = "checkbox";
+
+    var wavL = dce("label");
+    wavL.innerText = "Uncompressed audio is big, and this system processes audio directly into memory. I promise not to complain if anything goes wrong for that reason.";
+    wavL.htmlFor = "wav";
+
+    a(wavBox, wav);
+    a(wavBox, wavL);
+    a(wavBox, dce("br"));
+    a(wavBox, dce("br"));
+    a(other, wavBox);
+
     var cb = dce("button");
     cb.innerText = "Convert";
     cb.disabled = false;
     cb.onclick = function() {
         if (format.value === "mp3,mp3" && !luddite.checked) {
             status.innerText = "You must agree to the MP3 terms before performing an MP3 conversion.";
+            return;
+        } else if (format.value === "wav,pcm_s16le" && !wav.checked) {
+            status.innerText = "You must agree to the wav terms before performing a wav conversion.";
             return;
         }
 
