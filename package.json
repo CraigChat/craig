@@ -8,7 +8,7 @@
     },
     "dependencies": {
         "cyclic-32": "*",
-        "discord.js": "^11.2.1",
+        "discord.js": "^11.3.0",
         "erlpack": "hammerandchisel/erlpack",
         "node-opus": "*",
         "sodium": "*",

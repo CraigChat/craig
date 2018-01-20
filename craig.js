@@ -354,7 +354,6 @@ function session(msg, prefix, rec) {
 
 // Our command regex changes to match our user ID
 var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/;
-
 client.on("ready", () => {
     log("Logged in as " + client.user.username);
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$");
@@ -450,8 +449,10 @@ function ownerCommand(msg, cmd) {
     }
 }
 
+var commands = {};
+
 // Our message receiver and command handler
-client.on("message", (msg) => {
+function onMessage(msg) {
     // We don't care if it's not a command
     var cmd = msg.content.match(craigCommand);
     if (cmd === null) return;
@@ -476,232 +477,259 @@ client.on("message", (msg) => {
     } catch (ex) {}
 
     var op = cmd[2].toLowerCase();
-    if (op === "join" || op === "record" || op === "rec" ||
-        op === "leave" || op === "part") {
-        var cname = cmd[3].toLowerCase();
-        var channel = null;
-        if (!msg.guild)
-            return;
 
-        if (dead && (op === "join" || op === "record" || op === "rec")) {
-            // Not our job
-            return;
-        }
+    var fun = commands[op];
+    if (!fun)
+        return;
 
-        msg.guild.channels.some((schannel) => {
-            if (schannel.type !== "voice")
-                return false;
+    fun(msg, cmd);
+}
+client.on("message", onMessage);
 
-            if (schannel.name.toLowerCase() === cname ||
-                (cname === "" && msg.member.voiceChannel === schannel)) {
-                channel = schannel;
-                return true;
+// Find a channel matching the given name
+function findChannel(msg, guild, cname) {
+    var channel = null;
 
-            } else if (channel === null && schannel.name.toLowerCase().startsWith(cname)) {
-                channel = schannel;
-
-            }
-
+    guild.channels.some((schannel) => {
+        if (schannel.type !== "voice")
             return false;
-        });
 
-        if (channel !== null) {
-            var guild = msg.guild;
-            var guildId = guild.id;
-            var channelId = channel.id;
-            if (op === "join" || op === "record" || op === "rec") {
-                if (!(guildId in activeRecordings))
-                    activeRecordings[guildId] = {};
+        if (schannel.name.toLowerCase() === cname ||
+            (cname === "" && msg.member.voiceChannel === schannel)) {
+            channel = schannel;
+            return true;
 
-                // Choose the right client
-                var takenClients = {};
-                var chosenClient = null;
-                var chosenClientNum = -1;
-                for (var oChannelId in activeRecordings[guildId]) {
-                    var recording = activeRecordings[guildId][oChannelId];
-                    takenClients[recording.clientNum] = true;
-                }
-                for (var ci = 0; ci < clients.length; ci++) {
-                    if (takenClients[ci]) continue;
-                    chosenClient = clients[ci];
-                    chosenClientNum = ci;
-                    break;
-                }
-
-                // Translate the guild and channel to the secondary client
-                if (chosenClient && chosenClient !== client) {
-                    guild = null;
-                    chosenClient.guilds.some((cGuild) => {
-                            if (cGuild.id === guildId) {
-                            guild = cGuild;
-                            return true;
-                            }
-                            return false;
-                            });
-                    if (guild) {
-                        channel = null;
-                        guild.channels.some((cChannel) => {
-                                if (cChannel.id === channelId) {
-                                channel = cChannel;
-                                return true;
-                                }
-                                return false;
-                                });
-                    }
-                }
-
-                // Choose the right action
-                if (channelId in activeRecordings[guildId]) {
-                    var rec = activeRecordings[guildId][channelId];
-                    reply(msg, true, cmd[1],
-                            "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
-                            rec.id + "&key=" + rec.accessKey);
-
-                } else if (!chosenClient) {
-                    reply(msg, false, cmd[1],
-                            "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
-
-                } else if (!guild) {
-                    reply(msg, false, cmd[1],
-                            "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: " + config.secondary[chosenClientNum-1].invite);
-
-                } else if (!channel) {
-                    reply(msg, false, cmd[1],
-                            "My brother can't see that channel. Make sure his permissions are correct.");
-
-                } else {
-                    if (channel.joinable) {
-                        // Make a random ID for it
-                        var id;
-                        do {
-                            id = ~~(Math.random() * 1000000000);
-                        } while (accessSyncer("rec/" + id + ".ogg.key"));
-                        var recFileBase = "rec/" + id + ".ogg";
-
-                        // Make an access key for it
-                        var accessKey = ~~(Math.random() * 1000000000);
-                        fs.writeFileSync(recFileBase + ".key", ""+accessKey, "utf8");
-
-                        // Make a deletion key for it
-                        var deleteKey = ~~(Math.random() * 1000000000);
-                        fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
-
-                        // Make sure they get destroyed
-                        var atcp = cp.spawn("at", ["now + 48 hours"],
-                                {"stdio": ["pipe", 1, 2]});
-                        atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
-                                recFileBase + ".header2 " + recFileBase + ".data " +
-                                recFileBase + ".key " + recFileBase + ".delete\n");
-                        atcp.stdin.end();
-
-                        // We have a nick per the specific client
-                        var reNick = config.nick;
-                        if (chosenClient !== client)
-                            reNick = config.secondary[chosenClientNum-1].nick;
-
-                        var closed = false;
-                        function close() {
-                            if (closed)
-                                return;
-                            closed = true;
-
-                            /* The only way to reliably make sure we leave
-                             * the channel is to join it, then leave it */
-                            channel.join()
-                                .then(() => { channel.leave(); })
-                                .catch(() => {});
-
-                            // Now get rid of it
-                            delete activeRecordings[guildId][channelId];
-                            if (Object.keys(activeRecordings[guildId]).length === 0) {
-                                delete activeRecordings[guildId];
-                            }
-
-                            // Rename the bot in this guild
-                            try {
-                                guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
-                            } catch (ex) {}
-                        }
-
-                        var rec = {
-                            connection: null,
-                            id: id,
-                            accessKey: accessKey,
-                            client: chosenClient,
-                            clientNum: chosenClientNum,
-                            nick: reNick,
-                            disconnected: false,
-                            close: close
-                        };
-                        activeRecordings[guildId][channelId] = rec;
-
-                        // Join the channel
-                        channel.join().then((connection) => {
-                            // Tell them
-                            reply(msg, true, cmd[1],
-                                "Recording! I will record up to six hours. Recordings are deleted automatically after 48 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
-                                "Download link: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
-                                "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
-
-                            rec.connection = connection;
-
-                            session(msg, cmd[1], rec);
-                        }).catch((ex) => {
-                            reply(msg, false, cmd[1], "Failed to join! " + ex);
-                            close();
-                        });
-
-                    } else {
-                        reply(msg, false, cmd[1], "I don't have permission to join that channel!");
-
-                    }
-
-                }
-
-            } else {
-                if (guildId in activeRecordings &&
-                        channelId in activeRecordings[guildId]) {
-                    try {
-                        var rec = activeRecordings[guildId][channelId];
-                        if (rec.connection) {
-                            rec.disconnected = true;
-                            rec.connection.disconnect();
-                        }
-                    } catch (ex) {}
-                } else {
-                    if (!dead)
-                        reply(msg, false, cmd[1], "But I'm not recording that channel!");
-                }
-
-            }
-
-        } else if (!dead) {
-            reply(msg, false, cmd[1], "What channel?");
+        } else if (channel === null && schannel.name.toLowerCase().startsWith(cname)) {
+            channel = schannel;
 
         }
 
-    } else if (op === "stop") {
-        var guildId = msg.guild.id;
-        if (guildId in activeRecordings) {
-            for (var channelId in activeRecordings[guildId]) {
+        return false;
+    });
+
+    return channel;
+}
+
+// Start recording
+commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
+    var guild = msg.guild;
+    if (!guild)
+        return;
+    var cname = cmd[3].toLowerCase();
+    var channel = null;
+
+    if (dead) {
+        // Not our job
+        return;
+    }
+
+    channel = findChannel(msg, guild, cname);
+
+    if (channel !== null) {
+        var guildId = guild.id;
+        var channelId = channel.id;
+        if (!(guildId in activeRecordings))
+            activeRecordings[guildId] = {};
+
+        // Choose the right client
+        var takenClients = {};
+        var chosenClient = null;
+        var chosenClientNum = -1;
+        for (var oChannelId in activeRecordings[guildId]) {
+            var recording = activeRecordings[guildId][oChannelId];
+            takenClients[recording.clientNum] = true;
+        }
+        for (var ci = 0; ci < clients.length; ci++) {
+            if (takenClients[ci]) continue;
+            chosenClient = clients[ci];
+            chosenClientNum = ci;
+            break;
+        }
+
+        // Translate the guild and channel to the secondary client
+        if (chosenClient && chosenClient !== client) {
+            guild = chosenClient.guilds.get(guildId);
+            if (guild)
+                channel = guild.channels.get(channelId);
+        }
+
+        // Choose the right action
+        if (channelId in activeRecordings[guildId]) {
+            var rec = activeRecordings[guildId][channelId];
+            reply(msg, true, cmd[1],
+                    "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
+                    rec.id + "&key=" + rec.accessKey);
+
+        } else if (!chosenClient) {
+            reply(msg, false, cmd[1],
+                    "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
+
+        } else if (!guild) {
+            reply(msg, false, cmd[1],
+                    "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: " + config.secondary[chosenClientNum-1].invite);
+
+        } else if (!channel) {
+            reply(msg, false, cmd[1],
+                    "My brother can't see that channel. Make sure his permissions are correct.");
+
+        } else if (!channel.joinable) {
+            reply(msg, false, cmd[1], "I don't have permission to join that channel!");
+
+        } else {
+            // Make a random ID for it
+            var id;
+            do {
+                id = ~~(Math.random() * 1000000000);
+            } while (accessSyncer("rec/" + id + ".ogg.key"));
+            var recFileBase = "rec/" + id + ".ogg";
+
+            // Make an access key for it
+            var accessKey = ~~(Math.random() * 1000000000);
+            fs.writeFileSync(recFileBase + ".key", ""+accessKey, "utf8");
+
+            // Make a deletion key for it
+            var deleteKey = ~~(Math.random() * 1000000000);
+            fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
+
+            // Make sure they get destroyed
+            var atcp = cp.spawn("at", ["now + 48 hours"],
+                    {"stdio": ["pipe", 1, 2]});
+            atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
+                    recFileBase + ".header2 " + recFileBase + ".data " +
+                    recFileBase + ".key " + recFileBase + ".delete\n");
+            atcp.stdin.end();
+
+            // We have a nick per the specific client
+            var reNick = config.nick;
+            if (chosenClient !== client)
+                reNick = config.secondary[chosenClientNum-1].nick;
+
+            var closed = false;
+            function close() {
+                if (closed)
+                    return;
+                closed = true;
+
+                /* The only way to reliably make sure we leave
+                 * the channel is to join it, then leave it */
+                try { channel.leave(); } catch (ex) {}
+                channel.join()
+                    .then(() => { channel.leave(); })
+                    .catch(() => {});
+
+                // Now get rid of it
+                delete activeRecordings[guildId][channelId];
+                if (Object.keys(activeRecordings[guildId]).length === 0) {
+                    delete activeRecordings[guildId];
+                }
+
+                // Rename the bot in this guild
                 try {
-                    var rec = activeRecordings[guildId][channelId];
-                    if (rec.connection) {
-                        rec.disconnected = true;
-                        rec.connection.disconnect();
-                    }
+                    guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
                 } catch (ex) {}
             }
-        } else if (!dead) {
-            reply(msg, false, cmd[1], "But I haven't started!");
+
+            var rec = {
+                connection: null,
+                id: id,
+                accessKey: accessKey,
+                client: chosenClient,
+                clientNum: chosenClientNum,
+                nick: reNick,
+                disconnected: false,
+                close: close
+            };
+            activeRecordings[guildId][channelId] = rec;
+
+            // Join the channel
+            try {
+                channel.leave();
+            } catch (ex) {}
+            channel.join().then((connection) => {
+                // Tell them
+                reply(msg, true, cmd[1],
+                    "Recording! I will record up to six hours. Recordings are deleted automatically after 48 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
+                    "Download link: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
+                    "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
+
+                rec.connection = connection;
+
+                session(msg, cmd[1], rec);
+            }).catch((ex) => {
+                reply(msg, false, cmd[1], "Failed to join! " + ex);
+                close();
+            });
+
         }
 
-    } else if (!dead && (op === "help" || op === "commands" || op === "hello")) {
-        reply(msg, false, cmd[1],
-            "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ ");
+    } else if (!dead) {
+        reply(msg, false, cmd[1], "What channel?");
 
     }
-});
+
+}
+
+// Stop recording
+commands["leave"] = commands["part"] = function(msg, cmd) {
+    var guild = msg.guild;
+    if (!msg.guild)
+        return;
+    var cname = cmd[3].toLowerCase();
+
+    var channel = findChannel(msg, guild, cname);;
+
+    if (channel !== null) {
+        var guild = msg.guild;
+        var guildId = guild.id;
+        var channelId = channel.id;
+        if (guildId in activeRecordings &&
+            channelId in activeRecordings[guildId]) {
+            try {
+                var rec = activeRecordings[guildId][channelId];
+                if (rec.connection) {
+                    rec.disconnected = true;
+                    rec.connection.disconnect();
+                }
+            } catch (ex) {}
+
+        } else if (!dead) {
+            reply(msg, false, cmd[1], "But I'm not recording that channel!");
+        }
+
+    } else if (!dead) {
+        reply(msg, false, cmd[1], "What channel?");
+
+    }
+
+}
+
+// Stop all recordings
+commands["stop"] = function(msg, cmd) {
+    var guild = msg.guild;
+    if (!guild)
+        return;
+    var guildId = guild.id;
+    if (guildId in activeRecordings) {
+        for (var channelId in activeRecordings[guildId]) {
+            try {
+                var rec = activeRecordings[guildId][channelId];
+                if (rec.connection) {
+                    rec.disconnected = true;
+                    rec.connection.disconnect();
+                }
+            } catch (ex) {}
+        }
+    } else if (!dead) {
+        reply(msg, false, cmd[1], "But I haven't started!");
+    }
+
+}
+
+// And finally, help commands
+commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
+    reply(msg, false, cmd[1],
+        "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ ");
+}
 
 // Checks for catastrophic recording errors
 clients.forEach((client) => {
