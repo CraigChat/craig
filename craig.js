@@ -129,9 +129,15 @@ function reply(msg, dm, prefix, pubtext, privtext) {
         else
             privtext = pubtext + "\n\n" + privtext;
         log("Reply to " + nameId(msg.author) + ": " + privtext);
-        msg.author.send(privtext).catch((err) => {
+
+        function rereply() {
             reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
-        });
+        }
+        try {
+            msg.author.send(privtext).catch(rereply);
+        } catch (ex) {
+            rereply();
+        }
         return;
     }
 
