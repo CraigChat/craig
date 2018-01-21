@@ -162,10 +162,10 @@ int main(int argc, char **argv)
             // Get the data size
             packetSize = 0;
             if (readAll(infiles[fi], &segmentCount, 1) != 1)
-                break;
+                goto bad;
             for (; segmentCount; segmentCount--) {
                 if (readAll(infiles[fi], &segmentVal, 1) != 1)
-                    break;
+                    goto bad;
                 packetSize += (uint32_t) segmentVal;
             }
 
@@ -177,12 +177,19 @@ int main(int argc, char **argv)
                 bufSz = packetSize;
             }
             if (readAll(infiles[fi], buf, packetSize) != packetSize)
-                break;
+                goto bad;
 
             // And output it
             writeOgg(&headers[fi], buf, packetSize);
             used[fi] = 1;
+            continue;
+
+bad:
+            alive[fi] = 0;
+            used[fi] = 1;
         }
+        if (!buf)
+            break;
     }
 
     return 0;
