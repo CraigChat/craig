@@ -27,6 +27,9 @@ trap "" HUP
 PATH="/opt/node/bin:$PATH"
 export PATH
 
+SCRIPTBASE=`dirname "$0"`
+SCRIPTBASE=`realpath "$SCRIPTBASE"`
+
 set -e
 [ "$1" ]
 
@@ -63,7 +66,7 @@ case "$FORMAT" in
         ;;
 esac
 
-cd `dirname "$0"`/rec
+cd "$SCRIPTBASE/rec"
 
 tmpdir=`mktemp -d`
 [ "$tmpdir" -a -d "$tmpdir" ]
@@ -108,17 +111,22 @@ fi
 cd $tmpdir/out
 case "$CONTAINER" in
     ogg|matroska)
-        INPUT=""
-        MAP=""
-        c=0
-        for i in *.$ext
-        do
-            [ "$CONTAINER" = "matroska" ] || INPUT="$INPUT -copyts"
-            INPUT="$INPUT -i $i"
-            MAP="$MAP -map $c"
-            c=$((c+1))
-        done
-        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - < /dev/null || true
+        if [ "$FORMAT" = "copy" -a "$CONTAINER" = "ogg" ]
+        then
+            "$SCRIPTBASE/oggmultiplexer" *.ogg || true
+        else
+            INPUT=""
+            MAP=""
+            c=0
+            for i in *.$ext
+            do
+                [ "$FORMAT" != "copy" ] || INPUT="$INPUT -copyts"
+                INPUT="$INPUT -i $i"
+                MAP="$MAP -map $c"
+                c=$((c+1))
+            done
+            timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - < /dev/null || true
+        fi
         ;;
 
     *)
