@@ -28,6 +28,10 @@ const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
 if (!("nick" in config))
     config.nick = "Craig";
+if (!("longUrl" in config))
+    config.longUrl = "https://craigrecords.yahweasel.com/home/";
+if (!("dlUrl" in config))
+    config.dlUrl = "https://craigrecords.yahweasel.com/";
 if (!("hardLimit" in config))
     config.hardLimit = 536870912;
 if (!("guildMembershipTimeout" in config))
@@ -557,7 +561,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
         if (channelId in activeRecordings[guildId]) {
             var rec = activeRecordings[guildId][channelId];
             reply(msg, true, cmd[1],
-                    "I'm already recording that channel: https://craigrecords.yahweasel.com/?id=" +
+                    "I'm already recording that channel: " + config.dlUrl + "?id=" +
                     rec.id + "&key=" + rec.accessKey);
 
         } else if (!chosenClient) {
@@ -649,8 +653,8 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 // Tell them
                 reply(msg, true, cmd[1],
                     "Recording! I will record up to six hours. Recordings are deleted automatically after 48 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
-                    "Download link: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey,
-                    "To delete: https://craigrecords.yahweasel.com/?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
+                    "Download link: " + config.dlUrl + "?id=" + id + "&key=" + accessKey,
+                    "To delete: " + config.dlUrl + "?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
 
                 rec.connection = connection;
 
@@ -728,7 +732,7 @@ commands["stop"] = function(msg, cmd) {
 // And finally, help commands
 commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
     reply(msg, false, cmd[1],
-        "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see http://craigrecords.yahweasel.com/home/ ");
+        "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
 }
 
 // Checks for catastrophic recording errors
