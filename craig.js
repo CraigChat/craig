@@ -16,6 +16,7 @@
 
 const cp = require("child_process");
 const fs = require("fs");
+const EventEmitter = require("events");
 const https = require("https");
 const Discord = require("discord.js");
 const ogg = require("./craig-ogg.js");
@@ -185,6 +186,10 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     });
 }
 
+// An event emitter for whenever we start or stop any recording
+class RecordingEvent extends EventEmitter {}
+const recordingEvents = new RecordingEvent();
+
 // Our recording session proper
 function session(msg, prefix, rec) {
     var connection = rec.connection;
@@ -216,6 +221,7 @@ function session(msg, prefix, rec) {
     try {
         log("Started recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
     } catch(ex) {}
+    recordingEvents.emit("start", rec);
 
     // Our input Opus streams by user
     var userOpusStreams = {};
@@ -335,6 +341,7 @@ function session(msg, prefix, rec) {
         try {
             log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
         } catch (ex) {}
+        recordingEvents.emit("stop", rec);
 
         // Close the output files
         recOggHStream[0].end();
@@ -788,6 +795,10 @@ client.on("disconnect", () => {
     }, 10000);
 });
 
+/***************************************************************
+ * FEATURES BELOW THIS LINE ARE CONVENIENCE/UI FUNCTIONALITY
+ **************************************************************/
+
 // Keep track of "important" servers
 var importantServers = {};
 (function() {
@@ -859,3 +870,75 @@ setInterval(() => {
         } catch(ex) {}
     }
 }, 3600000);
+
+// Use a server topic to show stats
+if (config.stats) {
+    (function(){
+        var channel = null;
+        
+        client.on("ready", ()=>{
+            try {
+                channel = client.guilds.get(config.stats.guild).channels.get(config.stats.channel);
+            } catch (ex) {}
+        });
+
+        var users = -1;
+        var channels = -1;
+        function updateTopic(stoppedRec) {
+            try {
+                var newUsers = 0;
+                var newChannels = 0;
+
+                for (var gid in activeRecordings) {
+                    var g = activeRecordings[gid];
+                    for (var cid in g) {
+                        var rec = g[cid];
+                        if (rec === stoppedRec)
+                            continue;
+                        if (rec.connection) {
+                            try {
+                                newUsers += rec.connection.channel.members.size - 1;
+                                newChannels++;
+                            } catch (ex) {}
+                        }
+                    }
+                }
+
+                var topic = config.stats.topic;
+                if (newChannels)
+                    topic += " Currently recording " + newUsers + " users in " + newChannels + " voice channels.";
+                if (users != newUsers || channels != newChannels) {
+                    channel.setTopic(topic);
+                    users = newUsers;
+                    channels = newChannels;
+                }
+                return topic;
+            } catch (ex) {
+                return ex;
+            }
+        }
+        recordingEvents.on("start", ()=>{updateTopic();});
+        recordingEvents.on("stop", updateTopic);
+
+        // And a command to get the full stats
+        var statsCp = null;
+        commands["stats"] = function(msg, cmd) {
+            if (!msg.guild || msg.guild.id !== config.stats.guild || statsCp)
+                return;
+
+            var statsOut = "";
+            statsCp = cp.fork("./stats.js", [config.log], {
+                stdio: ["ignore", "pipe", process.stderr, "ipc"]
+            });
+            statsCp.on("exit", ()=>{
+                statsCp = null;
+            });
+            statsCp.stdout.on("data", (chunk) => {
+                statsOut += chunk.toString("utf8");
+            });
+            statsCp.stdout.on("end", () => {
+                msg.reply("\n" + statsOut);
+            });
+        }
+    })();
+}
