@@ -113,8 +113,10 @@ case "$CONTAINER" in
     ogg|matroska)
         if [ "$FORMAT" = "copy" -a "$CONTAINER" = "ogg" ]
         then
+            true
             "$SCRIPTBASE/oggmultiplexer" *.ogg || true
         else
+            true
             INPUT=""
             MAP=""
             c=0
