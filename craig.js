@@ -564,6 +564,13 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 channel = guild.channels.get(channelId);
         }
 
+        // Joinable can crash if the voiceConnection is in a weird state
+        var joinable = false;
+        try {
+            if (channel)
+                joinable = channel.joinable;
+        } catch (ex) {}
+
         // Choose the right action
         if (channelId in activeRecordings[guildId]) {
             var rec = activeRecordings[guildId][channelId];
@@ -583,7 +590,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             reply(msg, false, cmd[1],
                     "My brother can't see that channel. Make sure his permissions are correct.");
 
-        } else if (!channel.joinable) {
+        } else if (!joinable) {
             reply(msg, false, cmd[1], "I don't have permission to join that channel!");
 
         } else {
