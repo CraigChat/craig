@@ -41,7 +41,7 @@ if ($key !== $corrKey)
     die("Invalid ID.");
 
 // Function to present a download link
-function download($title, $format="flac", $container="zip", $then=", ") {
+function download($title, $format="flac", $container="zip") {
     global $id, $key;
     print "<a href=\"?id=$id&amp;key=$key";
     if ($format === "raw") {
@@ -53,200 +53,260 @@ function download($title, $format="flac", $container="zip", $then=", ") {
         if ($container !== "zip")
             print "&amp;container=$container";
     }
-    print "\">$title</a>$then";
+    print "\">$title</a> ";
 }
 
 // Present them their options
 if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
-?>
-<!doctype html><html><head><title>Craig Records!</title></head><body>
-ID: <?PHP print $id; ?><br/><br/>
 
-Download:
+
+
+
+
+?>
+<!doctype html>
+<html>
+    <head>
+        <title>Craig Records!</title>
+        <style type="text/css">
+            .js {
+                display: none;
+            }
+
+            .big {
+                font-size: 1.5em;
+            }
+
+            button {
+                font-size: 1em;
+                background-color: #00eeee;
+                font-weight: bold;
+                padding: 0.25em;
+                border-radius: 0.5em;
+                box-shadow: 0 0 0 2px #333333;
+            }
+
+            .big button, .local button {
+                display: inline-block;
+                width: 10em;
+                min-height: 3em;
+                vertical-align: middle;
+                text-align: center;
+                color: #000000;
+            }
+
+            .local button {
+                background-color: #ff9999;
+            }
+
+            .lbl {
+                display: inline-block;
+                text-align: right;
+                width: 320px;
+            }
+        </style>
+    </head>
+    <body>
+        <div style="max-width: 50em;">
+        You may fetch your recording in various formats. The most useful
+        formats, multi-track FLAC, Vorbis and AAC, are downloadable. <span
+        class="js">Other formats, including single-track mixed audio, require
+        processing locally in your browser, and thus require a modern browser
+        and some patience, and won't work well on mobile devices.</span> Your
+        recording ID: <?PHP print $id; ?>
+        </div><br/><br/>
+
+        <div class="big">
+        <span class="lbl">Multi-track download:&nbsp;</span>
 <?PHP
-    download("FLAC", "flac");
-    download("Ogg (Vorbis)", "vorbis");
-    download("AAC", "aac", "zip", "");
+download("FLAC", "flac");
+download("Ogg Vorbis", "vorbis");
+download("AAC (MPEG-4)", "aac");
 ?>
-<br/><br/><br/><br/>
+        </div><br/><br/>
+        
+        <div class="local js">
+        <span class="lbl">Multi-track processed:&nbsp;</span>
+        <button id="mflac">FLAC</button>
+        <button id="mm4a">M4A (MPEG-4)</button>
+        <button id="mmp3">MP3 (MPEG-1)</button>
+        <button id="mwav">wav (uncompressed)</button>
+        </div><br/><br/>
 
-<script type="text/javascript"><!--
+        <div class="local js">
+        <span class="lbl">Single-track mixed:&nbsp;</span>
+        <button id="sflac">FLAC</button>
+        <button id="sm4a">M4A (MPEG-4)</button>
+        <button id="smp3">MP3 (MPEG-1)</button>
+        <button id="swav">wav (uncompressed)</button>
+        </div><br/><br/><br/><br/>
+
+        <button id="localProcessingB" class="js">Local processing options</button><br/><br/>
+
+        <div id="localProcessing" style="display: none; padding: 1em;">
+            <label for="format">Format:</label>
+            <select id="format">
+                <option value="flac,flac">FLAC</option>
+                <option value="mp4,aac">M4A (MPEG-4)</option>
+                <option value="mp3,mp3">MP3 (MPEG-1)</option>
+                <option value="wav,pcm_s16le">wav (uncompressed)</option>
+            </select><br/><br/>
+
+            <input id="mix" type="checkbox" checked />
+            <label for="mix">Mix into single track (defeating Craig's entire purpose)</label><br/><br/>
+
+            <div id="ludditeBox" style="display: none">
+                <input id="luddite" type="checkbox" />
+                <label for="luddite">
+                I am a luddite. I chose MP3 because I am ignorant, and I am
+                unwilling to spend even a moment learning what the Hell I'm
+                doing. I acknowledge that if I complain about the MP3 file this
+                tool produces, or the abusiveness of this message, I will be
+                banned. I am an imbecile, and I choose this option as a joyous
+                expression of my own stupidity.
+                </label><br/><br/>
+            </div>
+
+            <div id="wavBox" style="display: none">
+                <input id="wav" type="checkbox" />
+                <label for="wav">
+                Uncompressed audio is big, and this system processes audio
+                directly into memory. I promise not to complain if anything
+                goes wrong for that reason.
+                </label><br/><br/>
+            </div>
+
+            <button id="convert">Begin processing</button><br/><br/>
+
+            <div id="ffmstatus" style="background-color: #cccccc; color: #000000;"></div><br/><br/>
+
+            <ul id="ffmoutput"></ul>
+        </div><br/><br/>
+
+<?PHP
+download("Raw", "raw");
+?>
+        (Note: Almost no audio editors will support this raw file)
+
+        <script type="text/javascript"><!--
 <?PHP
 readfile("convert.js");
-print "craigRaw=\"?id=" . $id . "&key=" . $key . "&fetch=raw\";\n";
 print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&container=ogg\";\n";
 ?>
+        (function() {
+            function gid(id) {
+                return document.getElementById(id);
+            }
 
-(function() {
-    function dce(t) { return document.createElement(t); }
-    function a(e,c) { e.appendChild(c); }
-    function bb() { a(other,dce("br")); a(other,dce("br")); }
+            function replaceA(a) {
+                var b = document.createElement("button");
+                b.innerHTML = a.innerHTML;
+                b.onclick = function() {
+                    window.location = a.href;
+                };
+                a.parentElement.replaceChild(b, a);
+            }
+            document.querySelectorAll(".big a").forEach(replaceA);
 
-    var other = dce("div");
-    other.style.display = "none";
+            document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
 
-    var raw = dce("a");
-    raw.href = craigRaw;
-    raw.innerText = "Raw";
-    var rawExpl = dce("span");
-    rawExpl.innerText = " (Note: Almost no audio editors will support this raw file)";
-    a(other,raw);
-    a(other,rawExpl);
-    bb();
+            function vis(id, setTo) {
+                var l = gid(id);
+                if (!l) return;
+                if (!setTo) {
+                    if (l.style.display === "none") {
+                        setTo = "block";
+                    } else {
+                        setTo = "none";
+                    }
+                }
+                l.style.display = setTo;
+                if (setTo !== "none")
+                    l.scrollIntoView();
+            }
 
-    var expl = dce("div");
-    expl.innerText = "If you choose one of the following formats, it will be processed on your computer, in your browser. This requires a recent browser and some patience.";
-    a(other,expl);
-    bb();
+            gid("localProcessingB").onclick = function() {
+                vis("localProcessing");
+            }
 
-    var format = dce("select");
-    format.id = "format";
-    function af(f,v) {
-        var opt = dce("option");
-        opt.innerText = f;
-        opt.value = v;
-        a(format,opt);
-    }
-    af("FLAC", "flac,flac");
-    af("M4A (MPEG-4 audio)", "mp4,aac");
-    af("MP3 (MPEG-1 audio)", "mp3,mp3");
-    af("WAV (uncompressed)", "wav,pcm_s16le");
-    af("Multi-track MKV", "matroska,flac");
+            var format = gid("format");
+            var cb = gid("convert");
+            var mix = gid("mix");
+            var ludditeBox = gid("ludditeBox");
+            var luddite = gid("luddite");
+            var wavBox = gid("wavBox");
+            var wav = gid("wav");
+            var status = gid("ffmstatus");
 
-    format.onchange = function() {
-        ludditeBox.style.display = "none";
-        wavBox.style.display = "none";
-        if (format.value === "mp3,mp3") {
-            ludditeBox.style.display = "block";
-        } else if (format.value === "wav,pcm_s16le") {
-            wavBox.style.display = "block";
-        }
-    }
+            luddite.checked = wav.checked = false;
 
-    var formatL = dce("label");
-    formatL.innerText = "Format: ";
-    formatL.htmlFor = "format";
+            // Set up the form
+            function formatChange() {
+                ludditeBox.style.display = "none";
+                wavBox.style.display = "none";
+                if (format.value === "mp3,mp3") {
+                    ludditeBox.style.display = "block";
+                } else if (format.value === "wav,pcm_s16le") {
+                    wavBox.style.display = "block";
+                }
+            }
+            format.onchange = formatChange();
 
-    a(other,formatL);
-    a(other,format);
-    bb();
+            function go() {
+                if (format.value === "mp3,mp3" && !luddite.checked) {
+                    status.innerText = "You must agree to the MP3 terms before performing an MP3 conversion.";
+                    return;
+                } else if (format.value === "wav,pcm_s16le" && !wav.checked) {
+                    status.innerText = "You must agree to the wav terms before performing a wav conversion.";
+                    return;
+                }
 
-    var mix = dce("input");
-    mix.id = "mix";
-    mix.type = "checkbox";
-    mix.checked = true;
+                cb.disabled = true;
 
-    var mixL = dce("label");
-    mixL.innerText = "Mix into single track (defeating Craig's entire purpose)";
-    mixL.htmlFor = "mix";
+                var f = format.value.split(",");
+                var opts = {
+                    mix: mix.checked,
+                    callback: function(){cb.disabled = false;}
+                };
+                craigFfmpeg(craigOgg, f[0], f[1], opts);
+            }
+            cb.onclick = go;
 
-    a(other,mix);
-    a(other,mixL);
-    bb();
+            // And map all the buttons
+            var bmap = {
+                "flac": "flac,flac",
+                "m4a": "mp4,aac",
+                "mp3": "mp3,mp3",
+                "wav": "wav,pcm_s16le"
+            };
 
-    var ludditeBox = dce("div");
-    ludditeBox.style.display = "none";
+            function mapButton(id) {
+                var b = gid(id);
+                console.log(b);
+                if (!b) return;
+                var mixed = (id[0] === "s");
+                var bformat = bmap[id.substr(1)];
+                b.onclick = function() {
+                    if (cb.disabled)
+                        return;
+                    format.value = bformat;
+                    formatChange();
+                    mix.checked = mixed;
+                    vis("localProcessing", "block");
+                    go();
+                }
+            }
 
-    var luddite = dce("input");
-    luddite.id = "luddite";
-    luddite.type = "checkbox";
-
-    var ludditeL = dce("label");
-    ludditeL.innerText = "I am a luddite. I chose MP3 because I am ignorant, and I am unwilling to spend even a moment learning what the Hell I'm doing. I acknowledge that if I complain about the MP3 file this tool produces, or the abusiveness of this message, I will be banned. I am an imbecile, and I choose this option as a joyous expression of my own stupidity.";
-    ludditeL.htmlFor = "luddite";
-
-    a(ludditeBox,luddite);
-    a(ludditeBox,ludditeL);
-    a(ludditeBox,dce("br"));
-    a(ludditeBox,dce("br"));
-    a(other,ludditeBox);
-
-    var wavBox = dce("div");
-    wavBox.style.display = "none";
-
-    var wav = dce("input");
-    wav.id = "wav";
-    wav.type = "checkbox";
-
-    var wavL = dce("label");
-    wavL.innerText = "Uncompressed audio is big, and this system processes audio directly into memory. I promise not to complain if anything goes wrong for that reason.";
-    wavL.htmlFor = "wav";
-
-    a(wavBox, wav);
-    a(wavBox, wavL);
-    a(wavBox, dce("br"));
-    a(wavBox, dce("br"));
-    a(other, wavBox);
-
-    var cb = dce("button");
-    cb.innerText = "Convert";
-    cb.disabled = false;
-    cb.onclick = function() {
-        if (format.value === "mp3,mp3" && !luddite.checked) {
-            status.innerText = "You must agree to the MP3 terms before performing an MP3 conversion.";
-            return;
-        } else if (format.value === "wav,pcm_s16le" && !wav.checked) {
-            status.innerText = "You must agree to the wav terms before performing a wav conversion.";
-            return;
-        }
-
-        cb.disabled = true;
-
-        var f = format.value.split(",");
-        var opts = {
-            mix: mix.checked,
-            callback: function(){cb.disabled = false;}
-        };
-        if (f[0] === "matroska") {
-            opts.mix = false;
-            opts.multitrack = true;
-        }
-        craigFfmpeg(craigOgg, f[0], f[1], opts);
-    }
-
-    a(other,cb);
-    bb();
-
-    var status = dce("div");
-    status.id = "ffmstatus";
-    status.style.backgroundColor = "#CCCCCC";
-    status.style.color = "#000000";
-    a(other,status);
-
-    var out = dce("ul");
-    out.id = "ffmoutput";
-    a(other,out);
-    bb();
-
-    var info = dce("span");
-    info.style.fontSize = "0.9em";
-    info.innerHTML = "These formats are provided by <a href=\"http://ffmpeg.org\">ffmpeg</a>, <a href=\"http://opus-codec.org/downloads/\">Opus</a> and <a href=\"http://lame.sourceforge.net/\">LAME</a>, by way of <a href=\"https://github.com/Kagami/ffmpeg.js\">ffmpeg.js</a>. <a href=\"ffmpeg-js-license.txt\">License</a> and <a href=\"ffmpeg-js-craig.tar.xz\">source</a>.";
-    a(other,info);
-
-    var show = dce("button");
-    show.innerText = "Other formats";
-    show.onclick = function() {
-        switch (other.style.display) {
-            case "none":
-                other.style.display = "block";
-                break;
-
-            default:
-                other.style.display = "none";
-        }
-    };
-
-    a(document.body,show);
-    a(document.body,dce("br"));
-    a(document.body,dce("br"));
-
-    a(document.body,other);
-})();
-//-->
-</script>
-
-</body></html>
+            Object.keys(bmap).forEach(function(t){mapButton("m"+t);mapButton("s"+t);});
+        })();
+        --></script>
+    </body>
+</html>
 <?PHP
+
+
+
+
 
 } else if (isset($_REQUEST["delete"])) {
     $deleteKey = intval($_REQUEST["delete"]);
