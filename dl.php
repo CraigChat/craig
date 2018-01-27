@@ -71,7 +71,7 @@ if (!isset($id))
         recording ID: <?PHP print $id; ?>
         </div><br/><br/>
 
-        <div style="margin: auto" id="boxa"><span id="boxb">
+        <div style="margin: auto; display: table;">
         <span class="big">
         <span class="lbl">Multi-track download:&nbsp;</span>
 <?PHP
@@ -137,13 +137,13 @@ download("AAC (MPEG-4)", "aac");
             <div id="ffmstatus" style="background-color: #cccccc; color: #000000;"></div>
 
             <ul id="ffmoutput"></ul>
-        </span><br/><br/>
+        </div><br/><br/>
 
 <?PHP
 download("Raw", "raw");
 ?>
         (Note: Almost no audio editors will support this raw file)
-        </span></div>
+        </div>
 
         <script type="text/javascript"><!--
 <?PHP
@@ -166,8 +166,6 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
             document.querySelectorAll(".big a").forEach(replaceA);
 
             document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
-
-            gid("boxa").style.width = gid("boxb").offsetWidth + "px";
 
             function vis(id, setTo) {
                 var l = gid(id);
