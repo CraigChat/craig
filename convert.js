@@ -236,7 +236,7 @@
         if (xhr === null || lastUrl !== url) {
             xhr = new XMLHttpRequest();
             xhr.responseType = "arraybuffer";
-            xhr.open("GET", url + "&target=" + format + "." + codec);
+            xhr.open("GET", url + "&target=" + format + "." + codec + "." + (options.mixed?"s":"m"));
             xhr.onreadystatechange = onreadystatechange;
             xhr.onprogress = onreadystatechange;
             xhr.send();
