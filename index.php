@@ -178,7 +178,7 @@ download("AAC (MPEG-4)", "aac");
 
             <button id="convert">Begin processing</button><br/><br/>
 
-            <div id="ffmstatus" style="background-color: #cccccc; color: #000000;"></div><br/><br/>
+            <div id="ffmstatus" style="background-color: #cccccc; color: #000000;"></div>
 
             <ul id="ffmoutput"></ul>
         </div><br/><br/>
@@ -250,7 +250,7 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
                     wavBox.style.display = "block";
                 }
             }
-            format.onchange = formatChange();
+            format.onchange = formatChange;
 
             function go() {
                 if (format.value === "mp3,mp3" && !luddite.checked) {
