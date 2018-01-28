@@ -24,6 +24,15 @@ if (!isset($id))
     <head>
         <title>Craig Records!</title>
         <style type="text/css">
+            body {
+                background: #142329;
+                color: #eee;
+            }
+
+            a {
+                color: #99e;
+            }
+
             .js {
                 display: none;
             }
@@ -130,7 +139,7 @@ download("AAC (MPEG-4)", "aac");
 
             <button id="convert"><?PHP l("begin"); ?></button><br/><br/>
 
-            <div id="ffmstatus" style="background-color: #cccccc; color: #000000;"></div>
+            <div id="ffmstatus" style="background-color: #cccccc; color: #000000; padding: 0.5em;"></div>
 
             <ul id="ffmoutput"></ul>
         </div><br/><br/>
