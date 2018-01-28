@@ -16,7 +16,23 @@ $l["en"] = array(
     "format" =>     "Format:",
     "mix" =>        "Mix into single track (defeating Craig's entire purpose)",
     "luddite" =>    "I am a luddite. I chose MP3 because I am ignorant, and I am unwilling to spend even a moment learning what the Hell I'm doing. I acknowledge that if I complain about the MP3 file this tool produces, or the abusiveness of this message, I will be banned. I am an imbecile, and I choose this option as a joyous expression of my own stupidity.",
-    "wav" =>        "Uncompressed audio is big, and this system processes audio directly into memory. I promise not to complain if anything goes wrong for that reason."
-    "begin" =>      "Begin processing"
+    "wav" =>        "Uncompressed audio is big, and this system processes audio directly into memory. I promise not to complain if anything goes wrong for that reason.",
+    "begin" =>      "Begin processing",
+
+    "nomp3" =>      "You must agree to the MP3 terms before performing an MP3 conversion.",
+    "nowav" =>      "You must agree to the wav terms before performing an wav conversion.",
+
+    "downloading" =>"Downloading.",
+    "downfail" =>   "Failed to download!",
+    "notracks" =>   "No tracks detected!",
+    "complete" =>   "Processing complete.",
+
+    "delete1" =>    "This will DELETE recording ",
+    "delete2" =>    "! Are you sure?",
+
+    "yes" =>        "Yes",
+    "no" =>         "No",
+
+    "deleted" =>    "Deleted!"
 );
 ?>

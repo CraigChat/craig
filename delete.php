@@ -25,9 +25,13 @@ if (!isset($id))
         <title>Craig Records!</title>
     </head>
     <body>
-        This will DELETE recording <?PHP print $id; ?>! Are you sure?<br/><br/>
+        <?PHP
+            l("delete1");
+            print $id;
+            l("delete2");
+        ?><br/><br/>
 
-        <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;delete=<?PHP print $deleteKey; ?>&amp;sure=yes">Yes</a><br/><br/>
-        <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>">No</a>
+        <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>&amp;delete=<?PHP print $deleteKey; ?>&amp;sure=yes"><?PHP l("yes"); ?></a><br/><br/>
+        <a href="?id=<?PHP print $id; ?>&amp;key=<?PHP print $key; ?>"><?PHP l("no"); ?></a>
     </body>
 </html>

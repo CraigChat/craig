@@ -40,6 +40,42 @@ $corrKey = intval(file_get_contents("$base/$id.ogg.key"));
 if ($key !== $corrKey)
     die("Invalid ID.");
 
+// Figure out the locale
+$locale = "en";
+$locales = array("en", "pt");
+$l = array();
+
+$notrust = "/[^A-Za-z0-9_-]/";
+if (isset($_REQUEST["locale"])) {
+    $locale = preg_replace($notrust, "_", $_REQUEST["locale"]);
+    setcookie("CRAIG_LOCALE", $locale);
+} else if (isset($_COOKIE["CRAIG_LOCALE"])) {
+    $locale = preg_replace($notrust, "_", $_COOKIE["CRAIG_LOCALE"]);
+} else if (isset($_SERVER["HTTP_ACCEPT_LANGUAGE"])) {
+    $locale = locale_accept_from_http($_SERVER["HTTP_ACCEPT_LANGUAGE"]);
+} else {
+    $locale = "en";
+}
+$locale = locale_lookup($locales, $locale, false, "en");
+
+// Load in the locale
+require("locale/en.php");
+if ($locale !== "en")
+    require("locale/$locale.php");
+
+// Locale handling functions
+function ls($key) {
+    global $locale;
+    global $l;
+    if (isset($l[$locale][$key]))
+        return $l[$locale][$key];
+    else
+        return $l["en"][$key];
+}
+function l($key) {
+    print ls($key);
+}
+
 // Function to present a download link
 function download($title, $format="flac", $container="zip") {
     global $id, $key;
@@ -77,7 +113,7 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
         unlink("$base/$id.ogg.data");
         unlink("$base/$id.ogg.delete");
         // We do NOT delete the key, so that it's not replaced before it times out naturally
-        die("Deleted!");
+        die(ls("deleted"));
     }
 
 } else if ($_REQUEST["fetch"] === "cooked") {

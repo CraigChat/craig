@@ -62,18 +62,25 @@ if (!isset($id))
         </style>
     </head>
     <body>
+        <div style="text-align: right">
+<?PHP
+foreach ($locales as $locale) {
+    if ($locale !== "en")
+        print " | ";
+    print "<a href=\"?id=$id&amp;key=$key&amp;locale=$locale\">$locale</a>";
+}
+?>
+        </div>
+
         <div style="margin: auto; max-width: 50em;">
-        You may fetch your recording in various formats. The most useful
-        formats, multi-track FLAC, Vorbis and AAC, are downloadable. <span
-        class="js">Other formats, including single-track mixed audio, require
-        processing locally in your browser, and thus require a modern browser
-        and some patience, and won't work well on mobile devices.</span> Your
-        recording ID: <?PHP print $id; ?>
+        <?PHP l("intro1"); ?>
+        <span class="js"><?PHP l("intro2"); ?></span>
+        <?PHP l("intro3"); print " $id"; ?>
         </div><br/><br/>
 
         <div style="margin: auto; display: table;">
         <span class="big">
-        <span class="lbl">Multi-track download:&nbsp;</span>
+        <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
 <?PHP
 download("FLAC", "flac");
 download("Ogg Vorbis", "vorbis");
@@ -82,57 +89,46 @@ download("AAC (MPEG-4)", "aac");
         </span><br/><br/>
         
         <span class="local js">
-        <span class="lbl">Multi-track processed:&nbsp;</span>
+        <span class="lbl"><?PHP l("mtp"); ?>&nbsp;</span>
         <button id="mflac">FLAC</button>
         <button id="mm4a">M4A (MPEG-4)</button>
         <button id="mmp3">MP3 (MPEG-1)</button>
-        <button id="mwav">wav (uncompressed)</button>
+        <button id="mwav">wav (<?PHP l("uncomp"); ?>)</button>
         </span><br/><br/>
 
         <span class="local js">
-        <span class="lbl">Single-track mixed:&nbsp;</span>
+        <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
         <button id="sflac">FLAC</button>
         <button id="sm4a">M4A (MPEG-4)</button>
         <button id="smp3">MP3 (MPEG-1)</button>
-        <button id="swav">wav (uncompressed)</button>
+        <button id="swav">wav (<?PHP l("uncomp"); ?>)</button>
         </span><br/><br/><br/><br/>
 
-        <button id="localProcessingB" class="js">Local processing options</button><br/><br/>
+        <button id="localProcessingB" class="js"><?PHP l("local"); ?></button><br/><br/>
 
         <div id="localProcessing" style="display: none; margin: auto; max-width: 60em;">
-            <label for="format">Format:</label>
+            <label for="format"><?PHP l("format"); ?></label>
             <select id="format">
                 <option value="flac,flac">FLAC</option>
                 <option value="mp4,aac">M4A (MPEG-4)</option>
                 <option value="mp3,mp3">MP3 (MPEG-1)</option>
-                <option value="wav,pcm_s16le">wav (uncompressed)</option>
+                <option value="wav,pcm_s16le">wav (<?PHP l("uncomp"); ?>)</option>
             </select><br/><br/>
 
             <input id="mix" type="checkbox" checked />
-            <label for="mix">Mix into single track (defeating Craig's entire purpose)</label><br/><br/>
+            <label for="mix"><?PHP l("mix"); ?></label><br/><br/>
 
             <span id="ludditeBox" style="display: none">
                 <input id="luddite" type="checkbox" />
-                <label for="luddite">
-                I am a luddite. I chose MP3 because I am ignorant, and I am
-                unwilling to spend even a moment learning what the Hell I'm
-                doing. I acknowledge that if I complain about the MP3 file this
-                tool produces, or the abusiveness of this message, I will be
-                banned. I am an imbecile, and I choose this option as a joyous
-                expression of my own stupidity.
-                </label><br/><br/>
+                <label for="luddite"><?PHP l("luddite"); ?></label><br/><br/>
             </span>
 
             <span id="wavBox" style="display: none">
                 <input id="wav" type="checkbox" />
-                <label for="wav">
-                Uncompressed audio is big, and this system processes audio
-                directly into memory. I promise not to complain if anything
-                goes wrong for that reason.
-                </label><br/><br/>
+                <label for="wav"><?PHP l("wav"); ?></label><br/><br/>
             </span>
 
-            <button id="convert">Begin processing</button><br/><br/>
+            <button id="convert"><?PHP l("begin"); ?></button><br/><br/>
 
             <div id="ffmstatus" style="background-color: #cccccc; color: #000000;"></div>
 
@@ -140,15 +136,20 @@ download("AAC (MPEG-4)", "aac");
         </div><br/><br/>
 
 <?PHP
-download("Raw", "raw");
+download(ls("raw"), "raw");
 ?>
-        (Note: Almost no audio editors will support this raw file)
+        (<?PHP l("rawnote"); ?>)
         </div>
 
         <script type="text/javascript"><!--
 <?PHP
 readfile("convert.js");
 print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&container=ogg\";\n";
+print "craigLocale={";
+foreach (array("nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
+    print "\"$lstr\":\"" . ls($lstr) . "\",";
+}
+print "0:0};\n";
 ?>
         (function() {
             function gid(id) {
@@ -211,10 +212,10 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
 
             function go() {
                 if (format.value === "mp3,mp3" && !luddite.checked) {
-                    status.innerText = "You must agree to the MP3 terms before performing an MP3 conversion.";
+                    status.innerText = "<?PHP l("nomp3"); ?>";
                     return;
                 } else if (format.value === "wav,pcm_s16le" && !wav.checked) {
-                    status.innerText = "You must agree to the wav terms before performing a wav conversion.";
+                    status.innerText = "<?PHP l("nowav"); ?>";
                     return;
                 }
 
@@ -222,6 +223,7 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
 
                 var f = format.value.split(",");
                 var opts = {
+                    locale: craigLocale,
                     mix: mix.checked,
                     callback: function(){cb.disabled = false;}
                 };
