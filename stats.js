@@ -84,8 +84,6 @@ for (var ei = 0; ei < events.length; ei++) {
     }
 }
 
-console.log("Total recordings:\t" + stats.totalRecordings);
-console.log("Total recording time:");
 var tm = stats.totalTime;
 var days = Math.floor(tm / 86400);
 tm -= days * 86400;
@@ -94,8 +92,23 @@ tm -= hours * 3600;
 var minutes = Math.floor(tm / 60);
 tm -= minutes * 60;
 tm = Math.floor(tm);
-console.log("\t" + days + " days");
-console.log("\t" + hours + " hours");
-console.log("\t" + minutes + " minutes");
-console.log("\t" + tm + " seconds");
-console.log("Max simultaneous:\t" + stats.maxSimultaneous);
+
+if (process.argv[3] && process.argv[3] === "json") {
+    stats.totalTimeSplit = {
+        "d": days,
+        "h": hours,
+        "m": minutes,
+        "s": tm
+    };
+    console.log(JSON.stringify(stats));
+
+} else {
+    console.log("Total recordings:\t" + stats.totalRecordings);
+    console.log("Total recording time:");
+    console.log("\t" + days + " days");
+    console.log("\t" + hours + " hours");
+    console.log("\t" + minutes + " minutes");
+    console.log("\t" + tm + " seconds");
+    console.log("Max simultaneous:\t" + stats.maxSimultaneous);
+
+}
