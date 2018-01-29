@@ -42,7 +42,7 @@ if ($key !== $corrKey)
 
 // Figure out the locale
 $locale = "en";
-$locales = array("en", "pt");
+$locales = array("en", "pt", "it");
 $l = array();
 
 $notrust = "/[^A-Za-z0-9_-]/";

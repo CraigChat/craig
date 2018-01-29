@@ -1,6 +1,6 @@
 <?PHP
 $l["it"] = array(
-    "intro1" =>     "Puoi ottenere la tua registrazione in diversi formati. I formati più utili, FLAC multi-traccia, Vorbis e AAC, possono essere scaricati.",
+    "intro1" =>     "Puoi ottenere la tua registrazione in diversi formati. I formati più utili, FLAC, Vorbis e AAC multi-traccia, possono essere scaricati.",
     "intro2" =>     "Gli altri formati, tra cui l'audio mixato in una singola traccia, richiedono un'elaborazione locale nel tuo browser, pertanto richiedono un browser moderno e un po' di pazienza, e la procedura non funziona bene sui dispositivi mobili.",
     "intro3" =>     "L'ID della tua registrazione è:",
 
