@@ -203,6 +203,7 @@ function session(msg, prefix, rec) {
 
     var receiver = connection.createReceiver();
     const partTimeout = setTimeout(() => {
+        log("Terminating " + id + ": Time limit.");
         sReply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
         rec.disconnected = true;
         connection.disconnect();
@@ -211,6 +212,7 @@ function session(msg, prefix, rec) {
     // Rename ourself to indicate that we're recording
     try {
         connection.channel.guild.members.get(client.user.id).setNickname(nick + " [RECORDING]").catch((err) => {
+            log("Terminating " + id + ": Lack nick change permission.");
             sReply(true, "I do not have permission to change my nickname on this server. I will not record without this permission.");
             rec.disconnected = true;
             connection.disconnect();
@@ -251,6 +253,7 @@ function session(msg, prefix, rec) {
     function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
         size += chunk.length;
         if (config.hardLimit && size >= config.hardLimit) {
+            log("Terminating " + id + ": Size limit.");
             reply(true, "Sorry, but you've hit the recording size limit. Recording stopped.");
             rec.disconnected = true;
             connection.disconnect();
@@ -769,6 +772,7 @@ clients.forEach((client) => {
                     channelId in activeRecordings[guildId] &&
                     from.voiceChannelID !== to.voiceChannelId) {
                     // We do not tolerate being moved
+                    log("Terminating recording: Moved to a different channel.");
                     to.guild.voiceConnection.disconnect();
                 }
             }
@@ -779,6 +783,7 @@ clients.forEach((client) => {
         try {
             if (from.region !== to.region) {
                 // The server has moved regions. This breaks recording.
+                log("Terminating recording: Moved to a different voice region.");
                 to.voiceConnection.disconnect();
             }
         } catch (err) {}
@@ -791,6 +796,7 @@ clients.forEach((client) => {
                 to.guild.voiceConnection &&
                 to.nickname.indexOf("[RECORDING]") === -1) {
                 // They attempted to hide the fact that Craig is recording. Not acceptable.
+                log("Terminating recording: Nick changed wrongly.");
                 to.guild.voiceConnection.disconnect();
             }
         } catch (err) {}
