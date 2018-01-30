@@ -190,6 +190,48 @@ function reply(msg, dm, prefix, pubtext, privtext) {
 class RecordingEvent extends EventEmitter {}
 const recordingEvents = new RecordingEvent();
 
+// Get our currect active recordings from the launcher
+if (process.channel) {
+    process.send({t:"requestActiveRecordings"});
+    process.on("message", (msg) => {
+        if (typeof msg !== "object")
+            return;
+        switch (msg.t) {
+            case "activeRecordings":
+                for (var gid in msg.activeRecordings) {
+                    var ng = msg.activeRecordings[gid];
+                    if (!(gid in activeRecordings))
+                        activeRecordings[gid] = {};
+                    var g = activeRecordings[gid];
+                    for (var cid in ng) {
+                        if (cid in g)
+                            continue;
+                        var nc = ng[cid];
+                        (function(gid, cid, nc) {
+                            g[cid] = {
+                                id: nc.id,
+                                accessKey: nc.accessKey,
+                                connection: {
+                                    channel: {
+                                        members: {
+                                            size: 1
+                                        }
+                                    },
+                                    disconnect: function() {
+                                        delete activeRecordings[gid][cid];
+                                        if (Object.keys(activeRecordings[gid]).length === 0)
+                                            delete activeRecordings[gid];
+                                    }
+                                }
+                            };
+                        })(gid, cid, nc);
+                    }
+                }
+                break;
+        }
+    });
+}
+
 // Our recording session proper
 function session(msg, prefix, rec) {
     var connection = rec.connection;
@@ -393,13 +435,56 @@ function userIsAuthorized(member) {
 
 // Graceful restart
 function gracefulRestart() {
-    // Start a new craig
-    var ccp = cp.spawn(
-        process.argv[0], ["craig.js"],
-        {"stdio": "inherit", "detached": true});
-    ccp.on("exit", (code) => {
-        process.exit(code ? code : 1);
-    });
+    if (process.channel) {
+        // Get the list of active recordings
+        var nar = {};
+        for (var gid in activeRecordings) {
+            var g = activeRecordings[gid];
+            var ng = nar[gid] = {};
+            for (var cid in g) {
+                var c = g[cid];
+                var nc = ng[cid] = {
+                    id: c.id,
+                    accessKey: c.accessKey
+                };
+            }
+        }
+
+        // Let the runner spawn a new Craig
+        process.send({"t": "gracefulRestart", "activeRecordings": nar});
+
+        // And then exit when we're done
+        function maybeQuit(rec) {
+            if (Object.keys(activeRecordings).length > 1)
+                return;
+
+            for (var gid in activeRecordings) {
+                var g = activeRecordings[gid];
+                for (var cid in g) {
+                    var c = g[cid];
+                    if (c !== rec && c.connection)
+                        return;
+                }
+            }
+
+            // No recordings left, we're done
+            setTimeout(() => {
+                process.exit(0);
+            }, 30000);
+        }
+        maybeQuit();
+        recordingEvents.on("stop", maybeQuit);
+
+    } else {
+        // Start a new craig
+        var ccp = cp.spawn(
+            process.argv[0], ["craig.js"],
+            {"stdio": "inherit", "detached": true});
+        ccp.on("exit", (code) => {
+            process.exit(code ? code : 1);
+        });
+
+    }
 
     // Stop responding to input
     dead = true;
@@ -907,6 +992,9 @@ if (config.stats) {
         var users = -1;
         var channels = -1;
         function updateTopic(stoppedRec) {
+            if (dead)
+                return;
+
             try {
                 var newUsers = 0;
                 var newChannels = 0;
@@ -945,6 +1033,9 @@ if (config.stats) {
         // And a command to get the full stats
         var statsCp = null;
         commands["stats"] = function(msg, cmd) {
+            if (dead)
+                return;
+
             if (!msg.guild || msg.guild.id !== config.stats.guild || statsCp)
                 return;
 
