@@ -73,10 +73,10 @@ if (!isset($id))
     <body>
         <div style="text-align: right">
 <?PHP
-foreach ($locales as $locale) {
-    if ($locale !== "en")
+foreach ($locales as $la) {
+    if ($la !== "en")
         print " | ";
-    print "<a href=\"?id=$id&amp;key=$key&amp;locale=$locale\">$locale</a>";
+    print "<a href=\"?id=$id&amp;key=$key&amp;locale=$la\">$la</a>";
 }
 ?>
         </div>
