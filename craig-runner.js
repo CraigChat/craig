@@ -25,8 +25,10 @@ function launch(activeRecordings) {
     });
 
     function relaunch() {
-        if (me === craig)
-            launch();
+        if (me === craig) {
+            craig = null;
+            setTimeout(() => { launch(); }, 10000);
+        }
     }
 
     me.on("error", relaunch);
