@@ -141,7 +141,15 @@ download("AAC (MPEG-4)", "aac");
 
             <div id="ffmstatus" style="background-color: #cccccc; color: #000000; padding: 0.5em;"></div>
 
-            <ul id="ffmoutput"></ul>
+            <ul id="ffmoutput"></ul><br/><br/>
+
+            These formats are provided by
+            <a href=\"http://ffmpeg.org\">ffmpeg</a>,
+            <a href=\"http://opus-codec.org/downloads/\">Opus</a> and
+            <a href=\"http://lame.sourceforge.net/\">LAME</a>, by way of
+            <a href=\"https://github.com/Kagami/ffmpeg.js\">ffmpeg.js</a>.
+            <a href=\"ffmpeg-js-license.txt\">License</a> and
+            <a href=\"ffmpeg-js-craig.tar.xz\">source</a>.
         </div><br/><br/>
 
 <?PHP
