@@ -490,6 +490,9 @@ function gracefulRestart() {
     dead = true;
 }
 
+// Memory leaks (yay) force us to gracefully restart every so often
+var uptimeTimeout = setTimeout(gracefulRestart, 24*60*60*1000);
+
 // Special commands from the owner
 function ownerCommand(msg, cmd) {
     if (dead)
