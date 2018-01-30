@@ -169,6 +169,9 @@ foreach (array("nomp3", "nowav", "downloading", "notracks", "complete") as $lstr
 print "0:0};\n";
 ?>
         (function() {
+            if (typeof Worker === "undefined")
+                return;
+
             function gid(id) {
                 return document.getElementById(id);
             }
