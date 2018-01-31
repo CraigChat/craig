@@ -208,7 +208,7 @@ if (process.channel) {
                             continue;
                         var nc = ng[cid];
                         (function(gid, cid, nc) {
-                            g[cid] = {
+                            var rec = g[cid] = {
                                 id: nc.id,
                                 accessKey: nc.accessKey,
                                 connection: {
@@ -224,6 +224,12 @@ if (process.channel) {
                                     }
                                 }
                             };
+                            setTimeout(() => {
+                                try {
+                                    if (activeRecordings[gid][cid] === rec)
+                                        rec.connection.disconnect();
+                                } catch (ex) {}
+                            }, 1000*60*60*6);
                         })(gid, cid, nc);
                     }
                 }
