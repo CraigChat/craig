@@ -890,7 +890,8 @@ clients.forEach((client) => {
 
     client.on("guildUpdate", (from, to) => {
         try {
-            if (from.region !== to.region) {
+            if (from.region !== to.region &&
+                to.voiceConnection) {
                 // The server has moved regions. This breaks recording.
                 log("Terminating recording: Moved to a different voice region.");
                 to.voiceConnection.disconnect();
