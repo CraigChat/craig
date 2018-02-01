@@ -214,7 +214,7 @@ if (process.channel) {
                                 connection: {
                                     channel: {
                                         members: {
-                                            size: 1
+                                            size: (nc.size?nc.size:1)
                                         }
                                     },
                                     disconnect: function() {
@@ -449,9 +449,14 @@ function gracefulRestart() {
             var ng = nar[gid] = {};
             for (var cid in g) {
                 var c = g[cid];
+                var size = 1;
+                try {
+                    size = c.connection.channel.members.size;
+                } catch (ex) {}
                 var nc = ng[cid] = {
                     id: c.id,
-                    accessKey: c.accessKey
+                    accessKey: c.accessKey,
+                    size: size
                 };
             }
         }
