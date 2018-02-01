@@ -68,8 +68,6 @@ for (var ei = 0; ei < events.length; ei++) {
         // Starting a recording
         if (rec.endEvent < 0) continue;
 
-        stats.totalRecordings++;
-
         curSimultaneous++;
         if (curSimultaneous > stats.maxSimultaneous)
             stats.maxSimultaneous = curSimultaneous;
@@ -78,6 +76,9 @@ for (var ei = 0; ei < events.length; ei++) {
         // Ending a recording
         var length = rec.end - rec.start;
         stats.totalTime += length/1000;
+
+        if (length > 120000)
+            stats.totalRecordings++;
 
         curSimultaneous--;
 
