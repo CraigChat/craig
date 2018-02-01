@@ -466,9 +466,6 @@ function gracefulRestart() {
 
         // And then exit when we're done
         function maybeQuit(rec) {
-            if (Object.keys(activeRecordings).length > 1)
-                return;
-
             for (var gid in activeRecordings) {
                 var g = activeRecordings[gid];
                 for (var cid in g) {
