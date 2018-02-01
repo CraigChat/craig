@@ -775,6 +775,16 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 close();
             });
 
+            // Thanks for being broken, discord.js!
+            var connInterval = setInterval(() => {
+                if (guild.voiceConnection)
+                    guild.voiceConnection.on("error", (ex) => {
+                        reply(msg, false, cmd[1], "Failed to join! " + ex);
+                        close();
+                    });
+                clearInterval(connInterval);
+            }, 1000);
+
         }
 
     } else if (!dead) {
