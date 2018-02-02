@@ -912,6 +912,7 @@ commands["features"] = function(msg, cmd) {
 
 // And finally, help commands
 commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
+    if (dead) return;
     reply(msg, false, cmd[1],
         "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
 }
