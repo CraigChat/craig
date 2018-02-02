@@ -901,8 +901,8 @@ commands["features"] = function(msg, cmd) {
         ret += "Default features:";
     else
         ret += "For you:";
-    ret += "\nRecording time limit: " + f.limits.record +
-           "\nDownload time limit: " + f.limits.download;
+    ret += "\nRecording time limit: " + f.limits.record + " hours" +
+           "\nDownload time limit: " + f.limits.download + " hours";
 
     if (f.mix)
         ret += "\nYou may download auto-leveled mixed audio.";
