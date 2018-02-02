@@ -892,6 +892,8 @@ commands["stop"] = function(msg, cmd) {
 
 // Tell the user their features
 commands["features"] = function(msg, cmd) {
+    if (dead) return;
+
     var f = features(msg.author.id);
     
     var ret = "\n";
