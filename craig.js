@@ -753,12 +753,10 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                     return;
                 closed = true;
 
-                /* The only way to reliably make sure we leave
-                 * the channel is to join it, then leave it */
-                try { channel.leave(); } catch (ex) {}
-                channel.join()
-                    .then(() => { channel.leave(); })
-                    .catch(() => {});
+                // Work around the hellscape of discord.js bugs
+                try {
+                    chosenClient.voice.connections.delete(guildId);
+                } catch (ex) {}
 
                 // Now get rid of it
                 delete activeRecordings[guildId][channelId];
@@ -808,12 +806,13 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
 
             // Thanks for being broken, discord.js!
             var connInterval = setInterval(() => {
-                if (guild.voiceConnection)
+                if (guild.voiceConnection) {
                     guild.voiceConnection.on("error", (ex) => {
                         reply(msg, false, cmd[1], "Failed to join! " + ex);
                         close();
                     });
-                clearInterval(connInterval);
+                    clearInterval(connInterval);
+                }
             }, 1000);
 
         }
