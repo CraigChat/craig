@@ -41,6 +41,12 @@ if (!("secondary" in config))
     config.secondary = [];
 if (!("importantServers" in config))
     config.importantServers = [];
+if (!("limits" in config))
+    config.limits = {"record": 6, "download": 48};
+if (!("record" in config.limits))
+    config.limits.record = 6;
+if (!("download" in config.limits))
+    config.limits.download = 48;
 
 function accessSyncer(file) {
     try {
@@ -124,6 +130,10 @@ var dead = false;
 
 // Active recordings by guild, channel
 var activeRecordings = {};
+
+// A map user ID -> rewards
+var rewards = {};
+var defaultFeatures = {"limits": config.limits};
 
 // Function to respond to a message by any means necessary
 function reply(msg, dm, prefix, pubtext, privtext) {
@@ -238,9 +248,17 @@ if (process.channel) {
     });
 }
 
+// Get the features for a given user
+function features(id) {
+    var r = rewards[id];
+    if (r) return r;
+    return defaultFeatures;
+}
+
 // Our recording session proper
 function session(msg, prefix, rec) {
     var connection = rec.connection;
+    var limits = rec.limits;
     var id = rec.id;
     var client = rec.client;
     var nick = rec.nick;
@@ -255,7 +273,7 @@ function session(msg, prefix, rec) {
         sReply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
         rec.disconnected = true;
         connection.disconnect();
-    }, 1000*60*60*6);
+    }, limits.record * 60*60*1000);
 
     // Rename ourself to indicate that we're recording
     try {
@@ -693,6 +711,9 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             reply(msg, false, cmd[1], "I don't have permission to join that channel!");
 
         } else {
+            // Figure out the recording features for this user
+            var f = features(msg.author.id);
+
             // Make a random ID for it
             var id;
             do {
@@ -708,12 +729,17 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             var deleteKey = ~~(Math.random() * 1000000000);
             fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
 
+            // If the user has features, mark them down
+            if (f !== defaultFeatures)
+                fs.writeFileSync(recFileBase + ".features", JSON.stringify(f), "utf8");
+
             // Make sure they get destroyed
-            var atcp = cp.spawn("at", ["now + 48 hours"],
+            var atcp = cp.spawn("at", ["now + " + f.limits.download + " hours"],
                     {"stdio": ["pipe", 1, 2]});
             atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
                     recFileBase + ".header2 " + recFileBase + ".data " +
-                    recFileBase + ".key " + recFileBase + ".delete\n");
+                    recFileBase + ".key " + recFileBase + ".delete " +
+                    recFileBase + ".features\n");
             atcp.stdin.end();
 
             // We have a nick per the specific client
@@ -752,6 +778,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 accessKey: accessKey,
                 client: chosenClient,
                 clientNum: chosenClientNum,
+                limits: f.limits,
                 nick: reNick,
                 disconnected: false,
                 close: close
@@ -765,7 +792,9 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             channel.join().then((connection) => {
                 // Tell them
                 reply(msg, true, cmd[1],
-                    "Recording! I will record up to six hours. Recordings are deleted automatically after 48 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
+                    "Recording! I will record up to " + f.limits.record +
+                    " hours. Recordings are deleted automatically after " + f.limits.download +
+                    " hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
                     "Download link: " + config.dlUrl + "?id=" + id + "&key=" + accessKey,
                     "To delete: " + config.dlUrl + "?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
 
@@ -859,6 +888,26 @@ commands["stop"] = function(msg, cmd) {
         reply(msg, false, cmd[1], "But I haven't started!");
     }
 
+}
+
+// Tell the user their features
+commands["features"] = function(msg, cmd) {
+    var f = features(msg.author.id);
+    
+    var ret = "\n";
+    if (f === defaultFeatures)
+        ret += "Default features:";
+    else
+        ret += "For you:";
+    ret += "\nRecording time limit: " + f.limits.record +
+           "\nDownload time limit: " + f.limits.download;
+
+    if (f.mix)
+        ret += "\nYou may download auto-leveled mixed audio.";
+    if (f.mp3)
+        ret += "\nYou may download MP3.";
+
+    reply(msg, false, false, ret);
 }
 
 // And finally, help commands
@@ -1077,3 +1126,54 @@ if (config.stats) {
         }
     })();
 }
+
+// Use server roles to give rewards
+if (config.rewards) (function() {
+    function resolveRewards(member) {
+        var rr = config.rewards.roles;
+        var mrewards = {};
+
+        member.roles.forEach((role) => {
+            var rn = role.name.toLowerCase();
+            if (rn in rr) {
+                var roler = rr[rn];
+                for (var rid in roler) {
+                    if (rid !== "limits") mrewards[rid] = roler[rid];
+                }
+                if (roler.limits) {
+                    if (!mrewards.limits) mrewards.limits = {record: config.limits.record, download: config.limits.download};
+                    if (roler.limits.record > mrewards.limits.record)
+                        mrewards.limits.record = roler.limits.record;
+                    if (roler.limits.download > mrewards.limits.download)
+                        mrewards.limits.download = roler.limits.download;
+                }
+            }
+        });
+
+        if (Object.keys(mrewards).length)
+            rewards[member.id] = mrewards;
+        else
+            delete rewards[member.id];
+    }
+
+    // Get our initial rewards on connection
+    client.on("ready", () => {
+        var rr = config.rewards.roles;
+        var guild = client.guilds.get(config.rewards.guild);
+        if (!guild) return;
+        guild.fetchMembers().then((guild) => {
+            guild.roles.forEach((role) => {
+                var rn = role.name.toLowerCase();
+                if (rn in rr)
+                    role.members.forEach(resolveRewards);
+            });
+        });
+    });
+
+    // Reresolve a member when their roles change
+    client.on("guildMemberUpdate", (from, to) => {
+        if (to.guild.id !== config.rewards.guild) return;
+        if (from.roles === to.roles) return;
+        resolveRewards(to);
+    });
+})();
