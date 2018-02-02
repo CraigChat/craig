@@ -48,7 +48,7 @@ else
 
 // Figure out the locale
 $locale = "en";
-$locales = array("en", "pt", "it");
+$locales = array("en", "pt", "fr", "it");
 $l = array();
 
 $notrust = "/[^A-Za-z0-9_-]/";
