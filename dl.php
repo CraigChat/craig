@@ -94,8 +94,27 @@ foreach ($locales as $la) {
 download("FLAC", "flac");
 download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
+if (isset($features["mp3"]) && $features["mp3"])
+    download("MP3", "mp3");
 ?>
         </span><br/><br/>
+
+<?PHP
+if (isset($features["mix"]) && $features["mix"]) {
+?>
+        <span class="big">
+        <span class="lbl"><?PHP l("std"); ?></span>
+<?PHP
+download("FLAC", "flac", "mix");
+download("Ogg Vorbis", "vorbis", "mix");
+download("AAC (MPEG-4)", "aac", "mix");
+if (isset($features["mp3"]) && $features["mp3"])
+    download("MP3", "mp3", "mix");
+?>
+        </span><br/><br/>
+<?PHP
+}
+?>
         
         <span class="local js">
         <span class="lbl"><?PHP l("mtp"); ?>&nbsp;</span>

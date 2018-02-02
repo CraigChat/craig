@@ -5,6 +5,7 @@ $l["en"] = array(
     "intro3" =>     "Your recording ID:",
 
     "mtd" =>        "Multi-track download:",
+    "std" =>        "Single-track smart mix download:",
     "mtp" =>        "Multi-track processed:",
     "stm" =>        "Single-track mixed:",
 

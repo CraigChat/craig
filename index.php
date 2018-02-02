@@ -40,6 +40,12 @@ $corrKey = intval(file_get_contents("$base/$id.ogg.key"));
 if ($key !== $corrKey)
     die("Invalid ID.");
 
+// Check the features
+if (file_exists("$base/$id.ogg.features"))
+    $features = json_decode(file_get_contents("$base/$id.ogg.features"), true);
+else
+    $features = array();
+
 // Figure out the locale
 $locale = "en";
 $locales = array("en", "pt", "it");
@@ -112,6 +118,7 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
         unlink("$base/$id.ogg.header2");
         unlink("$base/$id.ogg.data");
         unlink("$base/$id.ogg.delete");
+        unlink("$base/$id.ogg.features");
         // We do NOT delete the key, so that it's not replaced before it times out naturally
         die(ls("deleted"));
     }
@@ -124,6 +131,10 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
             $_REQUEST["format"] === "vorbis" ||
             $_REQUEST["format"] === "ra")
             $format = $_REQUEST["format"];
+        else if ($_REQUEST["format"] === "mp3" &&
+                 isset($features["mp3"]) &&
+                 $features["mp3"])
+            $format = "mp3";
     }
     $container="zip";
     $ext="$format.zip";
@@ -137,6 +148,13 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
             $container = "matroska";
             $ext = "mkv";
             $mime = "video/x-matroska";
+        } else if ($_REQUEST["container"] === "mix" &&
+                   isset($features["mix"]) &&
+                   $features["mix"]) {
+            $container = "mix";
+            $ext = $format;
+            if ($format === "vorbis") $ext = "ogg";
+            $mime = "application/octet-stream";
         }
     }
     header("Content-disposition: attachment; filename=$id.$ext");

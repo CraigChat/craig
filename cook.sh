@@ -39,6 +39,8 @@ FORMAT=flac
 CONTAINER=zip
 [ "$3" ] && CONTAINER="$3"
 
+ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0"
+
 case "$FORMAT" in
     copy)
         ext=ogg
@@ -54,7 +56,7 @@ case "$FORMAT" in
         ;;
     mp3)
         ext=mp3
-        ENCODE="lame -V 2 - -"
+        ENCODE="lame -b 128 - -"
         ;;
     ra)
         ext=ra
@@ -65,6 +67,11 @@ case "$FORMAT" in
         ENCODE="flac - -c"
         ;;
 esac
+if [ "$CONTAINER" = "mix" ]
+then
+    # Smart auto-mixing, so ext is temporary
+    ext=ogg
+fi
 
 cd "$SCRIPTBASE/rec"
 
@@ -85,7 +92,7 @@ NICE="nice -n10 ionice -c3 chrt -i 0"
 for c in `seq 1 $NB_STREAMS`
 do
     mkfifo $tmpdir/out/$c.$ext
-    if [ "$FORMAT" = "copy" ]
+    if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
             timeout $DEF_TIMEOUT ../oggstender $c > $tmpdir/out/$c.$ext &
@@ -95,7 +102,7 @@ do
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
             timeout $DEF_TIMEOUT ../oggstender $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
-            -af aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0 \
+            -af "$ARESAMPLE" \
             -f wav - |
             timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
 
@@ -129,6 +136,24 @@ case "$CONTAINER" in
             done
             timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - < /dev/null || true
         fi
+        ;;
+
+    mix)
+        INPUT=""
+        FILTER=""
+        MIXFILTER=""
+        c=0
+        for i in *.$ext
+        do
+            INPUT="$INPUT -codec libopus -copyts -i $i"
+            FILTER="$FILTER[$c:a]$ARESAMPLE,dynaudnorm[aud$c];"
+            MIXFILTER="$MIXFILTER[aud$c]"
+            c=$((c+1))
+        done
+        MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
+        FILTER="$FILTER$MIXFILTER"
+        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -f wav - < /dev/null |
+            timeout $DEF_TIMEOUT $NICE $ENCODE || true
         ;;
 
     *)
