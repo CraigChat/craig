@@ -307,6 +307,36 @@ function session(msg, prefix, rec) {
     var startTime = process.hrtime();
     var recFileBase = "rec/" + id + ".ogg";
 
+    // The amount of data I've recorded
+    var size = 0;
+
+    // Keep track and disconnect if we seem unused
+    var lastSize = 0;
+    var usedMinutes = 0;
+    var unusedMinutes = 0;
+    var warned = false;
+    const useInterval = setInterval(() => {
+        if (size != lastSize) {
+            lastSize = size;
+            usedMinutes++;
+            unusedMinutes = 0;
+        } else {
+            unusedMinutes++;
+            if (usedMinutes === 0) {
+                // No recording at all!
+                log("Terminating " + id + ": No data.");
+                sReply(true, "I'm not receiving any data! Disconnecting.");
+                rec.disconnected = true;
+                connection.disconnect();
+                return;
+            } else if (unusedMinutes === 5 && !warned) {
+                sReply(true, "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!");
+                sReply(false, "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!");
+                warned = true;
+            }
+        }
+    }, 60000);
+
     // Set up our recording streams
     var recFHStream = [
         fs.createWriteStream(recFileBase + ".header1"),
@@ -315,7 +345,6 @@ function session(msg, prefix, rec) {
     var recFStream = fs.createWriteStream(recFileBase + ".data");
 
     // And our ogg encoders
-    var size = 0;
     function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
         size += chunk.length;
         if (config.hardLimit && size >= config.hardLimit) {
@@ -419,6 +448,7 @@ function session(msg, prefix, rec) {
 
         // Delete our leave timeout
         clearTimeout(partTimeout);
+        clearInterval(useInterval);
 
         // Destroy the receiver
         try {
