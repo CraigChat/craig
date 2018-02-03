@@ -22,5 +22,5 @@ module.exports = {
     "importantServers": [],
 
     // Time limits
-    "limits" = {"record": 6, "download": 48}
+    "limits": {"record": 6, "download": 48}
 };

@@ -26,7 +26,7 @@ const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 const client = new Discord.Client(clientOptions);
 const clients = [client]; // For secondary connections
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-const defaultConfig = require("default-config.js");
+const defaultConfig = require("./default-config.js");
 
 for (var ck in defaultConfig)
     if (!(ck in config))
