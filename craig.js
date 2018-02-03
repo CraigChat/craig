@@ -26,27 +26,11 @@ const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 const client = new Discord.Client(clientOptions);
 const clients = [client]; // For secondary connections
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const defaultConfig = require("default-config.js");
 
-if (!("nick" in config))
-    config.nick = "Craig";
-if (!("longUrl" in config))
-    config.longUrl = "https://craigrecords.yahweasel.com/home/";
-if (!("dlUrl" in config))
-    config.dlUrl = "https://craigrecords.yahweasel.com/";
-if (!("hardLimit" in config))
-    config.hardLimit = 536870912;
-if (!("guildMembershipTimeout" in config))
-    config.guildMembershipTimeout = 604800000;
-if (!("secondary" in config))
-    config.secondary = [];
-if (!("importantServers" in config))
-    config.importantServers = [];
-if (!("limits" in config))
-    config.limits = {"record": 6, "download": 48};
-if (!("record" in config.limits))
-    config.limits.record = 6;
-if (!("download" in config.limits))
-    config.limits.download = 48;
+for (var ck in defaultConfig)
+    if (!(ck in config))
+        config[ck] = defaultConfig[ck];
 
 function accessSyncer(file) {
     try {
