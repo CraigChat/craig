@@ -652,6 +652,31 @@ function findChannel(msg, guild, cname) {
     return channel;
 }
 
+// Join a voice channel, working around discord.js' knot of insane bugs
+function safeJoin(channel, err) {
+    var guild = channel.guild;
+    var insaneInterval;
+
+    function catchConnection() {
+        if (guild.voiceConnection) {
+            guild.voiceConnection.on("error", (ex) => {
+                // Work around the hellscape of discord.js bugs
+                try {
+                    guild.client.voice.connections.delete(guild.id);
+                } catch (noex) {}
+                if (err)
+                    err(ex);
+            });
+            clearInterval(insaneInterval);
+        }
+    }
+
+    var ret = channel.join();
+    var insaneInterval = setInterval(catchConnection, 200);
+
+    return ret;
+}
+
 // Start recording
 commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
     var guild = msg.guild;
@@ -767,11 +792,6 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                     return;
                 closed = true;
 
-                // Work around the hellscape of discord.js bugs
-                try {
-                    chosenClient.voice.connections.delete(guildId);
-                } catch (ex) {}
-
                 // Now get rid of it
                 delete activeRecordings[guildId][channelId];
                 if (Object.keys(activeRecordings[guildId]).length === 0) {
@@ -782,6 +802,31 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 try {
                     guild.members.get(chosenClient.user.id).setNickname(reNick).catch(() => {});
                 } catch (ex) {}
+
+                // Try to reset our voice connection nonsense by joining a different channel
+                var diffChannel = channel;
+                guild.channels.some((maybeChannel) => {
+                    if (maybeChannel === channel)
+                        return false;
+
+                    var joinable = false;
+                    try {
+                        joinable = maybeChannel.joinable;
+                    } catch (ex) {}
+                    if (!joinable)
+                        return false;
+
+                    diffChannel = maybeChannel;
+                    return true;
+                });
+                function leave() {
+                    setTimeout(()=>{
+                        try {
+                            diffChannel.leave();
+                        } catch (ex) {}
+                    }, 1000);
+                }
+                safeJoin(diffChannel, leave).then(leave).catch(leave);
             }
 
             var rec = {
@@ -797,11 +842,14 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             };
             activeRecordings[guildId][channelId] = rec;
 
+            // If we have voice channel issue, do our best to rectify them
+            function onError(ex) {
+                reply(msg, false, cmd[1], "Failed to join! " + ex);
+                close();
+            }
+
             // Join the channel
-            try {
-                channel.leave();
-            } catch (ex) {}
-            channel.join().then((connection) => {
+            safeJoin(channel, onError).then((connection) => {
                 // Tell them
                 reply(msg, true, cmd[1],
                     "Recording! I will record up to " + f.limits.record +
@@ -813,22 +861,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 rec.connection = connection;
 
                 session(msg, cmd[1], rec);
-            }).catch((ex) => {
-                reply(msg, false, cmd[1], "Failed to join! " + ex);
-                close();
-            });
-
-            // Thanks for being broken, discord.js!
-            var connInterval = setInterval(() => {
-                if (guild.voiceConnection) {
-                    guild.voiceConnection.on("error", (ex) => {
-                        reply(msg, false, cmd[1], "Failed to join! " + ex);
-                        close();
-                    });
-                    clearInterval(connInterval);
-                }
-            }, 1000);
-
+            }).catch(onError);
         }
 
     } else if (!dead) {
