@@ -1200,8 +1200,19 @@ if (config.stats) {
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
+    // Journal of blesses
     var blessJournalF = null;
 
+    // Association of users with arrays autorecord guild+channels
+    var autoU2GC = {};
+
+    // And guilds to user+channel
+    var autoG2UC = {};
+
+    // And the journal of autorecord changes
+    var autoJournalF = null;
+
+    // Resolve a user's rewards by their role
     function resolveRewards(member) {
         var rr = config.rewards.roles;
         var mrewards = {};
@@ -1256,13 +1267,64 @@ if (config.rewards) (function() {
 
     // Resolve blesses from U2G into G2U, asserting that the relevant uids actually have bless powers
     function resolveBlesses() {
-        var newBlessG2U = {};
+        blessG2U = {};
         Object.keys(blessU2G).forEach((uid) => {
             var f = features(uid);
             if (f.bless)
                 blessG2U[blessU2G[uid]] = uid;
             else
                 delete blessU2G[uid];
+        });
+    }
+
+    // Remove a user's autorecord
+    function removeAutorecord(uid, gid) {
+        if (uid in autoU2GC) {
+            var gcs = autoU2GC[uid];
+            for (var gci = 0; gci < gcs.length; gci++) {
+                var gc = gcs[gci];
+                if (gc.g !== gid) continue;
+
+                // Found the one to remove
+                gcs.splice(gci, 1);
+
+                var step = {u:uid, g:gid};
+                if (gcs.length === 0)
+                    delete autoU2GC[uid];
+                delete autoG2UC[gid];
+                if (!dead && autoJournalF)
+                    autoJournalF.write("," + JSON.stringify(step) + "\n");
+
+                return;
+            }
+        }
+    }
+
+    // Add an autorecord for a user
+    function addAutorecord(uid, gid, cid) {
+        removeAutorecord(uid, gid);
+        var step = {u:uid, g:gid, c:cid};
+        if (!(uid in autoU2GC)) autoU2GC[uid] = [];
+        autoU2GC[uid].push({g:gid, c:cid});
+        autoG2UC[gid] = {u:uid, c:cid};
+        if (!dead && autoJournalF)
+            autoJournalF.write("," + JSON.stringify(step) + "\n");
+    }
+
+    // Resolve autorecords from U2GC into G2UC, asserting that the relevant uids actually have auto powers
+    function resolveAutos() {
+        autoG2UC = {};
+        Object.keys(autoU2GC).forEach((uid) => {
+            var f = features(uid);
+            if (f.auto) {
+                var gcs = autoU2GC[uid];
+                for (var gci = 0; gci < gcs.length; gci++) {
+                    var gc = gcs[gci];
+                    autoG2UC[gc.g] = {u:uid, c:gc.c};
+                }
+            } else {
+                delete autoU2GC[uid];
+            }
         });
     }
 
@@ -1292,10 +1354,28 @@ if (config.rewards) (function() {
                     }
                 } catch (ex) {}
             }
+            resolveBlesses();
             blessJournalF = fs.createWriteStream("craig-bless.json", "utf8");
             blessJournalF.write(JSON.stringify(blessU2G) + "\n");
 
-            resolveBlesses();
+
+            // And get our auto status
+            if (accessSyncer("craig-auto.json")) {
+                try {
+                    var journal = JSON.parse("["+fs.readFileSync("craig-auto.json", "utf8")+"]");
+                    autoU2GC = journal[0];
+                    for (var ji = 1; ji < journal.length; ji++) {
+                        var step = journal[ji];
+                        if ("c" in step)
+                            addAuto(step.u, step.g, step.c);
+                        else
+                            removeAuto(step.u, step.g);
+                    }
+                } catch (ex) {}
+            }
+            resolveAutos();
+            autoJournalF = fs.createWriteStream("craig-auto.json", "utf8");
+            autoJournalF.write(JSON.stringify(autoU2GC) + "\n");
         });
     });
 
@@ -1327,7 +1407,6 @@ if (config.rewards) (function() {
 
     commands["unbless"] = function(msg, cmd) {
         if (dead) return;
-        if (!msg.guild) return;
 
         if (!(msg.author.id in blessU2G)) {
             reply(msg, false, cmd[1], "But you haven't blessed a server!");
@@ -1336,4 +1415,88 @@ if (config.rewards) (function() {
             reply(msg, false, cmd[1], "Server unblessed.");
         }
     };
+
+    // And a command to autorecord a channel
+    commands["autorecord"] = function(msg, cmd) {
+        if (dead) return;
+        if (!msg.guild) return;
+        var cname = cmd[3].toLowerCase();
+
+        var f = features(msg.author.id);
+        if (!f.auto) {
+            reply(msg, false, cmd[1], "You do not have permission to set up automatic recordings.");
+            return;
+        }
+
+        if (cname === "off") {
+            if (msg.author.id in autoU2GC) {
+                var gcs = autoU2GC[msg.author.id];
+                for (var gci = 0; gci < gcs.length; gci++) {
+                    var gc = gcs[gci];
+                    if (gc.g === msg.guild.id) {
+                        removeAutorecord(msg.author.id, gc.g);
+                        reply(msg, false, cmd[1], "Autorecord disabled.");
+                        return;
+                    }
+                }
+            }
+
+            reply(msg, false, cmd[1], "But you don't have an autorecord set on this server!");
+
+        } else {
+            var channel = findChannel(msg, msg.guild, cname);
+            if (channel === null) {
+                reply(msg, false, cmd[1], "What channel?");
+                return;
+            }
+
+            addAutorecord(msg.author.id, msg.guild.id, channel.id);
+            reply(msg, false, cmd[1], "I will now automatically record " + channel.name + ". Please make sure you can receive DMs from me; I will NOT send autorecord links publicly!");
+        }
+    }
+
+    // Watch for autorecord opportunities
+    client.on("voiceStateUpdate", (from, to) => {
+        if (from.voiceChannel === to.voiceChannel) return;
+        var guild = to.guild;
+        var guildId = guild.id;
+        if (!(guild.id in autoG2UC)) return;
+        var uc = autoG2UC[guildId];
+        var voiceChannel = from.voiceChannel || to.voiceChannel;
+        var channelId = voiceChannel.id;
+        if (!voiceChannel || uc.c !== channelId) return;
+
+        // Something has happened on a voice channel we're watching for autorecording
+        var recording = false, shouldRecord = false;
+        if (guildId in activeRecordings &&
+            channelId in activeRecordings[guildId])
+            recording = true;
+        voiceChannel.members.some((member) => {
+            if (!member.user.bot) {
+                shouldRecord = true;
+                return true;
+            }
+            return false;
+        });
+
+        // Should we start or stop a recording?
+        if (recording !== shouldRecord) {
+            // OK, make sure we have everything we need
+            guild.fetchMember(uc.u).then((member) => {
+                var msg = {
+                    author: member.user,
+                    member: member,
+                    channel: member,
+                    guild: guild,
+                    reply: (msg) => {
+                        return member.send(msg);
+                    }
+                };
+                if (shouldRecord)
+                    commands["join"](msg, ["", null, "join", voiceChannel.name]);
+                else
+                    commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
+            });
+        }
+    });
 })();
