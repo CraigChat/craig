@@ -949,7 +949,7 @@ commands["stop"] = function(msg, cmd) {
 }
 
 // Turn features into a string
-function featuresToStr(f, prefix) {
+function featuresToStr(f, guild, prefix) {
     var ret = "\n";
     if (f === defaultFeatures)
         ret += "Default features:";
@@ -960,6 +960,10 @@ function featuresToStr(f, prefix) {
 
     if (f.mix)
         ret += "\nYou may download auto-leveled mixed audio.";
+    if (f.auto)
+        ret += "\nYou may autorecord channels.";
+    if (f.bless && !guild)
+        ret += "\nYou may bless servers.";
     if (f.mp3)
         ret += "\nYou may download MP3.";
 
@@ -973,9 +977,9 @@ commands["features"] = function(msg, cmd) {
     var f = features(msg.author.id);
     var gf = features(msg.author.id, msg.guild ? msg.guild.id : undefined);
 
-    var ret = featuresToStr(f, "For you");
+    var ret = featuresToStr(f, false, "For you");
     if (gf !== f)
-        ret += "\n" + featuresToStr(gf, "For this server");
+        ret += "\n" + featuresToStr(gf, true, "For this server");
    
     reply(msg, false, false, ret);
 }
@@ -1403,7 +1407,7 @@ if (config.rewards) (function() {
 
         addBless(msg.author.id, msg.guild.id);
         reply(msg, false, cmd[1], "This server is now blessed. All recordings in this server have your added features.");
-    };
+    }
 
     commands["unbless"] = function(msg, cmd) {
         if (dead) return;
@@ -1414,7 +1418,7 @@ if (config.rewards) (function() {
             removeBless(msg.author.id);
             reply(msg, false, cmd[1], "Server unblessed.");
         }
-    };
+    }
 
     // And a command to autorecord a channel
     commands["autorecord"] = function(msg, cmd) {
