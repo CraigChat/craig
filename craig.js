@@ -119,6 +119,10 @@ var activeRecordings = {};
 var rewards = {};
 var defaultFeatures = {"limits": config.limits};
 
+// A map of users with rewards -> blessed guilds and vice-versa
+var blessU2G = {};
+var blessG2U = {};
+
 // Function to respond to a message by any means necessary
 function reply(msg, dm, prefix, pubtext, privtext) {
     if (dm) {
@@ -233,9 +237,17 @@ if (process.channel) {
 }
 
 // Get the features for a given user
-function features(id) {
+function features(id, gid) {
+    // Do they have their own rewards?
     var r = rewards[id];
     if (r) return r;
+
+    // Are they in a blessed guild?
+    if (gid && gid in blessG2U) {
+        r = rewards[blessG2U[gid]];
+        if (r) return r;
+    }
+
     return defaultFeatures;
 }
 
@@ -751,7 +763,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
 
         } else {
             // Figure out the recording features for this user
-            var f = features(msg.author.id);
+            var f = features(msg.author.id, guildId);
 
             // Make a random ID for it
             var id;
@@ -936,17 +948,13 @@ commands["stop"] = function(msg, cmd) {
 
 }
 
-// Tell the user their features
-commands["features"] = function(msg, cmd) {
-    if (dead) return;
-
-    var f = features(msg.author.id);
-    
+// Turn features into a string
+function featuresToStr(f, prefix) {
     var ret = "\n";
     if (f === defaultFeatures)
         ret += "Default features:";
     else
-        ret += "For you:";
+        ret += prefix + ":";
     ret += "\nRecording time limit: " + f.limits.record + " hours" +
            "\nDownload time limit: " + f.limits.download + " hours";
 
@@ -955,6 +963,20 @@ commands["features"] = function(msg, cmd) {
     if (f.mp3)
         ret += "\nYou may download MP3.";
 
+    return ret;
+}
+
+// Tell the user their features
+commands["features"] = function(msg, cmd) {
+    if (dead) return;
+
+    var f = features(msg.author.id);
+    var gf = features(msg.author.id, msg.guild ? msg.guild.id : undefined);
+
+    var ret = featuresToStr(f, "For you");
+    if (gf !== f)
+        ret += "\n" + featuresToStr(gf, "For this server");
+   
     reply(msg, false, false, ret);
 }
 
@@ -1178,6 +1200,8 @@ if (config.stats) {
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
+    var blessJournalF = null;
+
     function resolveRewards(member) {
         var rr = config.rewards.roles;
         var mrewards = {};
@@ -1203,6 +1227,43 @@ if (config.rewards) (function() {
             rewards[member.id] = mrewards;
         else
             delete rewards[member.id];
+        return mrewards;
+    }
+
+    // Remove a bless
+    function removeBless(uid) {
+        if (uid in blessU2G) {
+            var gid = blessU2G[uid];
+            var step = {u:uid};
+            delete blessU2G[uid];
+            delete blessG2U[gid];
+            if (!dead && blessJournalF)
+                blessJournalF.write("," + JSON.stringify(step) + "\n");
+        }
+    }
+
+    // Add a bless
+    function addBless(uid, gid) {
+        if (uid in blessU2G)
+            removeBless(uid);
+
+        var step = {u:uid, g:gid};
+        blessU2G[uid] = gid;
+        blessG2U[gid] = uid;
+        if (!dead && blessJournalF)
+            blessJournalF.write("," + JSON.stringify(step) + "\n");
+    }
+
+    // Resolve blesses from U2G into G2U, asserting that the relevant uids actually have bless powers
+    function resolveBlesses() {
+        var newBlessG2U = {};
+        Object.keys(blessU2G).forEach((uid) => {
+            var f = features(uid);
+            if (f.bless)
+                blessG2U[blessU2G[uid]] = uid;
+            else
+                delete blessU2G[uid];
+        });
     }
 
     // Get our initial rewards on connection
@@ -1216,6 +1277,25 @@ if (config.rewards) (function() {
                 if (rn in rr)
                     role.members.forEach(resolveRewards);
             });
+
+            // Get our bless status
+            if (accessSyncer("craig-bless.json")) {
+                try {
+                    var journal = JSON.parse("["+fs.readFileSync("craig-bless.json", "utf8")+"]");
+                    blessU2G = journal[0];
+                    for (var ji = 1; ji < journal.length; ji++) {
+                        var step = journal[ji];
+                        if ("g" in step)
+                            blessU2G[step.u] = step.g;
+                        else
+                            delete blessU2G[step.u];
+                    }
+                } catch (ex) {}
+            }
+            blessJournalF = fs.createWriteStream("craig-bless.json", "utf8");
+            blessJournalF.write(JSON.stringify(blessU2G) + "\n");
+
+            resolveBlesses();
         });
     });
 
@@ -1223,6 +1303,37 @@ if (config.rewards) (function() {
     client.on("guildMemberUpdate", (from, to) => {
         if (to.guild.id !== config.rewards.guild) return;
         if (from.roles === to.roles) return;
-        resolveRewards(to);
+        var r = resolveRewards(to);
+        if (!r.bless && to.id in blessU2G)
+            removeBless(to.id);
     });
+
+    // And a command to bless a guild
+    commands["bless"] = function(msg, cmd) {
+        if (dead) return;
+
+        // Only makes sense in a guild
+        if (!msg.guild) return;
+
+        var f = features(msg.author.id);
+        if (!f.bless) {
+            reply(msg, false, cmd[1], "You do not have permission to bless servers.");
+            return;
+        }
+
+        addBless(msg.author.id, msg.guild.id);
+        reply(msg, false, cmd[1], "This server is now blessed. All recordings in this server have your added features.");
+    };
+
+    commands["unbless"] = function(msg, cmd) {
+        if (dead) return;
+        if (!msg.guild) return;
+
+        if (!(msg.author.id in blessU2G)) {
+            reply(msg, false, cmd[1], "But you haven't blessed a server!");
+        } else {
+            removeBless(msg.author.id);
+            reply(msg, false, cmd[1], "Server unblessed.");
+        }
+    };
 })();
