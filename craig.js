@@ -1224,16 +1224,16 @@ if (config.stats) {
     })();
 }
 
+// Association of users with arrays autorecord guild+channels
+var autoU2GC = {};
+
+// And guilds to user+channel
+var autoG2UC = {};
+
 // Use server roles to give rewards
 if (config.rewards) (function() {
     // Journal of blesses
     var blessJournalF = null;
-
-    // Association of users with arrays autorecord guild+channels
-    var autoU2GC = {};
-
-    // And guilds to user+channel
-    var autoG2UC = {};
 
     // And the journal of autorecord changes
     var autoJournalF = null;
@@ -1327,12 +1327,14 @@ if (config.rewards) (function() {
     }
 
     // Add an autorecord for a user
-    function addAutorecord(uid, gid, cid) {
+    function addAutorecord(uid, gid, cid, tids) {
         removeAutorecord(uid, gid);
         var step = {u:uid, g:gid, c:cid};
+        if (tids)
+            step.t = tids;
         if (!(uid in autoU2GC)) autoU2GC[uid] = [];
-        autoU2GC[uid].push({g:gid, c:cid});
-        autoG2UC[gid] = {u:uid, c:cid};
+        autoU2GC[uid].push(step);
+        autoG2UC[gid] = step;
         if (!dead && autoJournalF)
             autoJournalF.write("," + JSON.stringify(step) + "\n");
     }
@@ -1346,7 +1348,7 @@ if (config.rewards) (function() {
                 var gcs = autoU2GC[uid];
                 for (var gci = 0; gci < gcs.length; gci++) {
                     var gc = gcs[gci];
-                    autoG2UC[gc.g] = {u:uid, c:gc.c};
+                    autoG2UC[gc.g] = gc;
                 }
             } else {
                 delete autoU2GC[uid];
@@ -1393,7 +1395,7 @@ if (config.rewards) (function() {
                     for (var ji = 1; ji < journal.length; ji++) {
                         var step = journal[ji];
                         if ("c" in step)
-                            addAuto(step.u, step.g, step.c);
+                            addAuto(step.u, step.g, step.c, step.t);
                         else
                             removeAuto(step.u, step.g);
                     }
@@ -1442,6 +1444,8 @@ if (config.rewards) (function() {
         }
     }
 
+    const mention = /^<@!?([0-9]*)>[ \t,]*(.*)$/;
+
     // And a command to autorecord a channel
     commands["autorecord"] = function(msg, cmd) {
         if (dead) return;
@@ -1470,13 +1474,24 @@ if (config.rewards) (function() {
             reply(msg, false, cmd[1], "But you don't have an autorecord set on this server!");
 
         } else {
+            // Look for triggers first
+            var triggers = {};
+            var t, tc = 0;
+            while ((t = mention.exec(cname)) !== null) {
+                // Has a trigger
+                triggers[t[1]] = true;
+                cname = t[2];
+                tc++;
+            }
+            if (tc === 0) triggers = undefined;
+
             var channel = findChannel(msg, msg.guild, cname);
             if (channel === null) {
                 reply(msg, false, cmd[1], "What channel?");
                 return;
             }
 
-            addAutorecord(msg.author.id, msg.guild.id, channel.id);
+            addAutorecord(msg.author.id, msg.guild.id, channel.id, triggers);
             reply(msg, false, cmd[1], "I will now automatically record " + channel.name + ". Please make sure you can receive DMs from me; I will NOT send autorecord links publicly!");
         }
     }
@@ -1491,6 +1506,7 @@ if (config.rewards) (function() {
         var voiceChannel = from.voiceChannel || to.voiceChannel;
         var channelId = voiceChannel.id;
         if (!voiceChannel || uc.c !== channelId) return;
+        var triggers = uc.t;
 
         // Something has happened on a voice channel we're watching for autorecording
         var recording = false, shouldRecord = false;
@@ -1498,7 +1514,8 @@ if (config.rewards) (function() {
             channelId in activeRecordings[guildId])
             recording = true;
         voiceChannel.members.some((member) => {
-            if (!member.user.bot) {
+            if ((triggers && triggers[member.id]) ||
+                (!triggers && !member.user.bot)) {
                 shouldRecord = true;
                 return true;
             }
