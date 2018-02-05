@@ -20,6 +20,7 @@ const EventEmitter = require("events");
 const https = require("https");
 const Discord = require("discord.js");
 const ogg = require("./craig-ogg.js");
+const opus = new (require("node-opus")).OpusEncoder(48000);
 
 const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 
@@ -296,6 +297,9 @@ function session(msg, prefix, rec) {
     // Packet numbers for each active user
     var userPacketNos = {};
 
+    // Have we warned about this user's data being corrupt?
+    var corruptWarn = {};
+
     // Our current track number
     var trackNo = 1;
 
@@ -356,7 +360,7 @@ function session(msg, prefix, rec) {
     var recOggStream = new ogg.OggEncoder(recFStream);
 
     // Function to encode a single Opus chunk to the ogg file
-    function encodeChunk(oggStream, streamNo, packetNo, chunk) {
+    function encodeChunk(user, oggStream, streamNo, packetNo, chunk) {
         var chunkTime = process.hrtime(startTime);
         var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
 
@@ -375,6 +379,19 @@ function session(msg, prefix, rec) {
                 off = chunk.length;
 
             chunk = chunk.slice(off);
+        }
+
+        // Occasionally check that it's valid Opus data
+        if (packetNo % 50 === 49) {
+            try {
+                opus.decode(chunk, 960);
+            } catch (ex) {
+                if (!corruptWarn[user.id]) {
+                    sReply(true, "WARNING: I am receiving corrupted voice data from " + user.username + "#" + user.discriminator + "! I will not be able to correctly process their audio!");
+                    corruptWarn[user.id] = true;
+                }
+            }
+            // FIXME: Eventually delete corruption warnings?
         }
 
         write(oggStream, chunkGranule, streamNo, packetNo, chunk);
@@ -402,13 +419,13 @@ function session(msg, prefix, rec) {
         }
 
         try {
-            encodeChunk(recOggStream, userTrackNo, packetNo++, chunk);
+            encodeChunk(user, recOggStream, userTrackNo, packetNo++, chunk);
             userPacketNos[user.id] = packetNo;
         } catch (ex) {}
 
         opusStream.on("data", (chunk) => {
             try {
-                encodeChunk(recOggStream, userTrackNo, packetNo++, chunk);
+                encodeChunk(user, recOggStream, userTrackNo, packetNo++, chunk);
                 userPacketNos[user.id] = packetNo;
             } catch (ex) {}
         });
