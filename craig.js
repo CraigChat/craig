@@ -1098,7 +1098,7 @@ setInterval(() => {
             }
 
             if (guildMembershipStatus[guild.id] + config.guildMembershipTimeout < (new Date().getTime())) {
-                if (guild.id in importantServers) {
+                if ((guild.id in importantServers) || (guild.id in blessG2U)) {
                     guildRefresh(guild);
                     return true;
                 }
