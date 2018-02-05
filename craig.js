@@ -891,6 +891,11 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
 
                 session(msg, cmd[1], rec);
             }).catch(onError);
+
+            // If we don't have a connection in 15 seconds, assume something went wrong
+            setTimeout(()=>{
+                if (!rec.connection) close();
+            }, 15000);
         }
 
     } else if (!dead) {
