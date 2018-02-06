@@ -16,22 +16,15 @@
 
 const cp = require("child_process");
 const fs = require("fs");
-const EventEmitter = require("events");
 const https = require("https");
-const Discord = require("discord.js");
 const ogg = require("./craig-ogg.js");
 const opus = new (require("node-opus")).OpusEncoder(48000);
 
-const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
-
-const client = new Discord.Client(clientOptions);
-const clients = [client]; // For secondary connections
-const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-const defaultConfig = require("./default-config.js");
-
-for (var ck in defaultConfig)
-    if (!(ck in config))
-        config[ck] = defaultConfig[ck];
+const cc = require("./craig-client.js");
+const client = cc.client;
+const clients = cc.clients;
+const config = cc.config;
+const recordingEvents = cc.recordingEvents;
 
 function accessSyncer(file) {
     try {
@@ -87,15 +80,6 @@ function guildRefresh(guild) {
     var step = {"k": guild.id, "v": (new Date().getTime())};
     guildMembershipStatus[step.k] = step.v;
     guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
-}
-
-// Log in
-client.login(config.token).catch(()=>{});
-
-// If there are secondary Craigs, log them in
-for (var si = 0; si < config.secondary.length; si++) {
-    clients.push(new Discord.Client(clientOptions));
-    clients[si+1].login(config.secondary[si].token).catch(()=>{});
 }
 
 var log;
@@ -184,10 +168,6 @@ function reply(msg, dm, prefix, pubtext, privtext) {
 
     });
 }
-
-// An event emitter for whenever we start or stop any recording
-class RecordingEvent extends EventEmitter {}
-const recordingEvents = new RecordingEvent();
 
 // Get our currect active recordings from the launcher
 if (process.channel) {
