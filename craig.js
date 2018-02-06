@@ -26,36 +26,11 @@ const clients = cc.clients;
 const config = cc.config;
 const recordingEvents = cc.recordingEvents;
 
-function accessSyncer(file) {
-    try {
-        fs.accessSync(file);
-    } catch (ex) {
-        return false;
-    }
-    return true;
-}
-
-// Convenience functions to turn entities into name#id strings:
-function nameId(entity) {
-    var nick = "";
-    if ("displayName" in entity) {
-        nick = entity.displayName;
-    } else if ("username" in entity) {
-        nick = entity.username;
-    } else if ("name" in entity) {
-        nick = entity.name;
-    }
-    return nick + "#" + entity.id;
-}
-
-// A precomputed Opus header, made by node-opus 
-const opusHeader = [
-    Buffer.from([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02,
-        0x00, 0x0f, 0x80, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00]),
-    Buffer.from([0x4f, 0x70, 0x75, 0x73, 0x54, 0x61, 0x67, 0x73, 0x09, 0x00,
-        0x00, 0x00, 0x6e, 0x6f, 0x64, 0x65, 0x2d, 0x6f, 0x70, 0x75, 0x73, 0x00,
-        0x00, 0x00, 0x00, 0xff])
-];
+const cu = require("./craig-utils.js");
+const accessSyncer = cu.accessSyncer;
+const nameId = cu.nameId;
+const opusHeader = cu.opusHeader;
+const log = cu.log;
 
 // Our guild membership status
 var guildMembershipStatus = {};
@@ -80,18 +55,6 @@ function guildRefresh(guild) {
     var step = {"k": guild.id, "v": (new Date().getTime())};
     guildMembershipStatus[step.k] = step.v;
     guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
-}
-
-var log;
-if ("log" in config) {
-    const logStream = fs.createWriteStream(config.log, {"flags": "a"});
-    log = function(line) {
-        logStream.write((new Date().toISOString()) + ": " + line + "\n");
-    }
-} else {
-    log = function(line) {
-        console.log((new Date().toISOString()) + ": " + line);
-    }
 }
 
 // Set to true when we've been gracefully restarted

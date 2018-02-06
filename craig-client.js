@@ -21,11 +21,8 @@ const Discord = require("discord.js");
 const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 
 const client = new Discord.Client(clientOptions);
-exports.client = client;
 const clients = [client]; // For secondary connections
-exports.clients = clients;
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-exports.config = config;
 const defaultConfig = require("./default-config.js");
 
 for (var ck in defaultConfig)
@@ -44,4 +41,5 @@ for (var si = 0; si < config.secondary.length; si++) {
 // An event emitter for whenever we start or stop any recording
 class RecordingEvent extends EventEmitter {}
 const recordingEvents = new RecordingEvent();
-exports.recordingEvents = recordingEvents;
+
+module.exports = {client, clients, config, recordingEvents};
