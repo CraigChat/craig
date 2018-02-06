@@ -1535,10 +1535,9 @@ if (config.rewards) (function() {
                         return member.send(msg);
                     }
                 };
-                if (shouldRecord)
-                    commands["join"](msg, ["", null, "join", voiceChannel.name]);
-                else
-                    commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
+                var cmd = shouldRecord ? "join" : "leave";
+                log("Auto-record " + cmd + ": " + nameId(voiceChannel) + "@" + nameId(guild) + " requested by " + nameId(member));
+                commands[cmd](msg, ["", null, cmd, voiceChannel.name]);
             });
         }
     });
