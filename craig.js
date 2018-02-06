@@ -27,14 +27,12 @@ const config = cc.config;
 const recordingEvents = cc.recordingEvents;
 
 const cu = require("./craig-utils.js");
-const accessSyncer = cu.accessSyncer;
 const nameId = cu.nameId;
-const opusHeader = cu.opusHeader;
 const log = cu.log;
 
 // Our guild membership status
 var guildMembershipStatus = {};
-if (accessSyncer("craig-guild-membership-status.json")) {
+if (cu.accessSyncer("craig-guild-membership-status.json")) {
     try {
         var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
         guildMembershipStatus = journal[0];
@@ -353,8 +351,8 @@ function session(msg, prefix, rec) {
 
             // Put a valid Opus header at the beginning
             try {
-                write(recOggHStream[0], 0, userTrackNo, 0, opusHeader[0], ogg.BOS);
-                write(recOggHStream[1], 0, userTrackNo, 0, opusHeader[1]);
+                write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeader[0], ogg.BOS);
+                write(recOggHStream[1], 0, userTrackNo, 0, cu.opusHeader[1]);
             } catch (ex) {}
         } else {
             userTrackNo = userTrackNos[user.id];
@@ -729,7 +727,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             var id;
             do {
                 id = ~~(Math.random() * 1000000000);
-            } while (accessSyncer("rec/" + id + ".ogg.key"));
+            } while (cu.accessSyncer("rec/" + id + ".ogg.key"));
             var recFileBase = "rec/" + id + ".ogg";
 
             // Make an access key for it
@@ -1312,7 +1310,7 @@ if (config.rewards) (function() {
             });
 
             // Get our bless status
-            if (accessSyncer("craig-bless.json")) {
+            if (cu.accessSyncer("craig-bless.json")) {
                 try {
                     var journal = JSON.parse("["+fs.readFileSync("craig-bless.json", "utf8")+"]");
                     blessU2G = journal[0];
@@ -1331,7 +1329,7 @@ if (config.rewards) (function() {
 
 
             // And get our auto status
-            if (accessSyncer("craig-auto.json")) {
+            if (cu.accessSyncer("craig-auto.json")) {
                 try {
                     var journal = JSON.parse("["+fs.readFileSync("craig-auto.json", "utf8")+"]");
                     autoU2GC = journal[0];
