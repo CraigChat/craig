@@ -42,4 +42,4 @@ for (var si = 0; si < config.secondary.length; si++) {
 class RecordingEvent extends EventEmitter {}
 const recordingEvents = new RecordingEvent();
 
-module.exports = {client, clients, config, recordingEvents};
+module.exports = {client, clients, config, recordingEvents, dead: false};

@@ -30,33 +30,7 @@ const cu = require("./craig-utils.js");
 const nameId = cu.nameId;
 const log = cu.log;
 
-// Our guild membership status
-var guildMembershipStatus = {};
-if (cu.accessSyncer("craig-guild-membership-status.json")) {
-    try {
-        var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
-        guildMembershipStatus = journal[0];
-        for (var ji = 1; ji < journal.length; ji++) {
-            var step = journal[ji];
-            if ("v" in step)
-                guildMembershipStatus[step.k] = step.v;
-            else
-                delete guildMembershipStatus[step.k];
-        }
-    } catch (ex) {}
-}
-var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
-guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
-
-function guildRefresh(guild) {
-    if (dead) return;
-    var step = {"k": guild.id, "v": (new Date().getTime())};
-    guildMembershipStatus[step.k] = step.v;
-    guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
-}
-
-// Set to true when we've been gracefully restarted
-var dead = false;
+const gms = require("./craig-gms.js");
 
 // Active recordings by guild, channel
 var activeRecordings = {};
@@ -497,15 +471,15 @@ function gracefulRestart() {
     }
 
     // Stop responding to input
-    dead = true;
+    cc.dead = true;
 }
 
 // Memory leaks (yay) force us to gracefully restart every so often
-var uptimeTimeout = setTimeout(() => { if (!dead) gracefulRestart(); }, 24*60*60*1000);
+var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
 
 // Special commands from the owner
 function ownerCommand(msg, cmd) {
-    if (dead)
+    if (cc.dead)
         return;
 
     var op = cmd[2].toLowerCase();
@@ -585,7 +559,7 @@ function onMessage(msg) {
 
     // Keep this guild alive
     try {
-        guildRefresh(msg.guild);
+        gms.guildRefresh(msg.guild);
     } catch (ex) {}
 
     var op = cmd[2].toLowerCase();
@@ -655,7 +629,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
     var cname = cmd[3].toLowerCase();
     var channel = null;
 
-    if (dead) {
+    if (cc.dead) {
         // Not our job
         return;
     }
@@ -839,7 +813,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             }, 15000);
         }
 
-    } else if (!dead) {
+    } else if (!cc.dead) {
         reply(msg, false, cmd[1], "What channel?");
 
     }
@@ -878,11 +852,11 @@ commands["leave"] = commands["part"] = function(msg, cmd) {
                 }
             } catch (ex) {}
 
-        } else if (!dead) {
+        } else if (!cc.dead) {
             reply(msg, false, cmd[1], "But I'm not recording that channel!");
         }
 
-    } else if (!dead) {
+    } else if (!cc.dead) {
         reply(msg, false, cmd[1], "What channel?");
 
     }
@@ -905,7 +879,7 @@ commands["stop"] = function(msg, cmd) {
                 }
             } catch (ex) {}
         }
-    } else if (!dead) {
+    } else if (!cc.dead) {
         reply(msg, false, cmd[1], "But I haven't started!");
     }
 
@@ -935,7 +909,7 @@ function featuresToStr(f, guild, prefix) {
 
 // Tell the user their features
 commands["features"] = function(msg, cmd) {
-    if (dead) return;
+    if (cc.dead) return;
 
     var f = features(msg.author.id);
     var gf = features(msg.author.id, msg.guild ? msg.guild.id : undefined);
@@ -949,7 +923,7 @@ commands["features"] = function(msg, cmd) {
 
 // And finally, help commands
 commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
-    if (dead) return;
+    if (cc.dead) return;
     reply(msg, false, cmd[1],
         "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
 }
@@ -1022,47 +996,14 @@ var importantServers = {};
         importantServers[config.importantServers[ii]] = true;
 })();
 
-// Check/report our guild membership status every hour
+// Update our guild count every hour
 var lastServerCount = 0;
 setInterval(() => {
-    var client;
-
-    if (dead)
+    if (cc.dead)
         return;
-
-    for (var ci = 0; ci < clients.length; ci++) {
-        client = clients[ci];
-        client.guilds.every((guild) => {
-            if (!(guild.id in guildMembershipStatus)) {
-                guildRefresh(guild);
-                return true;
-            }
-
-            if (guildMembershipStatus[guild.id] + config.guildMembershipTimeout < (new Date().getTime())) {
-                if ((guild.id in importantServers) || (guild.id in blessG2U)) {
-                    guildRefresh(guild);
-                    return true;
-                }
-
-                // Time's up!
-                for (var sci = 0; sci < clients.length; sci++) {
-                    var g = clients[sci].guilds.get(guild.id);
-                    if (g)
-                        g.leave().catch(()=>{});
-                }
-
-                var step = {"k": guild.id};
-                delete guildMembershipStatus[guild.id];
-                guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
-            }
-
-            return true;
-        });
-    }
 
     if (config.discordbotstoken) {
         // Report to discordbots.org
-        client = clients[0];
         try {
             var curServerCount = client.guilds.size;
             if (lastServerCount === curServerCount)
@@ -1101,7 +1042,7 @@ if (config.stats) {
         var users = -1;
         var channels = -1;
         function updateTopic(stoppedRec) {
-            if (dead)
+            if (cc.dead)
                 return;
 
             try {
@@ -1142,7 +1083,7 @@ if (config.stats) {
         // And a command to get the full stats
         var statsCp = null;
         commands["stats"] = function(msg, cmd) {
-            if (dead)
+            if (cc.dead)
                 return;
 
             if (!msg.guild || msg.guild.id !== config.stats.guild || statsCp)
@@ -1215,7 +1156,7 @@ if (config.rewards) (function() {
             var step = {u:uid};
             delete blessU2G[uid];
             delete blessG2U[gid];
-            if (!dead && blessJournalF)
+            if (!cc.dead && blessJournalF)
                 blessJournalF.write("," + JSON.stringify(step) + "\n");
         }
     }
@@ -1228,7 +1169,7 @@ if (config.rewards) (function() {
         var step = {u:uid, g:gid};
         blessU2G[uid] = gid;
         blessG2U[gid] = uid;
-        if (!dead && blessJournalF)
+        if (!cc.dead && blessJournalF)
             blessJournalF.write("," + JSON.stringify(step) + "\n");
     }
 
@@ -1259,7 +1200,7 @@ if (config.rewards) (function() {
                 if (gcs.length === 0)
                     delete autoU2GC[uid];
                 delete autoG2UC[gid];
-                if (!dead && autoJournalF)
+                if (!cc.dead && autoJournalF)
                     autoJournalF.write("," + JSON.stringify(step) + "\n");
 
                 return;
@@ -1276,7 +1217,7 @@ if (config.rewards) (function() {
         if (!(uid in autoU2GC)) autoU2GC[uid] = [];
         autoU2GC[uid].push(step);
         autoG2UC[gid] = step;
-        if (!dead && autoJournalF)
+        if (!cc.dead && autoJournalF)
             autoJournalF.write("," + JSON.stringify(step) + "\n");
     }
 
@@ -1359,7 +1300,7 @@ if (config.rewards) (function() {
 
     // And a command to bless a guild
     commands["bless"] = function(msg, cmd) {
-        if (dead) return;
+        if (cc.dead) return;
 
         // Only makes sense in a guild
         if (!msg.guild) return;
@@ -1375,7 +1316,7 @@ if (config.rewards) (function() {
     }
 
     commands["unbless"] = function(msg, cmd) {
-        if (dead) return;
+        if (cc.dead) return;
 
         if (!(msg.author.id in blessU2G)) {
             reply(msg, false, cmd[1], "But you haven't blessed a server!");
@@ -1389,7 +1330,7 @@ if (config.rewards) (function() {
 
     // And a command to autorecord a channel
     commands["autorecord"] = function(msg, cmd) {
-        if (dead) return;
+        if (cc.dead) return;
         if (!msg.guild) return;
         var cname = cmd[3].toLowerCase();
 
