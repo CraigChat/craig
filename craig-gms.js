@@ -15,7 +15,10 @@
  */
 
 const fs = require("fs");
+
 const cc = require("./craig-client.js");
+const logex = cc.logex;
+
 const cu = require("./craig-utils.js");
 
 const clients = cc.clients;
@@ -33,7 +36,9 @@ if (cu.accessSyncer("craig-guild-membership-status.json")) {
             else
                 delete guildMembershipStatus[step.k];
         }
-    } catch (ex) {}
+    } catch (ex) {
+        logex(ex);
+    }
 }
 var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
 guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
@@ -77,7 +82,7 @@ setInterval(() => {
                 for (var sci = 0; sci < clients.length; sci++) {
                     var g = clients[sci].guilds.get(guild.id);
                     if (g)
-                        g.leave().catch(()=>{});
+                        g.leave().catch(logex);
                 }
 
                 guildDelete(guild);

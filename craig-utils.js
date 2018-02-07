@@ -15,9 +15,11 @@
  */
 
 const fs = require("fs");
-const cc = require("./craig-client.js");
 
+const cc = require("./craig-client.js");
 const config = cc.config;
+const log = cc.log;
+const nameId = cc.nameId;
 
 // accessSync with a less stupid UI
 function accessSyncer(file) {
@@ -29,19 +31,6 @@ function accessSyncer(file) {
     return true;
 }
 
-// Convenience functions to turn entities into name#id strings:
-function nameId(entity) {
-    var nick = "";
-    if ("displayName" in entity) {
-        nick = entity.displayName;
-    } else if ("username" in entity) {
-        nick = entity.username;
-    } else if ("name" in entity) {
-        nick = entity.name;
-    }
-    return nick + "#" + entity.id;
-}
-
 // A precomputed Opus header, made by node-opus 
 const opusHeader = [
     Buffer.from([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02,
@@ -51,18 +40,6 @@ const opusHeader = [
         0x00, 0x00, 0x00, 0xff])
 ];
 
-var log;
-if ("log" in config) {
-    const logStream = fs.createWriteStream(config.log, {"flags": "a"});
-    log = function(line) {
-        logStream.write((new Date().toISOString()) + ": " + line + "\n");
-    }
-} else {
-    log = function(line) {
-        console.log((new Date().toISOString()) + ": " + line);
-    }
-}
-
 // Function to respond to a message by any means necessary
 function reply(msg, dm, prefix, pubtext, privtext) {
     if (dm) {
@@ -71,7 +48,7 @@ function reply(msg, dm, prefix, pubtext, privtext) {
             privtext = pubtext;
         else
             privtext = pubtext + "\n\n" + privtext;
-        log("Reply to " + nameId(msg.author) + ": " + privtext);
+        log("Reply to " + nameId(msg.author) + ": " + JSON.stringify(privtext));
 
         function rereply() {
             reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
@@ -85,7 +62,7 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     }
 
     // Try to send it by conventional means
-    log("Public reply to " + nameId(msg.author) + ": " + pubtext);
+    log("Public reply to " + nameId(msg.author) + ": " + JSON.stringify(pubtext));
     msg.reply((prefix ? (prefix + " <(") : "") +
               pubtext +
               (prefix ? ")" : "")).catch((err) => {
@@ -124,4 +101,28 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     });
 }
 
-module.exports = {accessSyncer, nameId, opusHeader, log, reply};
+// Find a voice channel matching the given name
+function findChannel(msg, guild, cname) {
+    var channel = null;
+
+    guild.channels.some((schannel) => {
+        if (schannel.type !== "voice")
+            return false;
+
+        if (schannel.name.toLowerCase() === cname ||
+            (cname === "" && msg.member.voiceChannel === schannel)) {
+            channel = schannel;
+            return true;
+
+        } else if (channel === null && schannel.name.toLowerCase().startsWith(cname)) {
+            channel = schannel;
+
+        }
+
+        return false;
+    });
+
+    return channel;
+}
+
+module.exports = {accessSyncer, opusHeader, reply, findChannel};
