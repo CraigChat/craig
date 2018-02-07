@@ -16,7 +16,7 @@
 
 const fs = require("fs");
 
-const cc = require("./craig-client.js");
+const cc = require("./client.js");
 const config = cc.config;
 const log = cc.log;
 const nameId = cc.nameId;

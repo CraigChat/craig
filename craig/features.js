@@ -17,14 +17,14 @@
 const fs = require("fs");
 const EventEmitter = require("events");
 
-const cc = require("./craig-client.js");
+const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;
 const logex = cc.logex;
 
-const commands = require("./craig-commands.js").commands;
+const commands = require("./commands.js").commands;
 
-const cu = require("./craig-utils.js");
+const cu = require("./utils.js");
 const reply = cu.reply;
 
 // An event emitter for when we've loaded our rewards

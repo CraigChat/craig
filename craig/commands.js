@@ -14,14 +14,14 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-const cc = require("./craig-client.js");
+const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
 const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
-const gms = require("./craig-gms.js");
+const gms = require("./gms.js");
 
 // Our list of command handlers
 const commands = {};

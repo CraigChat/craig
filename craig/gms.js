@@ -16,10 +16,10 @@
 
 const fs = require("fs");
 
-const cc = require("./craig-client.js");
+const cc = require("./client.js");
 const logex = cc.logex;
 
-const cu = require("./craig-utils.js");
+const cu = require("./utils.js");
 
 const clients = cc.clients;
 

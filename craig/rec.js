@@ -17,10 +17,10 @@
 const cp = require("child_process");
 const fs = require("fs");
 
-const ogg = require("./craig-ogg.js");
+const ogg = require("./ogg.js");
 const opus = new (require("node-opus")).OpusEncoder(48000);
 
-const cc = require("./craig-client.js");
+const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
 const clients = cc.clients;
@@ -28,12 +28,12 @@ const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
-const cu = require("./craig-utils.js");
+const cu = require("./utils.js");
 const reply = cu.reply;
 
-const commands = require("./craig-commands.js").commands;
+const commands = require("./commands.js").commands;
 
-const cf = require("./craig-features.js");
+const cf = require("./features.js");
 
 // Active recordings by guild, channel
 const activeRecordings = {};
@@ -265,12 +265,10 @@ function session(msg, prefix, rec) {
         clearTimeout(partTimeout);
         clearInterval(useInterval);
 
-        // Destroy the receiver
+        // Destroy the receiver (unnecessary)
         try {
             receiver.destroy();
-        } catch (ex) {
-            logex(ex);
-        }
+        } catch (ex) {}
 
         // And callback
         rec.close();

@@ -17,9 +17,9 @@
 const cp = require("child_process");
 const fs = require("fs");
 const https = require("https");
-const ogg = require("./craig-ogg.js");
+const ogg = require("./craig/ogg.js");
 
-const cc = require("./craig-client.js");
+const cc = require("./craig/client.js");
 const client = cc.client;
 const clients = cc.clients;
 const config = cc.config;
@@ -28,17 +28,17 @@ const logex = cc.logex;
 const recordingEvents = cc.recordingEvents;
 const nameId = cc.nameId;
 
-const cu = require("./craig-utils.js");
+const cu = require("./craig/utils.js");
 const reply = cu.reply;
 
-const commands = require("./craig-commands.js").commands;
+const commands = require("./craig/commands.js").commands;
 
-const gms = require("./craig-gms.js");
+const gms = require("./craig/gms.js");
 
-const cf = require("./craig-features.js");
+const cf = require("./craig/features.js");
 
-require("./craig-rec.js");
-require("./craig-auto.js");
+require("./craig/rec.js");
+require("./craig/auto.js");
 
 process.on("unhandledRejection", (ex) => {
     logex(ex, "Unhandled promise rejection");

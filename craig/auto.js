@@ -16,20 +16,20 @@
 
 const fs = require("fs");
 
-const cc = require("./craig-client.js");
+const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;
 const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
-const cu = require("./craig-utils.js");
+const cu = require("./utils.js");
 const reply = cu.reply;
 
-const commands = require("./craig-commands.js").commands;
+const commands = require("./commands.js").commands;
 
-const cf = require("./craig-features.js");
-const cr = require("./craig-rec.js");
+const cf = require("./features.js");
+const cr = require("./rec.js");
 
 // Association of users with arrays autorecord guild+channels
 var autoU2GC = {};
