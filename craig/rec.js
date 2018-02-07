@@ -595,7 +595,9 @@ clients.forEach((client) => {
                     to.guild.voiceConnection.disconnect();
                 }
             }
-        } catch (err) {}
+        } catch (ex) {
+            logex(ex);
+        }
     });
 
     client.on("guildUpdate", (from, to) => {
@@ -606,7 +608,9 @@ clients.forEach((client) => {
                 log("Terminating recording: Moved to a different voice region.");
                 to.voiceConnection.disconnect();
             }
-        } catch (err) {}
+        } catch (ex) {
+            logex(ex);
+        }
     });
 
     client.on("guildMemberUpdate", (from, to) => {
@@ -619,7 +623,9 @@ clients.forEach((client) => {
                 log("Terminating recording: Nick changed wrongly.");
                 to.guild.voiceConnection.disconnect();
             }
-        } catch (err) {}
+        } catch (ex) {
+            logex(ex);
+        }
     });
 });
 

@@ -90,7 +90,7 @@ clients.forEach((client) => {
         }
         reconnectTimeout = setTimeout(() => {
             if (client.status !== 0)
-                client.login(config.token).catch(()=>{});
+                client.login(config.token).catch(logex);
             reconnectTimeout = null;
         }, 10000);
     });

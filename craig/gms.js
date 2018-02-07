@@ -23,11 +23,11 @@
 const fs = require("fs");
 
 const cc = require("./client.js");
+const config = cc.config;
+const clients = cc.clients;
 const logex = cc.logex;
 
 const cu = require("./utils.js");
-
-const clients = cc.clients;
 
 // Our guild membership status
 var guildMembershipStatus = {};
