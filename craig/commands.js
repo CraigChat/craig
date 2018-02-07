@@ -14,12 +14,21 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Craig: A multi-track voice channel recording bot for Discord.
+ *
+ * Support for command handling, from arbitrary users, the owner, and via IPC.
+ */
+
 const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
 const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
+
+const cu = require("./utils.js");
+const reply = cu.reply;
 
 const gms = require("./gms.js");
 
@@ -111,5 +120,12 @@ function onProcessMessage(msg) {
     fun(msg);
 }
 process.on("message", onProcessMessage);
+
+// The one command covered here
+commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
+    if (cc.dead) return;
+    reply(msg, false, cmd[1],
+        "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
+}
 
 module.exports = {commands, ownerCommands, processCommands};

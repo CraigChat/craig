@@ -14,6 +14,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Craig: A multi-track voice channel recording bot for Discord.
+ *
+ * Recording! Y'know, Craig's only feature. This file has support for recording
+ * sessions, recording commands, and other recording-related functionality.
+ */
+
 const cp = require("child_process");
 const fs = require("fs");
 
@@ -572,6 +579,49 @@ commands["stop"] = function(msg, cmd) {
     }
 
 }
+
+// Checks for catastrophic recording errors
+clients.forEach((client) => {
+    client.on("voiceStateUpdate", (from, to) => {
+        try {
+            if (from.id === client.user.id) {
+                var guildId = from.guild.id;
+                var channelId = from.voiceChannel.id;
+                if (guildId in activeRecordings &&
+                    channelId in activeRecordings[guildId] &&
+                    from.voiceChannelID !== to.voiceChannelId) {
+                    // We do not tolerate being moved
+                    log("Terminating recording: Moved to a different channel.");
+                    to.guild.voiceConnection.disconnect();
+                }
+            }
+        } catch (err) {}
+    });
+
+    client.on("guildUpdate", (from, to) => {
+        try {
+            if (from.region !== to.region &&
+                to.voiceConnection) {
+                // The server has moved regions. This breaks recording.
+                log("Terminating recording: Moved to a different voice region.");
+                to.voiceConnection.disconnect();
+            }
+        } catch (err) {}
+    });
+
+    client.on("guildMemberUpdate", (from, to) => {
+        try {
+            if (from.id === client.user.id &&
+                from.nickname !== to.nickname &&
+                to.guild.voiceConnection &&
+                to.nickname.indexOf("[RECORDING]") === -1) {
+                // They attempted to hide the fact that Craig is recording. Not acceptable.
+                log("Terminating recording: Nick changed wrongly.");
+                to.guild.voiceConnection.disconnect();
+            }
+        } catch (err) {}
+    });
+});
 
 // Get our currect active recordings from the launcher
 if (process.channel) {

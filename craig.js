@@ -14,6 +14,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Craig: A multi-track voice channel recording bot for Discord.
+ *
+ * This is the main entry point. Its purpose is mainly to load all the
+ * actually-important modules.
+ */
+
 const cp = require("child_process");
 const fs = require("fs");
 const https = require("https");
@@ -83,70 +90,6 @@ ccmds.ownerCommands["eval"] = function(msg, cmd) {
 
     reply(msg, true, null, "", ret);
 }
-
-// And finally, help commands
-commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
-    if (cc.dead) return;
-    reply(msg, false, cmd[1],
-        "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
-}
-
-// Checks for catastrophic recording errors
-clients.forEach((client) => {
-    client.on("voiceStateUpdate", (from, to) => {
-        try {
-            if (from.id === client.user.id) {
-                var guildId = from.guild.id;
-                var channelId = from.voiceChannel.id;
-                if (guildId in activeRecordings &&
-                    channelId in activeRecordings[guildId] &&
-                    from.voiceChannelID !== to.voiceChannelId) {
-                    // We do not tolerate being moved
-                    log("Terminating recording: Moved to a different channel.");
-                    to.guild.voiceConnection.disconnect();
-                }
-            }
-        } catch (err) {}
-    });
-
-    client.on("guildUpdate", (from, to) => {
-        try {
-            if (from.region !== to.region &&
-                to.voiceConnection) {
-                // The server has moved regions. This breaks recording.
-                log("Terminating recording: Moved to a different voice region.");
-                to.voiceConnection.disconnect();
-            }
-        } catch (err) {}
-    });
-
-    client.on("guildMemberUpdate", (from, to) => {
-        try {
-            if (from.id === client.user.id &&
-                from.nickname !== to.nickname &&
-                to.guild.voiceConnection &&
-                to.nickname.indexOf("[RECORDING]") === -1) {
-                // They attempted to hide the fact that Craig is recording. Not acceptable.
-                log("Terminating recording: Nick changed wrongly.");
-                to.guild.voiceConnection.disconnect();
-            }
-        } catch (err) {}
-    });
-});
-
-// Reconnect when we disconnect
-var reconnectTimeout = null;
-client.on("disconnect", () => {
-    if (reconnectTimeout !== null) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
-    }
-    reconnectTimeout = setTimeout(() => {
-        if (client.status !== 0)
-            client.login(config.token).catch(()=>{});
-        reconnectTimeout = null;
-    }, 10000);
-});
 
 /***************************************************************
  * FEATURES BELOW THIS LINE ARE CONVENIENCE/UI FUNCTIONALITY

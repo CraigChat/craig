@@ -14,6 +14,12 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Craig: A multi-track voice channel recording bot for Discord.
+ *
+ * Support for per-user/per-guild features.
+ */
+
 const fs = require("fs");
 const EventEmitter = require("events");
 

@@ -15,6 +15,8 @@
  */
 
 /*
+ * Craig: A multi-track voice channel recording bot for Discord.
+ *
  * Craig has its own version of ogg because the existing ogg encoders in Node
  * all either leak memory or modify streaming data in ways that break Craig.
  * This is an incredibly raw version of an ogg encoder.

@@ -14,6 +14,12 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Craig: A multi-track voice channel recording bot for Discord.
+ *
+ * The actual Discord client, logging and other core functionality.
+ */
+
 const EventEmitter = require("events");
 const fs = require("fs");
 const Discord = require("discord.js");
@@ -73,5 +79,21 @@ for (var si = 0; si < config.secondary.length; si++) {
     clients.push(new Discord.Client(clientOptions));
     clients[si+1].login(config.secondary[si].token).catch(logex);
 }
+
+// Reconnect when we disconnect
+clients.forEach((client) => {
+    var reconnectTimeout = null;
+    client.on("disconnect", () => {
+        if (reconnectTimeout !== null) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+        }
+        reconnectTimeout = setTimeout(() => {
+            if (client.status !== 0)
+                client.login(config.token).catch(()=>{});
+            reconnectTimeout = null;
+        }, 10000);
+    });
+});
 
 module.exports = {client, clients, config, recordingEvents, log, logex, nameId, dead: false};
