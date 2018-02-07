@@ -21,9 +21,11 @@
  */
 
 const fs = require("fs");
+const https = require("https");
 
 const cc = require("./client.js");
 const config = cc.config;
+const client = cc.client;
 const clients = cc.clients;
 const logex = cc.logex;
 
@@ -34,7 +36,8 @@ var guildMembershipStatus = {};
 if (cu.accessSyncer("craig-guild-membership-status.json")) {
     try {
         var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
-        guildMembershipStatus = journal[0];
+        if (journal.length)
+            guildMembershipStatus = journal[0];
         for (var ji = 1; ji < journal.length; ji++) {
             var step = journal[ji];
             if ("v" in step)
@@ -63,8 +66,15 @@ function guildDelete(guild) {
     guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
 }
 
+// Keep track of "important" servers
+const importantServers = {};
+(function() {
+    for (var ii = 0; ii < config.importantServers.length; ii++)
+        importantServers[config.importantServers[ii]] = true;
+})();
+
 // Check/report our guild membership status every hour
-setInterval(() => {
+function checkGMS() {
     var client;
 
     if (cc.dead)
@@ -95,6 +105,44 @@ setInterval(() => {
             }
         });
     }
-}, 3600000);
+}
+setInterval(checkGMS, 3600000);
+client.once("ready", checkGMS);
 
-module.exports = {guildMembershipStatus, guildRefresh, guildDelete};
+// Update our guild count every hour
+var lastServerCount = 0;
+function updateGuildCt() {
+    if (cc.dead)
+        return;
+
+    if (config.discordbotstoken) {
+        // Report to discordbots.org
+        try {
+            var curServerCount = client.guilds.size;
+            if (lastServerCount === curServerCount)
+                return;
+            lastServerCount = curServerCount;
+            var postData = JSON.stringify({
+                server_count: curServerCount
+            });
+            var req = https.request({
+                hostname: "discordbots.org",
+                path: "/api/bots/" + client.user.id + "/stats",
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Content-Length": postData.length,
+                    "Authorization": config.discordbotstoken
+                }
+            }, () => {});
+            req.write(postData);
+            req.end();
+        } catch(ex) {
+            logex(ex);
+        }
+    }
+}
+if (config.discordbotstoken)
+    setInterval(updateGuildCt, 3600000);
+
+module.exports = {guildMembershipStatus, guildRefresh, guildDelete, importantServers};

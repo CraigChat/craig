@@ -22,18 +22,13 @@
  */
 
 const cp = require("child_process");
-const fs = require("fs");
-const https = require("https");
-const ogg = require("./craig/ogg.js");
 
 const cc = require("./craig/client.js");
 const client = cc.client;
-const clients = cc.clients;
 const config = cc.config;
 const log = cc.log;
 const logex = cc.logex;
 const recordingEvents = cc.recordingEvents;
-const nameId = cc.nameId;
 
 const cu = require("./craig/utils.js");
 const reply = cu.reply;
@@ -41,10 +36,7 @@ const reply = cu.reply;
 const ccmds = require("./craig/commands.js");
 const commands = ccmds.commands;
 
-const gms = require("./craig/gms.js");
-
-const cf = require("./craig/features.js");
-
+// Behavior modules
 require("./craig/rec.js");
 require("./craig/auto.js");
 
@@ -91,48 +83,8 @@ ccmds.ownerCommands["eval"] = function(msg, cmd) {
     reply(msg, true, null, "", ret);
 }
 
-/***************************************************************
- * FEATURES BELOW THIS LINE ARE CONVENIENCE/UI FUNCTIONALITY
- **************************************************************/
-
-// Keep track of "important" servers
-var importantServers = {};
-(function() {
-    for (var ii = 0; ii < config.importantServers.length; ii++)
-        importantServers[config.importantServers[ii]] = true;
-})();
-
-// Update our guild count every hour
-var lastServerCount = 0;
-setInterval(() => {
-    if (cc.dead)
-        return;
-
-    if (config.discordbotstoken) {
-        // Report to discordbots.org
-        try {
-            var curServerCount = client.guilds.size;
-            if (lastServerCount === curServerCount)
-                return;
-            lastServerCount = curServerCount;
-            var postData = JSON.stringify({
-                server_count: curServerCount
-            });
-            var req = https.request({
-                hostname: "discordbots.org",
-                path: "/api/bots/" + client.user.id + "/stats",
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Content-Length": postData.length,
-                    "Authorization": config.discordbotstoken
-                }
-            }, () => {});
-            req.write(postData);
-            req.end();
-        } catch(ex) {}
-    }
-}, 3600000);
+/* There's no compelling reason for stats to be here, but there's no compelling
+ * reason for it to be anywhere else either. */
 
 // Use a server topic to show stats
 if (config.stats) {

@@ -584,7 +584,8 @@ commands["stop"] = function(msg, cmd) {
 clients.forEach((client) => {
     client.on("voiceStateUpdate", (from, to) => {
         try {
-            if (from.id === client.user.id) {
+            if (from.id === client.user.id &&
+                from.voiceChannel) {
                 var guildId = from.guild.id;
                 var channelId = from.voiceChannel.id;
                 if (guildId in activeRecordings &&
@@ -618,10 +619,14 @@ clients.forEach((client) => {
             if (from.id === client.user.id &&
                 from.nickname !== to.nickname &&
                 to.guild.voiceConnection &&
-                to.nickname.indexOf("[RECORDING]") === -1) {
-                // They attempted to hide the fact that Craig is recording. Not acceptable.
-                log("Terminating recording: Nick changed wrongly.");
-                to.guild.voiceConnection.disconnect();
+                (!to.nickname || to.nickname.indexOf("[RECORDING]") === -1)) {
+                // Make sure this isn't just a transient state
+                if (to.guild.id in activeRecordings &&
+                    to.guild.voiceConnection.channel.id in activeRecordings[to.guild.id]) {
+                    // They attempted to hide the fact that Craig is recording. Not acceptable.
+                    log("Terminating recording: Nick changed wrongly.");
+                    to.guild.voiceConnection.disconnect();
+                }
             }
         } catch (ex) {
             logex(ex);
