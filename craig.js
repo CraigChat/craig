@@ -331,15 +331,6 @@ function session(msg, prefix, rec) {
     connection.on("error", onDisconnect);
 }
 
-// Our command regex changes to match our user ID
-var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/;
-client.on("ready", () => {
-    log("Logged in as " + client.user.username);
-    craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$");
-    if ("url" in config)
-        client.user.setPresence({game: {name: config.url, type: 0}}).catch(()=>{});
-});
-
 // Only admins and those with the Craig role are authorized to use Craig
 function userIsAuthorized(member) {
     if (!member) return false;

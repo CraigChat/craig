@@ -45,6 +45,15 @@ const commands = {};
 class RecordingEvent extends EventEmitter {}
 const recordingEvents = new RecordingEvent();
 
+// Our command regex changes to match our user ID
+var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/;
+client.on("ready", () => {
+    log("Logged in as " + client.user.username);
+    craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$");
+    if ("url" in config)
+        client.user.setPresence({game: {name: config.url, type: 0}}).catch(()=>{});
+});
+
 // Special commands from the owner
 function ownerCommand(msg, cmd) {
     if (cc.dead)
