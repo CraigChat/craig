@@ -31,7 +31,8 @@ const nameId = cc.nameId;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
-const commands = require("./commands.js").commands;
+const ccmds = require("./commands.js");
+const commands = ccmds.commands;
 
 const cf = require("./features.js");
 
@@ -570,6 +571,48 @@ commands["stop"] = function(msg, cmd) {
         reply(msg, false, cmd[1], "But I haven't started!");
     }
 
+}
+
+// Get our currect active recordings from the launcher
+if (process.channel) {
+    process.send({t:"requestActiveRecordings"});
+    ccmds.processCommands["activeRecordings"] = function(msg) {
+        for (var gid in msg.activeRecordings) {
+            var ng = msg.activeRecordings[gid];
+            if (!(gid in activeRecordings))
+                activeRecordings[gid] = {};
+            var g = activeRecordings[gid];
+            for (var cid in ng) {
+                if (cid in g)
+                    continue;
+                var nc = ng[cid];
+                (function(gid, cid, nc) {
+                    var rec = g[cid] = {
+                        id: nc.id,
+                        accessKey: nc.accessKey,
+                        connection: {
+                            channel: {
+                                members: {
+                                    size: (nc.size?nc.size:1)
+                                }
+                            },
+                            disconnect: function() {
+                                delete activeRecordings[gid][cid];
+                                if (Object.keys(activeRecordings[gid]).length === 0)
+                                    delete activeRecordings[gid];
+                            }
+                        }
+                    };
+                    setTimeout(() => {
+                        try {
+                            if (activeRecordings[gid][cid] === rec)
+                                rec.connection.disconnect();
+                        } catch (ex) {}
+                    }, 1000*60*60*6);
+                })(gid, cid, nc);
+            }
+        }
+    }
 }
 
 module.exports = {activeRecordings};
