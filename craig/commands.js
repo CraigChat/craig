@@ -26,6 +26,9 @@ const gms = require("./gms.js");
 // Our list of command handlers
 const commands = {};
 
+// Our list of process command handlers
+const processCommands = {};
+
 // Our command regex changes to match our user ID
 var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/;
 client.on("ready", () => {
@@ -150,4 +153,55 @@ function onMessage(msg) {
 }
 client.on("message", onMessage);
 
-module.exports = {commands};
+// Handle process messages
+function onProcessMessage(msg) {
+    if (typeof msg !== "object") return;
+    var fun = processCommands[msg.t];
+    if (!fun) return;
+    fun(msg);
+}
+process.on("message", onProcessMessage);
+
+// Get our currect active recordings from the launcher
+if (process.channel) {
+    process.send({t:"requestActiveRecordings"});
+    processCommands["activeRecordings"] = function(msg) {
+        for (var gid in msg.activeRecordings) {
+            var ng = msg.activeRecordings[gid];
+            if (!(gid in activeRecordings))
+                activeRecordings[gid] = {};
+            var g = activeRecordings[gid];
+            for (var cid in ng) {
+                if (cid in g)
+                    continue;
+                var nc = ng[cid];
+                (function(gid, cid, nc) {
+                    var rec = g[cid] = {
+                        id: nc.id,
+                        accessKey: nc.accessKey,
+                        connection: {
+                            channel: {
+                                members: {
+                                    size: (nc.size?nc.size:1)
+                                }
+                            },
+                            disconnect: function() {
+                                delete activeRecordings[gid][cid];
+                                if (Object.keys(activeRecordings[gid]).length === 0)
+                                    delete activeRecordings[gid];
+                            }
+                        }
+                    };
+                    setTimeout(() => {
+                        try {
+                            if (activeRecordings[gid][cid] === rec)
+                                rec.connection.disconnect();
+                        } catch (ex) {}
+                    }, 1000*60*60*6);
+                })(gid, cid, nc);
+            }
+        }
+    }
+}
+
+module.exports = {commands, processCommands};
