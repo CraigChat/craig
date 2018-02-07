@@ -91,7 +91,7 @@ if (config.stats) {
     (function(){
         var channel = null;
         
-        client.on("ready", ()=>{
+        if (client) client.on("ready", ()=>{
             try {
                 channel = client.guilds.get(config.stats.guild).channels.get(config.stats.channel);
             } catch (ex) {}

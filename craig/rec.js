@@ -582,6 +582,8 @@ commands["stop"] = function(msg, cmd) {
 
 // Checks for catastrophic recording errors
 clients.forEach((client) => {
+    if (!client) return;
+
     client.on("voiceStateUpdate", (from, to) => {
         try {
             if (from.id === client.user.id &&
@@ -637,7 +639,7 @@ clients.forEach((client) => {
 // Get our currect active recordings from the launcher
 if (process.channel) {
     process.send({t:"requestActiveRecordings"});
-    ccmds.processCommands["activeRecordings"] = function(msg) {
+    cc.processCommands["activeRecordings"] = function(msg) {
         for (var gid in msg.activeRecordings) {
             var ng = msg.activeRecordings[gid];
             if (!(gid in activeRecordings))

@@ -38,12 +38,9 @@ const commands = {};
 // Special command handlers for owner commands
 const ownerCommands = {};
 
-// Our list of process command handlers
-const processCommands = {};
-
 // Our command regex changes to match our user ID
 var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/;
-client.on("ready", () => {
+if (client) client.on("ready", () => {
     log("Logged in as " + client.user.username);
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$");
     if ("url" in config)
@@ -110,16 +107,7 @@ function onMessage(msg) {
 
     fun(msg, cmd);
 }
-client.on("message", onMessage);
-
-// Handle process messages
-function onProcessMessage(msg) {
-    if (typeof msg !== "object") return;
-    var fun = processCommands[msg.t];
-    if (!fun) return;
-    fun(msg);
-}
-process.on("message", onProcessMessage);
+if (client) client.on("message", onMessage);
 
 // The one command covered here
 commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
@@ -128,4 +116,4 @@ commands["help"] = commands["commands"] = commands["hello"] = commands["info"] =
         "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
 }
 
-module.exports = {commands, ownerCommands, processCommands};
+module.exports = {commands, ownerCommands};

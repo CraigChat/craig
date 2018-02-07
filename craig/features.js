@@ -33,6 +33,8 @@ const commands = require("./commands.js").commands;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
+const gms = require("./gms.js");
+
 // An event emitter for when we've loaded our rewards
 class RewardsEvent extends EventEmitter {}
 const rewardsEvents = new RewardsEvent();
@@ -41,9 +43,9 @@ const rewardsEvents = new RewardsEvent();
 var rewards = {};
 var defaultFeatures = {"limits": config.limits};
 
-// A map of users with rewards -> blessed guilds and vice-versa
+// A map of users with rewards -> blessed guilds. Vice-versa is in gms.
 var blessU2G = {};
-var blessG2U = {};
+const blessG2U = gms.blessG2U;
 
 // Get the features for a given user
 function features(id, gid) {
@@ -120,7 +122,6 @@ if (config.rewards) (function() {
 
     // Resolve blesses from U2G into G2U, asserting that the relevant uids actually have bless powers
     function resolveBlesses() {
-        blessG2U = {};
         Object.keys(blessU2G).forEach((uid) => {
             var f = features(uid);
             if (f.bless)
@@ -131,7 +132,7 @@ if (config.rewards) (function() {
     }
 
     // Get our initial rewards on connection
-    client.on("ready", () => {
+    if (client) client.on("ready", () => {
         var rr = config.rewards.roles;
         var guild = client.guilds.get(config.rewards.guild);
         if (!guild) return;
@@ -167,7 +168,7 @@ if (config.rewards) (function() {
     });
 
     // Reresolve a member when their roles change
-    client.on("guildMemberUpdate", (from, to) => {
+    if (client) client.on("guildMemberUpdate", (from, to) => {
         if (to.guild.id !== config.rewards.guild) return;
         if (from.roles === to.roles) return;
         var r = resolveRewards(to);

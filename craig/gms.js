@@ -25,45 +25,110 @@ const https = require("https");
 
 const cc = require("./client.js");
 const config = cc.config;
+const sm = cc.sm;
 const client = cc.client;
 const clients = cc.clients;
 const logex = cc.logex;
 
 const cu = require("./utils.js");
 
-// Our guild membership status
+/* Our guild membership status
+ *
+ * SHARDING:
+ * Shard manager has shared guild membership status and manages the status
+ * journal; updates come from shards. The shard manager sets the original guild
+ * membership status for all shards.
+ */
 var guildMembershipStatus = {};
-if (cu.accessSyncer("craig-guild-membership-status.json")) {
-    try {
-        var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
-        if (journal.length)
-            guildMembershipStatus = journal[0];
-        for (var ji = 1; ji < journal.length; ji++) {
-            var step = journal[ji];
-            if ("v" in step)
-                guildMembershipStatus[step.k] = step.v;
-            else
-                delete guildMembershipStatus[step.k];
+if (cc.master) {
+    if (cu.accessSyncer("craig-guild-membership-status.json")) {
+        try {
+            var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
+            if (journal.length)
+                guildMembershipStatus = journal[0];
+            for (var ji = 1; ji < journal.length; ji++) {
+                var step = journal[ji];
+                if ("v" in step)
+                    guildMembershipStatus[step.k] = step.v;
+                else
+                    delete guildMembershipStatus[step.k];
+            }
+        } catch (ex) {
+            logex(ex);
         }
-    } catch (ex) {
-        logex(ex);
     }
-}
-var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
-guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
+    var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
+    guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
 
-function guildRefresh(guild) {
-    if (cc.dead) return;
-    var step = {"k": guild.id, "v": (new Date().getTime())};
-    guildMembershipStatus[step.k] = step.v;
-    guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+    if (sm) {
+        function sendGMS(shard) {
+            shard.send({t:"guildMembershipStatus", s:guildMembershipStatus});
+        }
+        sm.on("launch", sendGMS);
+        sm.shards.forEach(sendGMS);
+    }
+
+} else {
+    cc.processCommands["guildMembershipStatus"] = function(msg) {
+        /* We only have a single shared guildMembershipStatus object, so we
+         * have to copy over */
+        for (var g in msg.s)
+            guildMembershipStatus[g] = msg.s[g];
+    }
+
 }
 
-function guildDelete(guild) {
-    if (cc.dead) return;
-    var step = {"k": guild.id};
-    delete guildMembershipStatus[step.k];
-    guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+// We keep the list of blessed guilds here just so that we can keep them alive
+var blessG2U = {};
+
+// Leave this guild on all clients
+function guildLeave(guild) {
+    clients.forEach((client) => {
+        if (!client) return;
+        var g = client.guilds.get(guild.id);
+        if (g)
+            g.leave().catch(logex);
+    });
+}
+
+var guildRefresh, guildDelete;
+
+if (cc.master) {
+    guildRefresh = function(guild) {
+        if (cc.dead) return;
+        var step = {"k": guild.id, "v": (new Date().getTime())};
+        guildMembershipStatus[step.k] = step.v;
+        guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+    }
+
+    guildDelete = function(guild) {
+        if (cc.dead) return;
+        guildLeave(guild);
+        var step = {"k": guild.id};
+        delete guildMembershipStatus[step.k];
+        guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+    }
+
+    if (sm) {
+        cc.shardCommands["guildRefresh"] = function(shard, msg) {
+            guildRefresh({id:msg.g});
+        }
+
+        cc.shardCommands["guildDelete"] = function(shard, msg) {
+            guildDelete({id:msg.g});
+        }
+    }
+
+} else {
+    guildRefresh = function(guild) {
+        client.shard.send({t:"guildRefresh", g:guild.id});
+    }
+
+    guildDelete = function(guild) {
+        guildLeave(guild);
+        client.shard.send({t:"guildDelete", g:guild.id});
+    }
+
 }
 
 // Keep track of "important" servers
@@ -80,8 +145,8 @@ function checkGMS() {
     if (cc.dead)
         return;
 
-    for (var ci = 0; ci < clients.length; ci++) {
-        client = clients[ci];
+    clients.forEach((client) => {
+        if (!client) return;
         client.guilds.forEach((guild) => {
             if (!(guild.id in guildMembershipStatus)) {
                 guildRefresh(guild);
@@ -95,19 +160,12 @@ function checkGMS() {
                 }
 
                 // Time's up!
-                for (var sci = 0; sci < clients.length; sci++) {
-                    var g = clients[sci].guilds.get(guild.id);
-                    if (g)
-                        g.leave().catch(logex);
-                }
-
                 guildDelete(guild);
             }
         });
-    }
+    });
 }
 setInterval(checkGMS, 3600000);
-client.once("ready", checkGMS);
 
 // Update our guild count every hour
 var lastServerCount = 0;
@@ -116,33 +174,48 @@ function updateGuildCt() {
         return;
 
     if (config.discordbotstoken) {
-        // Report to discordbots.org
-        try {
-            var curServerCount = client.guilds.size;
+        if (client) {
+            report(client.guilds.size);
+        } else {
+            // Need to get the combined size of all shards
+            sm.fetchClientValues("guilds.size").then((results) => {
+                var size = 0;
+                results.forEach((r) => { size += r; });
+                report(size);
+            }).catch(logex);
+        }
+
+        function report(size) {
+            console.error(size);
+            return;
+            // Report to discordbots.org
+            var curServerCount = size;
             if (lastServerCount === curServerCount)
                 return;
             lastServerCount = curServerCount;
             var postData = JSON.stringify({
                 server_count: curServerCount
             });
-            var req = https.request({
-                hostname: "discordbots.org",
-                path: "/api/bots/" + client.user.id + "/stats",
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Content-Length": postData.length,
-                    "Authorization": config.discordbotstoken
-                }
-            }, () => {});
-            req.write(postData);
-            req.end();
-        } catch(ex) {
-            logex(ex);
+            try {
+                var req = https.request({
+                    hostname: "discordbots.org",
+                    path: "/api/bots/" + client.user.id + "/stats",
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Content-Length": postData.length,
+                        "Authorization": config.discordbotstoken
+                    }
+                }, () => {});
+                req.write(postData);
+                req.end();
+            } catch(ex) {
+                logex(ex);
+            }
         }
     }
 }
-if (config.discordbotstoken)
+if (cc.master && config.discordbotstoken)
     setInterval(updateGuildCt, 3600000);
 
-module.exports = {guildMembershipStatus, guildRefresh, guildDelete, importantServers};
+module.exports = {guildMembershipStatus, blessG2U, guildRefresh, guildDelete, importantServers};

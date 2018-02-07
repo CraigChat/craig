@@ -177,7 +177,7 @@ if (config.rewards) (function() {
     }
 
     // Watch for autorecord opportunities
-    client.on("voiceStateUpdate", (from, to) => {
+    if (client) client.on("voiceStateUpdate", (from, to) => {
         if (from.voiceChannel === to.voiceChannel) return;
         var guild = to.guild;
         var guildId = guild.id;

@@ -26,8 +26,6 @@ const Discord = require("discord.js");
 
 const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 
-const client = new Discord.Client(clientOptions);
-const clients = [client]; // For secondary connections
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const defaultConfig = require("./default-config.js");
 
@@ -35,22 +33,72 @@ for (var ck in defaultConfig)
     if (!(ck in config))
         config[ck] = defaultConfig[ck];
 
+// List of commands coming from shards
+const shardCommands = {};
+
+// List of commands coming from the shard manager or launcher
+const processCommands = {};
+
+// Are we a shard?
+const shard = ("SHARD_ID" in process.env);
+
+var vclient, vsm, vmaster;
+
+if (!config.shard || shard) {
+    // Either we aren't using sharding, or we are a shard, so normal client connection
+    vclient = new Discord.Client(clientOptions);
+    vsm = null;
+    vmaster = !shard;
+} else {
+    // We are the sharding manager
+    vclient = null;
+    vsm = new Discord.ShardingManager("./craig.js", {respawn: false});
+    vmaster = true;
+}
+
+const client = vclient;
+const sm = vsm;
+const master = vmaster;
+const clients = [client]; // For secondary connections
+
+// Handle shard commands
+if (sm) sm.on("message", (shard, msg) => {
+    if (typeof msg !== "object") return;
+    var fun = shardCommands[msg.t];
+    if (fun) fun(shard, msg);
+});
+
+// And process commands
+process.on("message", (msg) => {
+    if (typeof msg !== "object") return;
+    var fun = processCommands[msg.t];
+    if (fun) fun(msg);
+});
+
 // An event emitter for whenever we start or stop any recording
 class RecordingEvent extends EventEmitter {}
 const recordingEvents = new RecordingEvent();
 
 // Logging function (not REALLY client-related, but this is the best place for it)
-var log;
+var vlog;
 if ("log" in config) {
-    const logStream = fs.createWriteStream(config.log, {"flags": "a"});
-    log = function(line) {
-        logStream.write((new Date().toISOString()) + ": " + line + "\n");
+    if (!master) {
+        vlog = function(line) {
+            client.shard.send({t:"log", l:line+""});
+        }
+    } else {
+        const logStream = fs.createWriteStream(config.log, {"flags": "a"});
+        vlog = function(line) {
+            logStream.write((new Date().toISOString()) + ": " + line + "\n");
+        }
     }
 } else {
-    log = function(line) {
+    vlog = function(line) {
         console.log((new Date().toISOString()) + ": " + line);
     }
 }
+
+const log = vlog;
 
 // Log exceptions
 function logex(ex, r) {
@@ -71,17 +119,25 @@ function nameId(entity) {
     return nick + "#" + entity.id;
 }
 
-// Log in
-client.login(config.token).catch(logex);
+if (client) {
+    // Log in
+    client.login(config.token).catch(logex);
+} else {
+    // Spawn shards
+    sm.spawn(2);
+}
 
-// If there are secondary Craigs, log them in
-for (var si = 0; si < config.secondary.length; si++) {
-    clients.push(new Discord.Client(clientOptions));
-    clients[si+1].login(config.secondary[si].token).catch(logex);
+if (!config.shard || sm) {
+    // If there are secondary Craigs, log them in
+    for (var si = 0; si < config.secondary.length; si++) {
+        clients.push(new Discord.Client(clientOptions));
+        clients[si+1].login(config.secondary[si].token).catch(logex);
+    }
 }
 
 // Reconnect when we disconnect
 clients.forEach((client) => {
+    if (!client) return;
     var reconnectTimeout = null;
     client.on("disconnect", () => {
         if (reconnectTimeout !== null) {
@@ -96,4 +152,12 @@ clients.forEach((client) => {
     });
 });
 
-module.exports = {client, clients, config, recordingEvents, log, logex, nameId, dead: false};
+module.exports = {
+    client, sm, master, clients,
+    config,
+    recordingEvents,
+    log, logex,
+    shardCommands, processCommands,
+    nameId,
+    dead: false
+};
