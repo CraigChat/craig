@@ -24,11 +24,13 @@ const cc = require("./craig-client.js");
 const client = cc.client;
 const clients = cc.clients;
 const config = cc.config;
+const commands = cc.commands;
 const recordingEvents = cc.recordingEvents;
 
 const cu = require("./craig-utils.js");
 const nameId = cu.nameId;
 const log = cu.log;
+const reply = cu.reply;
 
 const gms = require("./craig-gms.js");
 
@@ -42,67 +44,6 @@ var defaultFeatures = {"limits": config.limits};
 // A map of users with rewards -> blessed guilds and vice-versa
 var blessU2G = {};
 var blessG2U = {};
-
-// Function to respond to a message by any means necessary
-function reply(msg, dm, prefix, pubtext, privtext) {
-    if (dm) {
-        // Try to send the message privately
-        if (typeof privtext === "undefined")
-            privtext = pubtext;
-        else
-            privtext = pubtext + "\n\n" + privtext;
-        log("Reply to " + nameId(msg.author) + ": " + privtext);
-
-        function rereply() {
-            reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
-        }
-        try {
-            msg.author.send(privtext).catch(rereply);
-        } catch (ex) {
-            rereply();
-        }
-        return;
-    }
-
-    // Try to send it by conventional means
-    log("Public reply to " + nameId(msg.author) + ": " + pubtext);
-    msg.reply((prefix ? (prefix + " <(") : "") +
-              pubtext +
-              (prefix ? ")" : "")).catch((err) => {
-
-    log("Failed to reply to " + nameId(msg.author));
-
-    // If this wasn't a guild message, nothing to be done
-    var guild = msg.guild;
-    if (!guild)
-        return;
-
-    /* We can't get a message to them properly, so try to get a message out
-     * that we're stimied */
-    guild.channels.some((channel) => {
-        if (channel.type !== "text")
-            return false;
-
-        var perms = channel.permissionsFor(client.user);
-        if (!perms)
-            return false;
-
-        if (perms.hasPermission("SEND_MESSAGES")) {
-            // Finally!
-            channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
-            return true;
-        }
-
-        return false;
-    });
-
-    try {
-        // Give ourself a name indicating error
-        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
-    } catch (ex) {}
-
-    });
-}
 
 // Get our currect active recordings from the launcher
 if (process.channel) {
@@ -476,101 +417,6 @@ function gracefulRestart() {
 
 // Memory leaks (yay) force us to gracefully restart every so often
 var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
-
-// Special commands from the owner
-function ownerCommand(msg, cmd) {
-    if (cc.dead)
-        return;
-
-    var op = cmd[2].toLowerCase();
-
-    try {
-        log("Owner command: " + nameId(msg.author) + ": " + msg.content);
-    } catch (ex) {}
-
-    if (op === "graceful-restart") {
-        reply(msg, false, cmd[1], "Restarting!");
-        gracefulRestart();
-
-    } else if (op === "eval") {
-        var ex, res, ret;
-
-        function stringify(x) {
-            var r = "(unprintable)";
-            try {
-                r = JSON.stringify(x);
-                if (typeof r !== "string")
-                    throw new Exception();
-            } catch (ex) {
-                try {
-                    r = x+"";
-                } catch (ex) {}
-            }
-            return r;
-        }
-
-        function quote(x) {
-            return "```" + stringify(x).replace("```", "` ` `") + "```";
-        }
-
-        res = ex = undefined;
-        try {
-            res = eval(cmd[3]);
-        } catch (ex2) {
-            ex = ex2;
-        }
-
-        ret = "";
-        if (ex) {
-            ex = ex+"";
-            ret += "Exception: " + quote(ex) + "\n";
-        }
-        ret += "Result: " + quote(res);
-
-        reply(msg, true, null, "", ret);
-
-    } else {
-        reply(msg, false, cmd[1], "Huh?");
-
-    }
-}
-
-var commands = {};
-
-// Our message receiver and command handler
-function onMessage(msg) {
-    // We don't care if it's not a command
-    var cmd = msg.content.match(craigCommand);
-    if (cmd === null) return;
-
-    // Is this from our glorious leader?
-    if (msg.channel.type === "dm" && msg.author.id && msg.author.id === config.owner) {
-        ownerCommand(msg, cmd);
-        return;
-    }
-
-    // Ignore it if it's from an unauthorized user
-    if (!userIsAuthorized(msg.member)) return;
-
-    // Log it
-    try {
-        log("Command: " + nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content);
-    } catch (ex) {}
-
-    // Keep this guild alive
-    try {
-        gms.guildRefresh(msg.guild);
-    } catch (ex) {}
-
-    var op = cmd[2].toLowerCase();
-
-    var fun = commands[op];
-    if (!fun)
-        return;
-
-    fun(msg, cmd);
-}
-client.on("message", onMessage);
 
 // Find a channel matching the given name
 function findChannel(msg, guild, cname) {

@@ -63,4 +63,65 @@ if ("log" in config) {
     }
 }
 
-module.exports = {accessSyncer, nameId, opusHeader, log};
+// Function to respond to a message by any means necessary
+function reply(msg, dm, prefix, pubtext, privtext) {
+    if (dm) {
+        // Try to send the message privately
+        if (typeof privtext === "undefined")
+            privtext = pubtext;
+        else
+            privtext = pubtext + "\n\n" + privtext;
+        log("Reply to " + nameId(msg.author) + ": " + privtext);
+
+        function rereply() {
+            reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
+        }
+        try {
+            msg.author.send(privtext).catch(rereply);
+        } catch (ex) {
+            rereply();
+        }
+        return;
+    }
+
+    // Try to send it by conventional means
+    log("Public reply to " + nameId(msg.author) + ": " + pubtext);
+    msg.reply((prefix ? (prefix + " <(") : "") +
+              pubtext +
+              (prefix ? ")" : "")).catch((err) => {
+
+    log("Failed to reply to " + nameId(msg.author));
+
+    // If this wasn't a guild message, nothing to be done
+    var guild = msg.guild;
+    if (!guild)
+        return;
+
+    /* We can't get a message to them properly, so try to get a message out
+     * that we're stimied */
+    guild.channels.some((channel) => {
+        if (channel.type !== "text")
+            return false;
+
+        var perms = channel.permissionsFor(client.user);
+        if (!perms)
+            return false;
+
+        if (perms.hasPermission("SEND_MESSAGES")) {
+            // Finally!
+            channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
+            return true;
+        }
+
+        return false;
+    });
+
+    try {
+        // Give ourself a name indicating error
+        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
+    } catch (ex) {}
+
+    });
+}
+
+module.exports = {accessSyncer, nameId, opusHeader, log, reply};
