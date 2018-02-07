@@ -615,4 +615,74 @@ if (process.channel) {
     }
 }
 
-module.exports = {activeRecordings};
+/* Graceful restart. This doesn't REALLY belong in rec.js, but maintaining the
+ * currently active recordings is the only complicated part of gracefully
+ * restart, so here it is. */
+function gracefulRestart() {
+    if (process.channel) {
+        // Get the list of active recordings
+        var nar = {};
+        for (var gid in activeRecordings) {
+            var g = activeRecordings[gid];
+            var ng = nar[gid] = {};
+            for (var cid in g) {
+                var c = g[cid];
+                var size = 1;
+                try {
+                    size = c.connection.channel.members.size;
+                } catch (ex) {}
+                var nc = ng[cid] = {
+                    id: c.id,
+                    accessKey: c.accessKey,
+                    size: size
+                };
+            }
+        }
+
+        // Let the runner spawn a new Craig
+        process.send({"t": "gracefulRestart", "activeRecordings": nar});
+
+        // And then exit when we're done
+        function maybeQuit(rec) {
+            for (var gid in activeRecordings) {
+                var g = activeRecordings[gid];
+                for (var cid in g) {
+                    var c = g[cid];
+                    if (c !== rec && c.connection)
+                        return;
+                }
+            }
+
+            // No recordings left, we're done
+            setTimeout(() => {
+                process.exit(0);
+            }, 30000);
+        }
+        maybeQuit();
+        cc.recordingEvents.on("stop", maybeQuit);
+
+    } else {
+        // Start a new craig
+        var ccp = cp.spawn(
+            process.argv[0], ["craig.js"],
+            {"stdio": "inherit", "detached": true});
+        ccp.on("exit", (code) => {
+            process.exit(code ? code : 1);
+        });
+
+    }
+
+    // Stop responding to input
+    cc.dead = true;
+}
+
+// Owner command for graceful restarting
+ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
+    reply(msg, false, cmd[1], "Restarting!");
+    gracefulRestart();
+}
+
+// Memory leaks (yay) force us to gracefully restart every so often
+var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
+
+module.exports = {activeRecordings, gracefulRestart};

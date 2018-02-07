@@ -26,6 +26,9 @@ const gms = require("./gms.js");
 // Our list of command handlers
 const commands = {};
 
+// Special command handlers for owner commands
+const ownerCommands = {};
+
 // Our list of process command handlers
 const processCommands = {};
 
@@ -54,66 +57,6 @@ function userIsAuthorized(member) {
     return false;
 }
 
-// Special commands from the owner
-function ownerCommand(msg, cmd) {
-    if (cc.dead)
-        return;
-
-    var op = cmd[2].toLowerCase();
-
-    try {
-        log("Owner command: " + nameId(msg.author) + ": " + msg.content);
-    } catch (ex) {
-        logex(ex);
-    }
-
-    if (op === "graceful-restart") {
-        reply(msg, false, cmd[1], "Restarting!");
-        gracefulRestart();
-
-    } else if (op === "eval") {
-        var ex, res, ret;
-
-        function stringify(x) {
-            var r = "(unprintable)";
-            try {
-                r = JSON.stringify(x);
-                if (typeof r !== "string")
-                    throw new Exception();
-            } catch (ex) {
-                try {
-                    r = x+"";
-                } catch (ex) {}
-            }
-            return r;
-        }
-
-        function quote(x) {
-            return "```" + stringify(x).replace("```", "` ` `") + "```";
-        }
-
-        res = ex = undefined;
-        try {
-            res = eval(cmd[3]);
-        } catch (ex2) {
-            ex = ex2;
-        }
-
-        ret = "";
-        if (ex) {
-            ex = ex+"";
-            ret += "Exception: " + quote(ex) + "\n";
-        }
-        ret += "Result: " + quote(res);
-
-        reply(msg, true, null, "", ret);
-
-    } else {
-        reply(msg, false, cmd[1], "Huh?");
-
-    }
-}
-
 // Our message receiver and command handler
 function onMessage(msg) {
     // We don't care if it's not a command
@@ -122,7 +65,14 @@ function onMessage(msg) {
 
     // Is this from our glorious leader?
     if (msg.channel.type === "dm" && msg.author.id && msg.author.id === config.owner) {
-        ownerCommand(msg, cmd);
+        if (cc.dead) return;
+        try {
+            log("Owner command: " + nameId(msg.author) + ": " + msg.content);
+        } catch (ex) {
+            logex(ex);
+        }
+        var fun = ownerCommands[cmd[2].toLowerCase()];
+        if (fun) fun(msg, cmd);
         return;
     }
 
@@ -162,4 +112,4 @@ function onProcessMessage(msg) {
 }
 process.on("message", onProcessMessage);
 
-module.exports = {commands, processCommands};
+module.exports = {commands, ownerCommands, processCommands};

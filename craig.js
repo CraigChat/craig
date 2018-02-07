@@ -31,7 +31,8 @@ const nameId = cc.nameId;
 const cu = require("./craig/utils.js");
 const reply = cu.reply;
 
-const commands = require("./craig/commands.js").commands;
+const ccmds = require("./craig/commands.js");
+const commands = ccmds.commands;
 
 const gms = require("./craig/gms.js");
 
@@ -44,67 +45,44 @@ process.on("unhandledRejection", (ex) => {
     logex(ex, "Unhandled promise rejection");
 });
 
-// Graceful restart
-function gracefulRestart() {
-    if (process.channel) {
-        // Get the list of active recordings
-        var nar = {};
-        for (var gid in activeRecordings) {
-            var g = activeRecordings[gid];
-            var ng = nar[gid] = {};
-            for (var cid in g) {
-                var c = g[cid];
-                var size = 1;
-                try {
-                    size = c.connection.channel.members.size;
-                } catch (ex) {}
-                var nc = ng[cid] = {
-                    id: c.id,
-                    accessKey: c.accessKey,
-                    size: size
-                };
-            }
+// An eval command for the owner, explicitly in this context
+ccmds.ownerCommands["eval"] = function(msg, cmd) {
+    var ex, res, ret;
+
+    function stringify(x) {
+        var r = "(unprintable)";
+        try {
+            r = JSON.stringify(x);
+            if (typeof r !== "string")
+                throw new Exception();
+        } catch (ex) {
+            try {
+                r = x+"";
+            } catch (ex) {}
         }
-
-        // Let the runner spawn a new Craig
-        process.send({"t": "gracefulRestart", "activeRecordings": nar});
-
-        // And then exit when we're done
-        function maybeQuit(rec) {
-            for (var gid in activeRecordings) {
-                var g = activeRecordings[gid];
-                for (var cid in g) {
-                    var c = g[cid];
-                    if (c !== rec && c.connection)
-                        return;
-                }
-            }
-
-            // No recordings left, we're done
-            setTimeout(() => {
-                process.exit(0);
-            }, 30000);
-        }
-        maybeQuit();
-        recordingEvents.on("stop", maybeQuit);
-
-    } else {
-        // Start a new craig
-        var ccp = cp.spawn(
-            process.argv[0], ["craig.js"],
-            {"stdio": "inherit", "detached": true});
-        ccp.on("exit", (code) => {
-            process.exit(code ? code : 1);
-        });
-
+        return r;
     }
 
-    // Stop responding to input
-    cc.dead = true;
-}
+    function quote(x) {
+        return "```" + stringify(x).replace("```", "` ` `") + "```";
+    }
 
-// Memory leaks (yay) force us to gracefully restart every so often
-var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
+    res = ex = undefined;
+    try {
+        res = eval(cmd[3]);
+    } catch (ex2) {
+        ex = ex2;
+    }
+
+    ret = "";
+    if (ex) {
+        ex = ex+"";
+        ret += "Exception: " + quote(ex) + "\n";
+    }
+    ret += "Result: " + quote(res);
+
+    reply(msg, true, null, "", ret);
+}
 
 // And finally, help commands
 commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
