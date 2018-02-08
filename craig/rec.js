@@ -784,7 +784,7 @@ function gracefulRestart() {
                 cc.sm.broadcast({t:"exit"});
             setTimeout(() => {
                 process.exit(0);
-            }, 30000);
+            }, 15000);
         }
         maybeQuit();
         cc.recordingEvents.on("stop", maybeQuit);
