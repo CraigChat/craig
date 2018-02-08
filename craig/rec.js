@@ -391,16 +391,23 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             // Figure out the recording features for this user
             var f = cf.features(msg.author.id, guildId);
 
-            // Make a random ID for it
-            var id;
-            do {
-                id = ~~(Math.random() * 1000000000);
-            } while (cu.accessSyncer("rec/" + id + ".ogg.key"));
-            var recFileBase = "rec/" + id + ".ogg";
-
             // Make an access key for it
             var accessKey = ~~(Math.random() * 1000000000);
-            fs.writeFileSync(recFileBase + ".key", ""+accessKey, "utf8");
+
+            // Make a random ID for it
+            var id;
+            while (true) {
+                id = ~~(Math.random() * 1000000000);
+                try {
+                    var kws = fs.createWriteStream("rec/" + id + ".ogg.key", {flags:"wx"});
+                    kws.write(accessKey+"");
+                    kws.end();
+                    break;
+                } catch (ex) {
+                    // ID existed
+                }
+            }
+            var recFileBase = "rec/" + id + ".ogg";
 
             // Make a deletion key for it
             var deleteKey = ~~(Math.random() * 1000000000);
