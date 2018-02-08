@@ -645,7 +645,7 @@ clients.forEach((client) => {
 
 // Make a pseudo-recording sufficient for stats and keeping track but little else
 function pseudoRecording(gid, cid, id, accessKey, size) {
-    return {
+    var rec = {
         id: id,
         accessKey: accessKey,
         connection: {
@@ -655,13 +655,14 @@ function pseudoRecording(gid, cid, id, accessKey, size) {
                 }
             },
             disconnect: function() {
-                cc.recordingEvents.emit("stop", this);
+                cc.recordingEvents.emit("stop", rec);
                 delete activeRecordings[gid][cid];
                 if (Object.keys(activeRecordings[gid]).length === 0)
                     delete activeRecordings[gid];
             }
         }
     };
+    return rec;
 }
 
 // Inform the shard manager when recordings start or end
@@ -734,6 +735,7 @@ function gracefulRestart() {
     if (!cc.master) {
         // Not our job! We'll trust the shard manager to do the restarting
         client.shard.send({t:"gracefulRestart"});
+        return;
 
     } else if (process.channel) {
         // Launched by launcher. Get the list of active recordings.
@@ -770,6 +772,8 @@ function gracefulRestart() {
             }
 
             // No recordings left, we're done
+            if (cc.sm)
+                cc.sm.broadcast({t:"exit"});
             setTimeout(() => {
                 process.exit(0);
             }, 30000);
@@ -808,6 +812,13 @@ ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
 // Terminus command
 cc.processCommands["term"] = function(msg) {
     cc.dead = true;
+}
+
+// And exit command
+cc.processCommands["exit"] = function(msg) {
+    setTimeout(() => {
+        process.exit(0);
+    }, 30000);
 }
 
 // Memory leaks (yay) force us to gracefully restart every so often

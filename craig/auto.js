@@ -37,6 +37,8 @@ const commands = require("./commands.js").commands;
 const cf = require("./features.js");
 const cr = require("./rec.js");
 
+// SHARDING: All of these data structures are shared amongst all shards.
+
 // Association of users with arrays autorecord guild+channels
 var autoU2GC = {};
 
@@ -49,7 +51,7 @@ if (config.rewards) (function() {
     var autoJournalF = null;
 
     // Remove a user's autorecord
-    function removeAutorecord(uid, gid) {
+    function removeAutorecordLocal(uid, gid) {
         if (uid in autoU2GC) {
             var gcs = autoU2GC[uid];
             for (var gci = 0; gci < gcs.length; gci++) {
@@ -71,9 +73,24 @@ if (config.rewards) (function() {
         }
     }
 
+    function removeAutorecord(uid, gid) {
+        removeAutorecordLocal(uid, gid);
+        if (client.shard)
+            client.shard.send({t:"removeAutorecord", from:client.shard.id, u:uid, g:gid});
+    }
+
+    cc.shardCommands["removeAutorecord"] = function(shard, msg) {
+        removeAutorecordLocal(msg.u, msg.g);
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["removeAutorecord"] = function(msg) {
+        removeAutorecordLocal(msg.u, msg.g);
+    }
+
     // Add an autorecord for a user
-    function addAutorecord(uid, gid, cid, tids) {
-        removeAutorecord(uid, gid);
+    function addAutorecordLocal(uid, gid, cid, tids) {
+        removeAutorecordLocal(uid, gid);
         var step = {u:uid, g:gid, c:cid};
         if (tids)
             step.t = tids;
@@ -82,6 +99,36 @@ if (config.rewards) (function() {
         autoG2UC[gid] = step;
         if (!cc.dead && autoJournalF)
             autoJournalF.write("," + JSON.stringify(step) + "\n");
+    }
+
+    function addAutorecord(uid, gid, cid, tids) {
+        addAutorecordLocal(uid, gid, cid, tids);
+        if (client.shard)
+            client.shard.send({t:"addAutorecord", from:client.shard.id, u:uid, g:gid, c:cid, tids:(tids?tids:false)});
+    }
+
+    cc.shardCommands["addAutorecord"] = function(shard, msg) {
+        addAutorecordLocal(msg.u, msg.g, msg.c, msg.tids?msg.tids:undefined);
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["addAutorecord"] = function(msg) {
+        addAutorecordLocal(msg.u, msg.g, msg.c, msg.tids?msg.tids:undefined);
+    }
+
+    if (cc.sm) {
+        cc.sm.on("launch", (shard) => {
+            for (var uid in autoU2GC) {
+                var gcs = autoU2GC[uid];
+                gcs.forEach((gc) => {
+                    shard.send({
+                        t:"addAutorecord",
+                        u:uid,
+                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:false)
+                    });
+                });
+            }
+        });
     }
 
     // Resolve autorecords from U2GC into G2UC, asserting that the relevant uids actually have auto powers
@@ -101,7 +148,7 @@ if (config.rewards) (function() {
         });
     }
 
-    // Load autorecords when we're ready
+    // Load autorecords when we're ready (only fires on the shard with the rewards guild)
     cf.rewardsEvents.on("ready", () => {
         // Get our auto status
         if (cu.accessSyncer("craig-auto.json")) {
@@ -122,6 +169,21 @@ if (config.rewards) (function() {
         resolveAutos();
         autoJournalF = fs.createWriteStream("craig-auto.json", "utf8");
         autoJournalF.write(JSON.stringify(autoU2GC) + "\n");
+
+        // Send our autos along
+        if (client.shard) {
+            for (var uid in autoU2GC) {
+                var gcs = autoU2GC[uid];
+                gcs.forEach((gc) => {
+                    client.shard.send({
+                        t:"addAutorecord",
+                        from:client.shard.id,
+                        u:uid,
+                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:false)
+                    });
+                });
+            }
+        }
     });
 
     const mention = /^<@!?([0-9]*)>[ \t,]*(.*)$/;
@@ -222,3 +284,5 @@ if (config.rewards) (function() {
         }
     });
 })();
+
+module.exports = {get autoU2GC() { return autoU2GC; }};

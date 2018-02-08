@@ -102,6 +102,11 @@ if ("log" in config) {
 
 const log = vlog;
 
+// Shards log via the master
+shardCommands["log"] = function(shard, msg) {
+    log(msg.l);
+}
+
 // Log exceptions
 function logex(ex, r) {
     if (typeof r === "undefined") r = "";
