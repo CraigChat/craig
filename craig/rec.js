@@ -43,7 +43,12 @@ const commands = ccmds.commands;
 
 const cf = require("./features.js");
 
-// Active recordings by guild, channel
+/* Active recordings by guild, channel
+ *
+ * SHARDS:
+ * The shard manager has ALL active recordings, with fake connections. All
+ * shards have only the recordings active for them.
+ */
 const activeRecordings = {};
 
 // Our recording session proper
@@ -465,6 +470,8 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             }
 
             var rec = {
+                gid: guild.id,
+                cid: channel.id,
                 connection: null,
                 id: id,
                 accessKey: accessKey,
@@ -636,54 +643,100 @@ clients.forEach((client) => {
     });
 });
 
-// Get our currect active recordings from the launcher
-if (process.channel) {
-    process.send({t:"requestActiveRecordings"});
-    cc.processCommands["activeRecordings"] = function(msg) {
-        for (var gid in msg.activeRecordings) {
-            var ng = msg.activeRecordings[gid];
-            if (!(gid in activeRecordings))
-                activeRecordings[gid] = {};
-            var g = activeRecordings[gid];
-            for (var cid in ng) {
-                if (cid in g)
-                    continue;
-                var nc = ng[cid];
-                (function(gid, cid, nc) {
-                    var rec = g[cid] = {
-                        id: nc.id,
-                        accessKey: nc.accessKey,
-                        connection: {
-                            channel: {
-                                members: {
-                                    size: (nc.size?nc.size:1)
-                                }
-                            },
-                            disconnect: function() {
-                                delete activeRecordings[gid][cid];
-                                if (Object.keys(activeRecordings[gid]).length === 0)
-                                    delete activeRecordings[gid];
-                            }
-                        }
-                    };
-                    setTimeout(() => {
-                        try {
-                            if (activeRecordings[gid][cid] === rec)
-                                rec.connection.disconnect();
-                        } catch (ex) {}
-                    }, 1000*60*60*6);
-                })(gid, cid, nc);
+// Make a pseudo-recording sufficient for stats and keeping track but little else
+function pseudoRecording(gid, cid, id, accessKey, size) {
+    return {
+        id: id,
+        accessKey: accessKey,
+        connection: {
+            channel: {
+                members: {
+                    size: size
+                }
+            },
+            disconnect: function() {
+                cc.recordingEvents.emit("stop", this);
+                delete activeRecordings[gid][cid];
+                if (Object.keys(activeRecordings[gid]).length === 0)
+                    delete activeRecordings[gid];
             }
         }
+    };
+}
+
+// Inform the shard manager when recordings start or end
+if (!cc.master) {
+    cc.recordingEvents.on("start", (rec) => {
+        var size = 1;
+        try {
+            size = rec.connection.channel.members.size;
+        } catch (ex) {
+            logex(ex);
+        }
+        client.shard.send({t:"startRecording", g:rec.gid, c:rec.cid, id: rec.id, accessKey: rec.accessKey, size: size});
+    });
+
+    cc.recordingEvents.on("stop", (rec) => {
+        client.shard.send({t:"stopRecording", g:rec.gid, c:rec.cid});
+    });
+
+} else if (cc.sm) {
+    // Handle recordings from shards
+    cc.shardCommands["startRecording"] = function(shard, msg) {
+        if (!(msg.g in activeRecordings)) activeRecordings[msg.g] = {};
+        activeRecordings[msg.g][msg.c] = pseudoRecording(msg.g, msg.c, msg.id, msg.accessKey, msg.size);
+    }
+
+    cc.shardCommands["stopRecording"] = function(shard, msg) {
+        try {
+            activeRecordings[msg.g][msg.c].connection.disconnect();
+        } catch (ex) {}
+    }
+
+}
+
+// Get our currect active recordings from the launcher
+if (process.channel && cc.master)
+    process.send({t:"requestActiveRecordings"});
+cc.processCommands["activeRecordings"] = function(msg) {
+    for (var gid in msg.activeRecordings) {
+        var ng = msg.activeRecordings[gid];
+        if (!(gid in activeRecordings))
+            activeRecordings[gid] = {};
+        var g = activeRecordings[gid];
+        for (var cid in ng) {
+            if (cid in g)
+                continue;
+            var nc = ng[cid];
+            (function(gid, cid, nc) {
+                var rec = g[cid] = pseudoRecording(gid, cid, nc.id, nc.accessKey, nc.size?nc.size:1);
+                setTimeout(() => {
+                    try {
+                        if (activeRecordings[gid][cid] === rec)
+                            rec.connection.disconnect();
+                    } catch (ex) {}
+                }, 1000*60*60*6);
+            })(gid, cid, nc);
+        }
+    }
+
+    if (cc.sm) {
+        // Relay it to shards
+        cc.sm.broadcast(msg);
+        cc.sm.on("launch", (shard) => { shard.send(msg); });
     }
 }
 
 /* Graceful restart. This doesn't REALLY belong in rec.js, but maintaining the
  * currently active recordings is the only complicated part of gracefully
- * restart, so here it is. */
+ * restarting, so here it is. */
 function gracefulRestart() {
-    if (process.channel) {
-        // Get the list of active recordings
+    if (!cc.master) {
+        // Not our job! We'll trust the shard manager to do the restarting
+        client.shard.send({t:"gracefulRestart"});
+
+    } else if (process.channel) {
+        // Launched by launcher. Get the list of active recordings.
         var nar = {};
         for (var gid in activeRecordings) {
             var g = activeRecordings[gid];
@@ -737,15 +790,28 @@ function gracefulRestart() {
 
     // Stop responding to input
     cc.dead = true;
+    if (cc.sm) {
+        // And make sure the shards do too
+        cc.sm.broadcast({t:"term"});
+    }
 }
 
-// Owner command for graceful restarting
+// Shard command for graceful restart
+cc.shardCommands["gracefulRestart"] = gracefulRestart;
+
+// Owner command for graceful restart
 ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
     reply(msg, false, cmd[1], "Restarting!");
     gracefulRestart();
 }
 
-// Memory leaks (yay) force us to gracefully restart every so often
-var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
+// Terminus command
+cc.processCommands["term"] = function(msg) {
+    cc.dead = true;
+}
 
-module.exports = {activeRecordings, gracefulRestart};
+// Memory leaks (yay) force us to gracefully restart every so often
+if(cc.master)
+    var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
+
+module.exports = {activeRecordings, gracefulRestart, uptimeTimeout};
