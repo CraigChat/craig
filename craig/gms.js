@@ -180,7 +180,7 @@ function updateGuildCt() {
     if (cc.dead)
         return;
 
-    if (config.discordbotstoken) {
+    if (config.discordbotstoken || config.botsdiscordpwtoken) {
         if (client) {
             report(client.guilds.size);
         } else {
@@ -193,9 +193,7 @@ function updateGuildCt() {
         }
 
         function report(size) {
-            console.error(size);
-            return;
-            // Report to discordbots.org
+            // Report to bot lists
             var curServerCount = size;
             if (lastServerCount === curServerCount)
                 return;
@@ -203,26 +201,34 @@ function updateGuildCt() {
             var postData = JSON.stringify({
                 server_count: curServerCount
             });
-            try {
-                var req = https.request({
-                    hostname: "discordbots.org",
-                    path: "/api/bots/" + client.user.id + "/stats",
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Content-Length": postData.length,
-                        "Authorization": config.discordbotstoken
-                    }
-                }, () => {});
-                req.write(postData);
-                req.end();
-            } catch(ex) {
-                logex(ex);
+
+            var domains = {discordbotstoken: "discordbots.org", botsdiscordpwtoken: "bots.discord.pw"};
+            for (var tname in domains) {
+                var domain = domains[tname];
+                var dtoken = config[tname];
+                if (!dtoken) continue;
+
+                try {
+                    var req = https.request({
+                        hostname: domain,
+                        path: "/api/bots/" + client.user.id + "/stats",
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Content-Length": postData.length,
+                            "Authorization": dtoken
+                        }
+                    }, () => {});
+                    req.write(postData);
+                    req.end();
+                } catch(ex) {
+                    logex(ex);
+                }
             }
         }
     }
 }
-if (cc.master && config.discordbotstoken)
+if (cc.master && (config.discordbotstoken || config.botsdiscordpwtoken))
     setInterval(updateGuildCt, 3600000);
 
 module.exports = {guildMembershipStatus, blessG2U, guildRefresh, guildDelete, importantServers};
