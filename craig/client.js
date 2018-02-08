@@ -131,7 +131,7 @@ if (client) {
     client.login(config.token).catch(logex);
 } else {
     // Spawn shards
-    sm.spawn(2);
+    sm.spawn();
 }
 
 if (!config.shard || sm) {
