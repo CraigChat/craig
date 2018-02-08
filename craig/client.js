@@ -71,6 +71,8 @@ if (sm) sm.on("message", (shard, msg) => {
 // And process commands
 process.on("message", (msg) => {
     if (typeof msg !== "object") return;
+    if (("from" in msg) && client && client.shard && client.shard.id === msg.from)
+        return; // Ignore messages rebroadcast to ourselves
     var fun = processCommands[msg.t];
     if (fun) fun(msg);
 });

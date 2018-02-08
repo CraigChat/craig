@@ -35,12 +35,16 @@ const reply = cu.reply;
 
 const gms = require("./gms.js");
 
+/* SHARDING NOTE:
+ * Every shard will have identical copies of all of these data structures.
+ */
+
 // An event emitter for when we've loaded our rewards
 class RewardsEvent extends EventEmitter {}
 const rewardsEvents = new RewardsEvent();
 
 // A map user ID -> rewards
-var rewards = {};
+var rewards = {}; // NOTE: Ref can change!
 var defaultFeatures = {"limits": config.limits};
 
 // A map of users with rewards -> blessed guilds. Vice-versa is in gms.
@@ -67,6 +71,45 @@ if (config.rewards) (function() {
     // Journal of blesses
     var blessJournalF = null;
 
+    // Add a reward to a user
+    function addRewards(uid, rew) {
+        rewards[uid] = rew;
+        if (client.shard)
+            client.shard.send({t:"addRewards", from:client.shard.id, u:uid, r:rew});
+    }
+
+    cc.shardCommands["addRewards"] = function(shard, msg) {
+        rewards[msg.u] = msg.r;
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["addRewards"] = function(msg) {
+        rewards[msg.u] = msg.r;
+    }
+
+    // Delete a reward from a user
+    function deleteRewards(uid) {
+        delete rewards[uid];
+        if (client.shard)
+            client.shard.send({t:"deleteRewards", from:client.shard.id, u:uid});
+    }
+
+    cc.shardCommands["deleteRewards"] = function(shard, msg) {
+        delete rewards[msg.u];
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["deleteRewards"] = function(msg) {
+        delete rewards[msg.u];
+    }
+
+    if (cc.sm) {
+        cc.sm.on("launch", (shard) => {
+            for (var uid in rewards)
+                shard.send({t:"addRewards", u:uid, r:rewards[uid]});
+        });
+    }
+
     // Resolve a user's rewards by their role
     function resolveRewards(member) {
         var rr = config.rewards.roles;
@@ -90,14 +133,14 @@ if (config.rewards) (function() {
         });
 
         if (Object.keys(mrewards).length)
-            rewards[member.id] = mrewards;
+            addRewards(member.id, mrewards);
         else
-            delete rewards[member.id];
+            deleteRewards(member.id);
         return mrewards;
     }
 
     // Remove a bless
-    function removeBless(uid) {
+    function removeBlessLocal(uid) {
         if (uid in blessU2G) {
             var gid = blessU2G[uid];
             var step = {u:uid};
@@ -108,16 +151,55 @@ if (config.rewards) (function() {
         }
     }
 
+    function removeBless(uid) {
+        removeBlessLocal(uid);
+        if (client.shard)
+            client.shard.send({t:"removeBless", from:config.shard.id, u:uid});
+    }
+
+    cc.shardCommands["removeBless"] = function(shard, msg) {
+        removeBlessLocal(msg.u);
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["removeBless"] = function(msg) {
+        removeBlessLocal(msg.u);
+    }
+
     // Add a bless
-    function addBless(uid, gid) {
+    function addBlessLocal(uid, gid) {
         if (uid in blessU2G)
-            removeBless(uid);
+            removeBlessLocal(uid);
 
         var step = {u:uid, g:gid};
         blessU2G[uid] = gid;
         blessG2U[gid] = uid;
         if (!cc.dead && blessJournalF)
             blessJournalF.write("," + JSON.stringify(step) + "\n");
+    }
+
+    function addBless(uid, gid) {
+        addBlessLocal(uid, gid);
+        if (client.shard)
+            client.shard.send({t:"addBless", from:client.shard.id, u:uid, g:gid});
+    }
+
+
+    cc.shardCommands["addBless"] = function(shard, msg) {
+        addBlessLocal(msg.u, msg.g);
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["addBless"] = function(msg) {
+        addBlessLocal(msg.u, msg.g);
+    }
+
+    if (cc.sm) {
+        cc.sm.on("launch", (shard) => {
+            // Add all the blesses to the new shard
+            for (var uid in blessU2G)
+                shard.send({t:"addBless", u:uid, g:blessU2G[uid]});
+        });
     }
 
     // Resolve blesses from U2G into G2U, asserting that the relevant uids actually have bless powers
@@ -162,6 +244,12 @@ if (config.rewards) (function() {
             resolveBlesses();
             blessJournalF = fs.createWriteStream("craig-bless.json", "utf8");
             blessJournalF.write(JSON.stringify(blessU2G) + "\n");
+
+            // Send our blesses along
+            if (client.shard) {
+                for (var uid in blessU2G)
+                    client.shard.send({t:"addBless", from:client.shard.id, u:uid, g:blessU2G[uid]});
+            }
 
             rewardsEvents.emit("ready");
         });

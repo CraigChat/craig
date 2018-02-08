@@ -37,15 +37,19 @@ const ccmds = require("./craig/commands.js");
 const commands = ccmds.commands;
 
 // Behavior modules
-require("./craig/rec.js");
-require("./craig/auto.js");
+const cr = require("./craig/rec.js");
+const ca = require("./craig/auto.js");
+
+// Not used directly, but handy for eval
+const gms = require("./craig/gms.js");
+const cf = require("./craig/features.js");
 
 process.on("unhandledRejection", (ex) => {
     logex(ex, "Unhandled promise rejection");
 });
 
-// An eval command for the owner, explicitly in this context
-ccmds.ownerCommands["eval"] = function(msg, cmd) {
+// "Safely" eval something, explicitly in this context
+function safeEval(cmd) {
     var ex, res, ret;
 
     function stringify(x) {
@@ -63,12 +67,12 @@ ccmds.ownerCommands["eval"] = function(msg, cmd) {
     }
 
     function quote(x) {
-        return "```" + stringify(x).replace("```", "` ` `") + "```";
+        return "\n```\n" + stringify(x).replace("```", "` ` `") + "\n```\n";
     }
 
     res = ex = undefined;
     try {
-        res = eval(cmd[3]);
+        res = eval(cmd);
     } catch (ex2) {
         ex = ex2;
     }
@@ -80,7 +84,62 @@ ccmds.ownerCommands["eval"] = function(msg, cmd) {
     }
     ret += "Result: " + quote(res);
 
-    reply(msg, true, null, "", ret);
+    return ret;
+}
+if (client) client.safeEval = safeEval;
+
+const evalTarget = /^@([a-zA-Z0-9]*)[ \t]*(.*)/;
+
+// An eval command for the owner, explicitly in this context
+ccmds.ownerCommands["eval"] = function(msg, cmd) {
+    var ecmd = cmd[3];
+    var et;
+
+    if (cc.master) {
+        var ret = safeEval(ecmd);
+        reply(msg, true, null, "", ret);
+
+    } else if (et = evalTarget.exec(ecmd)) {
+        // Targetted eval
+        var target = et[1].toLowerCase();
+        if (target === "self" || target === (client.shard.id+"")) {
+            // Just do it ourselves
+            var ret = safeEval(et[2]);
+            reply(msg, true, null, "", ret);
+
+        } else if (target === "master") {
+            // For the shard master
+            client.shard.send({t:"eval", from:client.shard.id, u:msg.author.id, c:et[2]});
+
+        } else {
+            reply(msg, true, null, "", "Directly targeted eval is not yet implemented.");
+
+        }
+
+    } else {
+        // For everyone
+        client.shard.broadcastEval("this.safeEval(" + JSON.stringify(cmd[3]) + ")").then((res) => {
+            var ret = "";
+            for (var ri = 0; ri < res.length; ri++)
+                ret += "__**" + ri + "**__\n" + res[ri] + "\n";
+            reply(msg, true, null, "", ret);
+        }).catch(logex);
+
+    }
+}
+
+// An eval command for the sharding manager
+cc.shardCommands["eval"] = function(shard, msg) {
+    var ret = safeEval(msg.c);
+    shard.send({t:"evalRes", u:msg.u, r:ret});
+}
+
+// And the response from host eval
+cc.processCommands["evalRes"] = function(msg) {
+    client.fetchUser(msg.u).then((user) => {
+        var pmsg = cu.pseudoMessage(user);
+        reply(pmsg, true, null, "", msg.r);
+    }).catch(logex);
 }
 
 /* There's no compelling reason for stats to be here, but there's no compelling

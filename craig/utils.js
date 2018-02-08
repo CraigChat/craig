@@ -131,4 +131,17 @@ function findChannel(msg, guild, cname) {
     return channel;
 }
 
-module.exports = {accessSyncer, opusHeader, reply, findChannel};
+// Create a false message sufficient for replying
+function pseudoMessage(member, guild) {
+    return {
+        author: member.user?member.user:member,
+        member: member,
+        channel: member,
+        guild: guild,
+        reply: (msg) => {
+            return member.send(msg);
+        }
+    };
+}
+
+module.exports = {accessSyncer, opusHeader, reply, findChannel, pseudoMessage};
