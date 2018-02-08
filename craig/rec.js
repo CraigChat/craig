@@ -692,7 +692,8 @@ if (!cc.master) {
     // Handle recordings from shards
     cc.shardCommands["startRecording"] = function(shard, msg) {
         if (!(msg.g in activeRecordings)) activeRecordings[msg.g] = {};
-        activeRecordings[msg.g][msg.c] = pseudoRecording(msg.g, msg.c, msg.id, msg.accessKey, msg.size);
+        var rec = activeRecordings[msg.g][msg.c] = pseudoRecording(msg.g, msg.c, msg.id, msg.accessKey, msg.size);
+        cc.recordingEvents.emit("start", rec);
     }
 
     cc.shardCommands["stopRecording"] = function(shard, msg) {

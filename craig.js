@@ -38,6 +38,7 @@ const commands = ccmds.commands;
 
 // Behavior modules
 const cr = require("./craig/rec.js");
+const activeRecordings = cr.activeRecordings;
 const ca = require("./craig/auto.js");
 
 // Not used directly, but handy for eval
@@ -153,6 +154,13 @@ if (config.stats) {
         if (client) client.on("ready", ()=>{
             try {
                 channel = client.guilds.get(config.stats.guild).channels.get(config.stats.channel);
+
+                // Allow topics from the shard master
+                cc.processCommands["statsTopic"] = function(msg) {
+                    try {
+                        channel.setTopic(msg.v).catch(()=>{});
+                    } catch (ex) {}
+                }
             } catch (ex) {}
         });
 
@@ -185,7 +193,10 @@ if (config.stats) {
                 if (newChannels)
                     topic += " Currently recording " + newUsers + " users in " + newChannels + " voice channels.";
                 if (users != newUsers || channels != newChannels) {
-                    channel.setTopic(topic);
+                    if (cc.sm)
+                        cc.sm.broadcast({t:"statsTopic", v:topic});
+                    else if (channel)
+                        channel.setTopic(topic);
                     users = newUsers;
                     channels = newChannels;
                 }
@@ -194,8 +205,10 @@ if (config.stats) {
                 return ex;
             }
         }
-        recordingEvents.on("start", ()=>{updateTopic();});
-        recordingEvents.on("stop", updateTopic);
+        if (cc.master) {
+            recordingEvents.on("start", ()=>{updateTopic();});
+            recordingEvents.on("stop", updateTopic);
+        }
 
         // And a command to get the full stats
         var statsCp = null;
