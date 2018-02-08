@@ -228,14 +228,22 @@ if (config.rewards) (function() {
             // Get our bless status
             if (cu.accessSyncer("craig-bless.json")) {
                 try {
-                    var journal = JSON.parse("["+fs.readFileSync("craig-bless.json", "utf8")+"]");
-                    blessU2G = journal[0];
-                    for (var ji = 1; ji < journal.length; ji++) {
-                        var step = journal[ji];
-                        if ("g" in step)
-                            blessU2G[step.u] = step.g;
-                        else
-                            delete blessU2G[step.u];
+                    var lines = fs.readFileSync("craig-bless.json", "utf8").split("\n");
+                    try {
+                        blessU2G = JSON.parse(lines[0]);
+                    } catch (ex) {
+                        logex(ex);
+                    }
+                    for (var li = 1; li < lines.length; li++) {
+                        try {
+                            var step = JSON.parse("[0" + lines[li] + "]")[1];
+                            if ("g" in step)
+                                blessU2G[step.u] = step.g;
+                            else
+                                delete blessU2G[step.u];
+                        } catch (ex) {
+                            logex(ex);
+                        }
                     }
                 } catch (ex) {
                     logex(ex);

@@ -153,14 +153,22 @@ if (config.rewards) (function() {
         // Get our auto status
         if (cu.accessSyncer("craig-auto.json")) {
             try {
-                var journal = JSON.parse("["+fs.readFileSync("craig-auto.json", "utf8")+"]");
-                autoU2GC = journal[0];
-                for (var ji = 1; ji < journal.length; ji++) {
-                    var step = journal[ji];
-                    if ("c" in step)
-                        addAutorecord(step.u, step.g, step.c, step.t);
-                    else
-                        removeAutorecord(step.u, step.g);
+                var lines = fs.readFileSync("craig-auto.json", "utf8").split("\n");
+                try {
+                    autoU2GC = JSON.parse(lines[0]);
+                } catch (ex) {
+                    logex(ex);
+                }
+                for (var li = 1; li < lines.length; li++) {
+                    try {
+                        var step = JSON.parse("[0" + lines[li] + "]")[1];
+                        if ("c" in step)
+                            addAutorecord(step.u, step.g, step.c, step.t);
+                        else
+                            removeAutorecord(step.u, step.g);
+                    } catch (ex) {
+                        logex(ex);
+                    }
                 }
             } catch (ex) {
                 logex(ex);

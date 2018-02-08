@@ -43,15 +43,22 @@ var guildMembershipStatus = {};
 if (cc.master) {
     if (cu.accessSyncer("craig-guild-membership-status.json")) {
         try {
-            var journal = JSON.parse("["+fs.readFileSync("craig-guild-membership-status.json", "utf8")+"]");
-            if (journal.length)
-                guildMembershipStatus = journal[0];
-            for (var ji = 1; ji < journal.length; ji++) {
-                var step = journal[ji];
-                if ("v" in step)
-                    guildMembershipStatus[step.k] = step.v;
-                else
-                    delete guildMembershipStatus[step.k];
+            var lines = fs.readFileSync("craig-guild-membership-status.json", "utf8").split("\n");
+            try {
+                guidlMembershipStatus = JSON.parse(lines[0]);
+            } catch (ex) {
+                logex(ex);
+            }
+            for (var li = 1; li < lines.length; li++) {
+                try {
+                    var step = JSON.parse("[0" + lines[li] + "]")[1];
+                    if ("v" in step)
+                        guildMembershipStatus[step.k] = step.v;
+                    else
+                        delete guildMembershipStatus[step.k];
+                } catch (ex) {
+                    logex(ex);
+                }
             }
         } catch (ex) {
             logex(ex);
