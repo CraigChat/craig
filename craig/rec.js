@@ -371,7 +371,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
         }
 
         // Joinable can crash if the voiceConnection is in a weird state
-        var joinable = false;
+        var joinable = true;
         try {
             if (channel)
                 joinable = channel.joinable;
