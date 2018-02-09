@@ -287,7 +287,7 @@ if (config.rewards) (function() {
                 };
                 var cmd = shouldRecord ? "join" : "leave";
                 log("Auto-record " + cmd + ": " + nameId(voiceChannel) + "@" + nameId(guild) + " requested by " + nameId(member));
-                commands[cmd](msg, ["", null, cmd, voiceChannel.name]);
+                commands[cmd](msg, ["", null, cmd, "-silence " + voiceChannel.name]);
             });
         }
     });

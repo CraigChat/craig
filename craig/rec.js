@@ -127,11 +127,16 @@ function session(msg, prefix, rec) {
             unusedMinutes++;
             if (usedMinutes === 0) {
                 // No recording at all!
-                log("Terminating " + id + ": No data.");
-                sReply(true, "I'm not receiving any data! Disconnecting.");
-                rec.disconnected = true;
-                connection.disconnect();
-                return;
+                if (rec.noSilenceDisconnect) {
+                    sReply(true, "I'm not receiving any audio!");
+                    usedMinutes++; // Just to make this warning not resound
+                } else {
+                    log("Terminating " + id + ": No data.");
+                    sReply(true, "I'm not receiving any audio! Disconnecting.");
+                    rec.disconnected = true;
+                    connection.disconnect();
+                    return;
+                }
             } else if (unusedMinutes === 5 && !warned) {
                 sReply(true, "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!");
                 sReply(false, "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!");
@@ -328,6 +333,13 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
         return;
     }
 
+    // Check for flags
+    var noSilenceDisconnect = false;
+    if (cname.startsWith("-silence")) {
+        cname = cname.substr(8).trimLeft();
+        noSilenceDisconnect = true;
+    }
+
     channel = cu.findChannel(msg, guild, cname);
 
     if (channel !== null) {
@@ -490,6 +502,9 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 close: close
             };
             activeRecordings[guildId][channelId] = rec;
+
+            if (noSilenceDisconnect)
+                rec.noSilenceDisconnect = true;
 
             // If we have voice channel issue, do our best to rectify them
             function onError(ex) {
