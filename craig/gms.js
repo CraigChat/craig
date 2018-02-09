@@ -182,17 +182,20 @@ function updateGuildCt() {
 
     if (config.discordbotstoken || config.botsdiscordpwtoken) {
         if (client) {
-            report(client.guilds.size);
+            report(client.user.id, client.guilds.size);
         } else {
-            // Need to get the combined size of all shards
-            sm.fetchClientValues("guilds.size").then((results) => {
-                var size = 0;
-                results.forEach((r) => { size += r; });
-                report(size);
+            // Need to get the id and combined size of all shards
+            sm.fetchClientValues("user.id").then((results) => {
+                var id = results[0];
+                sm.fetchClientValues("guilds.size").then((results) => {
+                    var size = 0;
+                    results.forEach((r) => { size += r; });
+                    report(id, size);
+                }).catch(logex);
             }).catch(logex);
         }
 
-        function report(size) {
+        function report(id, size) {
             // Report to bot lists
             var curServerCount = size;
             if (lastServerCount === curServerCount)
@@ -211,7 +214,7 @@ function updateGuildCt() {
                 try {
                     var req = https.request({
                         hostname: domain,
-                        path: "/api/bots/" + client.user.id + "/stats",
+                        path: "/api/bots/" + id + "/stats",
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
