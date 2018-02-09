@@ -162,6 +162,7 @@ if (config.rewards) (function() {
                 for (var li = 1; li < lines.length; li++) {
                     try {
                         var step = JSON.parse("[0" + lines[li] + "]")[1];
+                        if (!step) continue;
                         if ("c" in step)
                             addAutorecord(step.u, step.g, step.c, step.t);
                         else

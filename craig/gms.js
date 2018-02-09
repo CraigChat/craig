@@ -45,13 +45,14 @@ if (cc.master) {
         try {
             var lines = fs.readFileSync("craig-guild-membership-status.json", "utf8").split("\n");
             try {
-                guidlMembershipStatus = JSON.parse(lines[0]);
+                guildMembershipStatus = JSON.parse(lines[0]);
             } catch (ex) {
                 logex(ex);
             }
             for (var li = 1; li < lines.length; li++) {
                 try {
                     var step = JSON.parse("[0" + lines[li] + "]")[1];
+                    if (!step) continue;
                     if ("v" in step)
                         guildMembershipStatus[step.k] = step.v;
                     else
