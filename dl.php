@@ -48,6 +48,11 @@ if (!isset($id))
                 padding: 0.25em;
                 border-radius: 0.5em;
                 box-shadow: 0 0 0 2px #333333;
+                color: #000000;
+            }
+
+            button:disabled {
+                color: #808080;
             }
 
             .big button, .local button {
@@ -56,11 +61,18 @@ if (!isset($id))
                 min-height: 3em;
                 vertical-align: middle;
                 text-align: center;
-                color: #000000;
+            }
+
+            .big button:disabled {
+                background-color: #d1eeee;
             }
 
             .local button {
                 background-color: #ff9999;
+            }
+
+            .local button:disabled {
+                background-color: #ffe6e6;
             }
 
             .lbl {
@@ -68,6 +80,151 @@ if (!isset($id))
                 text-align: right;
                 width: 320px;
             }
+
+            /*!
+             * Load Awesome v1.1.0 (http://github.danielcardoso.net/load-awesome/)
+             * Copyright 2015 Daniel Cardoso <@DanielCardoso>
+             * Licensed under MIT
+             */
+            .la-line-scale,
+            .la-line-scale > div {
+                position: relative;
+                -webkit-box-sizing: border-box;
+                   -moz-box-sizing: border-box;
+                        box-sizing: border-box;
+            }
+            .la-line-scale {
+                display: block;
+                visibility: hidden;
+                margin: auto;
+                height: 0px;
+                overflow: visible;
+                color: #fff;
+            }
+            .la-line-scale.la-dark {
+                color: #333;
+            }
+            .la-line-scale > div {
+                display: inline-block;
+                float: none;
+                background-color: currentColor;
+                border: 0 solid currentColor;
+            }
+            .la-line-scale {
+                width: 40px;
+            }
+            .la-line-scale > div {
+                width: 4px;
+                height: 32px;
+                margin: 2px;
+                margin-top: 0;
+                margin-bottom: 0;
+                border: 1px solid black;
+                -webkit-animation: line-scale 1.2s infinite ease;
+                   -moz-animation: line-scale 1.2s infinite ease;
+                     -o-animation: line-scale 1.2s infinite ease;
+                        animation: line-scale 1.2s infinite ease;
+            }
+            .la-line-scale > div:nth-child(1) {
+                -webkit-animation-delay: -1.2s;
+                   -moz-animation-delay: -1.2s;
+                     -o-animation-delay: -1.2s;
+                        animation-delay: -1.2s;
+            }
+            .la-line-scale > div:nth-child(2) {
+                -webkit-animation-delay: -1.1s;
+                   -moz-animation-delay: -1.1s;
+                     -o-animation-delay: -1.1s;
+                        animation-delay: -1.1s;
+            }
+            .la-line-scale > div:nth-child(3) {
+                -webkit-animation-delay: -1s;
+                   -moz-animation-delay: -1s;
+                     -o-animation-delay: -1s;
+                        animation-delay: -1s;
+            }
+            .la-line-scale > div:nth-child(4) {
+                -webkit-animation-delay: -.9s;
+                   -moz-animation-delay: -.9s;
+                     -o-animation-delay: -.9s;
+                        animation-delay: -.9s;
+            }
+            .la-line-scale > div:nth-child(5) {
+                -webkit-animation-delay: -.8s;
+                   -moz-animation-delay: -.8s;
+                     -o-animation-delay: -.8s;
+                        animation-delay: -.8s;
+            }
+            .la-line-scale.la-3x {
+                width: 24em;
+            }
+            .la-line-scale.la-3x > div {
+                width: 4em;
+                height: 4.5em;
+                margin: 0.25em;
+                margin-top: 0;
+                margin-bottom: 0;
+            }
+            /*
+             * Animation
+             */
+            @-webkit-keyframes line-scale {
+                0%,
+                40%,
+                100% {
+                    -webkit-transform: scaleY(.4);
+                            transform: scaleY(.4);
+                }
+                20% {
+                    -webkit-transform: scaleY(1);
+                            transform: scaleY(1);
+                }
+            }
+            @-moz-keyframes line-scale {
+                0%,
+                40%,
+                100% {
+                    -webkit-transform: scaleY(.4);
+                       -moz-transform: scaleY(.4);
+                            transform: scaleY(.4);
+                }
+                20% {
+                    -webkit-transform: scaleY(1);
+                       -moz-transform: scaleY(1);
+                            transform: scaleY(1);
+                }
+            }
+            @-o-keyframes line-scale {
+                0%,
+                40%,
+                100% {
+                    -webkit-transform: scaleY(.4);
+                         -o-transform: scaleY(.4);
+                            transform: scaleY(.4);
+                }
+                20% {
+                    -webkit-transform: scaleY(1);
+                         -o-transform: scaleY(1);
+                            transform: scaleY(1);
+                }
+            }
+            @keyframes line-scale {
+                0%,
+                40%,
+                100% {
+                    -webkit-transform: scaleY(.4);
+                       -moz-transform: scaleY(.4);
+                         -o-transform: scaleY(.4);
+                            transform: scaleY(.4);
+                }
+                20% {
+                    -webkit-transform: scaleY(1);
+                       -moz-transform: scaleY(1);
+                         -o-transform: scaleY(1);
+                            transform: scaleY(1);
+                }
+            }
+            /* END of Load Awesome CSS */
         </style>
     </head>
     <body>
@@ -88,6 +245,8 @@ foreach ($locales as $la) {
         </div><br/><br/>
 
         <div style="margin: auto; display: table;">
+        <span id="loading" class="la-line-scale la-3x"><div></div><div></div><div></div><div></div><div></div></span>
+
         <span class="big">
         <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
 <?PHP
@@ -181,6 +340,7 @@ download(ls("raw"), "raw");
 <?PHP
 readfile("convert.js");
 print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&container=ogg\";\n";
+print "craigReady=\"?id=" . $id . "&key=" . $key . "&ready\";\n";
 print "craigLocale={";
 foreach (array("nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
     print "\"$lstr\":\"" . ls($lstr) . "\",";
@@ -195,11 +355,55 @@ print "0:0};\n";
                 return document.getElementById(id);
             }
 
+            function initDownload(target) {
+                document.querySelectorAll(".big button").forEach(function(b) { b.disabled = true; });
+                var l = document.getElementById("loading");
+                if (l) l.style.visibility = "visible";
+
+                // Wait for it to be ready
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== 4)
+                        return;
+                    var ready = JSON.parse(xhr.responseText);
+                    if (ready && ready.ready) {
+                        setTimeout(completeDownload, 5000);
+                        window.location = target;
+                    } else {
+                        initDownload(target);
+                    }
+                };
+
+                xhr.open("GET", craigReady, true);
+                xhr.send();
+            }
+
+            function completeDownload() {
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== 4)
+                        return;
+                    var ready = JSON.parse(xhr.responseText);
+                    if (ready && ready.ready) {
+                        document.querySelectorAll(".big button").forEach(function(b) { b.disabled = false; });
+                        var l = document.getElementById("loading");
+                        if (l) l.style.visibility = "hidden";
+                    } else {
+                        completeDownload();
+                    }
+                };
+                xhr.open("GET", craigReady, true);
+                xhr.send();
+            }
+
             function replaceA(a) {
                 var b = document.createElement("button");
                 b.innerHTML = a.innerHTML;
                 b.onclick = function() {
-                    window.location = a.href;
+                    document.querySelectorAll(".big button").forEach(function(b) {
+                        b.disabled = true;
+                    });
+                    initDownload(a.href);
                 };
                 a.parentElement.replaceChild(b, a);
             }

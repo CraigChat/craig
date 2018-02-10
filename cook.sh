@@ -21,9 +21,6 @@ DEF_TIMEOUT=1800
 ulimit -v $(( 2 * 1024 * 1024 ))
 echo 10 > /proc/self/oom_adj
 
-# Don't get HUP'd
-trap "" HUP
-
 PATH="/opt/node/bin:$PATH"
 export PATH
 
@@ -81,6 +78,10 @@ tmpdir=`mktemp -d`
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
 mkdir "$tmpdir/in" "$tmpdir/out"
+
+# Take a lock on the data file so that we can detect active downloads
+exec 9< "$1.ogg.data"
+flock -s 9
 
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |

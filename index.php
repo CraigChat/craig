@@ -99,7 +99,7 @@ function download($title, $format="flac", $container="zip") {
 }
 
 // Present them their options
-if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
+if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUEST["ready"])) {
     include("dl.php");
 
 } else if (isset($_REQUEST["delete"])) {
@@ -122,6 +122,23 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"])) {
         // We do NOT delete the key, so that it's not replaced before it times out naturally
         die(ls("deleted"));
     }
+
+} else if (isset($_REQUEST["ready"])) {
+    // The file is shared-locked while still being downloaded
+    $ready = true;
+    $fp = fopen("$base/$id.ogg.data", "r+");
+    if ($fp !== false) {
+        for ($i = 0; $i < 30; $i++) {
+            $ready = flock($fp, LOCK_EX);
+            flock($fp, LOCK_UN);
+            if ($ready) break;
+            sleep(1);
+        }
+        fclose($fp);
+    }
+
+    header("Content-type: application/json");
+    print "{\"ready\":".($ready?"true":"false")."}";
 
 } else if ($_REQUEST["fetch"] === "cooked") {
     $format = "flac";
