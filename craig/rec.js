@@ -557,9 +557,12 @@ commands["leave"] = commands["part"] = function(msg, cmd) {
             !(channelId in activeRecordings[guildId])) {
             /* Maybe we can just ignore the channel name and leave whatever
              * channel we're in? */
-            if (cname === "" && guild.voiceConnection) {
-                channel = guild.voiceConnection.channel;
-                channelId = channel.id;
+            if (cname === "" && (guildId in activeRecordings)) {
+                var rid = Object.keys(activeRecordings[guildId])[0];
+                if (rid) {
+                    channel = guild.channels.get(rid);
+                    channelId = rid;
+                }
             }
         }
         if (guildId in activeRecordings &&
