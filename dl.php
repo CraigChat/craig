@@ -355,10 +355,14 @@ print "0:0};\n";
                 return document.getElementById(id);
             }
 
-            function initDownload(target) {
-                document.querySelectorAll(".big button").forEach(function(b) { b.disabled = true; });
+            function downloading(dling) {
+                document.querySelectorAll(".big button").forEach(function(b) { b.disabled = downloading; });
                 var l = document.getElementById("loading");
-                if (l) l.style.visibility = "visible";
+                if (l) l.style.visibility = (downloading?"visible":"hidden");
+            }
+
+            function initDownload(target) {
+                downloading(true);
 
                 // Wait for it to be ready
                 var xhr = new XMLHttpRequest();
@@ -385,9 +389,7 @@ print "0:0};\n";
                         return;
                     var ready = JSON.parse(xhr.responseText);
                     if (ready && ready.ready) {
-                        document.querySelectorAll(".big button").forEach(function(b) { b.disabled = false; });
-                        var l = document.getElementById("loading");
-                        if (l) l.style.visibility = "hidden";
+                        downloading(false);
                     } else {
                         completeDownload();
                     }
@@ -408,6 +410,22 @@ print "0:0};\n";
                 a.parentElement.replaceChild(b, a);
             }
             document.querySelectorAll(".big a").forEach(replaceA);
+
+            function initCheck() {
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState !== 4)
+                        return;
+                    var ready = JSON.parse(xhr.responseText);
+                    if (!ready || !ready.ready) {
+                        downloading(true);
+                        completeDownload();
+                    }
+                };
+                xhr.open("GET", craigReady + "=nb", true);
+                xhr.send();
+            }
+            initCheck();
 
             document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
 

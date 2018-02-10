@@ -129,9 +129,9 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
     $fp = fopen("$base/$id.ogg.data", "r+");
     if ($fp !== false) {
         for ($i = 0; $i < 30; $i++) {
-            $ready = flock($fp, LOCK_EX);
+            $ready = flock($fp, LOCK_EX|LOCK_NB);
             flock($fp, LOCK_UN);
-            if ($ready) break;
+            if ($ready || $_REQUEST["ready"] === "nb") break;
             sleep(1);
         }
         fclose($fp);
