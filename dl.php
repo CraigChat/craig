@@ -356,9 +356,9 @@ print "0:0};\n";
             }
 
             function downloading(dling) {
-                document.querySelectorAll(".big button").forEach(function(b) { b.disabled = downloading; });
+                document.querySelectorAll(".big button").forEach(function(b) { b.disabled = dling; });
                 var l = document.getElementById("loading");
-                if (l) l.style.visibility = (downloading?"visible":"hidden");
+                if (l) l.style.visibility = (dling?"visible":"hidden");
             }
 
             function initDownload(target) {
