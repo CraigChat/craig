@@ -141,7 +141,7 @@ int main(int argc, char **argv)
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * 5) {
             // We are behind
-            if (oggHeader.granulePos > lastGranulePos + packetTime * 5) {
+            if (oggHeader.granulePos > lastGranulePos + packetTime * 10) {
                 // There was a real gap, fill it
                 uint64_t gapTime = oggHeader.granulePos - trueGranulePos;
                 while (gapTime >= packetTime) {
