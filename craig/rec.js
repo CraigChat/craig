@@ -370,6 +370,20 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 channel = guild.channels.get(channelId);
         }
 
+        // Work around the most insane discord.js bug yet
+        try {
+            var fguild = chosenClient.guilds.get(guild.id);
+            if (fguild) {
+                guild = fguild;
+                var fchannel = guild.channels.get(channel.id);
+                if (fchannel)
+                    channel = fchannel;
+                channel.guild = guild; // Unbelievably, we can do this!
+            }
+        } catch (ex) {
+            logex(ex);
+        }
+
         // Joinable can crash if the voiceConnection is in a weird state
         var joinable = true;
         try {
