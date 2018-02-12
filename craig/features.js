@@ -55,12 +55,12 @@ const blessG2U = gms.blessG2U;
 function features(id, gid) {
     // Do they have their own rewards?
     var r = rewards[id];
-    if (r) return r;
+    if (r && r.limits) return r;
 
     // Are they in a blessed guild?
     if (gid && gid in blessG2U) {
         r = rewards[blessG2U[gid]];
-        if (r) return r;
+        if (r && r.limits) return r;
     }
 
     return defaultFeatures;
