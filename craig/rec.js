@@ -151,6 +151,8 @@ function session(msg, prefix, rec) {
         fs.createWriteStream(recFileBase + ".header2")
     ];
     var recFStream = fs.createWriteStream(recFileBase + ".data");
+    var recFUStream = fs.createWriteStream(recFileBase + ".users");
+    recFUStream.write("\"\"\n");
 
     // And our ogg encoders
     function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
@@ -223,9 +225,14 @@ function session(msg, prefix, rec) {
             } catch (ex) {
                 logex(ex);
             }
+
+            // And remember the user's name
+            recFUStream.write("," + JSON.stringify(user.username + "#" + user.discriminator) + "\n");
+
         } else {
             userTrackNo = userTrackNos[user.id];
             packetNo = userPacketNos[user.id];
+
         }
 
         try {
@@ -278,6 +285,7 @@ function session(msg, prefix, rec) {
         recOggHStream[0].end();
         recOggHStream[1].end();
         recOggStream.end();
+        recFUStream.end();
 
         // Delete our leave timeout
         clearTimeout(partTimeout);
@@ -452,7 +460,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
                     recFileBase + ".header2 " + recFileBase + ".data " +
                     recFileBase + ".key " + recFileBase + ".delete " +
-                    recFileBase + ".features\n");
+                    recFileBase + ".features " + recFileBase + ".users\n");
             atcp.stdin.end();
 
             // We have a nick per the specific client

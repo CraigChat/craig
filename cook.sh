@@ -90,13 +90,17 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
 NICE="nice -n10 ionice -c3 chrt -i 0"
 
 # Encode thru fifos
-for c in `seq 1 $NB_STREAMS`
+for c in `seq -w 1 $NB_STREAMS`
 do
-    mkfifo $tmpdir/out/$c.$ext
+    O_USER="`$SCRIPTBASE/cook-username.js $1 $c`"
+    [ "$O_USER" ] || unset O_USER
+    O_FN="$c${O_USER+-}$O_USER.$ext"
+    O_FFN="$tmpdir/out/$O_FN"
+    mkfifo "$O_FFN"
     if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT ../oggstender $c > $tmpdir/out/$c.$ext &
+            timeout $DEF_TIMEOUT ../oggstender $c > "$O_FFN" &
 
     else
         true
@@ -105,7 +109,7 @@ do
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
             -af "$ARESAMPLE" \
             -f wav - |
-            timeout $DEF_TIMEOUT $NICE $ENCODE > $tmpdir/out/$c.$ext &
+            timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN" &
 
     fi
 done
