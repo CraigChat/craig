@@ -22,8 +22,11 @@ var events = [];
 var recordings = {};
 var stats = {
     totalRecordings: 0,
+    last30Days: 0,
     totalTime: 0,
-    maxSimultaneous: 0
+    maxSimultaneous: 0,
+    averagePerDay: 0,
+    averageLast30Days: 0
 };
 for (var li = 0; li < lines.length; li++) {
     var line = lines[li];
@@ -60,6 +63,22 @@ for (var li = 0; li < lines.length; li++) {
     }
 }
 
+// Figure out when the log starts
+var logStart = new Date();
+if (events.length)
+    logStart = events[0].rec.start;
+
+// Figure out when the last 30 days starts
+var last30 = new Date();
+for (var ei = events.length - 1; ei >= 0; ei--) {
+    var ev = events[ei];
+    if (ev.event === "end") {
+        last30 = new Date(ev.rec.end.getTime() - (30*24*60*60*1000));
+        break;
+    }
+}
+
+// Get all the stats
 var curSimultaneous = 0;
 for (var ei = 0; ei < events.length; ei++) {
     var ev = events[ei];
@@ -77,14 +96,22 @@ for (var ei = 0; ei < events.length; ei++) {
         var length = rec.end - rec.start;
         stats.totalTime += length/1000;
 
-        if (length > 120000)
+        if (length > 120000) {
             stats.totalRecordings++;
+            if (rec.end >= last30)
+                stats.last30Days++;
+        }
 
         curSimultaneous--;
 
     }
 }
 
+// And the averages
+stats.averagePerDay = stats.totalRecordings / ((Date.now() - logStart.getTime()) / (1000*60*60*24));
+stats.averageLast30Days = stats.last30Days / 30;
+
+// Now sort it for output
 var tm = stats.totalTime;
 var days = Math.floor(tm / 86400);
 tm -= days * 86400;
@@ -111,5 +138,7 @@ if (process.argv[3] && process.argv[3] === "json") {
     console.log("\t" + minutes + " minutes");
     console.log("\t" + tm + " seconds");
     console.log("Max simultaneous:\t" + stats.maxSimultaneous);
+    console.log("Average per day:\t" + Math.round(stats.averagePerDay));
+    console.log("Last 30 days avg:\t" + Math.round(stats.averageLast30Days));
 
 }
