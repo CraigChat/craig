@@ -7,11 +7,12 @@
         "url": "https://bitbucket.org/Yahweasel/craig"
     },
     "dependencies": {
+        "bufferutil": "^3.0.3",
         "cyclic-32": "*",
         "discord.js": "^11.3.0",
         "erlpack": "hammerandchisel/erlpack",
         "node-opus": "*",
-        "sodium": "*",
+        "sodium": "^2.0.3",
         "uws": "^0.14.5"
     }
 }
