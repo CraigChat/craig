@@ -6,4 +6,4 @@ try {
 } catch (ex) {}
 var n = parseInt(process.argv[3], 10);
 var user = users[n] ? users[n] : "";
-process.stdout.write(user.replace(/[^a-zA-Z0-9]/, "_"));
+process.stdout.write(user.replace(/[^a-zA-Z0-9]/g, "_"));
