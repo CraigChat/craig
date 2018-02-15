@@ -127,12 +127,13 @@ function session(msg, prefix, rec) {
             unusedMinutes++;
             if (usedMinutes === 0) {
                 // No recording at all!
+                const feedback = "\n\nIf you're confident you were sending audio, this may be due to a bug connecting to the voice server. Try the following workarounds:\n\n(1) In server settings, switch the voice region and try recording again. If it works, you may attempt to switch back to the original voice server, but don't be surprised if it still fails. If it doesn't work,\n\n(2) Kick me from the server, then reinvite me. You can find the invite link at " + config.longUrl + ". If that doesn't work,\n\n(3) The only remaining option is to reset the bot. You'll have to join my support server and ask for help.";
                 if (rec.noSilenceDisconnect) {
-                    sReply(true, "I'm not receiving any audio!");
+                    sReply(true, "I'm not receiving any audio!" + feedback);
                     usedMinutes++; // Just to make this warning not resound
                 } else {
                     log("Terminating " + id + ": No data.");
-                    sReply(true, "I'm not receiving any audio! Disconnecting.");
+                    sReply(true, "I'm not receiving any audio! Disconnecting." + feedback);
                     rec.disconnected = true;
                     connection.disconnect();
                     return;
