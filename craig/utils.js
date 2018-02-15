@@ -80,29 +80,19 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     if (!guild)
         return;
 
-    /* We can't get a message to them properly, so try to get a message out
-     * that we're stimied */
-    guild.channels.some((channel) => {
-        if (channel.type !== "text")
-            return false;
-
-        var perms = channel.permissionsFor(client.user);
-        if (!perms)
-            return false;
-
-        if (perms.hasPermission("SEND_MESSAGES")) {
-            // Finally!
-            channel.send("Sorry to spam this channel, but I don't have privileges to respond in the channel you talked to me in! Please give me permission to talk :(");
-            return true;
-        }
-
-        return false;
-    });
-
+    // We can't get a message to them properly, so kill any active recording
     try {
-        // Give ourself a name indicating error
-        guild.members.get(client.user.id).setNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
+        guild.voiceConnection.disconnect();
     } catch (ex) {}
+
+    // And give ourself a name indicating error
+    setTimeout(() => {
+        try {
+            guild.members.get(cc.client.user.id).setNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
+        } catch (ex) {
+            logex(ex);
+        }
+    }, 2000);
 
     });
 }
