@@ -24,6 +24,7 @@ var stats = {
     totalRecordings: 0,
     last30Days: 0,
     totalTime: 0,
+    totalTimeLast30Days: 0,
     maxSimultaneous: 0,
     averagePerDay: 0,
     averageLast30Days: 0
@@ -95,6 +96,8 @@ for (var ei = 0; ei < events.length; ei++) {
         // Ending a recording
         var length = rec.end - rec.start;
         stats.totalTime += length/1000;
+        if (rec.end >= last30)
+            stats.totalTimeLast30Days += length/1000;
 
         if (length > 120000) {
             stats.totalRecordings++;
@@ -139,6 +142,7 @@ if (process.argv[3] && process.argv[3] === "json") {
     console.log("\t" + tm + " seconds");
     console.log("Max simultaneous:\t" + stats.maxSimultaneous);
     console.log("Average per day:\t" + Math.round(stats.averagePerDay));
-    console.log("Last 30 days avg:\t" + Math.round(stats.averageLast30Days));
+    console.log("Recent recordings/day:\t" + Math.round(stats.averageLast30Days));
+    console.log("Recent time/day:\t" + Math.round(stats.totalTimeLast30Days/60/60/30) + " hours");
 
 }
