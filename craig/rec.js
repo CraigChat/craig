@@ -235,10 +235,18 @@ function session(msg, prefix, rec) {
                 request.get({url:user.avatarURL, encoding:null}, (err, resp, body) => {
                     if (!err)
                         userData.avatar = "data:image/png;base64," + body.toString("base64");
-                    recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+                    try {
+                        recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+                    } catch (ex) {
+                        logex(ex);
+                    }
                 });
             } else {
-                recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+                try {
+                    recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+                } catch (ex) {
+                    logex(ex);
+                }
             }
 
         } else {
