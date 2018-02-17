@@ -28,6 +28,9 @@ $l["en"] = array(
     "notracks" =>   "No tracks detected!",
     "complete" =>   "Processing complete.",
 
+    "avatars" =>    "Avatars",
+    "download" =>   "Download:",
+
     "delete1" =>    "This will DELETE recording ",
     "delete2" =>    "! Are you sure?",
 

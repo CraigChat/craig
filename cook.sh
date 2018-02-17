@@ -92,7 +92,7 @@ NICE="nice -n10 ionice -c3 chrt -i 0"
 # Encode thru fifos
 for c in `seq -w 1 $NB_STREAMS`
 do
-    O_USER="`$SCRIPTBASE/cook-username.js $1 $c`"
+    O_USER="`$SCRIPTBASE/cook/userinfo.js $1 $c`"
     [ "$O_USER" ] || unset O_USER
     O_FN="$c${O_USER+-}$O_USER.$ext"
     O_FFN="$tmpdir/out/$O_FN"
@@ -100,12 +100,12 @@ do
     if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT ../oggstender $c > "$O_FFN" &
+            timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c > "$O_FFN" &
 
     else
         true
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT ../oggstender $c |
+            timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
             -af "$ARESAMPLE" \
             -f wav - |

@@ -25,3 +25,7 @@ if (process.argv[4]) {
 if (process.argv[5] === "datauri" && val.startsWith("data:"))
     val = Buffer.from(val.split(",")[1], "base64");
 process.stdout.write(val);
+process.stdout.end();
+process.stdout.on("finish", () => {
+    process.exit((val==="")?1:0);
+});

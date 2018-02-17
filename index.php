@@ -180,6 +180,29 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
     flush();
     passthru("/home/yahweasel/craig/cook.sh $id $format $container");
 
+} else if ($_REQUEST["fetch"] === "avatars") {
+    $format = "png";
+    if (isset($_REQUEST["format"]) && isset($features["glowers"]) && $features["glowers"]) {
+        if ($_REQUEST["format"] === "mkvh264" ||
+            $_REQUEST["format"] === "webmvp8")
+            $format = $_REQUEST["format"];
+    }
+    $container = "zip";
+    $ext = "$format.zip";
+    $mime = "application/zip";
+    $transparent = (isset($_REQUEST["transparent"])?1:0);
+    $bg = "000000";
+    if (isset($_REQUEST["bg"]))
+        $bg = substr(preg_replace("/[^0-9A-Fa-f]/", "", $_REQUEST["bg"]), 0, 6);
+    $fg = "008000";
+    if (isset($_REQUEST["fg"]))
+        $fg = substr(preg_replace("/[^0-9A-Fa-f]/", "", $_REQUEST["fg"]), 0, 6);
+    header("Content-disposition: attachment; filename=$id.$ext");
+    header("Content-type: $mime");
+    ob_flush();
+    flush();
+    passthru("/home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
+
 } else {
     header("Content-disposition: attachment; filename=$id.ogg");
     header("Content-type: audio/ogg");

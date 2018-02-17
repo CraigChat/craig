@@ -330,6 +330,52 @@ if (isset($features["mp3"]) && $features["mp3"])
             <a href="ffmpeg-js-craig.tar.xz">source</a>.
         </div><br/><br/>
 
+        <button id="avatarsB" class="j2"><?PHP l("avatars"); ?></button><br/><br/>
+
+        <div id="avatars" style="display: none; margin: auto; max-width: 60em;">
+<?PHP
+l("download");
+print " <a href=\"?id=$id&amp;key=$key&amp;fetch=avatars\">PNG</a><br/><br/>";
+
+if (isset($features["glowers"]) && $features["glowers"]) {
+?>
+
+            <h2>Glowers:</h2>
+
+            <form method="POST" target="?">
+                <?PHP
+                    print "<input type=\"hidden\" name=\"id\" value=\"$id\" /><input type=\"hidden\" name=\"key\" value=\"$key\" />";
+                ?>
+                <input type="hidden" name="fetch" value="avatars" />
+
+                <label for="aformat"><?PHP l("format"); ?></label>
+                <select id="aformat" name="format">
+                    <option value="mkvh264">MKV (MPEG-4)</option>
+                    <option value="webmvp8">WebM (VP8)</option>
+                </select><br/><br/>
+
+                <input id="atrans" name="transparent" type="checkbox" checked />
+                <label for="atrans">Transparent background</label><br/>
+                (Note: WebM supports transparency, but most video editors do
+                not support WebM. MPEG-4 does not support transparency, so if
+                MKV is selected, a static PNG image and MKV representing the
+                alpha (transparency) channel will be sent. Most video editors
+                can be instructed to use one file for color and another file
+                for alpha/transparency.)<br/><br/>
+
+                <label for="abg" style="display: inline-block; text-align: right; min-width: 10em">Background color:</label>
+                <input id="abg" name="bg" value="#000000" /><br/><br/>
+
+                <label for="afg" style="display: inline-block; text-align: right; min-width: 10em">Glow color:</label>
+                <input id="afg" name="fg" value="#008000" /><br/><br/>
+
+                <input type="submit" value="Download" />
+            </form>
+<?PHP
+}
+?>
+        </div><br/><br/>
+
 <?PHP
 download(ls("raw"), "raw");
 ?>
@@ -446,6 +492,10 @@ print "0:0};\n";
 
             gid("localProcessingB").onclick = function() {
                 vis("localProcessing");
+            }
+
+            gid("avatarsB").onclick = function() {
+                vis("avatars");
             }
 
             var format = gid("format");
