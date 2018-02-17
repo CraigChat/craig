@@ -132,7 +132,7 @@ else
 
         # Make the glow itself
         FILTER="$FILTER"'
-            [2:a]dynaudnorm,showvolume=r=30:b=0:c=0xFFFFFF:f=0.75:t=0:v=0,format=y8,scale=1:1:flags=area,scale=160:160:flags=neighbor,setsar=1,split=3[glow][glow2][glow3];
+            [2:a]'"$ARESAMPLE"',dynaudnorm,showvolume=r=30:b=0:c=0xFFFFFF:f=0.75:t=0:v=0,format=y8,scale=1:1:flags=area,scale=160:160:flags=neighbor,setsar=1,split=3[glow][glow2][glow3];
             [1:v]alphaextract,setsar=1[glowa];
             [glowa][glow]blend=darken:shortest=1[glow];'
 

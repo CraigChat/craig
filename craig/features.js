@@ -316,6 +316,8 @@ function featuresToStr(f, guild, prefix) {
         ret += "\nYou may download auto-leveled mixed audio.";
     if (f.auto)
         ret += "\nYou may autorecord channels.";
+    if (f.glowers)
+        ret += "\nYou may download avatar glowers.";
     if (f.bless && !guild)
         ret += "\nYou may bless servers.";
     if (f.mp3)
