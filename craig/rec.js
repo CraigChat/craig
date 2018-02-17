@@ -27,6 +27,8 @@ const fs = require("fs");
 const ogg = require("./ogg.js");
 const opus = new (require("node-opus")).OpusEncoder(48000);
 
+const request = require("request");
+
 const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
@@ -153,7 +155,7 @@ function session(msg, prefix, rec) {
     ];
     var recFStream = fs.createWriteStream(recFileBase + ".data");
     var recFUStream = fs.createWriteStream(recFileBase + ".users");
-    recFUStream.write("\"\"\n");
+    recFUStream.write("\"0\":{}\n");
 
     // And our ogg encoders
     function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
@@ -227,8 +229,17 @@ function session(msg, prefix, rec) {
                 logex(ex);
             }
 
-            // And remember the user's name
-            recFUStream.write("," + JSON.stringify(user.username + "#" + user.discriminator) + "\n");
+            // Remember this user's name and avatar
+            var userData = {name:user.username, discrim:user.discriminator};
+            if (user.avatarURL) {
+                request.get({url:user.avatarURL, encoding:null}, (err, resp, body) => {
+                    if (!err)
+                        userData.avatar = "data:image/png;base64," + body.toString("base64");
+                    recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+                });
+            } else {
+                recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+            }
 
         } else {
             userTrackNo = userTrackNos[user.id];
