@@ -29,7 +29,12 @@ $l["en"] = array(
     "complete" =>   "Processing complete.",
 
     "avatars" =>    "Avatars",
-    "download" =>   "Download:",
+    "download" =>   "Download",
+    "glowers" =>    "Glowers",
+    "transparent" =>"Transparent background",
+    "transnote" =>  "Note: WebM supports transparency, but most video editors do not support WebM. MPEG-4 does not support transparency, so if MKV is selected, both a static PNG image and an MKV representing the alpha (transparency) channel will be sent. Most video editors can be instructed to use one file for color and another file for alpha (transparency).",
+    "bgc" =>        "Background color",
+    "fgc" =>        "Glow color",
 
     "delete1" =>    "This will DELETE recording ",
     "delete2" =>    "! Are you sure?",

@@ -335,12 +335,12 @@ if (isset($features["mp3"]) && $features["mp3"])
         <div id="avatars" style="display: none; margin: auto; max-width: 60em;">
 <?PHP
 l("download");
-print " <a href=\"?id=$id&amp;key=$key&amp;fetch=avatars\">PNG</a><br/><br/>";
+print ": <a href=\"?id=$id&amp;key=$key&amp;fetch=avatars\">PNG</a><br/><br/>";
 
 if (isset($features["glowers"]) && $features["glowers"]) {
 ?>
 
-            <h2>Glowers:</h2>
+            <h2><?PHP l("glowers"); ?>:</h2>
 
             <form method="POST" target="?">
                 <?PHP
@@ -355,21 +355,16 @@ if (isset($features["glowers"]) && $features["glowers"]) {
                 </select><br/><br/>
 
                 <input id="atrans" name="transparent" type="checkbox" checked />
-                <label for="atrans">Transparent background</label><br/>
-                (Note: WebM supports transparency, but most video editors do
-                not support WebM. MPEG-4 does not support transparency, so if
-                MKV is selected, a static PNG image and MKV representing the
-                alpha (transparency) channel will be sent. Most video editors
-                can be instructed to use one file for color and another file
-                for alpha/transparency.)<br/><br/>
+                <label for="atrans"><?PHP l("transparent"); ?></label><br/>
+                (<?PHP l("transnote"); ?>)<br/><br/>
 
-                <label for="abg" style="display: inline-block; text-align: right; min-width: 10em">Background color:</label>
+                <label for="abg" style="display: inline-block; text-align: right; min-width: 10em"><?PHP l("bgc"); ?>:</label>
                 <input id="abg" name="bg" value="#000000" /><br/><br/>
 
-                <label for="afg" style="display: inline-block; text-align: right; min-width: 10em">Glow color:</label>
+                <label for="afg" style="display: inline-block; text-align: right; min-width: 10em"><?PHP l("fgc"); ?>:</label>
                 <input id="afg" name="fg" value="#008000" /><br/><br/>
 
-                <input type="submit" value="Download" />
+                <?PHP print "<input type=\"submit\" value=\"" . ls("download") . "\" />"; ?>
             </form>
 <?PHP
 }

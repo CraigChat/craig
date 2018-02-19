@@ -10,7 +10,7 @@ $l["fr"] = array(
     "stm" =>        "Piste simple mixée:",
 
     "uncomp" =>     "non compressé",
-    "raw" =>        "Brut",
+    "raw" =>        "Fichier brut",
     "rawnote" =>    "Note: Presque aucun éditeur audio ne supporte ce fichier brut !",
 
     "local" =>      "Options de traitement local",
@@ -27,6 +27,14 @@ $l["fr"] = array(
     "downfail" =>   "Echec du téléchargement !",
     "notracks" =>   "Aucune piste détectée !",
     "complete" =>   "Traitement terminé.",
+
+    "avatars" =>    "Avatars",
+    "download" =>   "Téléchargement",
+    "glowers" =>    "Brillants",
+    "transparent" =>"Fond transparent",
+    "transnote" =>  "Note: WebM supporte la transparence, mais la plupart des éditeurs vidéo ne supportent pas WebM. MPEG-4 ne supporte pas la transparence, donc si MKV est sélectionné, une image PNG statique et un MKV représentant le canal alpha (transparence) seront envoyés. La plupart des éditeurs vidéo peuvent être instruits d'utiliser un fichier pour la couleur et un autre pour l'alpha (transparence).",
+    "bgc" =>        "Couleur du fond",
+    "fgc" =>        "Couleur de l'effet brillant",
 
     "delete1" =>    "Ceci effacera l'enregistrement",
     "delete2" =>    " ! Es-tu bien sur?",
