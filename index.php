@@ -114,11 +114,11 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
 
     } else {
         // Delete it!
-        unlink("$base/$id.ogg.header1");
-        unlink("$base/$id.ogg.header2");
-        unlink("$base/$id.ogg.data");
-        unlink("$base/$id.ogg.delete");
-        unlink("$base/$id.ogg.features");
+        @unlink("$base/$id.ogg.header1");
+        @unlink("$base/$id.ogg.header2");
+        @unlink("$base/$id.ogg.data");
+        @unlink("$base/$id.ogg.delete");
+        @unlink("$base/$id.ogg.features");
         // We do NOT delete the key, so that it's not replaced before it times out naturally
         die(ls("deleted"));
     }
