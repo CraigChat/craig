@@ -37,13 +37,16 @@ const commands = require("./commands.js").commands;
 const cf = require("./features.js");
 const cr = require("./rec.js");
 
-// SHARDING: All of these data structures are shared amongst all shards.
+// SHARDING: All of these data structures except for autoCur are shared amongst all shards.
 
 // Association of users with arrays autorecord guild+channels
 var autoU2GC = {};
 
 // And guilds to user+channel
 var autoG2UC = {};
+
+// Map of currently active auto-recordings, by guild -> channel
+var autoCur = {};
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
@@ -260,7 +263,7 @@ if (config.rewards) (function() {
         var triggers = uc.t;
 
         // Something has happened on a voice channel we're watching for autorecording
-        var recording = false, shouldRecord = false;
+        var recording = false, shouldRecord = false, triedRecording = false;
         if (guildId in cr.activeRecordings &&
             channelId in cr.activeRecordings[guildId])
             recording = true;
@@ -272,6 +275,31 @@ if (config.rewards) (function() {
             }
             return false;
         });
+
+        // Check if we're already recording
+        if (guildId in autoCur && channelId in autoCur[guildId])
+            triedRecording = true;
+
+        if (!recording && shouldRecord) {
+            if (triedRecording) {
+                // We've already tried. Don't try again until something's changed.
+                return;
+
+            } else {
+                // This is our try
+                if (!(guildId in autoCur))
+                    autoCur[guildId] = {};
+                autoCur[guildId][channelId] = true;
+
+            }
+
+        } else if (!shouldRecord && triedRecording) {
+            // We should no longer be trying to record
+            delete autoCur[guildId][channelId];
+            if (Object.keys(autoCur[guildId]).length === 0)
+                delete autoCur[guildId];
+
+        }
 
         // Should we start or stop a recording?
         if (recording !== shouldRecord) {
