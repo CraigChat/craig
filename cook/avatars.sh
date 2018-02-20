@@ -141,8 +141,7 @@ else
         # If we're generating an alpha channel, don't color the glow
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
         then
-            FILTER="$FILTER"'
-                [glow2]nullsink;'
+            true
         else
             FILTER="$FILTER"'
                 color=color=0x'"$FG"':size=160x160:rate=30[glowbg];
@@ -189,6 +188,7 @@ else
                 -t "$DURATION" \
                 -y "$O_FFN" &
 
+        if false; then
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
         then
             # Need to provide a png file for the color data
@@ -206,6 +206,7 @@ else
                     [bg][avatar]overlay[avatar]' \
                 -map '[avatar]' \
                 -y "$OP_FFN"
+        fi
         fi
     done
 fi
