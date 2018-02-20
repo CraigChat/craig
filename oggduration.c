@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         lastGranulePos = oggHeader.granulePos;
     }
 
-    printf("%f\n", ((double) lastGranulePos)/48000.0);
+    printf("%f\n", ((double) lastGranulePos)/48000.0+2);
 
     return 0;
 }
