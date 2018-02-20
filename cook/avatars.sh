@@ -17,7 +17,7 @@ timeout() {
     /usr/bin/timeout -k 5 "$@"
 }
 
-DEF_TIMEOUT=1800
+DEF_TIMEOUT=7200
 ulimit -v $(( 2 * 1024 * 1024 ))
 echo 10 > /proc/self/oom_adj
 
@@ -81,6 +81,8 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
+DURATION=`timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+    timeout $DEF_TIMEOUT "$SCRIPTBASE/oggduration"`
 NICE="nice -n10 ionice -c3 chrt -i 0"
 
 TRACKS=
@@ -122,19 +124,19 @@ else
         have_bg=no
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
         then
-            FILTER='color=color=black:size=160x160:rate=30[bg];'
+            FILTER='color=color=black:size=160x160:rate=30:duration=1[bg];'
             have_bg=yes
         elif [ ! "$TRANSPARENT" ]
         then
-            FILTER='color=color=0x'"$BG"':size=160x160:rate=30[bg];'
+            FILTER='color=color=0x'"$BG"':size=160x160:rate=30:duration=1[bg];'
             have_bg=yes
         fi
 
         # Make the glow itself
         FILTER="$FILTER"'
-            [2:a]'"$ARESAMPLE"',dynaudnorm,volume=2,showvolume=r=30:b=0:c=0xFFFFFF:f=0.75:t=0:v=0,format=y8,scale=1:1:flags=area,scale=160:160:flags=neighbor,setsar=1,split=3[glow][glow2][glow3];
+            [2:a]'"$ARESAMPLE"',apad,dynaudnorm,volume=2,showvolume=r=30:b=0:c=0xFFFFFF:f=0.75:t=0:v=0,format=y8,scale=1:1:flags=area,scale=160:160:flags=neighbor,setsar=1[glow];
             [1:v]alphaextract,setsar=1[glowa];
-            [glowa][glow]blend=darken:shortest=1[glow];'
+            [glowa][glow]blend=darken[glow];'
 
         # If we're generating an alpha channel, don't color the glow
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
@@ -144,7 +146,6 @@ else
         else
             FILTER="$FILTER"'
                 color=color=0x'"$FG"':size=160x160:rate=30[glowbg];
-                [glowbg][glow2]overlay=160:160:shortest=1[glowbg];
                 [glowbg][glow]alphamerge[glow];'
         fi
 
@@ -161,32 +162,31 @@ else
                 [3:v]scale=128:128,pad=160:160:16:16,setsar=1[avatar];
                 [avatar][avatara]alphamerge[avatar];'
         fi
-        FILTER="$FILTER"'
-            [avatar][glow3]overlay=160:160:shortest=1[avatar];'
 
         # Now, layer it all
         if [ "$have_bg" = "yes" ]
         then
             FILTER="$FILTER"'
-                [bg][glow]overlay=shortest=1[vid];'
+                [bg][glow]overlay[vid];'
         else
             FILTER="$FILTER"'
                 [glow]null[vid];'
         fi
         FILTER="$FILTER"'
-            [vid][avatar]overlay=shortest=1[vid]'
+            [vid][avatar]overlay[vid]'
 
         # Now perform the conversion
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
             timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg \
-                -loop 1 -framerate 30 -i "$SCRIPTBASE/cook/glower-avatar.png" \
-                -loop 1 -framerate 30 -i "$SCRIPTBASE/cook/glower-glow.png" \
+                -framerate 30 -i "$SCRIPTBASE/cook/glower-avatar.png" \
+                -framerate 30 -i "$SCRIPTBASE/cook/glower-glow.png" \
                 -codec libopus -copyts -i - \
-                -loop 1 -framerate 30 -i "$I_FFN" \
+                -framerate 30 -i "$I_FFN" \
                 -filter_complex "$FILTER" \
                 -map '[vid]' \
                 $CODEC \
+                -t "$DURATION" \
                 -y "$O_FFN" &
 
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
