@@ -188,14 +188,13 @@ else
                 -t "$DURATION" \
                 -y "$O_FFN" &
 
-        if false; then
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
         then
             # Need to provide a png file for the color data
             OP_FN="$t.png"
             OP_FFN="$tmpdir/out/$OP_FN"
             FILES="$FILES $OP_FN"
-            timeout $DEF_TIMEOUT $NICE ffmpeg \
+            timeout $DEF_TIMEOUT $NICE ffmpeg -nostdin \
                 -i "$SCRIPTBASE/cook/glower-avatar.png" \
                 -i "$I_FFN" \
                 -filter_complex '
@@ -206,7 +205,6 @@ else
                     [bg][avatar]overlay[avatar]' \
                 -map '[avatar]' \
                 -y "$OP_FFN"
-        fi
         fi
     done
 fi
