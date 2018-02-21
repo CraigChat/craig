@@ -419,7 +419,7 @@ print "0:0};\n";
                     }
                 };
 
-                xhr.open("GET", craigReady, true);
+                xhr.open("GET", craigReady + "&r=" + Math.random(), true);
                 xhr.send();
             }
 
@@ -432,10 +432,10 @@ print "0:0};\n";
                     if (ready && ready.ready) {
                         downloading(false);
                     } else {
-                        completeDownload();
+                        setTimeout(completeDownload, 5000);
                     }
                 };
-                xhr.open("GET", craigReady, true);
+                xhr.open("GET", craigReady + "&r=" + Math.random(), true);
                 xhr.send();
             }
 
@@ -463,7 +463,7 @@ print "0:0};\n";
                         completeDownload();
                     }
                 };
-                xhr.open("GET", craigReady + "=nb", true);
+                xhr.open("GET", craigReady + "=nb&r=" + Math.random(), true);
                 xhr.send();
             }
             initCheck();
