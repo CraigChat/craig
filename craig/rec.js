@@ -93,14 +93,17 @@ function session(msg, prefix, rec) {
     }
     cc.recordingEvents.emit("start", rec);
 
-    // Our input Opus streams by user
-    var userOpusStreams = {};
+    // Active users, by ID
+    var users = {};
 
     // Track numbers for each active user
     var userTrackNos = {};
 
     // Packet numbers for each active user
     var userPacketNos = {};
+
+    // Recent packets, before they've been flushed, for each active user
+    var userRecentPackets = {};
 
     // Have we warned about this user's data being corrupt?
     var corruptWarn = {};
@@ -174,8 +177,7 @@ function session(msg, prefix, rec) {
 
     // Function to encode a single Opus chunk to the ogg file
     function encodeChunk(user, oggStream, streamNo, packetNo, chunk) {
-        var chunkTime = process.hrtime(startTime);
-        var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
+        var chunkGranule = chunk.time;
 
         if (chunk.length > 4 && chunk[0] === 0xBE && chunk[1] === 0xDE) {
             // There's an RTP header extension here. Strip it.
@@ -210,21 +212,35 @@ function session(msg, prefix, rec) {
         write(oggStream, chunkGranule, streamNo, packetNo, chunk);
     }
 
+    // Function to flush one or more packets from a user's recent queue
+    function flush(user, oggStream, streamNo, queue, ct) {
+        var packetNo = userPacketNos[user.id];
+        for (var i = 0; i < ct; i++) {
+            var chunk = queue.shift();
+            try {
+                encodeChunk(user, oggStream, streamNo, packetNo, chunk);
+                packetNo++;
+            } catch (ex) {
+                logex(ex);
+            }
+        }
+        userPacketNos[user.id] = packetNo;
+    }
+
     // And receiver for the actual data
     function onReceive(user, chunk) {
-        if (user.id in userOpusStreams) return;
-
-        var opusStream = userOpusStreams[user.id] = receiver.createOpusStream(user);
-        var userTrackNo, packetNo;
-        if (!(user.id in userTrackNos)) {
+        var userTrackNo, userRecents;
+        if (!(user.id in users)) {
+            users[user.id] = user;
             userTrackNo = trackNo++;
             userTrackNos[user.id] = userTrackNo;
-            packetNo = userPacketNos[user.id] = 0;
+            userPacketNos[user.id] = 2;
+            userRecents = userRecentPackets[user.id] = [];
 
             // Put a valid Opus header at the beginning
             try {
                 write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeader[0], ogg.BOS);
-                write(recOggHStream[1], 0, userTrackNo, 0, cu.opusHeader[1]);
+                write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeader[1]);
             } catch (ex) {
                 logex(ex);
             }
@@ -251,33 +267,51 @@ function session(msg, prefix, rec) {
 
         } else {
             userTrackNo = userTrackNos[user.id];
-            packetNo = userPacketNos[user.id];
+            userRecents = userRecentPackets[user.id];
 
         }
 
-        try {
-            encodeChunk(user, recOggStream, userTrackNo, packetNo++, chunk);
-            userPacketNos[user.id] = packetNo;
-        } catch (ex) {
-            logex(ex);
-        }
+        // By default, chunk.time is the receipt time
+        var chunkTime = process.hrtime(startTime);
+        chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
 
-        opusStream.on("data", (chunk) => {
-            try {
-                encodeChunk(user, recOggStream, userTrackNo, packetNo++, chunk);
-                userPacketNos[user.id] = packetNo;
-            } catch (ex) {
-                logex(ex);
+        // Add it to the list
+        if (userRecents.length > 0) {
+            var last = userRecents[userRecents.length-1];
+            userRecents.push(chunk);
+            if (last.timestamp > chunk.timestamp) {
+                // Received out of order!
+                userRecents.sort((a, b) => { return b.timestamp - a.timestamp; });
+
+                // Now correct any time/timestamp discrepancies
+                last = userRecents[0];
+                for (var ui = 1; ui < userRecents.length; ui++) {
+                    var cur = userRecents[ui];
+                    if (cur.time <= last.time)
+                        cur.time = last.time + (cur.timestamp - last.timestamp);
+                    last = cur;
+                }
             }
-        });
-        opusStream.on("end", () => {
-            delete userOpusStreams[user.id];
-        });
+        } else {
+            userRecents.push(chunk);
+        }
+
+        // If the list is getting long, flush it
+        if (userRecents.length >= 16)
+            flush(user, recOggStream, userTrackNo, userRecents, 1);
     }
     receiver.on("opus", onReceive);
 
     // When we're disconnected from the channel...
     function onDisconnect() {
+        // Flush any remaining data
+        for (var uid in userRecentPackets) {
+            var user = users[uid];
+            var userTrackNo = userTrackNos[uid];
+            var userRecents = userRecentPackets[uid];
+            flush(user, recOggStream, userTrackNo, userRecents, userRecents.length);
+        }
+
         if (!rec.disconnected) {
             // Not an intentional disconnect
             try {

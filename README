@@ -7,6 +7,12 @@ discord.js. Its dependencies can be installed with `npm install`. In principle
 the recording bot works fine without the other components, but the audio files
 it produce aren't really usable without processing.
 
+One feature of Craig, correction for out-of-order audio, requires a small
+change to discord.js. In
+node_modules/discord.js/src/client/voice/receiver/VoiceReceiver.js , add
+`data.timestamp = nonce.readUInt32BE(4);` just after the block for handling RTP
+header extensions.
+
 The web page is in PHP (yuck), but otherwise has essentially no dependencies.
 The "other formats" feature, which performs audio processing in the browser,
 requires ffmpeg.js. The patch for ffmpeg.js to build it with the required
