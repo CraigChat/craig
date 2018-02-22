@@ -283,14 +283,10 @@ function session(msg, prefix, rec) {
                 // Received out of order!
                 userRecents.sort((a, b) => { return b.timestamp - a.timestamp; });
 
-                // Now correct any time/timestamp discrepancies
-                last = userRecents[0];
-                for (var ui = 1; ui < userRecents.length; ui++) {
-                    var cur = userRecents[ui];
-                    if (cur.time <= last.time)
-                        cur.time = last.time + (cur.timestamp - last.timestamp);
-                    last = cur;
-                }
+                /* Note that due to this reordering, the granule position in
+                 * the output ogg file will actually be decreasing! This is
+                 * fine for us, as all ogg files are preprocessed by
+                 * oggstender, which corrects such discrepancies anyway. */
             }
         } else {
             userRecents.push(chunk);
