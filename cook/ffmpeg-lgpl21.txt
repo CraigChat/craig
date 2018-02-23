@@ -1,6 +1,6 @@
-This software uses code of FFmpeg <http://ffmpeg.org> licensed under the
-LGPLv2.1 <http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html> and its
-source can be downloaded here <https://ffmpeg.org/download.html>.
+This software uses code from FFmpeg <http://ffmpeg.org>, licensed under the GNU
+Lesser General Public License 2.1 (attached). Its source can be downloaded from
+<https://ffmpeg.org/download.html>.
 
 FFmpeg copyright (c) Fabrice Bellard et al
 
