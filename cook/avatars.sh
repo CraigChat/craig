@@ -81,8 +81,7 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
-DURATION=`timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-    timeout $DEF_TIMEOUT "$SCRIPTBASE/oggduration"`
+DURATION=`timeout 10 "$SCRIPTBASE/oggduration" $1.ogg.data`
 NICE="nice -n10 ionice -c3 chrt -i 0"
 
 TRACKS=
@@ -195,7 +194,7 @@ else
 
         # Now perform the conversion
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c |
+            timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/oggstender" $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg \
                 -framerate 30 -i "$SCRIPTBASE/cook/glower-avatar.png" \
                 -framerate 30 -i "$SCRIPTBASE/cook/glower-glow.png" \

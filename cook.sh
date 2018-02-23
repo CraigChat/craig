@@ -95,6 +95,7 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
+DURATION=`timeout 10 "$SCRIPTBASE/cook/oggduration" $1.ogg.data`
 NICE="nice -n10 ionice -c3 chrt -i 0"
 
 # Prepare the self-extractor
@@ -116,15 +117,16 @@ do
     if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c > "$O_FFN" &
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
 
     else
         true
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
             -af "$ARESAMPLE" \
-            -f wav - |
+            -flags bitexact -f wav - |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN" &
 
     fi
@@ -147,7 +149,7 @@ case "$CONTAINER" in
         if [ "$FORMAT" = "copy" -a "$CONTAINER" = "ogg" ]
         then
             true
-            "$SCRIPTBASE/oggmultiplexer" *.ogg || true
+            "$SCRIPTBASE/cook/oggmultiplexer" *.ogg || true
         else
             true
             INPUT=""
@@ -178,7 +180,8 @@ case "$CONTAINER" in
         done
         MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
         FILTER="$FILTER$MIXFILTER"
-        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -f wav - < /dev/null |
+        timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE || true
         ;;
 
