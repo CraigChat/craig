@@ -58,7 +58,7 @@ if (!isset($id))
             .big button, .local button {
                 display: inline-block;
                 width: 10em;
-                min-height: 3em;
+                min-height: 3.5em;
                 vertical-align: middle;
                 text-align: center;
             }
@@ -160,7 +160,7 @@ if (!isset($id))
             }
             .la-line-scale.la-3x > div {
                 width: 4em;
-                height: 4.5em;
+                height: 5em;
                 margin: 0.25em;
                 margin-top: 0;
                 margin-bottom: 0;
@@ -252,7 +252,7 @@ foreach ($locales as $la) {
 <?PHP
 download("FLAC", "flac");
 if ($windows)
-    download("wav (Windows extractor)", "wavsfx");
+    download("wav <div style=\"font-size: 0.6em\">(Windows extractor, run RunMe.bat)</div>", "wavsfx");
 download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])
