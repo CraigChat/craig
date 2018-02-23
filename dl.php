@@ -251,6 +251,8 @@ foreach ($locales as $la) {
         <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
 <?PHP
 download("FLAC", "flac");
+if ($windows)
+    download("wav (Windows extractor)", "wavsfx");
 download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])
@@ -352,11 +354,14 @@ if (isset($features["glowers"]) && $features["glowers"]) {
                 <select id="aformat" name="format">
                     <option value="mkvh264">MKV (MPEG-4)</option>
                     <option value="webmvp8">WebM (VP8)</option>
+                    <?PHP if ($windows) { ?>
+                    <option value="movsfx">MOV (QuickTime Animation, Windows extractor)</option>
+                    <?PHP } ?>
                 </select><br/><br/>
 
                 <input id="atrans" name="transparent" type="checkbox" checked />
                 <label for="atrans"><?PHP l("transparent"); ?></label><br/>
-                (<?PHP l("transnote"); ?>)<br/><br/>
+                (<?PHP l("transnote1"); if ($windows) l("transnotewin"); l("transnote2"); ?>)<br/><br/>
 
                 <label for="abg" style="display: inline-block; text-align: right; min-width: 10em"><?PHP l("bgc"); ?>:</label>
                 <input id="abg" name="bg" value="#000000" /><br/><br/>

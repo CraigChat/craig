@@ -32,7 +32,9 @@ $l["fr"] = array(
     "download" =>   "Téléchargement",
     "glowers" =>    "Brillants",
     "transparent" =>"Fond transparent",
-    "transnote" =>  "Note: WebM supporte la transparence, mais la plupart des éditeurs vidéo ne supportent pas WebM. MPEG-4 ne supporte pas la transparence, donc si MKV est sélectionné, une image PNG statique et un MKV représentant le canal alpha (transparence) seront envoyés. La plupart des éditeurs vidéo peuvent être instruits d'utiliser un fichier pour la couleur et un autre pour l'alpha (transparence).",
+    "transnote1" =>  "Note: WebM supporte la transparence, mais la plupart des éditeurs vidéo ne supportent pas WebM. ",
+    "transnotewin" => "MOV supports transparency and is widely supported by video editors, but is far too large to generate and send directly. Instead, if you choose MOV, you will be sent compressed files and an extractor. Simply run RunMe.bat. ",
+    "transnote2" =>  "MPEG-4 ne supporte pas la transparence, donc si MKV est sélectionné, une image PNG statique et un MKV représentant le canal alpha (transparence) seront envoyés. La plupart des éditeurs vidéo peuvent être instruits d'utiliser un fichier pour la couleur et un autre pour l'alpha (transparence).",
     "bgc" =>        "Couleur du fond",
     "fgc" =>        "Couleur de l'effet brillant",
 

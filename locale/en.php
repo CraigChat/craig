@@ -32,7 +32,9 @@ $l["en"] = array(
     "download" =>   "Download",
     "glowers" =>    "Glowers",
     "transparent" =>"Transparent background",
-    "transnote" =>  "Note: WebM supports transparency, but most video editors do not support WebM. MPEG-4 does not support transparency, so if MKV is selected, both a static PNG image and an MKV representing the alpha (transparency) channel will be sent. Most video editors can be instructed to use one file for color and another file for alpha (transparency).",
+    "transnote1" => "Note: WebM supports transparency, but most video editors do not support WebM. ",
+    "transnotewin" => "MOV supports transparency and is widely supported by video editors, but is far too large to generate and send directly. Instead, if you choose MOV, you will be sent compressed files and an extractor. Simply run RunMe.bat. ",
+    "transnote2" => "MPEG-4 does not support transparency, so if MKV is selected, both a static PNG image and an MKV representing the alpha (transparency) channel will be sent. Most video editors can be instructed to use one file for color and another file for alpha (transparency).",
     "bgc" =>        "Background color",
     "fgc" =>        "Glow color",
 

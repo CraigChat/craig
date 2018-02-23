@@ -38,6 +38,8 @@ CONTAINER=zip
 
 ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0"
 
+EXTRAFILES=
+
 case "$FORMAT" in
     copy)
         ext=ogg
@@ -50,6 +52,12 @@ case "$FORMAT" in
         ext=aac
         #ENCODE="faac -q 100 -o /dev/stdout -"
         ENCODE="fdkaac -f 2 -m 4 -o - -"
+        ;;
+    wavsfx)
+        ext=flac
+        ENCODE="flac - -c"
+        EXTRAFILES="RunMe.bat ffmpeg.exe"
+        CONTAINER=zip
         ;;
     mp3)
         ext=mp3
@@ -89,6 +97,14 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     sed 's/^[^=]*=//'`
 NICE="nice -n10 ionice -c3 chrt -i 0"
 
+# Prepare the self-extractor
+if [ "$FORMAT" = "wavsfx" ]
+then
+    sed 's/^/@REM   / ; s/$/\r/g' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt" > "$tmpdir/out/RunMe.bat"
+    mkfifo "$tmpdir/out/ffmpeg.exe"
+    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-wav.exe" > "$tmpdir/out/ffmpeg.exe" &
+fi
+
 # Encode thru fifos
 for c in `seq -w 1 $NB_STREAMS`
 do
@@ -111,6 +127,11 @@ do
             -f wav - |
             timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN" &
 
+    fi
+
+    if [ "$FORMAT" = "wavsfx" ]
+    then
+        printf 'ffmpeg -i %s %s\r\ndel %s\r\n\r\n' "$O_FN" "${O_FN%.flac}.wav" "$O_FN" >> "$tmpdir/out/RunMe.bat"
     fi
 done
 if [ "$CONTAINER" = "zip" ]
@@ -162,7 +183,7 @@ case "$CONTAINER" in
         ;;
 
     *)
-        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext raw.dat || true
+        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext $EXTRAFILES raw.dat || true
         ;;
 esac | (cat || cat > /dev/null)
 

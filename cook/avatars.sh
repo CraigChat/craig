@@ -49,7 +49,7 @@ set -e
 ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0"
 
 case "$FORMAT" in
-    mkvh264)
+    mkvh264|movsfx)
         ext=mkv
         CODEC="-c:v libx264 -crf 16"
         ;;
@@ -99,6 +99,16 @@ do
 done
 
 FILES=
+
+# Prepare the self-extractor
+if [ "$FORMAT" = "movsfx" ]
+then
+    sed 's/^/@REM   / ; s/$/\r/g' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt" > "$tmpdir/out/RunMe.bat"
+    mkfifo "$tmpdir/out/ffmpeg.exe"
+    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-movqtrle.exe" > "$tmpdir/out/ffmpeg.exe" &
+    FILES="$FILES RunMe.bat ffmpeg.exe"
+fi
+
 if [ "$FORMAT" = "png" ]
 then
     # No actual processing
@@ -174,6 +184,15 @@ else
         FILTER="$FILTER"'
             [vid][avatar]overlay[vid]'
 
+        # If we're making a self-extractor, split the color and alpha
+        if [ "$FORMAT" = "movsfx" ]
+        then
+            FILTER="$FILTER"';
+                [vid]split[vid][alpha];
+                [alpha]alphaextract[alpha];
+                [vid][alpha]hstack[vid]'
+        fi
+
         # Now perform the conversion
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
             timeout $DEF_TIMEOUT "$SCRIPTBASE/oggstender" $c |
@@ -188,6 +207,7 @@ else
                 -t "$DURATION" \
                 -y "$O_FFN" &
 
+        # Support special stuff for special formats
         if [ "$TRANSPARENT" -a "$FORMAT" = "mkvh264" ]
         then
             # Need to provide a png file for the color data
@@ -205,6 +225,13 @@ else
                     [bg][avatar]overlay[avatar]' \
                 -map '[avatar]' \
                 -y "$OP_FFN"
+
+        elif [ "$FORMAT" = "movsfx" ]
+        then
+            printf 'ffmpeg -i %s -filter_complex "[0:v]split[vid][alpha];[vid]crop=160:160:0:0[vid];[alpha]crop=160:160:160:0[alpha];[vid][alpha]alphamerge[vid]" -map [vid] -c:v qtrle %s\r\ndel %s\r\n\r\n' \
+                "$O_FN" "${O_FN%.mkv}.mov" "$O_FN" \
+                >> "$tmpdir/out/RunMe.bat"
+
         fi
     done
 fi

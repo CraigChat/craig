@@ -46,6 +46,11 @@ if (file_exists("$base/$id.ogg.features"))
 else
     $features = array();
 
+// Check if they're on Windows
+$windows = false;
+if (stripos($_SERVER["HTTP_USER_AGENT"], "win") !== false || isset($_REQUEST["windows"]))
+    $windows = true;
+
 // Figure out the locale
 $locale = "en";
 $locales = array("en", "pt", "fr", "it");
@@ -144,8 +149,9 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
     $format = "flac";
     if (isset($_REQUEST["format"])) {
         if ($_REQUEST["format"] === "copy" ||
-            $_REQUEST["format"] === "aac" ||
             $_REQUEST["format"] === "vorbis" ||
+            $_REQUEST["format"] === "aac" ||
+            $_REQUEST["format"] === "wavsfx" ||
             $_REQUEST["format"] === "ra")
             $format = $_REQUEST["format"];
         else if ($_REQUEST["format"] === "mp3" &&
@@ -184,7 +190,8 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
     $format = "png";
     if (isset($_REQUEST["format"]) && isset($features["glowers"]) && $features["glowers"]) {
         if ($_REQUEST["format"] === "mkvh264" ||
-            $_REQUEST["format"] === "webmvp8")
+            $_REQUEST["format"] === "webmvp8" ||
+            $_REQUEST["format"] === "movsfx")
             $format = $_REQUEST["format"];
     }
     $container = "zip";
