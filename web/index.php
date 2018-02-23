@@ -53,7 +53,7 @@ if (stripos($_SERVER["HTTP_USER_AGENT"], "win") !== false || isset($_REQUEST["wi
 
 // Figure out the locale
 $locale = "en";
-$locales = array("en", "pt", "fr", "it");
+$locales = array("en", "pt", "de", "fr", "it");
 $l = array();
 
 $notrust = "/[^A-Za-z0-9_-]/";
