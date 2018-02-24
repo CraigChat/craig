@@ -126,8 +126,8 @@ do
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
             -af "$ARESAMPLE" \
             -flags bitexact -f wav - |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN" &
+#            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
 
     fi
 
@@ -181,8 +181,8 @@ case "$CONTAINER" in
         MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
         FILTER="$FILTER$MIXFILTER"
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE || true
+#            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
         ;;
 
     *)
