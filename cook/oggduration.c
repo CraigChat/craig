@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018 Yahweasel
+ * Copyright (c) 2017 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <errno.h>
-#include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 /* NOTE: We don't use libogg here because the behavior if this program is so
@@ -29,6 +26,11 @@
 
 /* NOTE: This program assumes little-endian for speed, it WILL NOT WORK on a
  * big-endian system */
+
+struct OggPreHeader {
+    unsigned char capturePattern[4];
+    unsigned char version;
+} __attribute__((packed));
 
 struct OggHeader {
     unsigned char type;
@@ -38,52 +40,59 @@ struct OggHeader {
     uint32_t crc;
 } __attribute__((packed));
 
+ssize_t readAll(int fd, void *vbuf, size_t count)
+{
+    unsigned char *buf = (unsigned char *) vbuf;
+    ssize_t rd = 0, ret;
+    while (rd < count) {
+        ret = read(fd, buf + rd, count - rd);
+        if (ret <= 0) return ret;
+        rd += ret;
+    }
+    return rd;
+}
+
 int main(int argc, char **argv)
 {
-    uint64_t lastGranulePos = ((uint16_t) 6)*60*60*48000;
-    unsigned char buf[4096];
-    const uint32_t bufSz = 4096;
-    ssize_t bufUsed;
-    struct OggHeader *oggHeader;
-    int oggFd, i;
-    off_t foff;
+    uint64_t lastGranulePos = 0;
+    uint32_t packetSize;
+    unsigned char segmentCount, segmentVal;
+    unsigned char buf[1024];
+    const uint32_t bufSz = 1024;
+    struct OggPreHeader preHeader;
 
-    // Read the end of the file
-    if (argc != 2) return 1;
-    oggFd = open(argv[1], O_RDONLY);
-    if (oggFd == -1) {
-        perror(argv[1]);
-        goto done;
-    }
-    foff = lseek(oggFd, 0, SEEK_END);
-    if (lseek(oggFd, foff - bufSz, SEEK_SET) == (off_t) -1) {
-        if (errno != EINVAL) {
-            // EINVAL is actually fine, just a short file
-            perror("lseek");
-            goto done;
-        }
-    }
-    bufUsed = read(oggFd, buf, bufSz);
-    if (bufUsed < 0) {
-        perror("read");
-        goto done;
-    } else if (bufUsed < bufSz) {
-        fprintf(stderr, "WARNING: Only read %d bytes.\n", (int) bufUsed);
-    }
-
-    // Now seek backwards for a header
-    for (i = bufUsed - sizeof(struct OggHeader); i >= 0; i--) {
-        if (!memcmp(buf + i, "OggS\0", 5)) {
-            // Found a header
-            oggHeader = (struct OggHeader *) (buf + i + 5);
-            lastGranulePos = oggHeader->granulePos;
+    while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
+        struct OggHeader oggHeader;
+        if (memcmp(preHeader.capturePattern, "OggS", 4))
             break;
+
+        // It's an ogg header, get the header data
+        if (readAll(0, &oggHeader, sizeof(oggHeader)) != sizeof(oggHeader))
+            break;
+
+        // Get the data size
+        packetSize = 0;
+        if (readAll(0, &segmentCount, 1) != 1)
+            break;
+        for (; segmentCount; segmentCount--) {
+            if (readAll(0, &segmentVal, 1) != 1)
+                break;
+            packetSize += (uint32_t) segmentVal;
         }
+
+        // Skip the data
+        if (packetSize > bufSz) {
+            if (readAll(0, buf, bufSz) != bufSz)
+                break;
+            packetSize -= bufSz;
+        }
+        if (readAll(0, buf, packetSize) != packetSize)
+            break;
+
+        if (oggHeader.granulePos > lastGranulePos)
+            lastGranulePos = oggHeader.granulePos;
     }
 
-    close(oggFd);
-
-done:
     printf("%f\n", ((double) lastGranulePos)/48000.0+2);
 
     return 0;

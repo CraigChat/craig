@@ -80,17 +80,16 @@ int main(int argc, char **argv)
         // Update its duration
         double duration = 6.0*60*60;
         uint64_t bytes;
-        uint32_t bytes32;
         if (argc > 1)
             duration = atof(argv[1]);
         bytes = duration * wavHeader.formatSampleRate *
             wavHeader.formatChannels * (wavHeader.formatBitsPerSample/8) + 36;
-        if (bytes >= ((uint64_t) 1)<<32)
-            bytes32 = -1;
-        else
-            bytes32 = bytes;
-        wavHeader.wavSize = bytes32 - 36;
-        wavHeader.fileSize = bytes32;
+        if (bytes >= ((uint64_t) 1)<<32) {
+            wavHeader.wavSize = wavHeader.fileSize = -1;
+        } else {
+            wavHeader.wavSize = bytes - 36;
+            wavHeader.fileSize = bytes;
+        }
     }
 
     // Write out the header

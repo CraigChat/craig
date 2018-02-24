@@ -91,12 +91,12 @@ mkdir "$tmpdir/in" "$tmpdir/out"
 exec 9< "$1.ogg.data"
 flock -s 9
 
+NICE="nice -n10 ionice -c3 chrt -i 0"
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
-DURATION=`timeout 10 "$SCRIPTBASE/cook/oggduration" $1.ogg.data`
-NICE="nice -n10 ionice -c3 chrt -i 0"
+DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data`
 
 # Prepare the self-extractor
 if [ "$FORMAT" = "wavsfx" ]
@@ -126,8 +126,8 @@ do
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
             -af "$ARESAMPLE" \
             -flags bitexact -f wav - |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN" &
-#            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
 
     fi
 
@@ -181,8 +181,8 @@ case "$CONTAINER" in
         MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
         FILTER="$FILTER$MIXFILTER"
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE || true
-#            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
         ;;
 
     *)

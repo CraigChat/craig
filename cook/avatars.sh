@@ -77,12 +77,12 @@ mkdir "$tmpdir/in" "$tmpdir/out"
 exec 9< "$1.ogg.data"
 flock -s 9
 
+NICE="nice -n10 ionice -c3 chrt -i 0"
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
-DURATION=`timeout 10 "$SCRIPTBASE/oggduration" $1.ogg.data`
-NICE="nice -n10 ionice -c3 chrt -i 0"
+DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/oggduration" < $1.ogg.data`
 
 TRACKS=
 
