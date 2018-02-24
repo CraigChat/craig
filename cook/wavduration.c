@@ -29,20 +29,27 @@ struct WavHeader {
     unsigned char magic[4];
     uint32_t fileSize;
     unsigned char format[4];
+} __attribute__((packed));;
 
-    // Format data:
-    unsigned char formatMagic[4];
-    uint32_t formatSize;
-    uint16_t formatAudio;
-    uint16_t formatChannels;
-    uint32_t formatSampleRate;
-    uint32_t formatByteRate;
-    uint16_t formatBlockAlign;
-    uint16_t formatBitsPerSample;
+struct WavSectHeader {
+    unsigned char magic[4];
+    uint32_t sectSize;
+} __attribute__((packed));;
 
-    // Wave data:
-    unsigned char wavMagic[4];
-    uint32_t wavSize;
+struct WavFmtHeader {
+    uint16_t type;
+    uint16_t channels;
+    uint32_t sampleRate;
+    uint32_t byteRate;
+    uint16_t blockAlign;
+    uint16_t bitsPerSample;
+} __attribute__((packed));
+
+struct WavDS64Header {
+    uint64_t fileSize;
+    uint64_t dataSize;
+    uint64_t sampleCount;
+    uint32_t zero;
 } __attribute__((packed));
 
 ssize_t readAll(int fd, void *vbuf, size_t count)
@@ -63,6 +70,10 @@ int main(int argc, char **argv)
     const uint32_t bufSz = 4096;
     ssize_t bufUsed;
     struct WavHeader wavHeader;
+    struct WavSectHeader sectHeader;
+    struct WavFmtHeader fmtHeader;
+    struct WavDS64Header ds64Header;
+    int needDS64Header = 0;
 
     // Read the header
     bufUsed = readAll(0, &wavHeader, sizeof(struct WavHeader));
@@ -74,26 +85,89 @@ int main(int argc, char **argv)
     }
 
     // Make sure it IS a wav header
-    if (!memcmp(wavHeader.magic, "RIFF", 4) && 
-        !memcmp(wavHeader.formatMagic, "fmt ", 4) && 
-        !memcmp(wavHeader.wavMagic, "data", 4)) {
+    if (!memcmp(wavHeader.magic, "RIFF", 4) || !memcmp(wavHeader.magic, "RF64", 4)) {
+        // Skip other headers looking for fmt and data
+        memset(&fmtHeader, 0, sizeof(fmtHeader));
+        while (1) {
+            bufUsed = readAll(0, &sectHeader, sizeof(sectHeader));
+            if (bufUsed < sizeof(sectHeader))
+                return 1;
+            if (!memcmp(sectHeader.magic, "fmt ", 4) &&
+                sectHeader.sectSize >= sizeof(fmtHeader)) {
+                // Found our format header
+                bufUsed = readAll(0, &fmtHeader, sizeof(fmtHeader));
+                if (bufUsed < sizeof(fmtHeader))
+                    return 1;
+
+                // Skip any remainder
+                sectHeader.sectSize -= sizeof(fmtHeader);
+
+            } else if (!memcmp(sectHeader.magic, "data", 4)) {
+                // The data itself
+                break;
+
+            }
+
+            // Some other header, ignore it
+            while (sectHeader.sectSize > bufSz) {
+                readAll(0, buf, bufSz);
+                sectHeader.sectSize -= bufSz;
+            }
+            if (sectHeader.sectSize > 0)
+                readAll(0, buf, sectHeader.sectSize);
+        }
+
         // Update its duration
         double duration = 6.0*60*60;
         uint64_t bytes;
+        uint32_t dataSize;
         if (argc > 1)
             duration = atof(argv[1]);
-        bytes = duration * wavHeader.formatSampleRate *
-            wavHeader.formatChannels * (wavHeader.formatBitsPerSample/8) + 36;
-        if (bytes >= ((uint64_t) 1)<<32) {
-            wavHeader.wavSize = wavHeader.fileSize = -1;
-        } else {
-            wavHeader.wavSize = bytes - 36;
-            wavHeader.fileSize = bytes;
-        }
-    }
+        bytes = duration * fmtHeader.sampleRate * fmtHeader.channels *
+            (fmtHeader.bitsPerSample/8);
+        if (bytes >= (((uint64_t) 1)<<32) - 36) {
+            needDS64Header = 1;
+            memcpy(wavHeader.magic, "RF64", 4);
+            wavHeader.fileSize = dataSize = -1;
+            ds64Header.fileSize = bytes + 64;
+            ds64Header.dataSize = bytes;
+            ds64Header.sampleCount = duration * fmtHeader.sampleRate;
+            ds64Header.zero = 0;
 
-    // Write out the header
-    write(1, &wavHeader, sizeof(struct WavHeader));
+        } else {
+            memcpy(wavHeader.magic, "RIFF", 4);
+            wavHeader.fileSize = bytes + 36;
+            dataSize = bytes;
+
+        }
+
+        // Write out the header
+        write(1, &wavHeader, sizeof(struct WavHeader));
+
+        // Write out the DS64 header if applicable
+        if (needDS64Header) {
+            memcpy(sectHeader.magic, "ds64", 4);
+            sectHeader.sectSize = sizeof(ds64Header);
+            write(1, &sectHeader, sizeof(sectHeader));
+            write(1, &ds64Header, sizeof(ds64Header));
+        }
+
+        // Write out the fmt header
+        memcpy(sectHeader.magic, "fmt ", 4);
+        sectHeader.sectSize = sizeof(fmtHeader);
+        write(1, &sectHeader, sizeof(sectHeader));
+        write(1, &fmtHeader, sizeof(fmtHeader));
+
+        // And finally the data header
+        memcpy(sectHeader.magic, "data", 4);
+        sectHeader.sectSize = dataSize;
+        write(1, &sectHeader, sizeof(sectHeader));
+
+    } else {
+        // Wasn't even a RIFF file, just copy it
+        write(1, &wavHeader, sizeof(struct WavHeader));
+
+    }
 
     // Then write out the rest
     while ((bufUsed = read(0, buf, bufSz)) > 0)
