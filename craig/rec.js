@@ -254,29 +254,53 @@ function session(msg, prefix, rec) {
                 logex(ex);
             }
 
-            // Remember this user's name and avatar
-            var userData = {name:user.username, discrim:user.discriminator};
-            var url;
-            if (user.dynamicAvatarURL) {
-                url = user.dynamicAvatarURL("png", 2048);
+            // Remember this user's name
+            if (user.unknown) {
+                // Need to fetch it first
+                try {
+                    connection.channel.guild.fetchAllMembers();
+                    setTimeout(() => {
+                        var member;
+                        try {
+                            member = connection.channel.guild.members.get(user.id);
+                        } catch (ex) {}
+                        if (member)
+                            withName(member.user);
+                        else
+                            withName(user);
+                    }, 5000);
+                } catch (ex) {
+                    withName(user);
+                }
             } else {
-                url = user.avatarURL;
+                withName(user);
             }
-            if (url) {
-                request.get({url:url, encoding:null}, (err, resp, body) => {
-                    if (!err)
-                        userData.avatar = "data:image/png;base64," + body.toString("base64");
+
+            function withName(user) {
+                // Remember this user's avatar
+                var userData = {name:user.username, discrim:user.discriminator};
+                var url;
+                if (user.dynamicAvatarURL) {
+                    url = user.dynamicAvatarURL("png", 2048);
+                } else {
+                    url = user.avatarURL;
+                }
+                if (url) {
+                    request.get({url:url, encoding:null}, (err, resp, body) => {
+                        if (!err)
+                            userData.avatar = "data:image/png;base64," + body.toString("base64");
+                        try {
+                            recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
+                        } catch (ex) {
+                            logex(ex);
+                        }
+                    });
+                } else {
                     try {
                         recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
                     } catch (ex) {
                         logex(ex);
                     }
-                });
-            } else {
-                try {
-                    recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
-                } catch (ex) {
-                    logex(ex);
                 }
             }
 
@@ -324,7 +348,7 @@ function session(msg, prefix, rec) {
                 // Just confusing reflection, ignore it
                 return;
             } else {
-                user = {id: userId, username: "Unknown", discriminator: "0000"};
+                user = {id: userId, username: "Unknown", discriminator: "0000", unknown: true};
             }
         }
         return onReceive(user, chunk);
