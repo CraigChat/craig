@@ -56,7 +56,16 @@ function userIsAuthorized(member) {
         return true;
 
     // Otherwise, they must be a member of the right role
-    if (member.roles.some((role) => { return role.name.toLowerCase() === "craig"; }))
+    var haveRole = false;
+    member.roles.forEach((role) => {
+        if (!role.name)
+            role = member.guild.roles.get(role);
+        if (!role.name)
+            return;
+        if (role.name.toLowerCase() === "craig")
+            haveRole = true;
+    });
+    if (haveRole)
         return true;
 
     // Not for you!

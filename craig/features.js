@@ -222,6 +222,8 @@ if (config.rewards) (function() {
         if (!guild) return;
         guild.fetchMembers().then((guild) => {
             guild.roles.forEach((role) => {
+                if (typeof role === "string")
+                    role = guild.roles.get(role);
                 var rn = role.name.toLowerCase();
                 if (rn in rr)
                     role.members.forEach(resolveRewards);
