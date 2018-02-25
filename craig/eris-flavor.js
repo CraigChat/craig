@@ -89,6 +89,7 @@ function odg(obj, nm, val) {
 
                     case "guildMemberUpdate":
                         return this.flavorOn(ev, (guild, to, from) => {
+                            if (!from) return;
                             from.id = to.id;
                             from.guild = guild;
                             from.nickname = from.nick;
