@@ -505,13 +505,17 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 fs.writeFileSync(recFileBase + ".features", JSON.stringify(f), "utf8");
 
             // Make sure they get destroyed
-            var atcp = cp.spawn("at", ["now + " + f.limits.download + " hours"],
-                    {"stdio": ["pipe", 1, 2]});
-            atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
-                    recFileBase + ".header2 " + recFileBase + ".data " +
-                    recFileBase + ".key " + recFileBase + ".delete " +
-                    recFileBase + ".features " + recFileBase + ".users\n");
-            atcp.stdin.end();
+            try {
+                var atcp = cp.spawn("at", ["now + " + f.limits.download + " hours"],
+                        {"stdio": ["pipe", 1, 2]});
+                atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
+                        recFileBase + ".header2 " + recFileBase + ".data " +
+                        recFileBase + ".key " + recFileBase + ".delete " +
+                        recFileBase + ".features " + recFileBase + ".users\n");
+                atcp.stdin.end();
+            } catch (ex) {
+                logex(ex);
+            }
 
             // We have a nick per the specific client
             var reNick = config.nick;
