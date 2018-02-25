@@ -65,7 +65,16 @@ function session(msg, prefix, rec) {
         reply(msg, dm, prefix, pubtext, privtext);
     }
 
-    var receiver = connection.createReceiver ? connection.createReceiver() : connection.receive("opus");
+    var receiver;
+    if (connection.createReceiver) {
+        // discord.js
+        receiver = connection.createReceiver();
+    } else {
+        // Eris
+        connection.stopPlaying();
+        receiver = connection.receive("opus");
+    }
+
     const partTimeout = setTimeout(() => {
         log("Terminating " + id + ": Time limit.");
         sReply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
@@ -249,7 +258,7 @@ function session(msg, prefix, rec) {
             var userData = {name:user.username, discrim:user.discriminator};
             var url;
             if (user.dynamicAvatarURL) {
-                url = user.dynamicAvatarURL("png", 512);
+                url = user.dynamicAvatarURL("png", 2048);
             } else {
                 url = user.avatarURL;
             }
@@ -311,6 +320,9 @@ function session(msg, prefix, rec) {
             user = connection.channel.guild.members.get(userId);
             if (user) {
                 user = user.user;
+            } else if (userId === client.user.id) {
+                // Just confusing reflection, ignore it
+                return;
             } else {
                 user = {id: userId, username: "Unknown", discriminator: "0000"};
             }
