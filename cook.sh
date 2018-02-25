@@ -109,7 +109,7 @@ fi
 # Encode thru fifos
 for c in `seq -w 1 $NB_STREAMS`
 do
-    O_USER="`$SCRIPTBASE/cook/userinfo.js $1 $c`"
+    O_USER="`$SCRIPTBASE/cook/userinfo.js $1 $c || true`"
     [ "$O_USER" ] || unset O_USER
     O_FN="$c${O_USER+-}$O_USER.$ext"
     O_FFN="$tmpdir/out/$O_FN"
