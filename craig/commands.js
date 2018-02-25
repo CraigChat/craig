@@ -70,7 +70,8 @@ function onMessage(msg) {
     if (cmd === null) return;
 
     // Is this from our glorious leader?
-    if (msg.channel.type === "dm" && msg.author.id && msg.author.id === config.owner) {
+    if ((msg.channel.type === "dm" || msg.channel.type === 1) &&
+        msg.author.id && msg.author.id === config.owner) {
         if (cc.dead) return;
         try {
             log("Owner command: " + nameId(msg.author) + ": " + msg.content);

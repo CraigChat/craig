@@ -102,7 +102,7 @@ function findChannel(msg, guild, cname) {
     var channel = null;
 
     guild.channels.some((schannel) => {
-        if (schannel.type !== "voice")
+        if (schannel.type !== "voice" && schannel.type !== 2)
             return false;
 
         if (schannel.name.toLowerCase() === cname ||

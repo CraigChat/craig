@@ -116,6 +116,8 @@ if (config.rewards) (function() {
         var mrewards = {};
 
         member.roles.forEach((role) => {
+            if (typeof role === "string")
+                role = member.guild.roles.get(role);
             var rn = role.name.toLowerCase();
             if (rn in rr) {
                 var roler = rr[rn];

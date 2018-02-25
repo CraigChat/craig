@@ -23,6 +23,8 @@
 const EventEmitter = require("events");
 const fs = require("fs");
 const Discord = require("discord.js");
+const Eris = require("eris");
+require("./eris-flavor.js");
 
 const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 
@@ -46,7 +48,21 @@ var vclient, vsm, vmaster;
 
 if (!config.shard || shard) {
     // Either we aren't using sharding, or we are a shard, so normal client connection
-    vclient = new Discord.Client(clientOptions);
+    // TEMPORARY: Testing out the Eris version on shard 0, as it has the Craig server itself
+    if (process.env["SHARD_ID"] === "0") {
+        if (shard) {
+            vclient = new Eris.Client(config.token, {
+                firstShardID: +process.env["SHARD_ID"],
+                lastShardID: +process.env["SHARD_ID"],
+                maxShards: +process.env["SHARD_COUNT"]
+            });
+        } else {
+            vclient = new Eris.Client(config.token);
+        }
+    } else {
+        vclient = new Discord.Client(clientOptions);
+    }
+
     vsm = null;
     vmaster = !shard;
 } else {

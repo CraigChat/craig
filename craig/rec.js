@@ -65,7 +65,7 @@ function session(msg, prefix, rec) {
         reply(msg, dm, prefix, pubtext, privtext);
     }
 
-    var receiver = connection.createReceiver();
+    var receiver = connection.createReceiver ? connection.createReceiver() : connection.receive("opus");
     const partTimeout = setTimeout(() => {
         log("Terminating " + id + ": Time limit.");
         sReply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
@@ -247,8 +247,14 @@ function session(msg, prefix, rec) {
 
             // Remember this user's name and avatar
             var userData = {name:user.username, discrim:user.discriminator};
-            if (user.avatarURL) {
-                request.get({url:user.avatarURL, encoding:null}, (err, resp, body) => {
+            var url;
+            if (user.dynamicAvatarURL) {
+                url = user.dynamicAvatarURL("png", 512);
+            } else {
+                url = user.avatarURL;
+            }
+            if (url) {
+                request.get({url:url, encoding:null}, (err, resp, body) => {
                     if (!err)
                         userData.avatar = "data:image/png;base64," + body.toString("base64");
                     try {
@@ -297,6 +303,20 @@ function session(msg, prefix, rec) {
             flush(user, recOggStream, userTrackNo, userRecents, 1);
     }
     receiver.on("opus", onReceive);
+    receiver.on("data", (chunk, userId, timestamp) => {
+        chunk = Buffer.from(chunk);
+        chunk.timestamp = timestamp;
+        var user = client.users.get(userId);
+        if (!user) {
+            user = connection.channel.guild.members.get(userId);
+            if (user) {
+                user = user.user;
+            } else {
+                user = {id: userId, username: "Unknown", discriminator: "0000"};
+            }
+        }
+        return onReceive(user, chunk);
+    });
 
     // When we're disconnected from the channel...
     function onDisconnect() {
@@ -372,7 +392,7 @@ function safeJoin(channel, err) {
         }
     }
 
-    var ret = channel.join();
+    var ret = channel.join({opusOnly:true});
     var insaneInterval = setInterval(catchConnection, 200);
 
     return ret;
@@ -428,6 +448,13 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 channel = guild.channels.get(channelId);
         }
 
+        // Eris workaround
+        try {
+            chosenClient.voiceConnections.delete(guildId);
+        } catch (ex) {
+            logex(ex);
+        }
+
         // Joinable can crash if the voiceConnection is in a weird state
         var joinable = true;
         try {
@@ -439,8 +466,6 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 var fguild = chosenClient.guilds.get(guild.id);
                 if (fguild) {
                     guild = fguild;
-                    if (channel.guild !== guild)
-                        console.error("vvvvv JOINABLE MISMATCH vvvvv\n", guild, "\n", channel.guild, "\n^^^^^");
                     var fchannel = guild.channels.get(channel.id);
                     if (fchannel)
                         channel = fchannel;
