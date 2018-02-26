@@ -354,7 +354,7 @@ function session(msg, prefix, rec) {
                     // Weird data, write it out to the extra file
                     try {
                         if (!recOgg2Stream)
-                            recOgg2Stream = new ogg.OggStream(fs.createWriteStream(recFileBase + ".data2"));
+                            recOgg2Stream = new ogg.OggEncoder(fs.createWriteStream(recFileBase + ".data2"));
                         var chunkTime = process.hrtime(startTime);
                         chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
                         encodeChunk(user, recOgg2Stream, 0, 0, chunk);
