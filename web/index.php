@@ -27,21 +27,31 @@ $id = intval($_REQUEST["id"]);
 // Make sure the recording exists
 if (!file_exists("$base/$id.ogg.header1") ||
     !file_exists("$base/$id.ogg.header2") ||
-    !file_exists("$base/$id.ogg.data") ||
-    !file_exists("$base/$id.ogg.key") ||
-    !file_exists("$base/$id.ogg.delete"))
+    !file_exists("$base/$id.ogg.data"))
     die("Invalid ID.");
+
+// Get the info
+$info = false;
+if (file_exists("$base/$id.ogg.info"))
+    $info = json_decode(file_get_contents("$base/$id.ogg.info"), true);
 
 // Check the key
 if (!isset($_REQUEST["key"]))
     die("Invalid ID.");
 $key = intval($_REQUEST["key"]);
-$corrKey = intval(file_get_contents("$base/$id.ogg.key"));
+if ($info !== false)
+    $corrKey = $info["key"];
+else if (file_exists("$base/$id.ogg.key"))
+    $corrKey = intval(file_get_contents("$base/$id.ogg.key"));
+else
+    $corrKey = false;
 if ($key !== $corrKey)
     die("Invalid ID.");
 
 // Check the features
-if (file_exists("$base/$id.ogg.features"))
+if ($info !== false && isset($info["features"]))
+    $features = $info["features"];
+else if (file_exists("$base/$id.ogg.features"))
     $features = json_decode(file_get_contents("$base/$id.ogg.features"), true);
 else
     $features = array();
@@ -109,7 +119,12 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
 
 } else if (isset($_REQUEST["delete"])) {
     $deleteKey = intval($_REQUEST["delete"]);
-    $corrDeleteKey = intval(file_get_contents("$base/$id.ogg.delete"));
+    if ($info !== false)
+        $corrDeleteKey = $info["delete"];
+    else if (file_exists("$base/$id.ogg.delete"))
+        $corrDeleteKey = intval(file_get_contents("$base/$id.ogg.delete"));
+    else
+        $corrDeleteKey = false;
     if ($deleteKey !== $corrDeleteKey) {
         die("Invalid ID.");
     }

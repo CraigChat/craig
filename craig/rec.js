@@ -559,17 +559,12 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             // Figure out the recording features for this user
             var f = cf.features(msg.author.id, guildId);
 
-            // Make an access key for it
-            var accessKey = ~~(Math.random() * 1000000000);
-
             // Make a random ID for it
-            var id;
+            var id, infoWS;
             while (true) {
                 id = ~~(Math.random() * 1000000000);
                 try {
-                    var kws = fs.createWriteStream("rec/" + id + ".ogg.key", {flags:"wx"});
-                    kws.write(accessKey+"");
-                    kws.end();
+                    infoWS = fs.createWriteStream("rec/" + id + ".ogg.info", {flags:"wx"});
                     break;
                 } catch (ex) {
                     // ID existed
@@ -577,23 +572,27 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             }
             var recFileBase = "rec/" + id + ".ogg";
 
-            // Make a deletion key for it
+            // Make the access keys for it
+            var accessKey = ~~(Math.random() * 1000000000);
             var deleteKey = ~~(Math.random() * 1000000000);
-            fs.writeFileSync(recFileBase + ".delete", ""+deleteKey, "utf8");
+            var info = {key: accessKey, "delete": deleteKey};
 
             // If the user has features, mark them down
             if (f !== cf.defaultFeatures)
-                fs.writeFileSync(recFileBase + ".features", JSON.stringify(f), "utf8");
+                info.features = f;
 
-            // Make sure they get destroyed
+            // Write out the info
+            infoWS.write(JSON.stringify(info));
+            infoWS.end();
+
+            // Make sure the files get destroyed
             try {
                 var atcp = cp.spawn("at", ["now + " + f.limits.download + " hours"],
                         {"stdio": ["pipe", 1, 2]});
                 atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
                         recFileBase + ".header2 " + recFileBase + ".data " +
                         recFileBase + ".data2 " +
-                        recFileBase + ".key " + recFileBase + ".delete " +
-                        recFileBase + ".features " + recFileBase + ".users\n");
+                        recFileBase + ".info " + recFileBase + ".users\n");
                 atcp.stdin.end();
             } catch (ex) {
                 logex(ex);
