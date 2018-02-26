@@ -27,7 +27,6 @@ export PATH
 SCRIPTBASE=`dirname "$0"`
 SCRIPTBASE=`realpath "$SCRIPTBASE"`
 
-set -e
 [ "$1" ]
 
 FORMAT=flac
@@ -85,7 +84,7 @@ tmpdir=`mktemp -d`
 
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
-mkdir "$tmpdir/in" "$tmpdir/out"
+mkdir "$tmpdir/in" "$tmpdir/out" || exit 1
 
 # Take a lock on the data file so that we can detect active downloads
 exec 9< "$1.ogg.data"
@@ -109,7 +108,7 @@ fi
 # Encode thru fifos
 for c in `seq -w 1 $NB_STREAMS`
 do
-    O_USER="`$SCRIPTBASE/cook/userinfo.js $1 $c || true`"
+    O_USER="`$SCRIPTBASE/cook/userinfo.js $1 $c`"
     [ "$O_USER" ] || unset O_USER
     O_FN="$c${O_USER+-}$O_USER.$ext"
     O_FFN="$tmpdir/out/$O_FN"
@@ -120,7 +119,6 @@ do
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
 
     else
-        true
         timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
@@ -148,10 +146,8 @@ case "$CONTAINER" in
     ogg|matroska)
         if [ "$FORMAT" = "copy" -a "$CONTAINER" = "ogg" ]
         then
-            true
-            "$SCRIPTBASE/cook/oggmultiplexer" *.ogg || true
+            "$SCRIPTBASE/cook/oggmultiplexer" *.ogg
         else
-            true
             INPUT=""
             MAP=""
             c=0
@@ -162,7 +158,7 @@ case "$CONTAINER" in
                 MAP="$MAP -map $c"
                 c=$((c+1))
             done
-            timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - < /dev/null || true
+            timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT $MAP -c:a copy -f $CONTAINER - < /dev/null
         fi
         ;;
 
@@ -182,11 +178,11 @@ case "$CONTAINER" in
         FILTER="$FILTER$MIXFILTER"
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
-            timeout $DEF_TIMEOUT $NICE $ENCODE || true
+            timeout $DEF_TIMEOUT $NICE $ENCODE
         ;;
 
     *)
-        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext $EXTRAFILES raw.dat || true
+        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext $EXTRAFILES raw.dat
         ;;
 esac | (cat || cat > /dev/null)
 
