@@ -183,6 +183,7 @@ function session(msg, prefix, rec) {
     }
     var recOggHStream = [ new ogg.OggEncoder(recFHStream[0]), new ogg.OggEncoder(recFHStream[1]) ];
     var recOggStream = new ogg.OggEncoder(recFStream);
+    var recOgg2Stream;
 
     // Function to encode a single Opus chunk to the ogg file
     function encodeChunk(user, oggStream, streamNo, packetNo, chunk) {
@@ -238,6 +239,10 @@ function session(msg, prefix, rec) {
 
     // And receiver for the actual data
     function onReceive(user, chunk) {
+        // By default, chunk.time is the receipt time
+        var chunkTime = process.hrtime(startTime);
+        chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
+
         var userTrackNo, userRecents;
         if (!(user.id in users)) {
             users[user.id] = user;
@@ -310,10 +315,6 @@ function session(msg, prefix, rec) {
 
         }
 
-        // By default, chunk.time is the receipt time
-        var chunkTime = process.hrtime(startTime);
-        chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-
         // Add it to the list
         if (userRecents.length > 0) {
             var last = userRecents[userRecents.length-1];
@@ -349,6 +350,19 @@ function session(msg, prefix, rec) {
                 return;
             } else {
                 user = {id: userId, username: "Unknown", discriminator: "0000", unknown: true};
+                if (userId === undefined) {
+                    // Weird data, write it out to the extra file
+                    try {
+                        if (!recOgg2Stream)
+                            recOgg2Stream = new ogg.OggStream(fs.createWriteStream(recFileBase + ".data2"));
+                        var chunkTime = process.hrtime(startTime);
+                        chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
+                        encodeChunk(user, recOgg2Stream, 0, 0, chunk);
+                    } catch (ex) {
+                        logex(ex);
+                    }
+                    return;
+                }
             }
         }
         return onReceive(user, chunk);
@@ -396,6 +410,7 @@ function session(msg, prefix, rec) {
         recOggHStream[0].end();
         recOggHStream[1].end();
         recOggStream.end();
+        if (recOgg2Stream) recOgg2Stream.end();
         recFUStream.end();
 
         // Delete our leave timeout
@@ -576,6 +591,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                         {"stdio": ["pipe", 1, 2]});
                 atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
                         recFileBase + ".header2 " + recFileBase + ".data " +
+                        recFileBase + ".data2 " +
                         recFileBase + ".key " + recFileBase + ".delete " +
                         recFileBase + ".features " + recFileBase + ".users\n");
                 atcp.stdin.end();
