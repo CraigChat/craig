@@ -355,7 +355,12 @@ function session(msg, prefix, rec) {
     });
 
     // When we're disconnected from the channel...
+    var disconnected = false;
     function onDisconnect() {
+        if (disconnected)
+            return;
+        disconnected = true;
+
         // Flush any remaining data
         for (var uid in userRecentPackets) {
             var user = users[uid];
