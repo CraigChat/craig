@@ -158,10 +158,17 @@ if (config.stats) {
                 // Allow topics from the shard master
                 cc.processCommands["statsTopic"] = function(msg) {
                     try {
-                        channel.setTopic(msg.v).catch(()=>{});
-                    } catch (ex) {}
+                        if (channel.edit)
+                            channel.edit({topic:msg.v}).catch(logex);
+                        else
+                            channel.setTopic(msg.v).catch(logex);
+                    } catch (ex) {
+                        logex(ex);
+                    }
                 }
-            } catch (ex) {}
+            } catch (ex) {
+                logex(ex);
+            }
         });
 
         var users = -1;
