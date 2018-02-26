@@ -278,7 +278,7 @@ function session(msg, prefix, rec) {
 
             function withName(user) {
                 // Remember this user's avatar
-                var userData = {name:user.username, discrim:user.discriminator};
+                var userData = {id: user.id, name: user.username, discrim: user.discriminator};
                 var url;
                 if (user.dynamicAvatarURL) {
                     url = user.dynamicAvatarURL("png", 2048);
