@@ -44,25 +44,31 @@ const processCommands = {};
 // Are we a shard?
 const shard = ("SHARD_ID" in process.env);
 
-var vclient, vsm, vmaster;
-
-if (!config.shard || shard) {
-    // Either we aren't using sharding, or we are a shard, so normal client connection
+// Create a client with either Eris or Discord.js
+function mkClient(token) {
+    var ret;
     // TEMPORARY: Testing out the Eris version on shard 0, as it has the Craig server itself
     if (process.env["SHARD_ID"] === "0") {
         if (shard) {
-            vclient = new Eris.Client(config.token, {
+            ret = new Eris.Client(token, {
                 firstShardID: +process.env["SHARD_ID"],
                 lastShardID: +process.env["SHARD_ID"],
                 maxShards: +process.env["SHARD_COUNT"]
             });
         } else {
-            vclient = new Eris.Client(config.token);
+            ret = new Eris.Client(token);
         }
     } else {
-        vclient = new Discord.Client(clientOptions);
+        ret = new Discord.Client(clientOptions);
     }
+    return ret;
+}
 
+var vclient, vsm, vmaster;
+
+if (!config.shard || shard) {
+    // Either we aren't using sharding, or we are a shard, so normal client connection
+    vclient = mkClient(config.token);
     vsm = null;
     vmaster = !shard;
 } else {
@@ -150,11 +156,11 @@ if (client) {
     sm.spawn();
 }
 
-if (!config.shard || sm) {
+if (!sm) {
     // If there are secondary Craigs, log them in
     for (var si = 0; si < config.secondary.length; si++) {
-        clients.push(new Discord.Client(clientOptions));
-        clients[si+1].login(config.secondary[si].token).catch(logex);
+        clients.push(mkClient(config.secondary[si].token));
+        clients[si+1].login(config.secondary[si].token);
     }
 }
 
