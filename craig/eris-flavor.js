@@ -32,6 +32,8 @@ function odg(obj, nm, val) {
     odp(obj, nm, {get: val});
 }
 
+var setupProcessMessages = false;
+
 (function (cp) {
     odf(cp, "fetchUser", function (id) {
         const client = this;
@@ -107,7 +109,7 @@ function odg(obj, nm, val) {
             };
 
             // And handle ShardingManager eval requests
-            process.on("message", (msg) => {
+            if (!setupProcessMessages) process.on("message", (msg) => {
                 if (msg._eval) {
                     var res;
                     try {
@@ -132,6 +134,7 @@ function odg(obj, nm, val) {
 
                 }
             });
+            setupProcessMessages = true;
         }
         return this.connect();
     });
