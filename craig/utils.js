@@ -25,6 +25,7 @@ const fs = require("fs");
 const cc = require("./client.js");
 const config = cc.config;
 const log = cc.log;
+const logex = cc.logex;
 const nameId = cc.nameId;
 
 // accessSync with a less stupid UI
