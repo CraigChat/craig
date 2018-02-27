@@ -504,13 +504,6 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 channel = guild.channels.get(channelId);
         }
 
-        // Eris workaround
-        try {
-            chosenClient.voiceConnections.delete(guildId);
-        } catch (ex) {
-            logex(ex);
-        }
-
         // Joinable can crash if the voiceConnection is in a weird state
         var joinable = true;
         try {

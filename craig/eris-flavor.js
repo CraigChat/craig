@@ -177,7 +177,6 @@ odf(Eris.ExtendedUser.prototype, "setPresence", function (stat) {
             setTimeout(()=>{res(guild);}, 1000);
         });
     });
-    // .voiceConnection does exist, but has caching issues
     odg(egp, "voiceConnection", function(){return this.shard.client.voiceConnections.get(this.id);});
 })(Eris.Guild.prototype);
 
