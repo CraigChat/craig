@@ -137,7 +137,10 @@ done
 if [ "$CONTAINER" = "zip" ]
 then
     mkfifo $tmpdir/out/raw.dat
-    timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data > $tmpdir/out/raw.dat &
+    (
+        timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1"
+        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data
+    ) | cat > $tmpdir/out/raw.dat &
 fi
 
 # Put them into their container

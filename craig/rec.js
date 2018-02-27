@@ -568,7 +568,17 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             // Make the access keys for it
             var accessKey = ~~(Math.random() * 1000000000);
             var deleteKey = ~~(Math.random() * 1000000000);
-            var info = {key: accessKey, "delete": deleteKey};
+
+            // Set up the info
+            var info = {
+                key: accessKey,
+                "delete": deleteKey,
+                guild: nameId(guild),
+                channel: nameId(channel),
+                requester: msg.author.username + "#" + msg.author.discriminator,
+                requesterId: msg.author.id,
+                startTime: new Date().toISOString()
+            };
 
             // If the user has features, mark them down
             if (f !== cf.defaultFeatures)
