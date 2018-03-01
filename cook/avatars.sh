@@ -117,6 +117,7 @@ then
     done
 else
     # Make the output files
+    c=1
     for t in $TRACKS
     do
         I_FFN="$tmpdir/in/$t.png"
@@ -232,6 +233,8 @@ else
                 >> "$tmpdir/out/RunMe.bat"
 
         fi
+
+        c=$((c+1))
     done
 fi
 
