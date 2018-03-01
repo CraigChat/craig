@@ -321,7 +321,7 @@ function session(msg, prefix, rec) {
             userRecents.push(chunk);
             if (last.timestamp > chunk.timestamp) {
                 // Received out of order!
-                userRecents.sort((a, b) => { return b.timestamp - a.timestamp; });
+                userRecents.sort((a, b) => { return a.timestamp - b.timestamp; });
 
                 /* Note that due to this reordering, the granule position in
                  * the output ogg file will actually be decreasing! This is
