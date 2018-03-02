@@ -42,8 +42,8 @@ const cr = require("./rec.js");
 // Association of users with arrays autorecord guild+channels
 var autoU2GC = {};
 
-// And guilds to user+channel
-var autoG2UC = {};
+// Association guild -> channel -> users/triggers
+var autoG2C2U = {};
 
 // Map of currently active auto-recordings, by guild -> channel
 var autoCur = {};
@@ -53,58 +53,87 @@ if (config.rewards) (function() {
     // And the journal of autorecord changes
     var autoJournalF = null;
 
-    // Remove a user's autorecord
-    function removeAutorecordLocal(uid, gid) {
+    // Remove a user's autorecord, for a specific channel or all channels
+    function removeAutorecordLocal(uid, gid, cid) {
+        // Remove it in one direction
         if (uid in autoU2GC) {
             var gcs = autoU2GC[uid];
             for (var gci = 0; gci < gcs.length; gci++) {
                 var gc = gcs[gci];
                 if (gc.g !== gid) continue;
+                if (cid && gc.c !== cid) continue;
 
-                // Found the one to remove
+                // Found one to remove
                 gcs.splice(gci, 1);
-
-                var step = {u:uid, g:gid};
                 if (gcs.length === 0)
                     delete autoU2GC[uid];
-                delete autoG2UC[gid];
+                gci--;
+
+                var step = {u:uid, g:gid, c:cid};
                 if (!cc.dead && autoJournalF)
                     autoJournalF.write("," + JSON.stringify(step) + "\n");
+            }
+        }
 
-                return;
+        // Then the other
+        if (gid in autoG2C2U) {
+            var c2u = autoG2C2U[gid];
+            for (var ccid in c2u) {
+                if (cid && ccid !== cid) continue;
+                var us = c2u[ccid];
+                for (var ui = 0; ui < us.length; ui++) {
+                    var u = us[ui];
+                    if (u.u !== uid) continue;
+
+                    // Found one to remove
+                    us.splice(ui, 1);
+                    if (us.length === 0) {
+                        delete c2u[ccid];
+                        if (Object.keys(c2u).length === 0)
+                            delete autoG2C2U[gid];
+                    }
+                    ui--;
+                }
             }
         }
     }
 
-    function removeAutorecord(uid, gid) {
-        removeAutorecordLocal(uid, gid);
+    function removeAutorecord(uid, gid, cid) {
+        removeAutorecordLocal(uid, gid, cid);
         if (client.shard)
-            client.shard.send({t:"removeAutorecord", from:client.shard.id, u:uid, g:gid});
+            client.shard.send({t:"removeAutorecord", from:client.shard.id, u:uid, g:gid, c:cid});
     }
 
     cc.shardCommands["removeAutorecord"] = function(shard, msg) {
-        removeAutorecordLocal(msg.u, msg.g);
+        removeAutorecordLocal(msg.u, msg.g, msg.c);
         cc.sm.broadcast(msg);
     }
 
     cc.processCommands["removeAutorecord"] = function(msg) {
-        removeAutorecordLocal(msg.u, msg.g);
+        removeAutorecordLocal(msg.u, msg.g, msg.c);
     }
 
     // Add an autorecord for a user
     function addAutorecordLocal(uid, gid, cid, tids) {
-        removeAutorecordLocal(uid, gid);
-        var step = {u:uid, g:gid, c:cid};
-        if (tids)
+        removeAutorecordLocal(uid, gid, cid);
+        var i = {u:uid, g:gid, c:cid};
+        var step = {u:uid, g:gid, c:cid, t:{}};
+        if (tids) {
+            i.t = tids;
             step.t = tids;
+        }
         if (!(uid in autoU2GC)) autoU2GC[uid] = [];
-        autoU2GC[uid].push(step);
-        autoG2UC[gid] = step;
+        if (!(gid in autoG2C2U)) autoG2C2U[gid] = {};
+        if (!(cid in autoG2C2U[gid])) autoG2C2U[gid][cid] = [];
+        autoU2GC[uid].push(i);
+        autoG2C2U[gid][cid].push(i);
         if (!cc.dead && autoJournalF)
             autoJournalF.write("," + JSON.stringify(step) + "\n");
     }
 
     function addAutorecord(uid, gid, cid, tids) {
+        if (tids && Object.keys(tids).length === 0)
+            tids = undefined;
         addAutorecordLocal(uid, gid, cid, tids);
         if (client.shard)
             client.shard.send({t:"addAutorecord", from:client.shard.id, u:uid, g:gid, c:cid, tids:(tids?tids:false)});
@@ -134,16 +163,18 @@ if (config.rewards) (function() {
         });
     }
 
-    // Resolve autorecords from U2GC into G2UC, asserting that the relevant uids actually have auto powers
+    // Resolve autorecords from U2GC into G2C2U, asserting that the relevant uids actually have auto powers
     function resolveAutos() {
-        autoG2UC = {};
+        autoG2C2U = {};
         Object.keys(autoU2GC).forEach((uid) => {
             var f = cf.features(uid);
             if (f.auto) {
                 var gcs = autoU2GC[uid];
                 for (var gci = 0; gci < gcs.length; gci++) {
                     var gc = gcs[gci];
-                    autoG2UC[gc.g] = gc;
+                    if (!(gc.g in autoG2C2U)) autoG2C2U[gc.g] = {};
+                    if (!(gc.c in autoG2C2U[gc.g])) autoG2C2U[gc.g][gc.c] = [];
+                    autoG2C2U[gc.g][gc.c].push(gc);
                 }
             } else {
                 delete autoU2GC[uid];
@@ -166,10 +197,10 @@ if (config.rewards) (function() {
                     try {
                         var step = JSON.parse("[0" + lines[li] + "]")[1];
                         if (!step) continue;
-                        if ("c" in step)
+                        if ("t" in step)
                             addAutorecord(step.u, step.g, step.c, step.t);
                         else
-                            removeAutorecord(step.u, step.g);
+                            removeAutorecord(step.u, step.g, step.c);
                     } catch (ex) {
                         logex(ex);
                     }
@@ -191,20 +222,24 @@ if (config.rewards) (function() {
                         t:"addAutorecord",
                         from:client.shard.id,
                         u:uid,
-                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:false)
+                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:undefined)
                     });
                 });
             }
         }
     });
 
+    const subcmdRE = /^([A-Za-z]*)[ \t,]*(.*)$/;
     const mention = /^<@!?([0-9]*)>[ \t,]*(.*)$/;
 
-    // And a command to autorecord a channel
+    // And a command to set up autorecording
     commands["autorecord"] = function(msg, cmd) {
         if (cc.dead) return;
         if (!msg.guild) return;
-        var cname = cmd[3].toLowerCase();
+        var subcmd = cmd[3].match(subcmdRE);
+        if (!subcmd) return;
+        var cname = subcmd[2].toLowerCase();
+        subcmd = subcmd[1].toLowerCase();
 
         var f = cf.features(msg.author.id);
         if (!f.auto) {
@@ -212,41 +247,75 @@ if (config.rewards) (function() {
             return;
         }
 
-        if (cname === "off") {
-            if (msg.author.id in autoU2GC) {
-                var gcs = autoU2GC[msg.author.id];
-                for (var gci = 0; gci < gcs.length; gci++) {
-                    var gc = gcs[gci];
-                    if (gc.g === msg.guild.id) {
-                        removeAutorecord(msg.author.id, gc.g);
-                        reply(msg, false, cmd[1], "Autorecord disabled.");
+        switch (subcmd) {
+            case "":
+            case "help":
+                reply(msg, false, cmd[1], 
+                    "\nUse:\n\n" +
+                    "> `:craig:, autorecord on [triggers] [channel name]`\n" +
+                    "To activate autorecording on a given channel. Triggers must be @mentions.\n\n" +
+                    "> `:craig:, autorecord off [channel name]`\n" +
+                    "To deactivate autorecording. Give no channel name to deactivate all autorecordings on this server.\n\n" +
+                    "> `:craig:, autorecord info`\n" +
+                    "To list your current autorecordings on this server.\n");
+                break;
+
+            case "on":
+                // Look for triggers first
+                var triggers = {};
+                var t, tc = 0;
+                while ((t = mention.exec(cname)) !== null) {
+                    // Has a trigger
+                    triggers[t[1]] = true;
+                    cname = t[2];
+                    tc++;
+                }
+                if (tc === 0) triggers = undefined;
+
+                var channel = cu.findChannel(msg, msg.guild, cname);
+                if (channel === null) {
+                    reply(msg, false, cmd[1], "What channel?");
+                    return;
+                }
+
+                addAutorecord(msg.author.id, msg.guild.id, channel.id, triggers);
+                reply(msg, false, cmd[1], "I will now automatically record " + channel.name + ". Please make sure you can receive DMs from me; I will NOT send autorecord links publicly!");
+                break;
+
+            case "off":
+                // Check if it's a specific channel
+                var channel;
+                if (cname !== "") {
+                    channel = cu.findChannel(msg, msg.guild, cname);
+                    if (channel === null) {
+                        reply(msg, false, cmd[1], "What channel?");
                         return;
                     }
                 }
-            }
 
-            reply(msg, false, cmd[1], "But you don't have an autorecord set on this server!");
+                removeAutorecord(msg.author.id, msg.guild.id, channel?channel.id:undefined);
+                reply(msg, false, cmd[1], "Autorecord disabled.");
+                break;
 
-        } else {
-            // Look for triggers first
-            var triggers = {};
-            var t, tc = 0;
-            while ((t = mention.exec(cname)) !== null) {
-                // Has a trigger
-                triggers[t[1]] = true;
-                cname = t[2];
-                tc++;
-            }
-            if (tc === 0) triggers = undefined;
-
-            var channel = cu.findChannel(msg, msg.guild, cname);
-            if (channel === null) {
-                reply(msg, false, cmd[1], "What channel?");
-                return;
-            }
-
-            addAutorecord(msg.author.id, msg.guild.id, channel.id, triggers);
-            reply(msg, false, cmd[1], "I will now automatically record " + channel.name + ". Please make sure you can receive DMs from me; I will NOT send autorecord links publicly!");
+            case "info":
+                var info = "";
+                if (msg.author.id in autoU2GC) {
+                    var gcs = autoU2GC[msg.author.id];
+                    for (var gci = 0; gci < gcs.length; gci++) {
+                        var gc = gcs[gci];
+                        if (gc.g !== msg.guild.id) continue;
+                        var channel = msg.guild.channels.get(gc.c);
+                        if (!channel) channel = {name:gc.c};
+                        info += "\n" + channel.name;
+                        if (gc.t)
+                            info += " (specific triggers)";
+                    }
+                }
+                if (info === "")
+                    reply(msg, false, cmd[1], "You have no autorecords enabled.");
+                else
+                    reply(msg, false, cmd[1], "\nI am autorecording the following channels:" + info + "\n");
+                break;
         }
     }
 
@@ -255,12 +324,13 @@ if (config.rewards) (function() {
         if (from.voiceChannel === to.voiceChannel) return;
         var guild = to.guild;
         var guildId = guild.id;
-        if (!(guild.id in autoG2UC)) return;
-        var uc = autoG2UC[guildId];
+        if (!(guildId in autoG2C2U)) return;
+        var c2u = autoG2C2U[guildId];
         var voiceChannel = from.voiceChannel || to.voiceChannel;
         var channelId = voiceChannel.id;
-        if (!voiceChannel || uc.c !== channelId) return;
-        var triggers = uc.t;
+        if (!voiceChannel || !(channelId in c2u)) return;
+        var us = c2u[channelId];
+        var u;
 
         // Something has happened on a voice channel we're watching for autorecording
         var recording = false, shouldRecord = false, triedRecording = false;
@@ -268,10 +338,14 @@ if (config.rewards) (function() {
             channelId in cr.activeRecordings[guildId])
             recording = true;
         voiceChannel.members.some((member) => {
-            if ((triggers && triggers[member.id]) ||
-                (!triggers && !member.user.bot)) {
-                shouldRecord = true;
-                return true;
+            for (var ui = 0; ui < us.length; ui++) {
+                u = us[ui];
+                var triggers = u.t;
+                if ((triggers && triggers[member.id]) ||
+                    (!triggers && !member.user.bot)) {
+                    shouldRecord = true;
+                    return true;
+                }
             }
             return false;
         });
@@ -304,7 +378,7 @@ if (config.rewards) (function() {
         // Should we start or stop a recording?
         if (recording !== shouldRecord) {
             // OK, make sure we have everything we need
-            guild.fetchMember(uc.u).then((member) => {
+            guild.fetchMember(u.u).then((member) => {
                 var msg = {
                     author: member.user,
                     member: member,
