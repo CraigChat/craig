@@ -164,23 +164,6 @@ if (!sm) {
     }
 }
 
-// Reconnect when we disconnect
-clients.forEach((client) => {
-    if (!client) return;
-    var reconnectTimeout = null;
-    client.on("disconnect", () => {
-        if (reconnectTimeout !== null) {
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = null;
-        }
-        reconnectTimeout = setTimeout(() => {
-            if (client.status !== 0)
-                client.login(config.token).catch(logex);
-            reconnectTimeout = null;
-        }, 10000);
-    });
-});
-
 module.exports = {
     client, sm, master, clients,
     config,
