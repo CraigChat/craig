@@ -80,6 +80,10 @@ int main(int argc, char **argv)
             packetSize += (uint32_t) segmentVal;
         }
 
+        // If it's zero-size, skip it entirely (timestamp reference)
+        if (packetSize == 0)
+            continue;
+
         // Skip the data
         if (packetSize > bufSz) {
             if (readAll(0, buf, bufSz) != bufSz)

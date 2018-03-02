@@ -53,6 +53,8 @@ const cf = require("./features.js");
  */
 const activeRecordings = {};
 
+const emptyBuf = Buffer.alloc(0);
+
 // Our recording session proper
 function session(msg, prefix, rec) {
     var connection = rec.connection;
@@ -219,7 +221,10 @@ function session(msg, prefix, rec) {
             // FIXME: Eventually delete corruption warnings?
         }
 
+        // Write out the chunk itself
         write(oggStream, chunkGranule, streamNo, packetNo, chunk);
+        // Then the timestamp for reference
+        write(oggStream, chunk.timestamp?chunk.timestamp:0, streamNo, packetNo+1, emptyBuf);
     }
 
     // Function to flush one or more packets from a user's recent queue
@@ -229,7 +234,7 @@ function session(msg, prefix, rec) {
             var chunk = queue.shift();
             try {
                 encodeChunk(user, oggStream, streamNo, packetNo, chunk);
-                packetNo++;
+                packetNo += 2;
             } catch (ex) {
                 logex(ex);
             }

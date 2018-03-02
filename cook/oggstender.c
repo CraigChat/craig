@@ -138,6 +138,10 @@ int main(int argc, char **argv)
         if (oggHeader.granulePos == 0 && packetSize > 4 && memcmp(buf, "Opus", 4))
             continue;
 
+        // Is this empty data (Craig uses empty data packets for timestamp references)
+        if (packetSize == 0)
+            continue;
+
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * 5) {
             // We are behind
