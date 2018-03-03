@@ -137,10 +137,10 @@ cc.shardCommands["eval"] = function(shard, msg) {
 
 // And the response from host eval
 cc.processCommands["evalRes"] = function(msg) {
-    client.fetchUser(msg.u).then((user) => {
-        var pmsg = cu.pseudoMessage(user);
-        reply(pmsg, true, null, "", msg.r);
-    }).catch(logex);
+    var user = client.users.get(msg.u);
+    if (!user) return;
+    var pmsg = cu.pseudoMessage(user);
+    reply(pmsg, true, null, "", msg.r);
 }
 
 /* There's no compelling reason for stats to be here, but there's no compelling

@@ -269,9 +269,8 @@ if (config.rewards) (function() {
     });
 
     // Reresolve a member when their roles change
-    if (client) client.on("guildMemberUpdate", (from, to) => {
-        if (to.guild.id !== config.rewards.guild) return;
-        if (from.roles === to.roles) return;
+    if (client) client.on("guildMemberUpdate", (guild, to, from) => {
+        if (guild.id !== config.rewards.guild) return;
         var r = resolveRewards(to);
         if (!r.bless && to.id in blessU2G)
             removeBless(to.id);

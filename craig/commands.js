@@ -117,7 +117,7 @@ function onMessage(msg) {
 
     fun(msg, cmd);
 }
-if (client) client.on("message", onMessage);
+if (client) client.on("messageCreate", onMessage);
 
 // The one command covered here
 commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {

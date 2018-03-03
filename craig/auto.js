@@ -320,7 +320,8 @@ if (config.rewards) (function() {
     }
 
     // Watch for autorecord opportunities
-    if (client) client.on("voiceStateUpdate", (from, to) => {
+    function voiceStateUpdate(to, from) {
+        if (!from || !to) return;
         if (from.voiceChannel === to.voiceChannel) return;
         var guild = to.guild;
         var guildId = guild.id;
@@ -349,6 +350,7 @@ if (config.rewards) (function() {
             }
             return false;
         });
+        if (!u) return;
 
         // Check if we're already recording
         if (guildId in autoCur && channelId in autoCur[guildId])
@@ -393,7 +395,20 @@ if (config.rewards) (function() {
                 commands[cmd](msg, ["", null, cmd, (shouldRecord?"-silence ":"") + voiceChannel.name]);
             });
         }
-    });
+    }
+
+    if (client) {
+        client.on("voiceChannelJoin", (member, channel) => {
+            voiceStateUpdate(member, {id: member.id, guild: member.guild});
+        });
+        client.on("voiceChannelLeave", (member, channel) => {
+            voiceStateUpdate(member, {id: member.id, guild: member.guild, voiceChannelID: channel.id, voiceChannel: channel});
+        });
+        client.on("voiceChannelSwitch", (member, toChannel, fromChannel) => {
+            voiceStateUpdate({id: member.id, guild: member.guild}, {id: member.id, guild: member.guild, voiceChannelID: fromChannel.id, voiceChannel: fromChannel});
+            voiceStateUpdate(member, {id: member.id, guild: member.guild});
+        });
+    }
 })();
 
 module.exports = {get autoU2GC() { return autoU2GC; }};

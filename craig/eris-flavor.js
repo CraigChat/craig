@@ -35,78 +35,11 @@ function odg(obj, nm, val) {
 var setupProcessMessages = false;
 
 (function (cp) {
-    odf(cp, "fetchUser", function (id) {
-        const client = this;
-        return new Promise((res, rej) => {
-            var user = client.users.get(id);
-            if (user)
-                res(user);
-            else
-                rej(new Error("User not found"));
-        });
-    });
     odf(cp, "login", function(){
         const client = this;
 
         if (!this.flavorTwiddled) {
             this.flavorTwiddled = true;
-
-            // Adjust the callbacks
-            this.flavorOn = this.on;
-            this.on = function (ev, handler) {
-                switch (ev) {
-                    case "message":
-                        return this.flavorOn("messageCreate", handler);
-
-                    case "voiceStateUpdate":
-                        this.flavorOn(ev, (to, from) => {
-                            return handler(from, to);
-                        });
-                        this.flavorOn("voiceChannelJoin", (member, channel) => {
-                            var from = {
-                                id: member.id,
-                                guild: member.guild
-                            };
-                            return handler(from, member);
-                        });
-                        this.flavorOn("voiceChannelLeave", (member, channel) => {
-                            var from = {
-                                id: member.id,
-                                guild: member.guild,
-                                voiceChannelID: channel.id,
-                                voiceChannel: channel
-                            };
-                            return handler(from, member);
-                        });
-                        this.flavorOn("voiceChannelSwitch", (member, toChannel, fromChannel) => {
-                            var from = {
-                                id: member.id,
-                                guild: member.guild,
-                                voiceChannelID: fromChannel.id,
-                                voiceChannel: fromChannel
-                            };
-                            return handler(from, member);
-                        });
-                        return this;
-
-                    case "guildMemberUpdate":
-                        return this.flavorOn(ev, (guild, to, from) => {
-                            if (!from) return;
-                            from.id = to.id;
-                            from.guild = guild;
-                            from.nickname = from.nick;
-                            return handler(from, to);
-                        });
-
-                    case "guildUpdate":
-                        return this.flavorOn(ev, (to, from) => {
-                            return handler(from, to);
-                        });
-
-                    default:
-                        return this.flavorOn(ev, handler);
-                }
-            };
 
             // And handle ShardingManager eval requests
             if (!setupProcessMessages) process.on("message", (msg) => {

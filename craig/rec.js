@@ -784,26 +784,29 @@ commands["stop"] = function(msg, cmd) {
 clients.forEach((client) => {
     if (!client) return;
 
-    client.on("voiceStateUpdate", (from, to) => {
+    function voiceChannelSwitch(member, toChannel, fromChannel) {
         try {
-            if (from.id === client.user.id &&
-                from.voiceChannel) {
-                var guildId = from.guild.id;
-                var channelId = from.voiceChannel.id;
+            if (member.id === client.user.id) {
+                var guildId = fromChannel.guild.id;
+                var channelId = fromChannel.id;
                 if (guildId in activeRecordings &&
                     channelId in activeRecordings[guildId] &&
-                    from.voiceChannelID !== to.voiceChannelId) {
+                    toChannel !== fromChannel) {
                     // We do not tolerate being moved
                     log("Terminating recording: Moved to a different channel.");
-                    to.guild.voiceConnection.disconnect();
+                    member.guild.voiceConnection.disconnect();
                 }
             }
         } catch (ex) {
             logex(ex);
         }
+    }
+    client.on("voiceChannelSwitch", voiceChannelSwitch);
+    client.on("voiceChannelLeave", (member, channel) => {
+        voiceChannelSwitch(member, null, channel);
     });
 
-    client.on("guildUpdate", (from, to) => {
+    client.on("guildUpdate", (to, from) => {
         try {
             if (from.region !== to.region &&
                 to.voiceConnection) {
@@ -816,15 +819,14 @@ clients.forEach((client) => {
         }
     });
 
-    client.on("guildMemberUpdate", (from, to) => {
+    client.on("guildMemberUpdate", (guild, to, from) => {
         try {
-            if (from.id === client.user.id &&
-                from.nickname !== to.nickname &&
-                to.guild.voiceConnection &&
+            if (to.id === client.user.id &&
+                guild.voiceConnection &&
                 (!to.nickname || to.nickname.indexOf("[RECORDING]") === -1)) {
                 // Make sure this isn't just a transient state
-                if (to.guild.id in activeRecordings &&
-                    to.guild.voiceConnection.channel.id in activeRecordings[to.guild.id]) {
+                if (guild.id in activeRecordings &&
+                    guild.voiceConnection.channel.id in activeRecordings[guild.id]) {
                     // They attempted to hide the fact that Craig is recording. Not acceptable.
                     log("Terminating recording: Nick changed wrongly.");
                     to.guild.voiceConnection.disconnect();
