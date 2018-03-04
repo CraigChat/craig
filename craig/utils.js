@@ -89,7 +89,7 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     // And give ourself a name indicating error
     setTimeout(() => {
         try {
-            guild.members.get(cc.client.user.id).setNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
+            guild.editNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
         } catch (ex) {
             logex(ex);
         }

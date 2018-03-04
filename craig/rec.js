@@ -86,7 +86,7 @@ function session(msg, prefix, rec) {
 
     // Rename ourself to indicate that we're recording
     try {
-        connection.channel.guild.members.get(client.user.id).setNickname(nick + " [RECORDING]").catch((err) => {
+        connection.channel.guild.editNickname(nick + " [RECORDING]").catch((err) => {
             log("Terminating " + id + ": Lack nick change permission.");
             sReply(true, "I do not have permission to change my nickname on this server. I will not record without this permission.");
             rec.disconnected = true;
@@ -625,7 +625,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
 
                 // Rename the bot in this guild
                 try {
-                    guild.members.get(chosenClient.user.id).setNickname(reNick).catch(logex);
+                    guild.editNickname(reNick).catch(logex);
                 } catch (ex) {
                     logex(ex);
                 }
@@ -823,7 +823,7 @@ clients.forEach((client) => {
         try {
             if (to.id === client.user.id &&
                 guild.voiceConnection &&
-                (!to.nickname || to.nickname.indexOf("[RECORDING]") === -1)) {
+                (!to.nick || to.nick.indexOf("[RECORDING]") === -1)) {
                 // Make sure this isn't just a transient state
                 if (guild.id in activeRecordings &&
                     guild.voiceConnection.channel.id in activeRecordings[guild.id]) {

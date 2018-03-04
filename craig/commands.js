@@ -44,7 +44,7 @@ if (client) client.on("ready", () => {
     log("Logged in as " + client.user.username);
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$");
     if ("url" in config)
-        client.user.setPresence({game: {name: config.url, type: 0}}).catch(logex);
+        client.editStatus("online", {name: config.url, type: 0});
 });
 
 // Only admins and those with the Craig role are authorized to use Craig
@@ -52,7 +52,7 @@ function userIsAuthorized(member) {
     if (!member) return false;
 
     // Guild owners are always allowed
-    if (member.hasPermission("MANAGE_GUILD"))
+    if (member.permission.has("manageGuild"))
         return true;
 
     // Otherwise, they must be a member of the right role

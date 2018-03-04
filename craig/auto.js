@@ -381,6 +381,7 @@ if (config.rewards) (function() {
         if (recording !== shouldRecord) {
             // OK, make sure we have everything we need
             guild.fetchMember(u.u).then((member) => {
+                if (!member) return;
                 var msg = {
                     author: member.user,
                     member: member,

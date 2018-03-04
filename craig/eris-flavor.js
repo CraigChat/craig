@@ -41,7 +41,7 @@ var setupProcessMessages = false;
         if (!this.flavorTwiddled) {
             this.flavorTwiddled = true;
 
-            // And handle ShardingManager eval requests
+            // Handle ShardingManager eval requests
             if (!setupProcessMessages) process.on("message", (msg) => {
                 if (msg._eval) {
                     var res;
@@ -87,11 +87,6 @@ var setupProcessMessages = false;
 
 Eris.Collection.prototype.some = Eris.Collection.prototype.find;
 
-odf(Eris.ExtendedUser.prototype, "setPresence", function (stat) {
-    this._client.editStatus(stat.status, stat.game);
-    return new Promise((res, rej) => { res(); });
-});
-
 (function (egp) {
     odf(egp, "fetchMember", function (id) {
         const guild = this;
@@ -113,20 +108,7 @@ odf(Eris.ExtendedUser.prototype, "setPresence", function (stat) {
     odg(egp, "voiceConnection", function(){return this.shard.client.voiceConnections.get(this.id);});
 })(Eris.Guild.prototype);
 
-(function (emp) {
-    odf(emp, "hasPermission", function (perm) {
-        perm = perm.toLowerCase().replace(/_[a-z]/g, (c)=>{return c[1].toUpperCase();});
-        return this.permission.has(perm);
-    });
-    odg(emp, "nickname", function(){return this.nick;});
-    odf(emp, "setNickname", function (nick) {
-        if (this.id === this.guild.shard.client.user.id)
-            return this.guild.editNickname(nick);
-        else
-            return this.edit({nick});
-    });
-    odg(emp, "voiceChannel", function(){return this.voiceState.channelID?(this.guild.channels.get(this.voiceState.channelID)):undefined;});
-})(Eris.Member.prototype);
+odg(Eris.Member.prototype, "voiceChannel", function(){return this.voiceState.channelID?(this.guild.channels.get(this.voiceState.channelID)):undefined;});
 
 odg(Eris.Message.prototype, "guild", function(){return this.channel.guild;});
 odf(Eris.Message.prototype, "reply", function(content){return this.channel.send(this.author.mention + ", " + content);});
