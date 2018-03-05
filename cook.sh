@@ -35,7 +35,7 @@ FORMAT=flac
 CONTAINER=zip
 [ "$3" ] && CONTAINER="$3"
 
-ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0"
+ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=15:first_pts=0"
 
 EXTRAFILES=
 
@@ -137,10 +137,8 @@ done
 if [ "$CONTAINER" = "zip" ]
 then
     mkfifo $tmpdir/out/raw.dat
-    (
-        timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1"
-        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data
-    ) | cat > $tmpdir/out/raw.dat &
+    timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1" |
+        timeout $DEF_TIMEOUT cat - $1.ogg.header1 $1.ogg.header2 $1.ogg.data > $tmpdir/out/raw.dat &
 fi
 
 # Put them into their container

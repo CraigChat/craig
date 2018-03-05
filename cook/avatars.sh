@@ -46,7 +46,7 @@ FG=008000
 
 set -e
 
-ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.01:min_hard_comp=1:first_pts=0"
+ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=15:first_pts=0"
 
 case "$FORMAT" in
     mkvh264|movsfx)
