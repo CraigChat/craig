@@ -47,19 +47,14 @@ const shard = ("SHARD_ID" in process.env);
 // Create a client with either Eris or Discord.js
 function mkClient(token) {
     var ret;
-    // TEMPORARY: Testing out the Eris version on shard 0, as it has the Craig server itself
-    if (process.env["SHARD_ID"] === "0") {
-        if (shard) {
-            ret = new Eris.Client(token, {
-                firstShardID: +process.env["SHARD_ID"],
-                lastShardID: +process.env["SHARD_ID"],
-                maxShards: +process.env["SHARD_COUNT"]
-            });
-        } else {
-            ret = new Eris.Client(token);
-        }
+    if (shard) {
+        ret = new Eris.Client(token, {
+            firstShardID: +process.env["SHARD_ID"],
+            lastShardID: +process.env["SHARD_ID"],
+            maxShards: +process.env["SHARD_COUNT"]
+        });
     } else {
-        ret = new Discord.Client(clientOptions);
+        ret = new Eris.Client(token);
     }
     return ret;
 }
