@@ -676,7 +676,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
 
             // If we have voice channel issue, do our best to rectify them
             function onError(ex) {
-                reply(msg, false, cmd[1], "Failed to join! " + ex);
+                reply(msg, false, cmd[1], "Failed to join! If I persistently fail to join, it may be an issue with the voice server. Try changing the server region in server settings. " + ex);
                 close();
             }
 
