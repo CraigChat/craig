@@ -3,15 +3,10 @@ components: The actual recording bot, the web page (for downloading
 recordings), and the audio processing scripts.
 
 The recording bot is craig.js. It is a Node.js application written with
-discord.js. Its dependencies can be installed with `npm install`. In principle
-the recording bot works fine without the other components, but the audio files
-it produce aren't really usable without processing.
-
-One feature of Craig, correction for out-of-order audio, requires a small
-change to discord.js. In
-node_modules/discord.js/src/client/voice/receiver/VoiceReceiver.js , add
-`data.timestamp = nonce.readUInt32BE(4);` just after the block for handling RTP
-header extensions.
+the Eris Discord library. For historical reasons it uses the sharding manager
+from discord.js. Its dependencies can be installed with `npm install`. In
+principle the recording bot works fine without the other components, but the
+audio files it produce aren't really usable without processing.
 
 The web page is in PHP (yuck), but otherwise has essentially no dependencies.
 The "other formats" feature, which performs audio processing in the browser,
