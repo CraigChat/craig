@@ -1,0 +1,30 @@
+{
+    "cmd:help":         ["help", "commands", "hello", "info"],
+    "help":             "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see %1 .",
+
+    "cmd:join":         ["join", "record", "rec"],
+    "recording":        "Recording! I will record up to %1 hours. Recordings are deleted automatically after %2 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\nDownload link: %3?id=%4&key=%5",
+    "deletelink":       "To delete: %1?id=%2&key=%3&delete=%4",
+
+    "cantsee":          "I can't see any channel with that name.",
+    "whatchannel":      "What channel?",
+    "already":          "I'm already recording that channel: %1?id=%2&key=%3",
+    "noperms":          "I don't have permission to join that channel!",
+    "joinfail":         "Failed to join! If I persistently fail to join, it may be an issue with the voice server. Try changing the server region in server settings.",
+    "onemore":          "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: %1",
+    "broperms":         "My brother can't see that channel. Make sure his permissions are correct.",
+    "nomore":           "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”",
+
+    "timelimit":        "Sorry, but you've hit the recording time limit. Recording stopped.",
+    "sizelimit":        "Sorry, but you've hit the recording size limit. Recording stopped.",
+    "cannotnick":       "I do not have permission to change my nickname on this server. I will not record without this permission.",
+    "disconnecting":    "Disconnecting.",
+    "silence1":         "I'm not receiving any audio!",
+    "silence2":         "\n\nIf you're confident you were sending audio, this may be due to a bug connecting to the voice server. Try the following workarounds:\n\n(1) In server settings, switch the voice region and try recording again. If it works, you may attempt to switch back to the original voice server, but don't be surprised if it still fails. If it doesn't work,\n\n(2) Kick me from the server, then reinvite me. You can find the invite link at %1. If that doesn't work,\n\n(3) The only remaining option is to reset the bot. You'll have to join my support server and ask for help.",
+    "silence5min":      "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!",
+    "corrupt":          "WARNING: I am receiving corrupted voice data from %1#%2! I will not be able to correctly process their audio!",
+    "unexpecteddc":     "I've been unexpectedly disconnected! If you want me to stop recording, please command me to with :craig:, leave.",
+
+    "cmd:leave":        ["leave", "part"],
+    "notrecording":     "But I'm not recording that channel!"
+}

@@ -27,6 +27,9 @@ const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
+const cl = require("./locale.js");
+const l = cl.l;
+
 const cu = require("./utils.js");
 const reply = cu.reply;
 
@@ -119,11 +122,11 @@ function onMessage(msg) {
 }
 if (client) client.on("messageCreate", onMessage);
 
-// The one command covered here
-commands["help"] = commands["commands"] = commands["hello"] = commands["info"] = function(msg, cmd) {
+// The one command covered here is "help"
+function cmdHelp(lang) { return function(msg, cmd) {
     if (cc.dead) return;
-    reply(msg, false, cmd[1],
-        "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see " + config.longUrl + " ");
-}
+    reply(msg, false, cmd[1], l("help", lang, config.longUrl));
+} }
+cl.register(commands, "help", cmdHelp);
 
 module.exports = {commands, ownerCommands};

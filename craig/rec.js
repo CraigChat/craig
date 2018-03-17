@@ -37,6 +37,9 @@ const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
+const cl = require("./locale.js");
+const l = cl.l;
+
 const cu = require("./utils.js");
 const reply = cu.reply;
 
@@ -62,6 +65,7 @@ function session(msg, prefix, rec) {
     var id = rec.id;
     var client = rec.client;
     var nick = rec.nick;
+    var lang = rec.lang;
 
     function sReply(dm, pubtext, privtext) {
         reply(msg, dm, prefix, pubtext, privtext);
@@ -79,7 +83,7 @@ function session(msg, prefix, rec) {
 
     const partTimeout = setTimeout(() => {
         log("Terminating " + id + ": Time limit.");
-        sReply(true, "Sorry, but you've hit the recording time limit. Recording stopped.");
+        sReply(true, l("timelimit", lang));
         rec.disconnected = true;
         connection.disconnect();
     }, limits.record * 60*60*1000);
@@ -88,7 +92,7 @@ function session(msg, prefix, rec) {
     try {
         connection.channel.guild.editNickname(nick + " [RECORDING]").catch((err) => {
             log("Terminating " + id + ": Lack nick change permission.");
-            sReply(true, "I do not have permission to change my nickname on this server. I will not record without this permission.");
+            sReply(true, l("cannotnick", lang));
             rec.disconnected = true;
             connection.disconnect();
         });
@@ -143,20 +147,24 @@ function session(msg, prefix, rec) {
             unusedMinutes++;
             if (usedMinutes === 0) {
                 // No recording at all!
-                const feedback = "\n\nIf you're confident you were sending audio, this may be due to a bug connecting to the voice server. Try the following workarounds:\n\n(1) In server settings, switch the voice region and try recording again. If it works, you may attempt to switch back to the original voice server, but don't be surprised if it still fails. If it doesn't work,\n\n(2) Kick me from the server, then reinvite me. You can find the invite link at " + config.longUrl + ". If that doesn't work,\n\n(3) The only remaining option is to reset the bot. You'll have to join my support server and ask for help.";
+                var msg = l("silence1", lang);
+                if (!rec.noSilenceDisconnect)
+                    msg += " " + l("disconnecting", lang);
+                msg += " " + l("silence2", lang, config.longUrl);
                 if (rec.noSilenceDisconnect) {
-                    sReply(true, "I'm not receiving any audio!" + feedback);
+                    sReply(true, msg);
                     usedMinutes++; // Just to make this warning not resound
                 } else {
                     log("Terminating " + id + ": No data.");
-                    sReply(true, "I'm not receiving any audio! Disconnecting." + feedback);
+                    sReply(true, msg);
                     rec.disconnected = true;
                     connection.disconnect();
                     return;
                 }
             } else if (unusedMinutes === 5 && !warned) {
-                sReply(true, "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!");
-                sReply(false, "Hello? I haven't heard anything for five minutes. Has something gone wrong, are you just taking a break, or have you forgotten to `:craig:, leave` to stop the recording? If it's just a break, disregard this message!");
+                var msg = l("silence5min", lang);
+                sReply(true, msg);
+                sReply(false, msg);
                 warned = true;
             }
         }
@@ -176,7 +184,7 @@ function session(msg, prefix, rec) {
         size += chunk.length;
         if (config.hardLimit && size >= config.hardLimit) {
             log("Terminating " + id + ": Size limit.");
-            reply(true, "Sorry, but you've hit the recording size limit. Recording stopped.");
+            reply(true, l("sizelimit", lang));
             rec.disconnected = true;
             connection.disconnect();
         } else {
@@ -214,7 +222,7 @@ function session(msg, prefix, rec) {
                 opus.decode(chunk, 960);
             } catch (ex) {
                 if (!corruptWarn[user.id]) {
-                    sReply(true, "WARNING: I am receiving corrupted voice data from " + user.username + "#" + user.discriminator + "! I will not be able to correctly process their audio!");
+                    sReply(true, l("corrupt", lang, user.username, user.discriminator));
                     corruptWarn[user.id] = true;
                 }
             }
@@ -396,7 +404,7 @@ function session(msg, prefix, rec) {
                 logex(ex);
             }
             try {
-                sReply(true, "I've been unexpectedly disconnected! If you want me to stop recording, please command me to with :craig:, stop.");
+                sReply(true, l("unexpecteddc", lang));
             } catch (ex) {
                 logex(ex);
             }
@@ -460,7 +468,7 @@ function safeJoin(channel, err) {
 }
 
 // Start recording
-commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
+function cmdJoin(lang) { return function(msg, cmd) {
     var guild = msg.guild;
     if (!guild)
         return;
@@ -534,24 +542,19 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
         // Choose the right action
         if (channelId in activeRecordings[guildId]) {
             var rec = activeRecordings[guildId][channelId];
-            reply(msg, true, cmd[1],
-                    "I'm already recording that channel: " + config.dlUrl + "?id=" +
-                    rec.id + "&key=" + rec.accessKey);
+            reply(msg, true, cmd[1], l("already", lang, config.dlUrl, rec.id, rec.accessKey));
 
         } else if (!chosenClient) {
-            reply(msg, false, cmd[1],
-                    "Sorry, but I can't record any more channels on this server! Please ask me to leave a channel I'm currently in first with “:craig:, leave <channel>”, or ask me to leave all channels on this server with “:craig:, stop”");
+            reply(msg, false, cmd[1], l("nomore", lang));
 
         } else if (!guild) {
-            reply(msg, false, cmd[1],
-                    "In Discord, one bot can only record one channel. If you want another channel recorded, you'll have to invite my brother: " + config.secondary[chosenClientNum-1].invite);
+            reply(msg, false, cmd[1], l("onemore", lang, config.secondary[chosenClientNum-1].invite));
 
         } else if (!channel) {
-            reply(msg, false, cmd[1],
-                    "My brother can't see that channel. Make sure his permissions are correct.");
+            reply(msg, false, cmd[1], l("broperms", lang));
 
         } else if (!joinable) {
-            reply(msg, false, cmd[1], "I don't have permission to join that channel!");
+            reply(msg, false, cmd[1], l("noperms", lang));
 
         } else {
             // Figure out the recording features for this user
@@ -662,6 +665,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
                 connection: null,
                 id: id,
                 accessKey: accessKey,
+                lang: lang,
                 client: chosenClient,
                 clientNum: chosenClientNum,
                 limits: f.limits,
@@ -676,7 +680,7 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
 
             // If we have voice channel issue, do our best to rectify them
             function onError(ex) {
-                reply(msg, false, cmd[1], "Failed to join! If I persistently fail to join, it may be an issue with the voice server. Try changing the server region in server settings. " + ex);
+                reply(msg, false, cmd[1], l("joinfail", lang) + " " + ex);
                 close();
             }
 
@@ -684,11 +688,8 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
             safeJoin(channel, onError).then((connection) => {
                 // Tell them
                 reply(msg, true, cmd[1],
-                    "Recording! I will record up to " + f.limits.record +
-                    " hours. Recordings are deleted automatically after " + f.limits.download +
-                    " hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\n" +
-                    "Download link: " + config.dlUrl + "?id=" + id + "&key=" + accessKey,
-                    "To delete: " + config.dlUrl + "?id=" + id + "&key=" + accessKey + "&delete=" + deleteKey + "\n.");
+                    l("recording", lang, f.limits.record+"", f.limits.download+"", config.dlUrl, id+"", accessKey+""),
+                    l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
 
                 rec.connection = connection;
 
@@ -702,14 +703,15 @@ commands["join"] = commands["record"] = commands["rec"] = function(msg, cmd) {
         }
 
     } else if (!cc.dead) {
-        reply(msg, false, cmd[1], "What channel?");
+        reply(msg, false, cmd[1], (cname==="") ? l("whatchannel", lang) : l("cantsee", lang));
 
     }
 
-}
+} }
+cl.register(commands, "join", cmdJoin);
 
 // Stop recording
-commands["leave"] = commands["part"] = function(msg, cmd) {
+function cmdLeave(lang) { return function(msg, cmd) {
     var guild = msg.guild;
     if (!msg.guild)
         return;
@@ -746,15 +748,16 @@ commands["leave"] = commands["part"] = function(msg, cmd) {
             }
 
         } else if (!cc.dead) {
-            reply(msg, false, cmd[1], "But I'm not recording that channel!");
+            reply(msg, false, cmd[1], l("notrecording", lang));
         }
 
     } else if (!cc.dead) {
-        reply(msg, false, cmd[1], "What channel?");
+        reply(msg, false, cmd[1], l("whatchannel", lang));
 
     }
 
-}
+} }
+cl.register(commands, "leave", cmdLeave);
 
 // Stop all recordings
 commands["stop"] = function(msg, cmd) {
