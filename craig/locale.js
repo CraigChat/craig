@@ -24,9 +24,26 @@ const fs = require("fs");
 
 const langs = ["en"];
 const locale = {};
+const channelHints = {};
+const regionHints = {};
 
 langs.forEach((lang) => {
-    locale[lang] = JSON.parse(fs.readFileSync("locale/" + lang + ".json", "utf8"));
+    const ll = JSON.parse(fs.readFileSync("locale/" + lang + ".json", "utf8"));
+    locale[lang] = ll;
+    if (lang !== "en") {
+        if ("channels" in ll) {
+            ll.channels.forEach((ch) => {
+                if (!(ch in channelHints)) channelHints[ch] = [];
+                channelHints[ch].push(lang);
+            });
+        }
+        if ("regions" in ll) {
+            ll.regions.forEach((rg) => {
+                if (!(rg in regionHints)) regionHints[rg] = [];
+                regionHints[rg].push(lang);
+            });
+        }
+    }
 });
 
 // Localize a string
@@ -62,7 +79,36 @@ function register(commands, metaname, handler) {
     });
 }
 
+// Give a language hint based on the channel
+function hint(channel, lang) {
+    var maybeLangs = [];
+    var hinted = {};
+
+    var channelHint = channelHints[channel.name.toLowerCase()];
+    if (channelHint)
+        maybeLangs = maybeLangs.concat(channelHint);
+
+    var regionHint = regionHints[channel.guild.region];
+    if (regionHint)
+        maybeLangs = maybeLangs.concat(regionHint);
+
+    if (maybeLangs.length === 0) return null;
+
+    // Get the hint for each language
+    var ret = "";
+    maybeLangs.forEach((hlang) => {
+        if (hlang === lang) return;
+        if (!locale[hlang].hint) return;
+        if (ret.length) ret += "\n\n";
+        ret += locale[hlang].hint;
+    });
+    if (!ret.length) return null;
+
+    return ret;
+}
+
 module.exports = {
     l: localize,
-    register
+    register,
+    hint
 };

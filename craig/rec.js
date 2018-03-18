@@ -686,9 +686,13 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
             // Join the channel
             safeJoin(channel, onError).then((connection) => {
+                // Get a language hint
+                var hint = cl.hint(channel, lang);
+
                 // Tell them
                 reply(msg, true, cmd[1],
-                    l("recording", lang, f.limits.record+"", f.limits.download+"", config.dlUrl, id+"", accessKey+""),
+                    l("recording", lang, f.limits.record+"", f.limits.download+"", config.dlUrl, id+"", accessKey+"") +
+                    (hint?("\n\n"+hint):""),
                     l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
 
                 rec.connection = connection;
