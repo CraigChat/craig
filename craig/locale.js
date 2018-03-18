@@ -98,6 +98,8 @@ function hint(channel, lang) {
     var ret = "";
     maybeLangs.forEach((hlang) => {
         if (hlang === lang) return;
+        if (hlang in hinted) return;
+        hinted[hlang] = true;
         if (!locale[hlang].hint) return;
         if (ret.length) ret += "\n\n";
         ret += locale[hlang].hint;
