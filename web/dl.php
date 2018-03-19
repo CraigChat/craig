@@ -18,6 +18,14 @@
 if (!isset($id))
     die();
 
+$flags = array(
+    "en" => ["us", "uk"],
+    "pt" => ["br", "pt"],
+    "de" => ["de"],
+    "fr" => ["fr"],
+    "it" => ["it"]
+);
+
 ?>
 <!doctype html>
 <html>
@@ -39,6 +47,12 @@ if (!isset($id))
 
             .big {
                 font-size: 1.5em;
+            }
+
+            .flag {
+                height: 1em;
+                width: auto;
+                vertical-align: middle;
             }
 
             button {
@@ -233,7 +247,16 @@ if (!isset($id))
 foreach ($locales as $la) {
     if ($la !== "en")
         print " | ";
-    print "<a href=\"?id=$id&amp;key=$key&amp;locale=$la\">$la</a>";
+    if ($locale === $la) print "•";
+    print "<a href=\"?locale=$la\">";
+    if (isset($flags[$la])) {
+        $fs = $flags[$la];
+        foreach ($fs as $i=>$f)
+            print "<img src=\"home/images/flags/$f.png\" alt=\"$la\" class=\"flag\" />";
+    } else {
+        print "$la";
+    }
+    print "</a>";
 }
 ?>
         </div>
