@@ -3,7 +3,8 @@
     "help":             "Hello! I'm Craig! I'm a multi-track voice channel recorder. For more information, see %1 .",
 
     "cmd:join":         ["join", "record", "rec"],
-    "recording":        "Recording! I will record up to %1 hours. Recordings are deleted automatically after %2 hours from the start of recording. The audio can be downloaded even while I'm still recording.\n\nDownload link: %3?id=%4&key=%5",
+    "recording":        "Recording! I will record up to %1 hours. Recordings are deleted automatically after %2 hours from the start of recording. The audio can be downloaded even while I'm still recording.",
+    "downloadlink":     "Download link: %1?id=%2&key=%3",
     "deletelink":       "To delete: %1?id=%2&key=%3&delete=%4",
 
     "cantsee":          "I can't see any channel with that name.",

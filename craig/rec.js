@@ -690,9 +690,12 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 var hint = cl.hint(channel, lang);
 
                 // Tell them
-                reply(msg, true, cmd[1],
-                    l("recording", lang, f.limits.record+"", f.limits.download+"", config.dlUrl, id+"", accessKey+"") +
-                    (hint?("\n\n"+hint):""),
+                var rmsg = 
+                    l("recording", lang, f.limits.record+"", f.limits.download+"") +
+                    (hint?("\n\n"+hint):"") +
+                    "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
+
+                reply(msg, true, cmd[1], rmsg,
                     l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
 
                 rec.connection = connection;
