@@ -170,6 +170,17 @@ function session(msg, prefix, rec) {
         }
     }, 60000);
 
+    // And show by glowing whether we're used or not
+    var lastTime = [0, 0];
+    const feedbackInterval = setInterval(() => {
+        var curTime = process.hrtime(startTime);
+        var diff = ((curTime[0]-lastTime[0])*10+(curTime[1]-lastTime[0])/100000000);
+        if (diff > 10) {
+            // It's been at least a second since we heard anything
+            connection.setSpeaking(false);
+        }
+    }, 1000);
+
     // Set up our recording streams
     var recFHStream = [
         fs.createWriteStream(recFileBase + ".header1"),
@@ -256,6 +267,11 @@ function session(msg, prefix, rec) {
         var chunkTime = process.hrtime(startTime);
         chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
 
+        // Show that we're receiving
+        lastTime = chunkTime;
+        connection.setSpeaking(true);
+
+        // Make sure we're prepared for this user
         var userTrackNo, userRecents;
         if (!(user.id in users)) {
             users[user.id] = user;
@@ -429,6 +445,7 @@ function session(msg, prefix, rec) {
         // Delete our leave timeout
         clearTimeout(partTimeout);
         clearInterval(useInterval);
+        clearInterval(feedbackInterval);
 
         // Destroy the receiver (unnecessary)
         try {
