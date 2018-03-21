@@ -10,7 +10,7 @@
         "bufferutil": "^3.0.3",
         "cyclic-32": "*",
         "discord.js": "^11.3.0",
-        "eris": "https://github.com/abalabahaha/eris.git#dev",
+        "eris": "^0.8.5",
         "erlpack": "hammerandchisel/erlpack",
         "node-opus": "*",
         "request": "^2.83.0",
