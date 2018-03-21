@@ -440,6 +440,16 @@ function session(msg, prefix, rec) {
     }
     connection.on("disconnect", onDisconnect);
     connection.on("error", onDisconnect);
+
+    connection.on("warn", (warning) => {
+        if (rec.disconnected)
+            return;
+        try {
+            log("VoiceConnection WARN in " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id + ": " + warning);
+        } catch (ex) {
+            logex(ex);
+        }
+    });
 }
 
 // Join a voice channel, working around discord.js' knot of insane bugs
