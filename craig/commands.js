@@ -20,6 +20,8 @@
  * Support for command handling, from arbitrary users, the owner, and via IPC.
  */
 
+const fs = require("fs");
+
 const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
@@ -41,6 +43,94 @@ const commands = {};
 // Special command handlers for owner commands
 const ownerCommands = {};
 
+// Banned users
+let banned = {};
+var banJournalF = null;
+
+if (cc.master) {
+    // Get our bans
+    if (cu.accessSyncer("craig-bans.json")) {
+        try {
+            var lines = fs.readFileSync("craig-bans.json", "utf8").split("\n");
+            try {
+                banned = JSON.parse(lines[0]);
+            } catch (ex) {
+                logex(ex);
+            }
+            for (var li = 1; li < lines.length; li++) {
+                try {
+                    var step = JSON.parse("[0" + lines[li] + "]")[1];
+                    if (!step) continue;
+                    if ("u" in step)
+                        banned[step.i] = step.u;
+                    else
+                        delete banned[step.i];
+                } catch (ex) {
+                    logex(ex);
+                }
+            }
+        } catch (ex) {
+            logex(ex);
+        }
+    }
+    banJournalF = fs.createWriteStream("craig-bans.json", "utf8");
+    banJournalF.write(JSON.stringify(banned) + "\n");
+
+    // Send to clients
+    if (cc.sm) (function(){
+        for (var id in banned)
+            cc.sm.broadcast({t:"ban",i:id,u:banned[id]});
+
+        cc.sm.on("launch", (shard) => {
+            for (var id in banned)
+                shard.send({t:"ban",i:id,u:banned[id]});
+        });
+    })();
+}
+
+// Functions to ban/unban
+function banLocal(id, user) {
+    banned[id] = user;
+    if (banJournalF)
+        banJournalF.write("," + JSON.stringify({"i":id,"u":user}) + "\n");
+}
+
+function ban(id, user) {
+    banLocal(id, user);
+    if (client.shard)
+        client.shard.send({t:"ban", from:client.shard.id, i:id, u:user});
+}
+
+cc.shardCommands["ban"] = function(shard, msg) {
+    banLocal(msg.i, msg.u);
+    cc.sm.broadcast(msg);
+}
+
+cc.processCommands["ban"] = function(msg) {
+    banLocal(msg.i, msg.u);
+}
+
+function unbanLocal(id) {
+    delete banned[id];
+    if (banJournalF)
+        banJournalF.write("," + JSON.stringify({"i":id}) + "\n");
+}
+
+function unban(id) {
+    unbanLocal(id);
+    if (client.shard)
+        client.shard.send({t:"unban", from:client.shard.id, i:id});
+}
+
+cc.shardCommands["unban"] = function(shard, msg) {
+    unbanLocal(msg.i);
+    cc.sm.broadcast(msg);
+}
+
+cc.processCommands["unban"] = function(msg) {
+    unbanLocal(msg.i);
+}
+
 // Our command regex changes to match our user ID
 var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/i;
 if (client) client.on("ready", () => {
@@ -53,6 +143,9 @@ if (client) client.on("ready", () => {
 // Only admins and those with the Craig role are authorized to use Craig
 function userIsAuthorized(member) {
     if (!member) return false;
+
+    // Banned users are, well, banned
+    if (member.id in banned) return false;
 
     // Guild owners are always allowed
     if (member.permission.has("manageGuild"))
@@ -122,11 +215,48 @@ function onMessage(msg) {
 }
 if (client) client.on("messageCreate", onMessage);
 
-// The one command covered here is "help"
+// Ban command interface
+function cmdBanUnban(isBan, msg, cmd) {
+    // Only the owner can ban
+    if (msg.member.id !== config.owner) return;
+
+    const mention = /^<@!?([0-9]*)> *(.*)/;
+    var toban = cmd[3];
+
+    while (true) {
+        var bres;
+        var bid, buser, bui;
+        if (bres = mention.exec(toban)) {
+            toban = bres[2];
+            bid = bres[1];
+        } else break;
+
+        bui = client.users.get(bid);
+        if (bui)
+            buser = bui.username + "#" + bui.discriminator;
+        else
+            buser = "UNKNOWN";
+
+        if (bui === config.owner) continue;
+
+        if (isBan) {
+            ban(bid, buser);
+            reply(msg, false, cmd[1], "User <@" + bid + "> has been banned.");
+        } else {
+            unban(bid);
+            reply(msg, false, cmd[1], "User <@" + bid + "> has been unbanned.");
+        }
+    }
+}
+
+commands["ban"] = function(msg, cmd) { cmdBanUnban(true, msg, cmd); }
+commands["unban"] = function(msg, cmd) { cmdBanUnban(false, msg, cmd); }
+
+// The help command is covered here as there's nowhere better for it
 function cmdHelp(lang) { return function(msg, cmd) {
     if (cc.dead) return;
     reply(msg, false, cmd[1], l("help", lang, config.longUrl));
 } }
 cl.register(commands, "help", cmdHelp);
 
-module.exports = {commands, ownerCommands};
+module.exports = {commands, ownerCommands, banned};
