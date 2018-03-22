@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
-    unsigned char correctTimestamps = 0;
+    unsigned char correctTimestamps = 0, lastWasSilence = 1;
 
     if (argc != 2) {
         fprintf(stderr, "Use: oggstender <track no>\n");
@@ -145,7 +145,8 @@ int main(int argc, char **argv)
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * 5) {
             // We are behind
-            if (oggHeader.granulePos > lastGranulePos + packetTime * 10) {
+            if (lastWasSilence ||
+                oggHeader.granulePos > lastGranulePos + packetTime * 25) {
                 // There was a real gap, fill it
                 uint64_t gapTime = oggHeader.granulePos - trueGranulePos;
                 while (gapTime >= packetTime) {
@@ -180,6 +181,9 @@ int main(int argc, char **argv)
 
             }
         }
+
+        // It's safer to place gaps during silence, so "silence detect" by looking for tiny packets
+        lastWasSilence = (packetSize < 8);
 
         // Now fix up our own granule positions
         lastGranulePos = oggHeader.granulePos;
