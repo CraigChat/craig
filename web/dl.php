@@ -309,7 +309,8 @@ if (isset($features["mp3"]) && $features["mp3"])
 }
 ?>
         
-        <span class="local js">
+        <span class="js">
+        <span class="local">
         <span class="lbl"><?PHP l("mtp"); ?>&nbsp;</span>
         <button id="mflac">FLAC</button>
         <?PHP if ($macosx) { ?><button id="malac">ALAC (Apple Lossless)</button><?PHP } ?>
@@ -318,7 +319,7 @@ if (isset($features["mp3"]) && $features["mp3"])
         <button id="mwav">wav (<?PHP l("uncomp"); ?>)</button>
         </span><br/><br/>
 
-        <span class="local js">
+        <span class="local">
         <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
         <button id="sflac">FLAC</button>
         <?PHP if ($macosx) { ?><button id="salac">ALAC (Apple Lossless)</button><?PHP } ?>
@@ -327,7 +328,7 @@ if (isset($features["mp3"]) && $features["mp3"])
         <button id="swav">wav (<?PHP l("uncomp"); ?>)</button>
         </span><br/><br/><br/><br/>
 
-        <button id="localProcessingB" class="js"><?PHP l("local"); ?></button><br/><br/>
+        <button id="localProcessingB"><?PHP l("local"); ?></button><br/><br/>
 
         <div id="localProcessing" style="display: none; margin: auto; max-width: 60em;">
             <label for="format"><?PHP l("format"); ?></label>
@@ -366,6 +367,7 @@ if (isset($features["mp3"]) && $features["mp3"])
             <a href="ffmpeg-js-license.txt">License</a> and
             <a href="ffmpeg-js-craig-2018-03-23.tar.xz">source</a>.
         </div><br/><br/>
+        </span>
 
         <button id="avatarsB" class="j2"><?PHP l("avatars"); ?></button><br/><br/>
 
@@ -431,6 +433,7 @@ download(ls("raw"), "raw");
 readfile("convert.js");
 print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&container=ogg\";\n";
 print "craigReady=\"?id=" . $id . "&key=" . $key . "&ready\";\n";
+print "craigMobile=" . (($android||$iphone)?"true":"false") . ";\n";
 print "craigLocale={";
 foreach (array("nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
     print "\"$lstr\":\"" . ls($lstr) . "\",";
@@ -517,7 +520,8 @@ print "0:0};\n";
             }
             initCheck();
 
-            document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
+            if (!craigMobile)
+                document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
 
             function vis(id, setTo) {
                 var l = gid(id);
