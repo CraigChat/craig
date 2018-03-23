@@ -174,7 +174,7 @@ function session(msg, prefix, rec) {
     var lastTime = [0, 0];
     const feedbackInterval = setInterval(() => {
         var curTime = process.hrtime(startTime);
-        var diff = ((curTime[0]-lastTime[0])*10+(curTime[1]-lastTime[0])/100000000);
+        var diff = ((curTime[0]-lastTime[0])*10+(curTime[1]-lastTime[1])/100000000);
         if (diff > 10) {
             // It's been at least a second since we heard anything
             connection.setSpeaking(false);
