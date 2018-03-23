@@ -66,7 +66,7 @@ index 30137c3..4187cf0 100644
  ==============================================================================
  
 diff --git a/Makefile b/Makefile
-index 1b90983..9f7cea6 100644
+index 1b90983..930dadb 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -6,15 +6,9 @@ PRE_JS = build/pre.js
@@ -88,14 +88,16 @@ index 1b90983..9f7cea6 100644
  
  WEBM_MUXERS = webm ogg null image2
  WEBM_ENCODERS = libvpx_vp8 libopus mjpeg
-@@ -34,15 +28,15 @@ WEBM_SHARED_DEPS = \
+@@ -34,15 +28,17 @@ WEBM_SHARED_DEPS = \
  	build/opus/dist/lib/libopus.so \
  	build/libvpx/dist/lib/libvpx.so
  
 -MP4_MUXERS = mp4 mp3 null
 -MP4_ENCODERS = libx264 libmp3lame aac
-+MP4_MUXERS = matroska mp4 mp3 ogg flac wav null
-+MP4_ENCODERS = libmp3lame aac libopus flac pcm_s16le
++# Note: We don't generate iPod files, but the "ipod" muxer is the one that
++# supports MP4+ALAC
++MP4_MUXERS = flac ipod mp3 mp4 ogg wav null
++MP4_ENCODERS = flac aac alac libmp3lame pcm_s16le
  FFMPEG_MP4_BC = build/ffmpeg-mp4/ffmpeg.bc
 -FFMPEG_MP4_PC_PATH = ../x264/dist/lib/pkgconfig
 +FFMPEG_MP4_PC_PATH = ../opus/dist/lib/pkgconfig
@@ -109,7 +111,7 @@ index 1b90983..9f7cea6 100644
  webm: ffmpeg-webm.js ffmpeg-worker-webm.js
  mp4: ffmpeg-mp4.js ffmpeg-worker-mp4.js
  
-@@ -292,9 +286,8 @@ build/ffmpeg-mp4/ffmpeg.bc: $(MP4_SHARED_DEPS)
+@@ -292,9 +288,8 @@ build/ffmpeg-mp4/ffmpeg.bc: $(MP4_SHARED_DEPS)
  		$(FFMPEG_COMMON_ARGS) \
  		$(addprefix --enable-encoder=,$(MP4_ENCODERS)) \
  		$(addprefix --enable-muxer=,$(MP4_MUXERS)) \
@@ -120,7 +122,7 @@ index 1b90983..9f7cea6 100644
  		--extra-cflags="-I../lame/dist/include" \
  		--extra-ldflags="-L../lame/dist/lib" \
  		&& \
-@@ -306,7 +299,7 @@ build/ffmpeg-mp4/ffmpeg.bc: $(MP4_SHARED_DEPS)
+@@ -306,7 +301,7 @@ build/ffmpeg-mp4/ffmpeg.bc: $(MP4_SHARED_DEPS)
  # for simple tests and 32M tends to run slower than 64M.
  EMCC_COMMON_ARGS = \
  	--closure 1 \
