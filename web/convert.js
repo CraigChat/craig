@@ -38,18 +38,17 @@
         if (typeof options === "undefined")
             options = {};
         var ext = format;
-        if (format === "matroska")
-            ext = "mkv";
-        if (format === "mp4" && codec === "aac" &&
-            !options.multitrack)
+        if (format === "mp4" && !options.multitrack)
             ext = "m4a";
+        if (format === "mp4" && codec === "alac")
+            format = "ipod"; // ffmpeg name for Appley slightly nonstandard MP4 files
 
         // Wait for the download to compelte
         function onreadystatechange(ev) {
             if (xhr.readyState === 4) {
                 if (xhr.status !== 200) {
                     if (status)
-                        status.innerText = "Failed to download!";
+                        status.innerText = (options.locale?options.locale.downfail:"Failed to download!");
                     return;
                 }
 
@@ -57,7 +56,7 @@
                 maybeReady();
 
             } else {
-                var st = "Downloading.";
+                var st = (options.locale?options.locale.downloading:"Downloading.");
                 if (ev.loaded)
                     st += " " + ~~(ev.loaded/1024) + "KB";
                 status.innerText = st;
@@ -96,7 +95,7 @@
                         // Track detection
                         if (detectedTracks <= 0) {
                             if (status)
-                                status.innerText = "No tracks detected!";
+                                status.innerText = (options.locale?options.locale.notracks:"No tracks detected!");
                             return;
                         }
                         tracks = detectedTracks;
@@ -121,7 +120,7 @@
                                 output.appendChild(li);
                         }
                         if (status)
-                            status.innerText = "Conversion complete.";
+                            status.innerText = (options.locale?options.locale.complete:"Processing complete.");
 
                         ffm.terminate();
 

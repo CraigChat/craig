@@ -312,6 +312,7 @@ if (isset($features["mp3"]) && $features["mp3"])
         <span class="local js">
         <span class="lbl"><?PHP l("mtp"); ?>&nbsp;</span>
         <button id="mflac">FLAC</button>
+        <?PHP if ($macosx) { ?><button id="malac">ALAC (Apple Lossless)</button><?PHP } ?>
         <button id="mm4a">M4A (MPEG-4)</button>
         <button id="mmp3">MP3 (MPEG-1)</button>
         <button id="mwav">wav (<?PHP l("uncomp"); ?>)</button>
@@ -320,6 +321,7 @@ if (isset($features["mp3"]) && $features["mp3"])
         <span class="local js">
         <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
         <button id="sflac">FLAC</button>
+        <?PHP if ($macosx) { ?><button id="salac">ALAC (Apple Lossless)</button><?PHP } ?>
         <button id="sm4a">M4A (MPEG-4)</button>
         <button id="smp3">MP3 (MPEG-1)</button>
         <button id="swav">wav (<?PHP l("uncomp"); ?>)</button>
@@ -331,6 +333,7 @@ if (isset($features["mp3"]) && $features["mp3"])
             <label for="format"><?PHP l("format"); ?></label>
             <select id="format">
                 <option value="flac,flac">FLAC</option>
+                <option value="mp4,alac">ALAC (Apple Lossless)</option>
                 <option value="mp4,aac">M4A (MPEG-4)</option>
                 <option value="mp3,mp3">MP3 (MPEG-1)</option>
                 <option value="wav,pcm_s16le">wav (<?PHP l("uncomp"); ?>)</option>
@@ -361,7 +364,7 @@ if (isset($features["mp3"]) && $features["mp3"])
             <a href="http://lame.sourceforge.net/">LAME</a>, by way of
             <a href="https://github.com/Kagami/ffmpeg.js">ffmpeg.js</a>.
             <a href="ffmpeg-js-license.txt">License</a> and
-            <a href="ffmpeg-js-craig.tar.xz">source</a>.
+            <a href="ffmpeg-js-craig-2018-03-23.tar.xz">source</a>.
         </div><br/><br/>
 
         <button id="avatarsB" class="j2"><?PHP l("avatars"); ?></button><br/><br/>
@@ -586,6 +589,7 @@ print "0:0};\n";
             // And map all the buttons
             var bmap = {
                 "flac": "flac,flac",
+                "alac": "mp4,alac",
                 "m4a": "mp4,aac",
                 "mp3": "mp3,mp3",
                 "wav": "wav,pcm_s16le"
