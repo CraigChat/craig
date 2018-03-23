@@ -58,6 +58,18 @@ case "$FORMAT" in
         EXTRAFILES="RunMe.bat ffmpeg.exe"
         CONTAINER=zip
         ;;
+    wavsfxm)
+        ext=flac
+        ENCODE="flac - -c"
+        EXTRAFILES="RunMe.command ffmpeg"
+        CONTAINER=zip
+        ;;
+    wavsfxu)
+        ext=flac
+        ENCODE="flac - -c"
+        EXTRAFILES="RunMe.sh"
+        CONTAINER=zip
+        ;;
     mp3)
         ext=mp3
         ENCODE="lame -b 128 - -"
@@ -103,6 +115,24 @@ then
     sed 's/^/@REM   / ; s/$/\r/g' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt" > "$tmpdir/out/RunMe.bat"
     mkfifo "$tmpdir/out/ffmpeg.exe"
     timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-wav.exe" > "$tmpdir/out/ffmpeg.exe" &
+
+elif [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
+then
+    RUNMESUFFIX=sh
+    if [ "$FORMAT" = "wavsfxm" ]
+    then
+        cp "$SCRIPTBASE/cook/ffmpeg-wav.macosx" "$tmpdir/out/ffmpeg"
+        chmod a+x "$tmpdir/out/ffmpeg"
+        RUNMESUFFIX=command
+    fi
+
+    (
+        printf '#!/bin/sh\n'
+        sed 's/^/#   /' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt"
+        printf 'set -e\ncd "$(dirname "$0")"\n\n'
+    ) > "$tmpdir/out/RunMe.$RUNMESUFFIX"
+    chmod a+x "$tmpdir/out/RunMe.$RUNMESUFFIX"
+
 fi
 
 # Encode thru fifos
@@ -132,8 +162,18 @@ do
     if [ "$FORMAT" = "wavsfx" ]
     then
         printf 'ffmpeg -i %s %s\r\ndel %s\r\n\r\n' "$O_FN" "${O_FN%.flac}.wav" "$O_FN" >> "$tmpdir/out/RunMe.bat"
+    elif [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
+    then
+        (
+            [ "$FORMAT" != "wavsfxm" ] || printf './'
+            printf 'ffmpeg -i %s %s\nrm %s\n\n' "$O_FN" "${O_FN%.flac}.wav" "$O_FN"
+        ) >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
     fi
 done
+if [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
+then
+    printf "printf '\\\\n\\\\n===\\\\nProcessing complete.\\\\n===\\\\n\\\\n'\\n" >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
+fi
 if [ "$CONTAINER" = "zip" ]
 then
     mkfifo $tmpdir/out/raw.dat

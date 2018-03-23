@@ -49,7 +49,7 @@ set -e
 ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=15:first_pts=0"
 
 case "$FORMAT" in
-    mkvh264|movsfx)
+    mkvh264|movsfx|movsfxm|movsfxu)
         ext=mkv
         CODEC="-c:v libx264 -crf 16"
         ;;
@@ -106,6 +106,25 @@ then
     mkfifo "$tmpdir/out/ffmpeg.exe"
     timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-movqtrle.exe" > "$tmpdir/out/ffmpeg.exe" &
     FILES="$FILES RunMe.bat ffmpeg.exe"
+
+elif [ "$FORMAT" = "movsfxm" -o "$FORMAT" = "movsfxu" ]
+then
+    RUNMESUFFIX=sh
+    if [ "$FORMAT" = "movsfxm" ]
+    then
+        cp "$SCRIPTBASE/cook/ffmpeg-movqtrle.macosx" "$tmpdir/out/ffmpeg"
+        chmod a+x "$tmpdir/out/ffmpeg"
+        FILES="$FILES ffmpeg"
+        RUNMESUFFIX=command
+    fi
+    (
+        printf '#!/bin/sh\n'
+        sed 's/^/#   /' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt"
+        printf 'set -e\ncd "$(dirname "$0")"\n\n'
+    ) > "$tmpdir/out/RunMe.$RUNMESUFFIX"
+    chmod a+x "$tmpdir/out/RunMe.$RUNMESUFFIX"
+    FILES="$FILES RunMe.$RUNMESUFFIX"
+
 fi
 
 if [ "$FORMAT" = "png" ]
@@ -185,7 +204,7 @@ else
             [vid][avatar]overlay[vid]'
 
         # If we're making a self-extractor, split the color and alpha
-        if [ "$FORMAT" = "movsfx" ]
+        if [ "$FORMAT" = "movsfx" -o "$FORMAT" = "movsfxm" -o "$FORMAT" = "movsfxu" ]
         then
             FILTER="$FILTER"';
                 [vid]split[vid][alpha];
@@ -232,10 +251,22 @@ else
                 "$O_FN" "${O_FN%.mkv}.mov" "$O_FN" \
                 >> "$tmpdir/out/RunMe.bat"
 
+        elif [ "$FORMAT" = "movsfxm" -o "$FORMAT" = "movsfxu" ]
+        then
+            (
+                [ "$FORMAT" != "movsfxm" ] || printf './'
+                printf 'ffmpeg -i %s -filter_complex '\''[0:v]split[vid][alpha];[vid]crop=160:160:0:0[vid];[alpha]crop=160:160:160:0[alpha];[vid][alpha]alphamerge[vid]'\'' -map '\''[vid]'\'' -c:v qtrle %s\nrm %s\n\n' \
+                    "$O_FN" "${O_FN%.mkv}.mov" "$O_FN"
+            ) >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
+
         fi
 
         c=$((c+1))
     done
+fi
+if [ "$FORMAT" = "movsfxm" -o "$FORMAT" = "movsfxu" ]
+then
+    printf "printf '\\\\n\\\\n===\\\\nProcessing complete.\\\\n===\\\\n\\\\n'\\n" >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
 fi
 
 # Put them into their container

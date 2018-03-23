@@ -18,6 +18,8 @@
 if (!isset($id))
     die();
 
+ob_start("ob_gzhandler");
+
 $flags = array(
     "en" => ["us", "uk"],
     "pt" => ["br", "pt"],
@@ -53,6 +55,7 @@ $flags = array(
                 height: 1em;
                 width: auto;
                 vertical-align: middle;
+                margin-bottom: 0.15em;
             }
 
             button {
@@ -248,11 +251,13 @@ foreach ($locales as $la) {
     if ($la !== "en")
         print " | ";
     if ($locale === $la) print "•";
-    print "<a href=\"?locale=$la\">";
+    print "<a href=\"?id=$id&amp;key=$key&amp;locale=$la\">";
     if (isset($flags[$la])) {
         $fs = $flags[$la];
         foreach ($fs as $i=>$f)
-            print "<img src=\"home/images/flags/$f.png\" alt=\"$la\" class=\"flag\" />";
+            print "<img src=\"data:image/png;base64," .
+                base64_encode(file_get_contents("home/images/flags/$f.png")) .
+                "\" alt=\"$la\" class=\"flag\" />";
     } else {
         print "$la";
     }
@@ -276,6 +281,10 @@ foreach ($locales as $la) {
 download("FLAC", "flac");
 if ($windows)
     download("wav <div style=\"font-size: 0.6em\">(Windows extractor, run RunMe.bat)</div>", "wavsfx");
+if ($macosx && !$iphone)
+    download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm");
+if ($unix && !$android)
+    download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu");
 download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])
@@ -375,16 +384,25 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 
                 <label for="aformat"><?PHP l("format"); ?></label>
                 <select id="aformat" name="format">
+                    <?PHP if ($windows) { ?><option value="movsfx">MOV (QuickTime Animation, Windows extractor)</option><?PHP } ?>
+                    <?PHP if ($macosx && !$iphone) {?><option value="movsfxm">MOV (QuickTime Animation, Mac OS X extractor)</option><?PHP } ?>
+                    <?PHP if ($unix && !$android) {?><option value="movsfxu">MOV (QuickTime Animation, Unix extractor)</option><?PHP } ?>
                     <option value="mkvh264">MKV (MPEG-4)</option>
                     <option value="webmvp8">WebM (VP8)</option>
-                    <?PHP if ($windows) { ?>
-                    <option value="movsfx">MOV (QuickTime Animation, Windows extractor)</option>
-                    <?PHP } ?>
                 </select><br/><br/>
 
                 <input id="atrans" name="transparent" type="checkbox" checked />
                 <label for="atrans"><?PHP l("transparent"); ?></label><br/>
-                (<?PHP l("transnote1"); if ($windows) l("transnotewin"); l("transnote2"); ?>)<br/><br/>
+                (<?PHP
+                    l("transnote1");
+                    if ($windows)
+                        l("transnotewin");
+                    if ($macosx && !$iphone)
+                        print str_replace("RunMe.bat", "RunMe.command", ls("transnotewin"));
+                    if ($unix && !$android)
+                        print str_replace("RunMe.bat", "RunMe.sh", ls("transnotewin"));
+                    l("transnote2");
+                ?>)<br/><br/>
 
                 <label for="abg" style="display: inline-block; text-align: right; min-width: 10em"><?PHP l("bgc"); ?>:</label>
                 <input id="abg" name="bg" value="#000000" /><br/><br/>
@@ -595,3 +613,4 @@ print "0:0};\n";
         --></script>
     </body>
 </html>
+<?PHP ob_end_flush(); ?>

@@ -61,6 +61,24 @@ $windows = false;
 if (stripos($_SERVER["HTTP_USER_AGENT"], "win") !== false || isset($_REQUEST["windows"]))
     $windows = true;
 
+// Check if they're on OS X
+$macosx = false;
+if (stripos($_SERVER["HTTP_USER_AGENT"], "mac os x") !== false || isset($_REQUEST["macosx"]))
+    $macosx = true;
+$iphone = false;
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "iphone") !== false || isset($_REQUEST["iphone"])) && !isset($_REQUEST["noiphone"]))
+    $iphone = true;
+
+// Check if they're on a common Unixen
+$unix = false;
+if (stripos($_SERVER["HTTP_USER_AGENT"], "linux") !== false ||
+    stripos($_SERVER["HTTP_USER_AGENT"], "bsd") !== false ||
+    isset($_REQUEST["unix"]))
+    $unix = true;
+$android = false;
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "android") !== false || isset($_REQUEST["android"])) && !isset($_REQUEST["noandroid"]))
+    $android = true;
+
 // Figure out the locale
 $locale = "en";
 $locales = array("en", "pt", "de", "fr", "it");
@@ -167,6 +185,8 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
             $_REQUEST["format"] === "vorbis" ||
             $_REQUEST["format"] === "aac" ||
             $_REQUEST["format"] === "wavsfx" ||
+            $_REQUEST["format"] === "wavsfxm" ||
+            $_REQUEST["format"] === "wavsfxu" ||
             $_REQUEST["format"] === "ra")
             $format = $_REQUEST["format"];
         else if ($_REQUEST["format"] === "mp3" &&
@@ -206,7 +226,9 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
     if (isset($_REQUEST["format"]) && isset($features["glowers"]) && $features["glowers"]) {
         if ($_REQUEST["format"] === "mkvh264" ||
             $_REQUEST["format"] === "webmvp8" ||
-            $_REQUEST["format"] === "movsfx")
+            $_REQUEST["format"] === "movsfx" ||
+            $_REQUEST["format"] === "movsfxm" ||
+            $_REQUEST["format"] === "movsfxu")
             $format = $_REQUEST["format"];
     }
     $container = "zip";
