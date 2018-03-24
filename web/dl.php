@@ -39,16 +39,14 @@ $flags = array(
                 color: #eee;
             }
 
+            @media screen and (min-width: 50em) {
+            body {
+                font-size: 1.25em;
+            }
+            }
+
             a {
                 color: #99e;
-            }
-
-            .js {
-                display: none;
-            }
-
-            .big {
-                font-size: 1.5em;
             }
 
             .flag {
@@ -56,6 +54,53 @@ $flags = array(
                 width: auto;
                 vertical-align: middle;
                 margin-bottom: 0.15em;
+            }
+
+            .js {
+                display: none;
+            }
+
+            .para {
+                font-size: 1.25em;
+                margin: auto;
+                max-width: 78rem;
+            }
+
+            .big {
+                font-size: 1.25em;
+            }
+
+            .panel {
+                margin: auto;
+                display: table;
+            }
+
+            .lbl {
+                display: block;
+                text-align: center;
+                vertical-align: middle;
+            }
+
+            .choices {
+                display: block;
+                text-align: center;
+                vertical-align: middle;
+                line-height: 4em;
+            }
+
+            /* 15em for label, 50em for buttons, *1.25*1.25 for big font size + 2em margins */
+            @media screen and (min-width: 104em) {
+            .lbl {
+                display: inline-block;
+                text-align: right;
+                width: 23rem;
+            }
+
+            .choices {
+                display: inline-block;
+                text-align: left;
+                width: 78rem;
+            }
             }
 
             button {
@@ -90,12 +135,6 @@ $flags = array(
 
             .local button:disabled {
                 background-color: #ffe6e6;
-            }
-
-            .lbl {
-                display: inline-block;
-                text-align: right;
-                width: 320px;
             }
 
             /*!
@@ -266,17 +305,18 @@ foreach ($locales as $la) {
 ?>
         </div>
 
-        <div style="margin: auto; max-width: 50em;">
+        <div class="para">
         <?PHP l("intro1"); ?>
         <span class="js"><?PHP l("intro2"); ?></span>
         <?PHP l("intro3"); print " $id"; ?>
         </div><br/><br/>
 
-        <div style="margin: auto; display: table;">
+        <div class="panel">
         <span id="loading" class="la-line-scale la-3x"><div></div><div></div><div></div><div></div><div></div></span>
 
         <span class="big">
         <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
+        <span class="choices">
 <?PHP
 download("FLAC", "flac");
 if ($windows) {
@@ -293,13 +333,14 @@ download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3");
 ?>
-        </span><br/><br/>
+        </span></span><br/><br/>
 
 <?PHP
 if (isset($features["mix"]) && $features["mix"]) {
 ?>
         <span class="big">
         <span class="lbl"><?PHP l("std"); ?></span>
+        <span class="choices">
 <?PHP
 download("FLAC", "flac", "mix");
 download("Ogg Vorbis", "vorbis", "mix");
@@ -307,7 +348,7 @@ download("AAC (MPEG-4)", "aac", "mix");
 if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3", "mix");
 ?>
-        </span><br/><br/>
+        </span></span><br/><br/>
 <?PHP
 }
 ?>
@@ -315,21 +356,23 @@ if (isset($features["mp3"]) && $features["mp3"])
         <span class="js">
         <span class="local">
         <span class="lbl"><?PHP l("mtp"); ?>&nbsp;</span>
+        <span class="choices">
         <button id="mflac">FLAC</button>
         <?PHP if ($macosx) { ?><button id="malac">ALAC (Apple Lossless)</button><?PHP } ?>
         <button id="mm4a">M4A (MPEG-4)</button>
         <button id="mmp3">MP3 (MPEG-1)</button>
         <button id="mwav">wav (<?PHP l("uncomp"); ?>)</button>
-        </span><br/><br/>
+        </span></span><br/><br/>
 
         <span class="local">
         <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
+        <span class="choices">
         <button id="sflac">FLAC</button>
         <?PHP if ($macosx) { ?><button id="salac">ALAC (Apple Lossless)</button><?PHP } ?>
         <button id="sm4a">M4A (MPEG-4)</button>
         <button id="smp3">MP3 (MPEG-1)</button>
         <button id="swav">wav (<?PHP l("uncomp"); ?>)</button>
-        </span><br/><br/><br/><br/>
+        </span></span><br/><br/><br/><br/>
 
         <button id="localProcessingB"><?PHP l("local"); ?></button><br/><br/>
 
