@@ -58,25 +58,30 @@ else
 
 // Check if they're on Windows
 $windows = false;
-if (stripos($_SERVER["HTTP_USER_AGENT"], "win") !== false || isset($_REQUEST["windows"]))
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "win") !== false || isset($_REQUEST["windows"])) &&
+    !isset($_REQUEST["nowindows"]))
     $windows = true;
 
 // Check if they're on OS X
 $macosx = false;
-if (stripos($_SERVER["HTTP_USER_AGENT"], "mac os x") !== false || isset($_REQUEST["macosx"]))
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "mac os x") !== false || isset($_REQUEST["macosx"])) &&
+    !isset($_REQUEST["nomacosx"]))
     $macosx = true;
 $iphone = false;
-if ((stripos($_SERVER["HTTP_USER_AGENT"], "iphone") !== false || isset($_REQUEST["iphone"])) && !isset($_REQUEST["noiphone"]))
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "iphone") !== false || isset($_REQUEST["iphone"])) &&
+    !isset($_REQUEST["noiphone"]))
     $iphone = true;
 
 // Check if they're on a common Unixen
 $unix = false;
-if (stripos($_SERVER["HTTP_USER_AGENT"], "linux") !== false ||
-    stripos($_SERVER["HTTP_USER_AGENT"], "bsd") !== false ||
-    isset($_REQUEST["unix"]))
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "linux") !== false ||
+     stripos($_SERVER["HTTP_USER_AGENT"], "bsd") !== false ||
+     isset($_REQUEST["unix"])) &&
+    !isset($_REQUEST["nounix"]))
     $unix = true;
 $android = false;
-if ((stripos($_SERVER["HTTP_USER_AGENT"], "android") !== false || isset($_REQUEST["android"])) && !isset($_REQUEST["noandroid"]))
+if ((stripos($_SERVER["HTTP_USER_AGENT"], "android") !== false || isset($_REQUEST["android"])) &&
+    !isset($_REQUEST["noandroid"]))
     $android = true;
 
 // Figure out the locale
@@ -184,6 +189,7 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
         if ($_REQUEST["format"] === "copy" ||
             $_REQUEST["format"] === "vorbis" ||
             $_REQUEST["format"] === "aac" ||
+            $_REQUEST["format"] === "wav" ||
             $_REQUEST["format"] === "wavsfx" ||
             $_REQUEST["format"] === "wavsfxm" ||
             $_REQUEST["format"] === "wavsfxu" ||

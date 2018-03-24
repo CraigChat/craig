@@ -279,12 +279,15 @@ foreach ($locales as $la) {
         <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
 <?PHP
 download("FLAC", "flac");
-if ($windows)
+if ($windows) {
     download("wav <div style=\"font-size: 0.6em\">(Windows extractor, run RunMe.bat)</div>", "wavsfx");
-if ($macosx && !$iphone)
+} else if ($macosx && !$iphone) {
     download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm");
-if ($unix && !$android)
+} else if ($unix && !$android) {
     download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu");
+} else {
+    download("8-bit wav", "wav");
+}
 download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])

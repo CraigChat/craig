@@ -37,6 +37,7 @@ CONTAINER=zip
 
 ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=15:first_pts=0"
 
+ZIPFLAGS=-1
 EXTRAFILES=
 
 case "$FORMAT" in
@@ -51,6 +52,12 @@ case "$FORMAT" in
         ext=aac
         #ENCODE="faac -q 100 -o /dev/stdout -"
         ENCODE="fdkaac -f 2 -m 4 -o - -"
+        ;;
+    wav)
+        ext=wav
+        ENCODE="ffmpeg -f wav -i - -c:a pcm_u8 -f wav -"
+        CONTAINER=zip
+        ZIPFLAGS=-9
         ;;
     wavsfx)
         ext=flac
@@ -223,7 +230,7 @@ case "$CONTAINER" in
         ;;
 
     *)
-        timeout $DEF_TIMEOUT $NICE zip -1 -FI - *.$ext $EXTRAFILES raw.dat
+        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES raw.dat
         ;;
 esac | (cat || cat > /dev/null)
 
