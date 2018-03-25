@@ -28,6 +28,8 @@ $l["en"] = array(
     "notracks" =>   "No tracks detected!",
     "complete" =>   "Processing complete.",
 
+    "otherformats" => "Other formats",
+
     "avatars" =>    "Avatars",
     "download" =>   "Download",
     "glowers" =>    "Glowers",

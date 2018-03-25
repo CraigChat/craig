@@ -53,7 +53,17 @@ case "$FORMAT" in
         #ENCODE="faac -q 100 -o /dev/stdout -"
         ENCODE="fdkaac -f 2 -m 4 -o - -"
         ;;
-    wav)
+    opus)
+        ext=opus
+        ENCODE="opusenc --bitrate 96 - -"
+        ;;
+    wav|adpcm)
+        ext=wav
+        ENCODE="ffmpeg -f wav -i - -c:a adpcm_ms -f wav -"
+        CONTAINER=zip
+        ZIPFLAGS=-9
+        ;;
+    wav8)
         ext=wav
         ENCODE="ffmpeg -f wav -i - -c:a pcm_u8 -f wav -"
         CONTAINER=zip

@@ -189,7 +189,9 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
         if ($_REQUEST["format"] === "copy" ||
             $_REQUEST["format"] === "vorbis" ||
             $_REQUEST["format"] === "aac" ||
-            $_REQUEST["format"] === "wav" ||
+            $_REQUEST["format"] === "adpcm" ||
+            $_REQUEST["format"] === "wav8" ||
+            $_REQUEST["format"] === "opus" ||
             $_REQUEST["format"] === "wavsfx" ||
             $_REQUEST["format"] === "wavsfxm" ||
             $_REQUEST["format"] === "wavsfxu" ||

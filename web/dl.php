@@ -325,8 +325,6 @@ if ($windows) {
     download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm");
 } else if ($unix && !$android) {
     download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu");
-} else {
-    download("8-bit wav", "wav");
 }
 download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
@@ -415,7 +413,7 @@ if (isset($features["mp3"]) && $features["mp3"])
         </div><br/><br/>
         </span>
 
-        <button id="avatarsB" class="j2"><?PHP l("avatars"); ?></button><br/><br/>
+        <button id="avatarsB"><?PHP l("avatars"); ?></button><br/><br/>
 
         <div id="avatars" style="display: none; margin: auto; max-width: 60em;">
 <?PHP
@@ -466,6 +464,16 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 <?PHP
 }
 ?>
+        </div><br/><br/>
+
+        <button id="otherFormatsB"><?PHP l("otherformats"); ?></button><br/><br/>
+
+        <div id="otherFormats" style="display: none; margin: auto; max-width: 60em;" class="big">
+            <?PHP
+            download("ADPCM wav", "adpcm");
+            download("8-bit wav", "wav8");
+            download("Opus", "opus");
+            ?>
         </div><br/><br/>
 
 <?PHP
@@ -590,6 +598,10 @@ print "0:0};\n";
 
             gid("avatarsB").onclick = function() {
                 vis("avatars");
+            }
+
+            gid("otherFormatsB").onclick = function() {
+                vis("otherFormats");
             }
 
             var format = gid("format");
