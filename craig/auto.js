@@ -388,7 +388,12 @@ if (config.rewards) (function() {
                     channel: member,
                     guild: guild,
                     reply: (msg) => {
-                        return member.send(msg);
+                        try {
+                            return member.send(msg);
+                        } catch (ex) {
+                            logex(ex);
+                            return new Promise(()=>{});
+                        }
                     }
                 };
                 var cmd = shouldRecord ? "join" : "leave";
