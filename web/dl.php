@@ -468,7 +468,7 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 
         <button id="otherFormatsB"><?PHP l("otherformats"); ?></button><br/><br/>
 
-        <div id="otherFormats" style="display: none; margin: auto; max-width: 60em;" class="big">
+        <div id="otherFormats" style="display: none; margin: auto; max-width: 60em; line-height: 4em;" class="big">
             <?PHP
             download("Ogg FLAC", "oggflac");
             download("HE-AAC", "heaac");
