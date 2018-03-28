@@ -53,6 +53,10 @@ case "$FORMAT" in
         #ENCODE="faac -q 100 -o /dev/stdout -"
         ENCODE="fdkaac -f 2 -m 4 -o - -"
         ;;
+    heaac)
+        ext=aac
+        ENCODE="fdkaac -p 29 -f 2 -m 4 -o - -"
+        ;;
     opus)
         ext=opus
         ENCODE="opusenc --bitrate 96 - -"

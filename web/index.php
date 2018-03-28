@@ -186,18 +186,20 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
 } else if ($_REQUEST["fetch"] === "cooked") {
     $format = "flac";
     if (isset($_REQUEST["format"])) {
-        if ($_REQUEST["format"] === "copy" ||
-            $_REQUEST["format"] === "vorbis" ||
-            $_REQUEST["format"] === "aac" ||
-            $_REQUEST["format"] === "adpcm" ||
-            $_REQUEST["format"] === "wav8" ||
-            $_REQUEST["format"] === "opus" ||
-            $_REQUEST["format"] === "wavsfx" ||
-            $_REQUEST["format"] === "wavsfxm" ||
-            $_REQUEST["format"] === "wavsfxu" ||
-            $_REQUEST["format"] === "ra")
-            $format = $_REQUEST["format"];
-        else if ($_REQUEST["format"] === "mp3" &&
+        $rf = $_REQUEST["format"];
+        if ($rf === "copy" ||
+            $rf === "vorbis" ||
+            $rf === "aac" ||
+            $rf === "heaac" ||
+            $rf === "adpcm" ||
+            $rf === "wav8" ||
+            $rf === "opus" ||
+            $rf === "wavsfx" ||
+            $rf === "wavsfxm" ||
+            $rf === "wavsfxu" ||
+            $rf === "ra")
+            $format = $rf;
+        else if ($rf === "mp3" &&
                  isset($features["mp3"]) &&
                  $features["mp3"])
             $format = "mp3";

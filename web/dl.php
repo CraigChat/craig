@@ -326,7 +326,6 @@ if ($windows) {
 } else if ($unix && !$android) {
     download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu");
 }
-download("Ogg Vorbis", "vorbis");
 download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3");
@@ -470,9 +469,11 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 
         <div id="otherFormats" style="display: none; margin: auto; max-width: 60em;" class="big">
             <?PHP
+            download("HE-AAC", "heaac");
+            download("Ogg Vorbis", "vorbis");
+            download("Opus", "opus");
             download("ADPCM wav", "adpcm");
             download("8-bit wav", "wav8");
-            download("Opus", "opus");
             ?>
         </div><br/><br/>
 
