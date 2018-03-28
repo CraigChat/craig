@@ -44,6 +44,10 @@ case "$FORMAT" in
     copy)
         ext=ogg
         ;;
+    oggflac)
+        ext=oga
+        ENCODE="flac --ogg --serial-number=1 - -c"
+        ;;
     vorbis)
         ext=ogg
         ENCODE="oggenc -q 6 -"

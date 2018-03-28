@@ -191,6 +191,7 @@ if (isset($_REQUEST["delete"])) {
     if (isset($_REQUEST["format"])) {
         $rf = $_REQUEST["format"];
         if ($rf === "copy" ||
+            $rf === "oggflac" ||
             $rf === "vorbis" ||
             $rf === "aac" ||
             $rf === "heaac" ||

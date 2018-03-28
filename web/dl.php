@@ -470,9 +470,10 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 
         <div id="otherFormats" style="display: none; margin: auto; max-width: 60em;" class="big">
             <?PHP
+            download("Ogg FLAC", "oggflac");
             download("HE-AAC", "heaac");
-            download("Ogg Vorbis", "vorbis");
             download("Opus", "opus");
+            download("Ogg Vorbis", "vorbis");
             download("ADPCM wav", "adpcm");
             download("8-bit wav", "wav8");
             ?>
