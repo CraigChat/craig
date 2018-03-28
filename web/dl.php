@@ -309,6 +309,7 @@ foreach ($locales as $la) {
         <?PHP l("intro1"); ?>
         <span class="js"><?PHP l("intro2"); ?></span>
         <?PHP l("intro3"); print " $id"; ?>
+        <span class="js">. <a href="#" id="duration">Duration</a></span>
         </div><br/><br/>
 
         <div class="panel">
@@ -487,7 +488,7 @@ download(ls("raw"), "raw");
 <?PHP
 readfile("convert.js");
 print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&container=ogg\";\n";
-print "craigReady=\"?id=" . $id . "&key=" . $key . "&ready\";\n";
+print "craigBase=\"?id=" . $id . "&key=" . $key . "\";\n";
 print "craigMobile=" . (($android||$iphone)?"true":"false") . ";\n";
 print "craigLocale={";
 foreach (array("nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
@@ -526,7 +527,7 @@ print "0:0};\n";
                     }
                 };
 
-                xhr.open("GET", craigReady + "&r=" + Math.random(), true);
+                xhr.open("GET", craigBase + "&ready&r=" + Math.random(), true);
                 xhr.send();
             }
 
@@ -542,7 +543,7 @@ print "0:0};\n";
                         setTimeout(completeDownload, 5000);
                     }
                 };
-                xhr.open("GET", craigReady + "&r=" + Math.random(), true);
+                xhr.open("GET", craigBase + "&ready&r=" + Math.random(), true);
                 xhr.send();
             }
 
@@ -570,7 +571,7 @@ print "0:0};\n";
                         completeDownload();
                     }
                 };
-                xhr.open("GET", craigReady + "=nb&r=" + Math.random(), true);
+                xhr.open("GET", craigBase + "&ready=nb&r=" + Math.random(), true);
                 xhr.send();
             }
             initCheck();
@@ -603,6 +604,35 @@ print "0:0};\n";
 
             gid("otherFormatsB").onclick = function() {
                 vis("otherFormats");
+            }
+
+            var durationB = gid("duration");
+            var durationX = null;
+            durationB.onclick = function() {
+                if (durationX) return;
+                durationX = new XMLHttpRequest();
+                durationX.onreadystatechange = function() {
+                    if (durationX.readyState !== 4)
+                        return;
+                    var dur = JSON.parse(durationX.responseText);
+                    if (dur && dur.duration) {
+                        var durH = ~~(dur.duration/3600);
+                        var durM = ~~((dur.duration%3600)/60);
+                        var durS = ~~(dur.duration%60);
+                        var durT = "";
+                        if (durH)
+                            durT += durH + ":";
+                        if (durM || durH)
+                            durT += ((durM<10)?"0":"") + durM + ":";
+                        durT += ((durS<10)?"0":"") + durS;
+                        if (!durH && !durM)
+                            durT += "s";
+                        durationB.innerText = "Duration: " + durT;
+                    }
+                    durationX = null;
+                };
+                durationX.open("GET", craigBase + "&duration&r=" + Math.random(), true);
+                durationX.send();
             }
 
             var format = gid("format");

@@ -137,10 +137,7 @@ function download($title, $format="flac", $container="zip") {
 }
 
 // Present them their options
-if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUEST["ready"])) {
-    include("dl.php");
-
-} else if (isset($_REQUEST["delete"])) {
+if (isset($_REQUEST["delete"])) {
     $deleteKey = intval($_REQUEST["delete"]);
     if ($info !== false)
         $corrDeleteKey = $info["delete"];
@@ -182,6 +179,12 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
 
     header("Content-type: application/json");
     print "{\"ready\":".($ready?"true":"false")."}";
+
+} else if (isset($_REQUEST["duration"])) {
+    header("Content-type: application/json");
+    print "{\"duration\":";
+    passthru("/home/yahweasel/craig/cook/duration.sh $id");
+    print "}";
 
 } else if ($_REQUEST["fetch"] === "cooked") {
     $format = "flac";
@@ -257,12 +260,15 @@ if (!isset($_REQUEST["fetch"]) && !isset($_REQUEST["delete"]) && !isset($_REQUES
     flush();
     passthru("/home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
 
-} else {
+} else if (isset($_REQUEST["fetch"])) {
     header("Content-disposition: attachment; filename=$id.ogg");
     header("Content-type: audio/ogg");
     readfile("$base/$id.ogg.header1");
     readfile("$base/$id.ogg.header2");
     readfile("$base/$id.ogg.data");
+
+} else {
+    include("dl.php");
 
 }
 ?>
