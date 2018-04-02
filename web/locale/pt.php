@@ -3,6 +3,7 @@ $l["pt"] = array(
     "intro1" =>     "Você pode baixar suas gravações em vários formatos. Os formatos mais úteis, FLAC, Vorbis e AAC multi-canal podem ser baixados.",
     "intro2" =>     "Outros formatos, incluindo áudio de único canal, requerem processamento localmente no seu navegador, então requerem o navegador moderno e um pouco de paciência, e não funcionará bem em dispositivos móveis.",
     "intro3" =>     "Seu ID de gravação:",
+    "duration" =>   "Duração",
 
     "mtd" =>        "Download multi-canal:",
     "mtp" =>        "Áudio multi-canal processado:",

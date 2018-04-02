@@ -309,7 +309,7 @@ foreach ($locales as $la) {
         <?PHP l("intro1"); ?>
         <span class="js"><?PHP l("intro2"); ?></span>
         <?PHP l("intro3"); print " $id"; ?>
-        <span class="js">. <a href="#" id="duration">Duration</a></span>
+        <span class="js">. <a href="#" id="duration"><?PHP l("duration"); ?></a></span>
         </div><br/><br/>
 
         <div class="panel">
@@ -492,7 +492,7 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
 print "craigBase=\"?id=" . $id . "&key=" . $key . "\";\n";
 print "craigMobile=" . (($android||$iphone)?"true":"false") . ";\n";
 print "craigLocale={";
-foreach (array("nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
+foreach (array("duration", "nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
     print "\"$lstr\":\"" . ls($lstr) . "\",";
 }
 print "0:0};\n";
@@ -628,7 +628,7 @@ print "0:0};\n";
                         durT += ((durS<10)?"0":"") + durS;
                         if (!durH && !durM)
                             durT += "s";
-                        durationB.innerText = "Duration: " + durT;
+                        durationB.innerText = craigLocale.duration + ": " + durT;
                     }
                     durationX = null;
                 };
