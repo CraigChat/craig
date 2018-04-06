@@ -220,6 +220,11 @@ if (isset($_REQUEST["delete"])) {
             $container = "matroska";
             $ext = "mkv";
             $mime = "video/x-matroska";
+        } else if ($_REQUEST["container"] === "exe") {
+            // (Windows self-extractor)
+            $container = "exe";
+            $ext = "exe";
+            $mime = "application/vnd.microsoft.portable-executable";
         } else if ($_REQUEST["container"] === "mix" &&
                    isset($features["mix"]) &&
                    $features["mix"]) {

@@ -81,19 +81,16 @@ case "$FORMAT" in
         ext=flac
         ENCODE="flac - -c"
         EXTRAFILES="RunMe.bat ffmpeg.exe"
-        CONTAINER=zip
         ;;
     wavsfxm)
         ext=flac
         ENCODE="flac - -c"
         EXTRAFILES="RunMe.command ffmpeg"
-        CONTAINER=zip
         ;;
     wavsfxu)
         ext=flac
         ENCODE="flac - -c"
         EXTRAFILES="RunMe.sh"
-        CONTAINER=zip
         ;;
     mp3)
         ext=mp3
@@ -199,7 +196,7 @@ if [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
 then
     printf "printf '\\\\n\\\\n===\\\\nProcessing complete.\\\\n===\\\\n\\\\n'\\n" >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
 fi
-if [ "$CONTAINER" = "zip" ]
+if [ "$CONTAINER" = "zip" -o "$CONTAINER" = "exe" ]
 then
     mkfifo $tmpdir/out/raw.dat
     timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1" |
@@ -245,6 +242,11 @@ case "$CONTAINER" in
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             timeout $DEF_TIMEOUT $NICE $ENCODE
+        ;;
+
+    exe)
+        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES raw.dat |
+        cat "$SCRIPTBASE/cook/sfx.exe" -
         ;;
 
     *)

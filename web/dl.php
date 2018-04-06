@@ -321,7 +321,7 @@ foreach ($locales as $la) {
 <?PHP
 download("FLAC", "flac");
 if ($windows) {
-    download("wav <div style=\"font-size: 0.6em\">(Windows extractor, run RunMe.bat)</div>", "wavsfx");
+    download("wav <div style=\"font-size: 0.6em\">(Windows extractor)</div>", "wavsfx", "exe");
 } else if ($macosx && !$iphone) {
     download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm");
 } else if ($unix && !$android) {
