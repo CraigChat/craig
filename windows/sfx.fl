@@ -1,0 +1,42 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0304
+header_name {.h}
+code_name {.cxx}
+class SFX {open
+} {
+  Function {go()} {open
+  } {
+    Fl_Window window {
+      label {Craig Self-Extractor} open
+      xywh {366 273 500 90} type Double visible
+    } {
+      Fl_Output targetDir {
+        label {Target directory:}
+        xywh {130 5 310 25}
+      }
+      Fl_Button {} {
+        label {&Select}
+        callback selectTargetDir
+        xywh {440 5 55 25}
+      }
+      Fl_Button {} {
+        label {&Extract}
+        callback extract
+        xywh {5 35 490 25}
+      }
+      Fl_Button {} {
+        label {&License information}
+        callback licWinShow
+        xywh {380 65 115 20} labelsize 10
+      }
+    }
+    Fl_Window licWin {
+      label {Craig License Information} open
+      xywh {710 282 625 500} type Double resizable visible
+    } {
+      Fl_Browser license {selected
+        xywh {5 5 615 490} textfont 4 textsize 12 resizable
+      }
+    }
+  }
+}
