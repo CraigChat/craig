@@ -33,6 +33,7 @@ $flags = array(
 <html>
     <head>
         <title>Craig Records!</title>
+        <link rel="Shortcut Icon" href="/favicon.png" type="image/png" />
         <style type="text/css">
             body {
                 background: #142329;
