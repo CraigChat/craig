@@ -272,6 +272,10 @@ fi
 # Put them into their container
 [ "$FORMAT" = "png" ] && cd "$tmpdir/in" || cd "$tmpdir/out"
 case "$CONTAINER" in
+    exe)
+        ( timeout $DEF_TIMEOUT $NICE zip -1 -FI - $FILES || true ) |
+        cat "$SCRIPTBASE/cook/sfx.exe" -
+        ;;
     *)
         timeout $DEF_TIMEOUT $NICE zip -1 -FI - $FILES || true
         ;;

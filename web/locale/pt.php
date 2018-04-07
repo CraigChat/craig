@@ -33,6 +33,7 @@ $l["pt"] = array(
     "glowers" =>    "Glowers",
     "transparent" =>"Fundo transparente",
     "transnote1" => "Nota: WebM suporta transparência, mas a maioria dos editores de vídeo não suporta WebM. ",
+    "transnotesfx" => "MOV suporta transparência e é suportado por vários editores de vídeo, mas é muito grande para gerar e enviar diretamente. Portanto, se você escolher MOV, você será enviado arquivos comprimidos e um extrator. ",
     "transnotewin" => "MOV suporta transparência e é suportado por vários editores de vídeo, mas é muito grande para gerar e enviar diretamente. Portanto, se você escolher MOV, você será enviado arquivos comprimidos e um extrator. Simplesmente execute o arquivo RunMe.bat. ",
     "transnote2" => "MPEG-4 não suporta transparência, então se MKV for selecionado, tanto uma imagem PNG estática quanto um MKV representando um canal alpha (transparência) serão enviados. A maioria dos editores de vídeo podem ser instruídos a usar um arquivo para cor e outro arquivo para alpha (transparência).",
     "bgc" =>        "Cor de fundo",

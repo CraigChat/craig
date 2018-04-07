@@ -32,6 +32,7 @@ $l["de"] = array(
     "glowers" =>    "Glowers",
     "transparent" =>"Transparenter Hintergrund",
     "transnote1" => "Achtung: WebM unterstützt Transparenz, aber die meisten Video Editoren unterstützen kein WebM. ",
+    "transnotesfx" => "MOV unterstützt Transparenz und wird von den meisten Video Editoren unterstützt, ist aber zu groß um es direkt zu verarbeiten und zu versenden. Statt dessen wird Dir eine komprimierte Datei zugesendet, die Du einfach mit dem enthaltenen RunMe.bat entdecken kannst. ",
     "transnotewin" => "MOV unterstützt Transparenz und wird von den meisten Video Editoren unterstützt, ist aber zu groß um es direkt zu verarbeiten und zu versenden. Statt dessen wird Dir eine komprimierte Datei zugesendet, die Du einfach mit dem enthaltenen RunMe.bat entdecken kannst. ",
     "transnote2" => "MPEG-4 unterstützt keine Transparenz. Wenn Du also MKV auswählst, werden Dir sowohl ein statisches PNG Bild und ein MKV zugesandt, welches den Alpha Kanal (Transparenz) enthält. Die meisten Video Editoren können angewiesen werden, das PNG für Farbe und das MKV für Transparenz zu verwenden.",
     "bgc" =>        "Hintergrund Farbe",

@@ -445,7 +445,7 @@ if (isset($features["glowers"]) && $features["glowers"]) {
                 (<?PHP
                     l("transnote1");
                     if ($windows)
-                        l("transnotewin");
+                        l("transnotesfx");
                     if ($macosx && !$iphone)
                         print str_replace("RunMe.bat", "RunMe.command", ls("transnotewin"));
                     if ($unix && !$android)

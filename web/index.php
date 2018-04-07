@@ -242,6 +242,10 @@ if (isset($_REQUEST["delete"])) {
 
 } else if ($_REQUEST["fetch"] === "avatars") {
     $format = "png";
+    $container = "zip";
+    $ext = "$format.zip";
+    $mime = "application/zip";
+
     if (isset($_REQUEST["format"]) && isset($features["glowers"]) && $features["glowers"]) {
         if ($_REQUEST["format"] === "mkvh264" ||
             $_REQUEST["format"] === "webmvp8" ||
@@ -249,10 +253,15 @@ if (isset($_REQUEST["delete"])) {
             $_REQUEST["format"] === "movsfxm" ||
             $_REQUEST["format"] === "movsfxu")
             $format = $_REQUEST["format"];
+
+        if ((isset($_REQUEST["container"]) && $_REQUEST["container"] === "exe") ||
+            (!isset($_REQUEST["container"]) && $format === "movsfx")) {
+            $container = "exe";
+            $ext = "mov.exe";
+            $mime = "application/vnd.microsoft.portable-executable";
+        }
     }
-    $container = "zip";
-    $ext = "$format.zip";
-    $mime = "application/zip";
+
     $transparent = (isset($_REQUEST["transparent"])?1:0);
     $bg = "000000";
     if (isset($_REQUEST["bg"]))
