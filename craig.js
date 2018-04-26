@@ -49,6 +49,10 @@ process.on("unhandledRejection", (ex) => {
     logex(ex, "Unhandled promise rejection");
 });
 
+process.on("uncaughtException", (ex) => {
+    logex(ex, "Uncaught exception");
+});
+
 // "Safely" eval something, explicitly in this context
 function safeEval(cmd) {
     var ex, res, ret;
