@@ -186,6 +186,19 @@ if (isset($_REQUEST["delete"])) {
     passthru("/home/yahweasel/craig/cook/duration.sh $id");
     print "}";
 
+} else if (isset($_REQUEST["users"])) {
+    header("Content-type: application/json");
+    print "[";
+    if (file_exists("$base/$id.ogg.users")) {
+        $users = json_decode("{".file_get_contents("$base/$id.ogg.users")."}", true);
+        for ($ui = 1; $ui < 32; $ui++) {
+            if (!isset($users[$ui])) break;
+            if ($ui !== 1) print ",";
+            print json_encode($users[$ui]["name"]);
+        }
+    }
+    print "]";
+
 } else if ($_REQUEST["fetch"] === "cooked") {
     $format = "flac";
     if (isset($_REQUEST["format"])) {

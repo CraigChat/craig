@@ -309,8 +309,15 @@ foreach ($locales as $la) {
         <div class="para">
         <?PHP l("intro1"); ?>
         <span class="js"><?PHP l("intro2"); ?></span>
-        <?PHP l("intro3"); print " $id"; ?>
-        <span class="js">. <a href="#" id="duration"><?PHP l("duration"); ?></a></span>
+        <?PHP l("intro3"); print " $id"; ?>.
+        <?PHP
+            if ($info !== false && isset($info["startTime"]))
+                print ls("starttime") . ": " . $info["startTime"] . ". ";
+        ?>
+        <span class="js">
+        <a href="#" id="users"><?PHP l("users"); ?></a>
+        <a href="#" id="duration"><?PHP l("duration"); ?></a>
+        </span>
         </div><br/><br/>
 
         <div class="panel">
@@ -493,7 +500,7 @@ print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&cont
 print "craigBase=\"?id=" . $id . "&key=" . $key . "\";\n";
 print "craigMobile=" . (($android||$iphone)?"true":"false") . ";\n";
 print "craigLocale={";
-foreach (array("duration", "nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
+foreach (array("users", "duration", "nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
     print "\"$lstr\":\"" . ls($lstr) . "\",";
 }
 print "0:0};\n";
@@ -606,6 +613,22 @@ print "0:0};\n";
 
             gid("otherFormatsB").onclick = function() {
                 vis("otherFormats");
+            }
+
+            var usersB = gid("users");
+            var usersX = null;
+            usersB.onclick = function() {
+                if (usersX) return;
+                usersX = new XMLHttpRequest();
+                usersX.onreadystatechange = function() {
+                    if (usersX.readyState !== 4)
+                        return;
+                    var users = JSON.parse(usersX.responseText).join(", ");
+                    usersB.innerText = craigLocale.users + ": " + users;
+                    usersX = null;
+                };
+                usersX.open("GET", craigBase + "&users&r=" + Math.random(), true);
+                usersX.send();
             }
 
             var durationB = gid("duration");
