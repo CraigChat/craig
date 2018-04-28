@@ -28,4 +28,4 @@ SCRIPTBASE=`realpath "$SCRIPTBASE/.."`
 set -e
 cd "$SCRIPTBASE/rec"
 
-timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/oggduration" < $1.ogg.data
+timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data

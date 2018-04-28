@@ -82,7 +82,7 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
-DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/oggduration" < $1.ogg.data`
+DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data`
 
 TRACKS=
 
