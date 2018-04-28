@@ -313,7 +313,8 @@ function featuresToStr(f, guild, prefix) {
     else
         ret += prefix + ":";
     ret += "\nRecording time limit: " + f.limits.record + " hours" +
-           "\nDownload time limit: " + f.limits.download + " hours";
+           "\nDownload time limit: " + f.limits.download + " hours" +
+           "\nMaximum channels: " + (f.limits.secondary+1);
 
     if (f.mix)
         ret += "\nYou may download auto-leveled mixed audio.";

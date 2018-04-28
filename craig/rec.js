@@ -522,6 +522,9 @@ function cmdJoin(lang) { return function(msg, cmd) {
         if (!(guildId in activeRecordings))
             activeRecordings[guildId] = {};
 
+        // Figure out the recording features for this user
+        var f = cf.features(msg.author.id, guildId);
+
         // Choose the right client
         var takenClients = {};
         var chosenClient = null;
@@ -530,7 +533,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
             var recording = activeRecordings[guildId][oChannelId];
             takenClients[recording.clientNum] = true;
         }
-        for (var ci = 0; ci < clients.length; ci++) {
+        for (var ci = 0; ci < clients.length && ci <= f.limits.secondary; ci++) {
             if (takenClients[ci]) continue;
             chosenClient = clients[ci];
             chosenClientNum = ci;
@@ -584,9 +587,6 @@ function cmdJoin(lang) { return function(msg, cmd) {
             reply(msg, false, cmd[1], l("noperms", lang));
 
         } else {
-            // Figure out the recording features for this user
-            var f = cf.features(msg.author.id, guildId);
-
             // Make a random ID for it
             var id, infoWS;
             while (true) {
