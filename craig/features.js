@@ -125,11 +125,13 @@ if (config.rewards) (function() {
                     if (rid !== "limits") mrewards[rid] = roler[rid];
                 }
                 if (roler.limits) {
-                    if (!mrewards.limits) mrewards.limits = {record: config.limits.record, download: config.limits.download};
+                    if (!mrewards.limits) mrewards.limits = {record: config.limits.record, download: config.limits.download, secondary: config.limits.secondary};
                     if (roler.limits.record > mrewards.limits.record)
                         mrewards.limits.record = roler.limits.record;
                     if (roler.limits.download > mrewards.limits.download)
                         mrewards.limits.download = roler.limits.download;
+                    if (roler.limits.secondary > mrewards.limits.secondary)
+                        mrewards.limits.secondary = roler.limits.secondary;
                 }
             }
         });
