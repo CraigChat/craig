@@ -494,6 +494,9 @@ function safeJoin(channel, err) {
     return ret;
 }
 
+// Join is the only command in Craig with arguments, and to avoid clash, they're janky
+const argPart = /^-([A-Za-z0-9]+) *(.*)$/;
+
 // Start recording
 function cmdJoin(lang) { return function(msg, cmd) {
     var guild = msg.guild;
@@ -509,9 +512,24 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
     // Check for flags
     var noSilenceDisconnect = false;
-    if (cname.startsWith("-silence")) {
-        cname = cname.substr(8).trimLeft();
-        noSilenceDisconnect = true;
+    var errors = true;
+    var auto = false;
+    var parts;
+    while (parts = argPart.exec(cname)) {
+        var arg = parts[1];
+        if (arg === "silence") {
+            noSilenceDisconnect = true;
+        } else if (arg === "auto") {
+            errors = false;
+            auto = true;
+        } else break;
+        cname = parts[2];
+    }
+
+    // Since errors are optional, we have a general error responder
+    function error(dm, msg) {
+        if (errors)
+            reply(msg, dm, cmd[1], msg);
     }
 
     channel = cu.findChannel(msg, guild, cname);
@@ -572,19 +590,19 @@ function cmdJoin(lang) { return function(msg, cmd) {
         // Choose the right action
         if (channelId in activeRecordings[guildId]) {
             var rec = activeRecordings[guildId][channelId];
-            reply(msg, true, cmd[1], l("already", lang, config.dlUrl, rec.id, rec.accessKey));
+            error(true, l("already", lang, config.dlUrl, rec.id, rec.accessKey));
 
         } else if (!chosenClient) {
-            reply(msg, false, cmd[1], l("nomore", lang));
+            error(false, l("nomore", lang));
 
         } else if (!guild) {
-            reply(msg, false, cmd[1], l("onemore", lang, config.secondary[chosenClientNum-1].invite));
+            error(false, l("onemore", lang, config.secondary[chosenClientNum-1].invite));
 
         } else if (!channel) {
-            reply(msg, false, cmd[1], l("broperms", lang));
+            error(false, l("broperms", lang));
 
         } else if (!joinable) {
-            reply(msg, false, cmd[1], l("noperms", lang));
+            error(false, l("noperms", lang));
 
         } else {
             // Make a random ID for it
@@ -706,13 +724,13 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 rec.noSilenceDisconnect = true;
 
             // If we have voice channel issue, do our best to rectify them
-            function onError(ex) {
-                reply(msg, false, cmd[1], l("joinfail", lang) + " " + ex);
+            function onJoinError(ex) {
+                error(false, l("joinfail", lang) + " " + ex);
                 close();
             }
 
             // Join the channel
-            safeJoin(channel, onError).then((connection) => {
+            safeJoin(channel, onJoinError).then((connection) => {
                 // Get a language hint
                 var hint = cl.hint(channel, lang);
 
@@ -737,7 +755,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
         }
 
     } else if (!cc.dead) {
-        reply(msg, false, cmd[1], (cname==="") ? l("whatchannel", lang) : l("cantsee", lang));
+        error(false, (cname==="") ? l("whatchannel", lang) : l("cantsee", lang));
 
     }
 

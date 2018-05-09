@@ -45,7 +45,13 @@ var autoU2GC = {};
 // Association guild -> channel -> users/triggers
 var autoG2C2U = {};
 
-// Map of currently active auto-recordings, by guild -> channel
+/* Map of currently active autorecordings. guild -> channel ->
+   {
+       to: result of setTimeout,
+       retries: number of retries left,
+       isAuto: true if any current recording was actually automatic
+   }
+*/
 var autoCur = {};
 
 // Use server roles to give rewards
@@ -331,10 +337,27 @@ if (config.rewards) (function() {
         var channelId = voiceChannel.id;
         if (!voiceChannel || !(channelId in c2u)) return;
         var us = c2u[channelId];
+
+        if (guildId in autoCur && channelId in autoCur[guildId]) {
+            var ac = autoCur[guildId][channelId];
+            if (ac.to) {
+                // Just bump the retries
+                ac.retries = 5;
+                return;
+            }
+        }
+
+        updateAutorecord(guild, voiceChannel, us);
+    }
+
+    // Update autorecord state
+    function updateAutorecord(guild, voiceChannel, us) {
+        var guildId = guild.id;
+        var channelId = voiceChannel.id;
         var u;
 
         // Something has happened on a voice channel we're watching for autorecording
-        var recording = false, shouldRecord = false, triedRecording = false;
+        var recording = false, shouldRecord = false;
         if (guildId in cr.activeRecordings &&
             channelId in cr.activeRecordings[guildId])
             recording = true;
@@ -353,32 +376,39 @@ if (config.rewards) (function() {
         if (!u) return;
 
         // Check if we're already recording
+        var ac;
         if (guildId in autoCur && channelId in autoCur[guildId])
-            triedRecording = true;
+            ac = autoCur[guildId][channelId];
+        else
+            ac = {to: null, retries: 5, isAuto: false};
 
-        if (!recording && shouldRecord) {
-            if (triedRecording) {
-                // We've already tried. Don't try again until something's changed.
-                return;
+        if (shouldRecord || (recording && !ac.isAuto)) {
+            // We should be recording
+            if (!(guildId in autoCur))
+                autoCur[guildId] = {};
+            autoCur[guildId][channelId] = ac;
+            shouldRecord = true;
 
+        } else if (!shouldRecord) {
+            if (ac.isAuto) {
+                if (!recording) {
+                    // We're no longer recording, so this info is unnecessary
+                    delete autoCur[guildId][channelId];
+                    if (Object.keys(autoCur[guildId]).length === 0)
+                        delete autoCur[guildId];
+                }
             } else {
-                // This is our try
-                if (!(guildId in autoCur))
-                    autoCur[guildId] = {};
-                autoCur[guildId][channelId] = true;
+                // None of our business!
+                shouldRecord = recording;
 
             }
-
-        } else if (!shouldRecord && triedRecording) {
-            // We should no longer be trying to record
-            delete autoCur[guildId][channelId];
-            if (Object.keys(autoCur[guildId]).length === 0)
-                delete autoCur[guildId];
 
         }
 
         // Should we start or stop a recording?
         if (recording !== shouldRecord) {
+            ac.isAuto = true;
+
             // OK, make sure we have everything we need
             guild.fetchMember(u.u).then((member) => {
                 if (!member) return;
@@ -396,9 +426,25 @@ if (config.rewards) (function() {
                         }
                     }
                 };
-                var cmd = shouldRecord ? "join" : "leave";
-                log("Auto-record " + cmd + ": " + nameId(voiceChannel) + "@" + nameId(guild) + " requested by " + nameId(member));
-                commands[cmd](msg, ["", null, cmd, (shouldRecord?"-silence ":"") + voiceChannel.name]);
+
+                log("Auto-record " + (shouldRecord?"join":"leave") + ": " +
+                    nameId(voiceChannel) + "@" + nameId(guild) +
+                    " requested by " + nameId(member));
+
+                // Retry after 10 seconds to avoid spamming retries when things change quickly
+                if (ac.retries > 0) {
+                    ac.retries--;
+                    ac.to = setTimeout(() => {
+                        ac.to = null;
+                        updateAutorecord(guild, voiceChannel, us);
+                    }, 10000);
+                }
+
+                if (shouldRecord) {
+                    commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
+                } else {
+                    commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
+                }
             });
         }
     }
