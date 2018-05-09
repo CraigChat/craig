@@ -1,0 +1,35 @@
+{
+    "cmd:help":         ["aiuto", "comandi", "ciao", "informazioni"],
+    "help":             "Ciao! Sono Craig! Sono un registratore multi-traccia per canali vocali. Per ulteriori informazioni, visita %1 .",
+
+    "cmd:join":         ["entra", "registra", "avvia", "inizia"],
+    "recording":        "Registro il canale %3! Registrerò fino a %1 ore. Le registrazioni saranno eliminate automaticamente dopo %2 dall’avvio della registrazione. L’audio può essere scaricato mentre sto ancora registrando.",
+    "downloadlink":     "Link per il download: %1?id=%2&key=%3",
+    "deletelink":       "Per eliminarlo: %1?id=%2&key=%3&delete=%4",
+
+    "cantsee":          "Non vedo alcun canale con quel nome.",
+    "whatchannel":      "Quale canale?",
+    "already":          "Sto già registrando quel canale: %1?id=%2&key=%3",
+    "noperms":          "Non ho il permesso di entrare in quel canale!",
+    "joinfail":         "Impossibile entrare! Se continuo a non poter entrare, potrebbe esserci un problema con il server vocale. Prova a cambiare la regione del server nelle impostazioni del server.",
+    "onemore":          "In Discord, un bot può registrare soltanto un canale. Se vuoi registrare un altro canale, dovrai invitare mio fratello: %1",
+    "broperms":         "Mio fratello non vede quel canale. Assicurati che i suoi permessi siano corretti.",
+    "nomore":           "Mi dispiace, ma non posso registrare ulteriori canali su questo server! Devi prima chiedermi di lasciare un canale in cui mi trovo attualmente usando “:craig:, lascia <canale>”, o chiedimi di lasciare tutti i canali di questo server usando “:craig:, interrompi”",
+
+    "timelimit":        "Mi dispiace, ma hai raggiunto il limite di tempo per le registrazioni. Registrazione interrotta.",
+    "sizelimit":        "Mi dispiace, ma hai raggiunto il limite di spazio per le registrazioni. Registrazione interrotta.",
+    "cannotnick":       "Non ho il permesso di cambiare il mio nickname su questo server. Non effettuerò nessuna registrazione senza questo permesso.",
+    "disconnecting":    "Disconnessione.",
+    "silence1":         "Non ricevo nessun audio!",
+    "silence2":         "\n\nSe sei certo che stavi inviando audio, potrebbe trattarsi di un bug relativo alla connessione al server vocale. Prova le seguenti soluzioni:\n\n(1) Nelle impostazioni del server, cambia la regione vocale e prova a registrare di nuovo. Se funziona, puoi provare a reimpostare la regione vocale originale, ma non stupirti se continua a non funzionare. Se non risolvi,\n\n(2) Cacciami dal server, poi invitami di nuovo. Puoi trovare il link di invito su %1. Se non funziona,\n\n(3) L’unica opzione rimanente è fare un reset del bot. Dovrai entrare sul mio server di supporto e chiedere aiuto lì.",
+    "silence5min":      "C’è qualcuno? Non sento niente da cinque minuti. Si è rotto qualcosa, vi state prendendo una pausa, o avete dimenticato di usare `:craig:, esci` per interrompere la registrazione? Se è solo una pausa, non tenere conto di questo messaggio!",
+    "corrupt":          "AVVISO: sto ricevendo dati vocali corrotti da %1#%2! Non sarò in grado di elaborare correttamente il suo audio!",
+    "unexpecteddc":     "Mi sono disconnesso in modo inatteso! Se vuoi che interrompa la registrazione, chiedimelo con :craig:, esci.",
+
+    "cmd:leave":        ["esci", "lascia"],
+    "notrecording":     "Ma non sto registrando quel canale!",
+
+    "hint":             "Parli italiano? Usa `:craig:, entra` e risponderò in italiano!",
+    "channels":         ["Generale", "Registrazione"],
+    "regions":          []
+}

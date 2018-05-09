@@ -3,10 +3,14 @@ $l["it"] = array(
     "intro1" =>     "Puoi ottenere la tua registrazione in diversi formati. I formati multi-traccia più utili (FLAC, Ogg Vorbis e AAC), possono essere scaricati.",
     "intro2" =>     "Gli altri formati, tra cui l'audio mixato in una singola traccia, richiedono un'elaborazione locale nel tuo browser, pertanto richiedono un browser moderno e un po' di pazienza, e la procedura non funziona bene sui dispositivi mobili.",
     "intro3" =>     "L'ID della tua registrazione è:",
+    "starttime" =>  "Ora di inizio",
+    "users" =>      "Utenti",
+    "duration" =>   "Durata",
 
     "mtd" =>        "Download multi-traccia:",
     "mtp" =>        "Elaborazione multi-traccia:",
     "stm" =>        "Elaborazione singola traccia:",
+    "std" =>        "Download del mix intelligente su singola traccia:",
 
     "uncomp" =>     "non compresso",
     "raw" =>        "Raw",
@@ -26,6 +30,19 @@ $l["it"] = array(
     "downfail" =>   "Download fallito!",
     "notracks" =>   "Nessuna traccia trovata!",
     "complete" =>   "Elaborazione completa.",
+
+    "otherformats" => "Altri formati",
+
+    "avatars" =>    "Avatar",
+    "download" =>   "Download",
+    "glowers" =>    "Indicatori",
+    "transparent" =>"Sfondo trasparente",
+    "transnote1" => "Nota: WebM supporta la trasparenza, ma la maggior parte degli editor video non supporta WebM. ",
+    "transnotesfx" => "MOV supporta la trasparenza ed è ampiamente supportato dagli editor video, ma è decisamente troppo grande da generare e inviare direttamente. Se scegli MOV, riceverai dei file compressi e un estrattore. ",
+    "transnotewin" => "MOV supporta la trasparenza ed è ampiamente supportato dagli editor video, ma è decisamente troppo grande da generare e inviare direttamente. Se scegli MOV, riceverai dei file compressi e un estrattore. Devi solo eseguire RunMe.bat. ",
+    "transnote2" => "MPEG-4 non supporta la trasparenza, quindi se scegli MKV, riceverai sia un’immagine statica PNG che un MKV che rappresenta il canale alpha (trasparenza). La maggior parte degli editor video può essere configurato per utilizzare un file per il colore e un altro file per l’alpha (trasparenza).",
+    "bgc" =>        "Colore di sfondo",
+    "fgc" =>        "Colore dell’indicatore",
 
     "delete1" =>    "Questo ELIMINERÀ la registrazione ",
     "delete2" =>    "! Sei sicuro?",
