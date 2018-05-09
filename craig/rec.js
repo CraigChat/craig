@@ -746,7 +746,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 rec.connection = connection;
 
                 session(msg, cmd[1], rec);
-            }).catch(onError);
+            }).catch(onJoinError);
 
             // If we don't have a connection in 15 seconds, assume something went wrong
             setTimeout(()=>{
