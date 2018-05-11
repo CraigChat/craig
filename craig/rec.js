@@ -527,9 +527,9 @@ function cmdJoin(lang) { return function(msg, cmd) {
     }
 
     // Since errors are optional, we have a general error responder
-    function error(dm, msg) {
+    function error(dm, text) {
         if (errors)
-            reply(msg, dm, cmd[1], msg);
+            reply(msg, dm, cmd[1], text);
     }
 
     channel = cu.findChannel(msg, guild, cname);
