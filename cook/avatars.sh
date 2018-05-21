@@ -17,7 +17,7 @@ timeout() {
     /usr/bin/timeout -k 5 "$@"
 }
 
-DEF_TIMEOUT=7200
+DEF_TIMEOUT=43200
 ulimit -v $(( 2 * 1024 * 1024 ))
 echo 10 > /proc/self/oom_adj
 
