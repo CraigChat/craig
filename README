@@ -21,7 +21,13 @@ flac ( https://xiph.org/flac/ )
 oggenc ( https://xiph.org/vorbis/ )
 opusenc ( http://opus-codec.org/ )
 fdkaac ( https://github.com/nu774/fdkaac )
-zip ( http://infozip.org/ )
+zip and unzip ( http://infozip.org/ )
+
+Various components of the audio processing scripts require compilation or
+translation:
+cd cook
+for i in *.c; do gcc -O3 -o ${i%.c} $i; done
+for i in *.svg; do inkscape -e ${i%.svg}.png $i; done
 
 No documentation is provided for running your own instances of Craig. More
 information on the main instance of Craig can be found at
