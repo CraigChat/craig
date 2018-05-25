@@ -81,6 +81,21 @@ function session(msg, prefix, rec) {
         receiver = connection.receive("opus");
     }
 
+    // Ping the websocket to make sure it stays alive
+    connection.ws.alive = true;
+    connection.ws.on("pong", function() {
+        this.alive = true;
+    });
+    const pingInterval = setInterval(() => {
+        if (!connection.ws.alive) {
+            connection.disconnect();
+        } else {
+            connection.ws.alive = false;
+            connection.ws.ping();
+        }
+    }, 30000);
+
+    // Leave if the recording goes over their limit
     const partTimeout = setTimeout(() => {
         log("Terminating " + id + ": Time limit.");
         sReply(true, l("timelimit", lang));
@@ -442,7 +457,8 @@ function session(msg, prefix, rec) {
         if (recOgg2Stream) recOgg2Stream.end();
         recFUStream.end();
 
-        // Delete our leave timeout
+        // Delete our timers
+        clearInterval(pingInterval);
         clearTimeout(partTimeout);
         clearInterval(useInterval);
         clearInterval(feedbackInterval);
