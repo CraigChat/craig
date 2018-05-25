@@ -468,6 +468,18 @@ function session(msg, prefix, rec) {
             receiver.destroy();
         } catch (ex) {}
 
+        // Start post-recording processing
+        if (rec.features.drive) {
+            cp.spawn("./postrec.js", [
+                rec.uid+"",
+                rec.id+"",
+                JSON.stringify(rec.features),
+                JSON.stringify(rec.info)
+            ], {
+                stdio: "ignore"
+            });
+        }
+
         // And callback
         rec.close();
     }
@@ -721,8 +733,11 @@ function cmdJoin(lang) { return function(msg, cmd) {
             }
 
             var rec = {
+                uid: msg.author.id,
                 gid: guild.id,
                 cid: channel.id,
+                features: f,
+                info: info,
                 connection: null,
                 id: id,
                 accessKey: accessKey,
