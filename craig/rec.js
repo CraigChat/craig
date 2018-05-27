@@ -563,13 +563,24 @@ function cmdJoin(lang) { return function(msg, cmd) {
     channel = cu.findChannel(msg, guild, cname);
 
     if (channel !== null) {
+        var user = msg.author;
+        var userId = user.id;
         var guildId = guild.id;
         var channelId = channel.id;
         if (!(guildId in activeRecordings))
             activeRecordings[guildId] = {};
 
+        // If the user is a bot, features and such come from the server owner
+        if (user.bot) {
+            var owner = client.users.get(guild.ownerID);
+            if (owner) {
+                user = owner;
+                userId = owner.id;
+            }
+        }
+
         // Figure out the recording features for this user
-        var f = cf.features(msg.author.id, guildId);
+        var f = cf.features(userId, guildId);
 
         // Choose the right client
         var takenClients = {};
@@ -660,6 +671,10 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 requesterId: msg.author.id,
                 startTime: new Date().toISOString()
             };
+            if (user !== msg.author) {
+                info.user = user.username + "#" + user.discriminator;
+                info.userId = userId;
+            }
 
             // If the user has features, mark them down
             if (f !== cf.defaultFeatures)
@@ -733,7 +748,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
             }
 
             var rec = {
-                uid: msg.author.id,
+                uid: userId,
                 gid: guild.id,
                 cid: channel.id,
                 features: f,
