@@ -129,6 +129,7 @@ if (cc.master) {
 
 } else {
     guildRefresh = function(guild) {
+        guildMembershipStatus[guild.id] = (new Date().getTime());
         client.shard.send({t:"guildRefresh", g:guild.id});
     }
 
