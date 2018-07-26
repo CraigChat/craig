@@ -64,8 +64,17 @@ function session(msg, prefix, rec) {
     var limits = rec.limits;
     var id = rec.id;
     var client = rec.client;
-    var nick = rec.nick;
+    var configNick = rec.nick;
+    var localNick = undefined;
+    var recNick;
     var lang = rec.lang;
+
+    // Either start with the server-configured nickname or the configured one
+    try {
+        localNick = connection.channel.guild.members.get(client.user.id).nick;
+    } catch (ex) {
+        console.error(ex);
+    }
 
     function sReply(dm, pubtext, privtext) {
         reply(msg, dm, prefix, pubtext, privtext);
@@ -105,7 +114,11 @@ function session(msg, prefix, rec) {
 
     // Rename ourself to indicate that we're recording
     try {
-        connection.channel.guild.editNickname(nick + " [RECORDING]").catch((err) => {
+        if (localNick)
+            recNick = ("[RECORDING] " + localNick).substr(0, 32);
+        else
+            recNick = configNick + " [RECORDING]";
+        connection.channel.guild.editNickname(recNick).catch((err) => {
             log("Terminating " + id + ": Lack nick change permission.");
             sReply(true, l("cannotnick", lang));
             rec.disconnected = true;
@@ -525,6 +538,9 @@ function safeJoin(channel, err) {
 // Join is the only command in Craig with arguments, and to avoid clash, they're janky
 const argPart = /^-([A-Za-z0-9]+) *(.*)$/;
 
+// The recording indicator
+const recIndicator = / *\[RECORDING\] */;
+
 // Start recording
 function cmdJoin(lang) { return function(msg, cmd) {
     var guild = msg.guild;
@@ -715,8 +731,14 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 }
 
                 // Rename the bot in this guild
+                var fixNick = undefined;
                 try {
-                    guild.editNickname(reNick).catch(logex);
+                    fixNick = guild.members.get(chosenClient.user.id).nick;
+                    fixNick = fixNick.replace(recIndicator, "");
+                } catch (ex) {}
+                if (!fixNick) fixNick = reNick;
+                try {
+                    guild.editNickname(fixNick).catch(logex);
                 } catch (ex) {
                     logex(ex);
                 }
