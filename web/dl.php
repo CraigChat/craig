@@ -484,6 +484,12 @@ if (isset($features["glowers"]) && $features["glowers"]) {
             download("Ogg Vorbis", "vorbis");
             download("ADPCM wav", "adpcm");
             download("8-bit wav", "wav8");
+            print("<br/>");
+            download("MKV FLAC", "flac", "matroska");
+            download("MKV AAC", "aac", "matroska");
+            download("MKV HE-AAC", "heaac", "matroska");
+            download("MKV Opus", "opus", "matroska");
+            download("MKV Vorbis", "vorbis", "matroska");
             ?>
         </div><br/><br/>
 
