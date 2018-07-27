@@ -253,7 +253,7 @@ if (isset($_REQUEST["delete"])) {
     flush();
     passthru("/home/yahweasel/craig/cook.sh $id $format $container");
 
-} else if ($_REQUEST["fetch"] === "avatars") {
+} else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "avatars") {
     $format = "png";
     $container = "zip";
     $ext = "$format.zip";
