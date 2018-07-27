@@ -25,7 +25,8 @@ $flags = array(
     "pt" => ["br", "pt"],
     "de" => ["de"],
     "fr" => ["fr"],
-    "it" => ["it"]
+    "it" => ["it"],
+    "nl" => ["nl"]
 );
 
 ?>
