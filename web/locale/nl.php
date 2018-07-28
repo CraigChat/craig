@@ -5,20 +5,20 @@ $l["nl"] = array(
     "intro3" =>     "Je opname ID:",
     "starttime" =>  "Starttijd",
     "users" =>      "Gebruikers",
-    "duration" =>   "Duur",
+    "duration" =>   "Opnameduur",
 
     "mtd" =>        "Meer-sporige download:",
     "std" =>        "Enkel-sporige slimme mix download:",
     "mtp" =>        "Meer-sporig verwerkt:",
     "stm" =>        "Enkel-sporig gemixt:",
 
-    "uncomp" =>     "ongecomprimeerde",
+    "uncomp" =>     "ongecomprimeerd",
     "raw" =>        "onbewerkt",
     "rawnote" =>    "Let op: Bijne geen enkel audio-bewerkingsprogramma zal dit onbewerkte bestand ondersteunen.",
 
     "local" =>      "Lokale verwerkingsopties",
     "format" =>     "Formaat:",
-    "mix" =>        "Mixen naar een enkel spoor (Craig's hele doel verslaand)",
+    "mix" =>        "Mixen naar een enkel spoor (en het hele punt van Craig verpesten)",
     "luddite" =>    "Ik ben een luddiet. Ik koos MP3 omdat ik onwetend ben, ik weiger ook maar een seconde te besteden om te leren wat ik in hemelsnaam aan het doen ben. Ik erken dat als ik klaag over het MP3 bestand dat deze tool maakt, of over hoe gemeen dit bericht is, ik word verbannen. Ik ben een imbeciel, en ik kies deze optie als een leutige uiting van mijn eigen stompzinnigheid.",
     "wav" =>        "Ongecomprimeerde audio is groot, en dit systeem verwerkt de audio direct in het werkgeheugen. Ik beloof dat ik niet ga klagen als er daardoor iets mis gaat.",
     "begin" =>      "Begin met verwerken",
