@@ -110,6 +110,18 @@ function session(msg, prefix, rec) {
     }
     cc.recordingEvents.emit("start", rec);
 
+    // Send the recording message [temporarily only to 5% of servers]
+    try {
+    if ((+connection.channel.guild.id.slice(-2)) % 20 === 17)
+    setTimeout(()=>{
+        var nowRec = "data/nowrecording.opus";
+        fs.access(nowRec, fs.constants.R_OK, (err) => {
+            if (!err)
+                connection.play("data/nowrecording.opus", {format: "ogg"});
+        });
+    }, 200);
+    } catch (ex) {}
+
     // Active users, by ID
     var users = {};
 
@@ -179,7 +191,8 @@ function session(msg, prefix, rec) {
         var diff = ((curTime[0]-lastTime[0])*10+(curTime[1]-lastTime[1])/100000000);
         if (diff > 10) {
             // It's been at least a second since we heard anything
-            connection.setSpeaking(false);
+            if (!connection.playing)
+                connection.setSpeaking(false);
         }
     }, 1000);
 
