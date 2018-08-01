@@ -64,17 +64,7 @@ function session(msg, prefix, rec) {
     var limits = rec.limits;
     var id = rec.id;
     var client = rec.client;
-    var configNick = rec.nick;
-    var localNick = undefined;
-    var recNick;
     var lang = rec.lang;
-
-    // Either start with the server-configured nickname or the configured one
-    try {
-        localNick = connection.channel.guild.members.get(client.user.id).nick;
-    } catch (ex) {
-        console.error(ex);
-    }
 
     function sReply(dm, pubtext, privtext) {
         reply(msg, dm, prefix, pubtext, privtext);
@@ -111,22 +101,6 @@ function session(msg, prefix, rec) {
         rec.disconnected = true;
         connection.disconnect();
     }, limits.record * 60*60*1000);
-
-    // Rename ourself to indicate that we're recording
-    try {
-        if (localNick)
-            recNick = ("[RECORDING] " + localNick).substr(0, 32);
-        else
-            recNick = configNick + " [RECORDING]";
-        connection.channel.guild.editNickname(recNick).catch((err) => {
-            log("Terminating " + id + ": Lack nick change permission.");
-            sReply(true, l("cannotnick", lang));
-            rec.disconnected = true;
-            connection.disconnect();
-        });
-    } catch (ex) {
-        logex(ex);
-    }
 
     // Log it
     try {
@@ -714,9 +688,17 @@ function cmdJoin(lang) { return function(msg, cmd) {
             }
 
             // We have a nick per the specific client
-            var reNick = config.nick;
+            var configNick = config.nick;
             if (chosenClient !== client)
-                reNick = config.secondary[chosenClientNum-1].nick;
+                configNick = config.secondary[chosenClientNum-1].nick;
+
+            // Or we may have a local nick
+            var localNick = undefined;
+            try {
+                localNick = guild.members.get(chosenClient.user.id).nick;
+            } catch (ex) {
+                logex(ex);
+            }
 
             var closed = false;
             function close() {
@@ -736,7 +718,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                     fixNick = guild.members.get(chosenClient.user.id).nick;
                     fixNick = fixNick.replace(recIndicator, "");
                 } catch (ex) {}
-                if (!fixNick) fixNick = reNick;
+                if (!fixNick) fixNick = configNick;
                 try {
                     guild.editNickname(fixNick).catch(logex);
                 } catch (ex) {
@@ -782,7 +764,6 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 client: chosenClient,
                 clientNum: chosenClientNum,
                 limits: f.limits,
-                nick: reNick,
                 disconnected: false,
                 close: close
             };
@@ -797,26 +778,45 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 close();
             }
 
+            // Rename ourself to indicate that we're recording
+            var recNick;
+            try {
+                if (localNick)
+                    recNick = ("[RECORDING] " + localNick).substr(0, 32);
+                else
+                    recNick = configNick + " [RECORDING]";
+                guild.editNickname(recNick).then(join).catch((err) => {
+                    log("Terminating " + id + ": Lack nick change permission.");
+                    sReply(true, l("cannotnick", lang));
+                    rec.disconnected = true;
+                    close();
+                });
+            } catch (ex) {
+                logex(ex);
+            }
+
             // Join the channel
-            safeJoin(channel, onJoinError).then((connection) => {
-                // Get a language hint
-                var hint = cl.hint(channel, lang);
+            function join() {
+                safeJoin(channel, onJoinError).then((connection) => {
+                    // Get a language hint
+                    var hint = cl.hint(channel, lang);
 
-                // Tell them
-                var rmsg = 
-                    l("recording", lang, f.limits.record+"",
-                        f.limits.download+"", channel.name+"",
-                        ~~(f.limits.download/24)+"") +
-                    (hint?("\n\n"+hint):"") +
-                    "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
+                    // Tell them
+                    var rmsg = 
+                        l("recording", lang, f.limits.record+"",
+                            f.limits.download+"", channel.name+"",
+                            ~~(f.limits.download/24)+"") +
+                        (hint?("\n\n"+hint):"") +
+                        "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
 
-                reply(msg, true, cmd[1], rmsg,
-                    l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
+                    reply(msg, true, cmd[1], rmsg,
+                        l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
 
-                rec.connection = connection;
+                    rec.connection = connection;
 
-                session(msg, cmd[1], rec);
-            }).catch(onJoinError);
+                    session(msg, cmd[1], rec);
+                }).catch(onJoinError);
+            }
 
             // If we don't have a connection in 15 seconds, assume something went wrong
             setTimeout(()=>{
