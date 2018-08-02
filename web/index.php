@@ -225,7 +225,10 @@ if (isset($_REQUEST["delete"])) {
     $ext="$format.zip";
     $mime="application/zip";
     if (isset($_REQUEST["container"])) {
-        if ($_REQUEST["container"] === "ogg") {
+        if ($_REQUEST["container"] === "aupzip") {
+            $container = "aupzip";
+            $ext = "aup.zip";
+        } else if ($_REQUEST["container"] === "ogg") {
             $container = "ogg";
             $ext = "ogg";
             $mime = "audio/ogg";
