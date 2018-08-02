@@ -116,6 +116,8 @@ stats.averageLast30Days = stats.last30Days / 30;
 
 // Now sort it for output
 var tm = stats.totalTime;
+var years = Math.floor(tm / 31536000);
+var ydays = Math.floor((tm - years * 31536000) / 86400);
 var days = Math.floor(tm / 86400);
 tm -= days * 86400;
 var hours = Math.floor(tm / 3600);
@@ -126,6 +128,8 @@ tm = Math.floor(tm);
 
 if (process.argv[3] && process.argv[3] === "json") {
     stats.totalTimeSplit = {
+        "y": years,
+        "yd": ydays,
         "d": days,
         "h": hours,
         "m": minutes,
@@ -136,7 +140,8 @@ if (process.argv[3] && process.argv[3] === "json") {
 } else {
     console.log("Total recordings:\t" + stats.totalRecordings);
     console.log("Total recording time:");
-    console.log("\t" + days + " days");
+    console.log("\t" + years + " years");
+    console.log("\t" + ydays + " days");
     console.log("\t" + hours + " hours");
     console.log("\t" + minutes + " minutes");
     console.log("\t" + tm + " seconds");
