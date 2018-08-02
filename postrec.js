@@ -36,7 +36,7 @@ const info = JSON.parse(process.argv[5]);
 // Currently, only Drive auto-upload is supported, so just quit if the feature isn't there
 if (!features.drive) process.exit(0);
 
-const SCOPES = ["https://www.googleapis.com/auth/drive.file"];
+const SCOPES = ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.metadata.readonly"];
 const TOKEN_PATH = process.env.HOME + "/craig-drive/" + uid + "-credentials.json";
 
 // Load client secrets
@@ -70,13 +70,27 @@ function authorize(credentials, callback) {
 // Search for or create a Craig directory, then upload to it
 function findUploadDir(auth) {
     const drive = google.drive({version: "v3", auth});
-    drive.files.list({
-        pageSize: 16,
+    const opts = {
+        pageSize: 1000,
         fields: "nextPageToken, files(id, name)",
-    }, (err, data) => {
+        q: "'root' in parents and mimeType = 'application/vnd.google-apps.folder'"
+    };
+    var files = [];
+    drive.files.list(opts, page);
+    
+    function page(err, data) {
         if (err) return console.error("The API returned an error: " + err);
         data = data.data;
-        const files = data.files;
+        files = files.concat(data.files);
+        if (data.nextPageToken) {
+            opts.pageToken = data.nextPageToken;
+            drive.files.list(opts, page);
+        } else {
+            complete();
+        }
+    }
+
+    function complete() {
         var craigDir = files.find((file) => {
             return (file.name.toLowerCase() === "craig");
         });
@@ -94,7 +108,7 @@ function findUploadDir(auth) {
                 }
             });
         }
-    });
+    }
 }
 
 // Upload the file
