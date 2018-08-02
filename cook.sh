@@ -105,9 +105,10 @@ case "$FORMAT" in
         ENCODE="flac - -c"
         ;;
 esac
-if [ "$CONTAINER" = "mix" ]
+if [ "$CONTAINER" = "mix" -o "$CONTAINER" = "aupzip" ]
 then
-    # Smart auto-mixing, so ext is temporary
+    # mix: Smart auto-mixing, so ext is temporary
+    # aupzip: Even though we use FLAC, Audacity throws a fit if they're not called .ogg
     ext=ogg
 fi
 
@@ -118,7 +119,14 @@ tmpdir=`mktemp -d`
 
 echo 'rm -rf '"$tmpdir" | at 'now + 2 hours'
 
-mkdir "$tmpdir/in" "$tmpdir/out" || exit 1
+OUTDIR="$tmpdir/out"
+mkdir "$OUTDIR" || exit 1
+if [ "$CONTAINER" = "aupzip" ]
+then
+    # Put actual audio in the _data dir
+    OUTDIR="$OUTDIR/${1}_data"
+    mkdir "$OUTDIR" || exit 1
+fi
 
 # Take a lock on the data file so that we can detect active downloads
 exec 9< "$1.ogg.data"
@@ -131,20 +139,20 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     sed 's/^[^=]*=//'`
 DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data`
 
-# Prepare the self-extractor
+# Prepare the self-extractor or project file
 if [ "$FORMAT" = "wavsfx" ]
 then
-    sed 's/^/@REM   / ; s/$/\r/g' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt" > "$tmpdir/out/RunMe.bat"
-    mkfifo "$tmpdir/out/ffmpeg.exe"
-    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-wav.exe" > "$tmpdir/out/ffmpeg.exe" &
+    sed 's/^/@REM   / ; s/$/\r/g' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt" > "$OUTDIR/RunMe.bat"
+    mkfifo "$OUTDIR/ffmpeg.exe"
+    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-wav.exe" > "$OUTDIR/ffmpeg.exe" &
 
 elif [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
 then
     RUNMESUFFIX=sh
     if [ "$FORMAT" = "wavsfxm" ]
     then
-        cp "$SCRIPTBASE/cook/ffmpeg-wav.macosx" "$tmpdir/out/ffmpeg"
-        chmod a+x "$tmpdir/out/ffmpeg"
+        cp "$SCRIPTBASE/cook/ffmpeg-wav.macosx" "$OUTDIR/ffmpeg"
+        chmod a+x "$OUTDIR/ffmpeg"
         RUNMESUFFIX=command
     fi
 
@@ -152,9 +160,13 @@ then
         printf '#!/bin/sh\n'
         sed 's/^/#   /' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt"
         printf 'set -e\ncd "$(dirname "$0")"\n\n'
-    ) > "$tmpdir/out/RunMe.$RUNMESUFFIX"
-    chmod a+x "$tmpdir/out/RunMe.$RUNMESUFFIX"
+    ) > "$OUTDIR/RunMe.$RUNMESUFFIX"
+    chmod a+x "$OUTDIR/RunMe.$RUNMESUFFIX"
 
+fi
+if [ "$CONTAINER" = "aupzip" ]
+then
+    sed 's/@PROJNAME@/'"$1"'_data/g' "$SCRIPTBASE/cook/aup-header.xml" > "$tmpdir/out/$1.aup"
 fi
 
 # Encode thru fifos
@@ -163,7 +175,7 @@ do
     O_USER="`$SCRIPTBASE/cook/userinfo.js $1 $c`"
     [ "$O_USER" ] || unset O_USER
     O_FN="$c${O_USER+-}$O_USER.$ext"
-    O_FFN="$tmpdir/out/$O_FN"
+    O_FFN="$OUTDIR/$O_FN"
     mkfifo "$O_FFN"
     if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
@@ -181,30 +193,42 @@ do
 
     fi
 
+    # Make the extractor line for this file
     if [ "$FORMAT" = "wavsfx" ]
     then
-        printf 'ffmpeg -i %s %s\r\ndel %s\r\n\r\n' "$O_FN" "${O_FN%.flac}.wav" "$O_FN" >> "$tmpdir/out/RunMe.bat"
+        printf 'ffmpeg -i %s %s\r\ndel %s\r\n\r\n' "$O_FN" "${O_FN%.flac}.wav" "$O_FN" >> "$OUTDIR/RunMe.bat"
     elif [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
     then
         (
             [ "$FORMAT" != "wavsfxm" ] || printf './'
             printf 'ffmpeg -i %s %s\nrm %s\n\n' "$O_FN" "${O_FN%.flac}.wav" "$O_FN"
-        ) >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
+        ) >> "$OUTDIR/RunMe.$RUNMESUFFIX"
+    fi
+
+    # Or the XML line
+    if [ "$CONTAINER" = "aupzip" ]
+    then
+        printf '\t<import filename="%s" offset="0.00000000" mute="0" solo="0" height="150" minimized="0" gain="1.0" pan="0.0"/>\n' \
+            "$O_FN" >> "$tmpdir/out/$1.aup"
     fi
 done
 if [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
 then
-    printf "printf '\\\\n\\\\n===\\\\nProcessing complete.\\\\n===\\\\n\\\\n'\\n" >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
+    printf "printf '\\\\n\\\\n===\\\\nProcessing complete.\\\\n===\\\\n\\\\n'\\n" >> "$OUTDIR/RunMe.$RUNMESUFFIX"
 fi
-if [ "$CONTAINER" = "zip" -o "$CONTAINER" = "exe" ]
+if [ "$CONTAINER" = "aupzip" ]
 then
-    mkfifo $tmpdir/out/raw.dat
+    printf '</project>\n' >> "$tmpdir/out/$1.aup"
+fi
+if [ "$CONTAINER" = "zip" -o "$CONTAINER" = "aupzip" -o "$CONTAINER" = "exe" ]
+then
+    mkfifo $OUTDIR/raw.dat
     timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1" |
-        timeout $DEF_TIMEOUT cat - $1.ogg.header1 $1.ogg.header2 $1.ogg.data > $tmpdir/out/raw.dat &
+        timeout $DEF_TIMEOUT cat - $1.ogg.header1 $1.ogg.header2 $1.ogg.data > $OUTDIR/raw.dat &
 fi
 
 # Put them into their container
-cd $tmpdir/out
+cd "$tmpdir/out"
 case "$CONTAINER" in
     ogg|matroska)
         if [ "$FORMAT" = "copy" -a "$CONTAINER" = "ogg" ]
@@ -247,6 +271,10 @@ case "$CONTAINER" in
     exe)
         timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES raw.dat |
         cat "$SCRIPTBASE/cook/sfx.exe" -
+        ;;
+
+    aupzip)
+        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -r -FI - "$1.aup" "${1}_data"/*.$ext "${1}_data"/raw.dat
         ;;
 
     *)

@@ -12,6 +12,7 @@ $l["en"] = array(
     "mtp" =>        "Multi-track processed:",
     "stm" =>        "Single-track mixed:",
 
+    "audacity" =>   "Audacity project",
     "uncomp" =>     "uncompressed",
     "raw" =>        "Raw",
     "rawnote" =>    "Note: Almost no audio editors will support this raw file",

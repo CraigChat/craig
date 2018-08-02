@@ -328,6 +328,8 @@ foreach ($locales as $la) {
         <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
         <span class="choices">
 <?PHP
+if (!$iphone && !$android)
+    download(ls("audacity"), "flac", "aupzip");
 download("FLAC", "flac");
 if ($windows) {
     download("wav <div style=\"font-size: 0.6em\">(Windows extractor)</div>", "wavsfx", "exe");
