@@ -54,12 +54,16 @@ ssize_t readAll(int fd, void *vbuf, size_t count)
 
 int main(int argc, char **argv)
 {
+    int32_t streamNo = -1;
     uint64_t lastGranulePos = 0;
     uint32_t packetSize;
     unsigned char segmentCount, segmentVal;
     unsigned char buf[1024];
     const uint32_t bufSz = 1024;
     struct OggPreHeader preHeader;
+
+    if (argc >= 2)
+        streamNo = atoi(argv[1]);
 
     while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
         struct OggHeader oggHeader;
@@ -92,6 +96,9 @@ int main(int argc, char **argv)
         }
         if (readAll(0, buf, packetSize) != packetSize)
             break;
+
+        if (streamNo >= 0 && oggHeader.streamNo != streamNo)
+            continue;
 
         if (oggHeader.granulePos > lastGranulePos)
             lastGranulePos = oggHeader.granulePos;

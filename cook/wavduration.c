@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     struct WavFmtHeader fmtHeader;
     struct WavDS64Header ds64Header;
     int needDS64Header = 0;
+    unsigned int extra;
 
     // Read the header
     bufUsed = readAll(0, &wavHeader, sizeof(struct WavHeader));
@@ -172,6 +173,11 @@ int main(int argc, char **argv)
     // Then write out the rest
     while ((bufUsed = read(0, buf, bufSz)) > 0)
         write(1, buf, bufUsed);
+
+    // Along with a fair bit of nothing
+    memset(buf, 0, bufSz);
+    for (extra = 0; extra < 256; extra++)
+        write(1, buf, bufSz);
 
     return (bufUsed<0);
 }

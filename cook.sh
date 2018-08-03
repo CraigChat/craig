@@ -137,7 +137,6 @@ NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
     timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
     grep '^format\.nb_streams' |
     sed 's/^[^=]*=//'`
-DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data`
 
 # Prepare the self-extractor or project file
 if [ "$FORMAT" = "wavsfx" ]
@@ -176,6 +175,7 @@ do
     [ "$O_USER" ] || unset O_USER
     O_FN="$c${O_USER+-}$O_USER.$ext"
     O_FFN="$OUTDIR/$O_FN"
+    T_DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" $c < $1.ogg.data`
     mkfifo "$O_FFN"
     if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
@@ -188,8 +188,11 @@ do
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
             -af "$ARESAMPLE" \
             -flags bitexact -f wav - |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
-            timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN" &
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$T_DURATION" |
+            (
+                timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN";
+                cat > /dev/null
+            ) &
 
     fi
 
@@ -263,9 +266,13 @@ case "$CONTAINER" in
         done
         MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
         FILTER="$FILTER$MIXFILTER"
+        DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data`
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
-            timeout $DEF_TIMEOUT $NICE $ENCODE
+            (
+                timeout $DEF_TIMEOUT $NICE $ENCODE;
+                cat > /dev/null
+            )
         ;;
 
     exe)
