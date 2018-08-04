@@ -32,59 +32,8 @@ const logex = cc.logex;
 
 const cu = require("./utils.js");
 
-/* Our guild membership status
- *
- * SHARDING:
- * Shard manager has shared guild membership status and manages the status
- * journal; updates come from shards. The shard manager sets the original guild
- * membership status for all shards.
- */
-var guildMembershipStatus = {};
-if (cc.master) {
-    if (cu.accessSyncer("craig-guild-membership-status.json")) {
-        try {
-            var lines = fs.readFileSync("craig-guild-membership-status.json", "utf8").split("\n");
-            try {
-                guildMembershipStatus = JSON.parse(lines[0]);
-            } catch (ex) {
-                logex(ex);
-            }
-            for (var li = 1; li < lines.length; li++) {
-                try {
-                    var step = JSON.parse("[0" + lines[li] + "]")[1];
-                    if (!step) continue;
-                    if ("v" in step)
-                        guildMembershipStatus[step.k] = step.v;
-                    else
-                        delete guildMembershipStatus[step.k];
-                } catch (ex) {
-                    logex(ex);
-                }
-            }
-        } catch (ex) {
-            logex(ex);
-        }
-    }
-    var guildMembershipStatusF = fs.createWriteStream("craig-guild-membership-status.json", "utf8");
-    guildMembershipStatusF.write(JSON.stringify(guildMembershipStatus) + "\n");
-
-    if (sm) {
-        function sendGMS(shard) {
-            shard.send({t:"guildMembershipStatus", s:guildMembershipStatus});
-        }
-        sm.on("launch", sendGMS);
-        sm.shards.forEach(sendGMS);
-    }
-
-} else {
-    cc.processCommands["guildMembershipStatus"] = function(msg) {
-        /* We only have a single shared guildMembershipStatus object, so we
-         * have to copy over */
-        for (var g in msg.s)
-            guildMembershipStatus[g] = msg.s[g];
-    }
-
-}
+const cdb = require("./db.js");
+const db = cdb.db;
 
 // We keep the list of blessed guilds here just so that we can keep them alive
 var blessG2U = {};
@@ -99,40 +48,27 @@ function guildLeave(guild) {
     });
 }
 
-var guildRefresh, guildDelete;
+const guildRefreshStmt = db.prepare("INSERT OR REPLACE INTO guildMembershipStatus (id, refreshed) VALUES (@id, @refreshed);");
+function guildRefresh(guild) {
+    if (cc.dead) return;
+    guildRefreshStmt.run({id: guild.id, refreshed: (new Date().getTime())});
+}
 
+var guildDelete;
 if (cc.master) {
-    guildRefresh = function(guild) {
-        if (cc.dead) return;
-        var step = {"k": guild.id, "v": (new Date().getTime())};
-        guildMembershipStatus[step.k] = step.v;
-        guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
-    }
-
     guildDelete = function(guild) {
         if (cc.dead) return;
         guildLeave(guild);
-        var step = {"k": guild.id};
-        delete guildMembershipStatus[step.k];
-        guildMembershipStatusF.write("," + JSON.stringify(step) + "\n");
+        db.deleteGuild(guild.id);
     }
 
     if (sm) {
-        cc.shardCommands["guildRefresh"] = function(shard, msg) {
-            guildRefresh({id:msg.g});
-        }
-
         cc.shardCommands["guildDelete"] = function(shard, msg) {
             guildDelete({id:msg.g});
         }
     }
 
 } else {
-    guildRefresh = function(guild) {
-        guildMembershipStatus[guild.id] = (new Date().getTime());
-        client.shard.send({t:"guildRefresh", g:guild.id});
-    }
-
     guildDelete = function(guild) {
         guildLeave(guild);
         client.shard.send({t:"guildDelete", g:guild.id});
@@ -148,11 +84,19 @@ const importantServers = {};
 })();
 
 // Check/report our guild membership status every hour
+const gmsStmt = db.prepare("SELECT * FROM guildMembershipStatus");
 function checkGMS() {
     var client;
 
     if (cc.dead)
         return;
+
+    // Get our full guild membership status
+    var guildMembershipStatus = {};
+    var rows = gmsStmt.all();
+    rows.forEach((row) => {
+        guildMembershipStatus[row.id] = row.refreshed;
+    });
 
     clients.forEach((client) => {
         if (!client) return;
@@ -236,4 +180,4 @@ function updateGuildCt() {
 if (cc.master && (config.discordbotstoken || config.botsdiscordpwtoken))
     setInterval(updateGuildCt, 3600000);
 
-module.exports = {guildMembershipStatus, blessG2U, guildRefresh, guildDelete, importantServers};
+module.exports = {blessG2U, guildRefresh, guildDelete, importantServers};

@@ -7,10 +7,11 @@
         "url": "https://bitbucket.org/Yahweasel/craig"
     },
     "dependencies": {
+        "better-sqlite3": "^4.1.4",
         "bufferutil": "^3.0.3",
         "cyclic-32": "*",
         "discord.js": "^11.3.0",
-        "eris": "^0.8.5",
+        "eris": "^0.8.6",
         "erlpack": "hammerandchisel/erlpack",
         "googleapis": "^27.0.0",
         "node-opus": "*",
