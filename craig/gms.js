@@ -35,6 +35,12 @@ const cu = require("./utils.js");
 const cdb = require("./db.js");
 const db = cdb.db;
 
+// Guild membership status is kept temporarily here, but the canonical copy is in the database
+var guildMembershipStatus = {};
+db.prepare("SELECT * FROM guildMembershipStatus").all().forEach((row) => {
+    guildMembershipStatus[row.id] = row.refreshed;
+});
+
 // We keep the list of blessed guilds here just so that we can keep them alive
 var blessG2U = {};
 
@@ -51,7 +57,9 @@ function guildLeave(guild) {
 const guildRefreshStmt = db.prepare("INSERT OR REPLACE INTO guildMembershipStatus (id, refreshed) VALUES (@id, @refreshed);");
 function guildRefresh(guild) {
     if (cc.dead) return;
-    guildRefreshStmt.run({id: guild.id, refreshed: (new Date().getTime())});
+    var step = {id: guild.id, refreshed: (new Date().getTime())};
+    guildMembershipStatus[step.id] = step.refreshed;
+    guildRefreshStmt.run(step);
 }
 
 var guildDelete;
@@ -59,6 +67,7 @@ if (cc.master) {
     guildDelete = function(guild) {
         if (cc.dead) return;
         guildLeave(guild);
+        delete guildMembershipStatus[guild.id];
         db.deleteGuild(guild.id);
     }
 
@@ -71,6 +80,7 @@ if (cc.master) {
 } else {
     guildDelete = function(guild) {
         guildLeave(guild);
+        delete guildMembershipStatus[guild.id];
         client.shard.send({t:"guildDelete", g:guild.id});
     }
 
@@ -84,19 +94,11 @@ const importantServers = {};
 })();
 
 // Check/report our guild membership status every hour
-const gmsStmt = db.prepare("SELECT * FROM guildMembershipStatus");
 function checkGMS() {
     var client;
 
     if (cc.dead)
         return;
-
-    // Get our full guild membership status
-    var guildMembershipStatus = {};
-    var rows = gmsStmt.all();
-    rows.forEach((row) => {
-        guildMembershipStatus[row.id] = row.refreshed;
-    });
 
     clients.forEach((client) => {
         if (!client) return;
