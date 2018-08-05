@@ -32,6 +32,7 @@ const nameId = cc.nameId;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
+const db = require("./db.js").db;
 const commands = require("./commands.js").commands;
 
 const cf = require("./features.js");
@@ -57,7 +58,10 @@ var autoCur = {};
 // Use server roles to give rewards
 if (config.rewards) (function() {
     // And the journal of autorecord changes
-    var autoJournalF = null;
+    const autoAddStmt = db.prepare("INSERT OR REPLACE INTO auto (uid, gid, cid, tids) VALUES (@uid, @gid, @cid, @tids)");
+    const autoRemStmt = db.prepare("DELETE FROM auto WHERE uid=@uid AND gid=@gid AND cid=@cid");
+    const autoRemUStmt = db.prepare("DELETE FROM auto WHERE uid=@uid");
+    const autoRemUGStmt = db.prepare("DELETE FROM auto WHERE uid=@uid AND gid=@gid");
 
     // Remove a user's autorecord, for a specific channel or all channels
     function removeAutorecordLocal(uid, gid, cid) {
@@ -76,8 +80,8 @@ if (config.rewards) (function() {
                 gci--;
 
                 var step = {u:uid, g:gid, c:cid};
-                if (!cc.dead && autoJournalF)
-                    autoJournalF.write("," + JSON.stringify(step) + "\n");
+                if (!cc.dead)
+                    autoRemStmt.run({uid, gid, cid});
             }
         }
 
@@ -123,18 +127,19 @@ if (config.rewards) (function() {
     function addAutorecordLocal(uid, gid, cid, tids) {
         removeAutorecordLocal(uid, gid, cid);
         var i = {u:uid, g:gid, c:cid};
-        var step = {u:uid, g:gid, c:cid, t:{}};
+        var dbtids = [];
         if (tids) {
             i.t = tids;
-            step.t = tids;
+            for (var tid in tids)
+                dbtids.push(tid);
         }
         if (!(uid in autoU2GC)) autoU2GC[uid] = [];
         if (!(gid in autoG2C2U)) autoG2C2U[gid] = {};
         if (!(cid in autoG2C2U[gid])) autoG2C2U[gid][cid] = [];
         autoU2GC[uid].push(i);
         autoG2C2U[gid][cid].push(i);
-        if (!cc.dead && autoJournalF)
-            autoJournalF.write("," + JSON.stringify(step) + "\n");
+        if (!cc.dead)
+            autoAddStmt.run({uid, gid, cid, tids: dbtids.join(",")});
     }
 
     function addAutorecord(uid, gid, cid, tids) {
@@ -191,33 +196,18 @@ if (config.rewards) (function() {
     // Load autorecords when we're ready (only fires on the shard with the rewards guild)
     cf.rewardsEvents.on("ready", () => {
         // Get our auto status
-        if (cu.accessSyncer("craig-auto.json")) {
-            try {
-                var lines = fs.readFileSync("craig-auto.json", "utf8").split("\n");
-                try {
-                    autoU2GC = JSON.parse(lines[0]);
-                } catch (ex) {
-                    logex(ex);
-                }
-                for (var li = 1; li < lines.length; li++) {
-                    try {
-                        var step = JSON.parse("[0" + lines[li] + "]")[1];
-                        if (!step) continue;
-                        if ("t" in step)
-                            addAutorecord(step.u, step.g, step.c, step.t);
-                        else
-                            removeAutorecord(step.u, step.g, step.c);
-                    } catch (ex) {
-                        logex(ex);
-                    }
-                }
-            } catch (ex) {
-                logex(ex);
+        db.prepare("SELECT * FROM auto").all().forEach((row) => {
+            var tidList = row.tids.split(",");
+            var tids = undefined;
+            if (tidList.length > 1 || tidList[0] !== "") {
+                tids = {};
+                tidList.forEach((tid) => {
+                    tids[tid] = true;
+                });
             }
-        }
+            addAutorecord(row.uid, row.gid, row.cid, tids);
+        });
         resolveAutos();
-        autoJournalF = fs.createWriteStream("craig-auto.json", "utf8");
-        autoJournalF.write(JSON.stringify(autoU2GC) + "\n");
 
         // Send our autos along
         if (client.shard) {

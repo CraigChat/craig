@@ -18,3 +18,42 @@ for (var id in gms) {
     var r = gms[id];
     gmsStmt.run({id: id, refreshed: r});
 }
+
+// craig-auto -> auto
+const autoLog = JSON.parse("[" + fs.readFileSync("craig-auto.json", "utf8") + "]");
+const auto = autoLog[0];
+for (var i = 1; i < autoLog.length; i++) {
+    var step = autoLog[i];
+    if ("t" in step) {
+        if (!(step.u in auto))
+            auto[step.u] = [];
+        auto[step.u].push(step);
+    } else {
+        if (!(step.u in auto))
+            auto[step.u] = [];
+        var ua = auto[step.u];
+        for (var ui = 0; ui < ua.length; ui++) {
+            var e = ua[ui];
+            if (e.g === step.g && e.c === step.c) {
+                ua.splice(ui, 1);
+                break;
+            }
+        }
+    }
+}
+
+const autoStmt = db.prepare("INSERT INTO auto (uid, gid, cid, tids) VALUES (@uid, @gid, @cid, @tids)");
+for (var uid in auto) {
+    auto[uid].forEach((el) => {
+        var tids = [];
+        for (var tid in el.t)
+            tids.push(tid);
+        tids = tids.join(",");
+        autoStmt.run({
+            uid: el.u,
+            gid: el.g,
+            cid: el.c,
+            tids: tids
+        });
+    });
+}
