@@ -12,6 +12,7 @@ $l["nl"] = array(
     "mtp" =>        "Meer-sporig verwerkt:",
     "stm" =>        "Enkel-sporig gemixt:",
 
+    "audacity" =>   "Audacity project",
     "uncomp" =>     "ongecomprimeerd",
     "raw" =>        "onbewerkt",
     "rawnote" =>    "Let op: Bijne geen enkel audio-bewerkingsprogramma zal dit onbewerkte bestand ondersteunen.",
