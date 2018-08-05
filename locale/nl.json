@@ -26,18 +26,18 @@
     "corrupt":          "WAARSCHUWING: Ik ontvang corrupte spraak data van %1#%2! Ik zal hun geluid niet correct kunnen verwerken!",
     "unexpecteddc":     "Mijn verbinding werd onverwacht verbroken! Als je wil dat ik stop met updaten, geef dan alsjeblieft die opdracht met :craig:, ga weg.",
 
-    "cmd:note":         ["opmerking", "notitie", "n"],
+    "cmd:note":         ["opmerking", "notitie"],
     "noted":            "Genoteerd.",
     
     "cmd:leave":        ["verbreek", "verlaat", "klaar"],
     "notrecording":     "Maar ik ben dat kanaal helemaal niet aan het opnemen!",
     
     "cmd:prefix":       ["voorvoegsel"],
-    "cmd:unprefix":     ["reset-voorvoegsel", "reset-voorvoegsel"],
+    "cmd:unprefix":     ["reset-voorvoegsel"],
     "prefixis":         "Je voorvoegsel is %1",
     "noprefix":         "Geen voorvoegsel ingesteld.",
     "prefixset":        "Voorvoegsel ingesteld.",
-    "prefixunset":      "Voorvoegsel gereset."
+    "prefixunset":      "Voorvoegsel gereset.",
 
     "hint":             "Spreek je Nederlands? Gebruik `:craig:, opnemen` en ik zal antwoorden in het nederlands!",
     "channels":         ["Algemeen", "Opnemen"],

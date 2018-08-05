@@ -1,7 +1,7 @@
 <?PHP
 $l["en"] = array(
     "intro1" =>     "You may fetch your recording in various formats. The most useful multi-track formats, including FLAC and MPEG-4 AAC, are downloadable.",
-    "intro2" =>     "Other formats, including single-track mixed audio, require processing locally in your browser, and thus require a modern browser and some patience, and won't work well on mobile devices.",
+    "intro2" =>     "Other formats, including single-track mixed audio, require processing locally in your browser, and thus require a modern browser and some patience, won't work well on mobile devices, and will likely fail with long recordings or many users.",
     "intro3" =>     "Your recording ID:",
     "starttime" =>  "Start time",
     "users" =>      "Users",

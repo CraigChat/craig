@@ -12,6 +12,7 @@ $l["it"] = array(
     "stm" =>        "Elaborazione singola traccia:",
     "std" =>        "Download del mix intelligente su singola traccia:",
 
+    "audacity" =>   "Progetto Audacity",
     "uncomp" =>     "non compresso",
     "raw" =>        "Raw",
     "rawnote" =>    "Nota: Quasi nessun editor audio supporta questo file raw",

@@ -3,7 +3,7 @@
     "help":             "Ciao! Sono Craig! Sono un registratore multi-traccia per canali vocali. Per ulteriori informazioni, visita %1 .",
 
     "cmd:join":         ["entra", "registra", "avvia", "inizia"],
-    "recording":        "Registro il canale %3! Registrerò fino a %1 ore. Le registrazioni saranno eliminate automaticamente dopo %2 dall’avvio della registrazione. L’audio può essere scaricato mentre sto ancora registrando.",
+    "recording":        "Sto registrando il canale %3! Registrerò fino a %1 ore. Le registrazioni saranno eliminate automaticamente dopo %2 ora dall’avvio della registrazione. L’audio può essere scaricato mentre sto ancora registrando.",
     "downloadlink":     "Link per il download: %1?id=%2&key=%3",
     "deletelink":       "Per eliminarlo: %1?id=%2&key=%3&delete=%4",
 
@@ -26,8 +26,18 @@
     "corrupt":          "AVVISO: sto ricevendo dati vocali corrotti da %1#%2! Non sarò in grado di elaborare correttamente il suo audio!",
     "unexpecteddc":     "Mi sono disconnesso in modo inatteso! Se vuoi che interrompa la registrazione, chiedimelo con :craig:, esci.",
 
+    "cmd:note":         ["nota"],
+    "noted":            "Nota registrata.",
+
     "cmd:leave":        ["esci", "lascia"],
     "notrecording":     "Ma non sto registrando quel canale!",
+
+    "cmd:prefix":       ["prefisso"],
+    "cmd:unprefix":     ["eliminaprefisso"],
+    "prefixis":         "Il tuo prefisso è %1",
+    "noprefix":         "Nessun prefisso impostato.",
+    "prefixset":        "Prefisso impostato.",
+    "prefixunset":      "Prefisso annullato.",
 
     "hint":             "Parli italiano? Usa `:craig:, entra` e risponderò in italiano!",
     "channels":         ["Generale", "Registrazione"],
