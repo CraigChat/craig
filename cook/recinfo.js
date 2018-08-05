@@ -20,4 +20,15 @@ info.tracks = users;
 delete info.key;
 delete info["delete"];
 delete info.features;
-process.stdout.write(JSON.stringify(info) + "\n");
+if (process.argv[3] === "text") {
+    process.stdout.write(
+        "Guild:\t\t" + info.guild + "\r\n" +
+        "Channel:\t" + info.channel + "\r\n" +
+        "Requester:\t" + info.requester + "\r\n" +
+        "Start time:\t" + info.startTime + "\r\n" +
+        "Tracks:\r\n");
+    for (var ui = 1; users[ui]; ui++)
+        process.stdout.write("\t" + users[ui].name + "#" + users[ui].discrim + "\r\n");
+} else {
+    process.stdout.write(JSON.stringify(info) + "\n");
+}

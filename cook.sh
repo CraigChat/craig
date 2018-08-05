@@ -134,9 +134,9 @@ flock -s 9
 
 NICE="nice -n10 ionice -c3 chrt -i 0"
 NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-    timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
-    grep '^format\.nb_streams' |
-    sed 's/^[^=]*=//'`
+    timeout 10 ffprobe - 2>&1 |
+    grep 'Audio: opus' |
+    wc -l`
 
 # Prepare the self-extractor or project file
 if [ "$FORMAT" = "wavsfx" ]
@@ -165,7 +165,11 @@ then
 fi
 if [ "$CONTAINER" = "aupzip" ]
 then
-    sed 's/@PROJNAME@/'"$1"'_data/g' "$SCRIPTBASE/cook/aup-header.xml" > "$tmpdir/out/$1.aup"
+    (
+        sed 's/@PROJNAME@/'"$1"'_data/g' "$SCRIPTBASE/cook/aup-header.xml";
+        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+            timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/extnotes" -f audacity
+    ) > "$tmpdir/out/$1.aup"
 fi
 
 # Encode thru fifos
@@ -228,6 +232,11 @@ then
     mkfifo $OUTDIR/raw.dat
     timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1" |
         timeout $DEF_TIMEOUT cat - $1.ogg.header1 $1.ogg.header2 $1.ogg.data > $OUTDIR/raw.dat &
+    (
+        timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$1" text;
+        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+            timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/extnotes"
+    ) > $OUTDIR/info.txt
 fi
 
 # Put them into their container
@@ -276,16 +285,16 @@ case "$CONTAINER" in
         ;;
 
     exe)
-        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES raw.dat |
+        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES info.txt raw.dat |
         cat "$SCRIPTBASE/cook/sfx.exe" -
         ;;
 
     aupzip)
-        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -r -FI - "$1.aup" "${1}_data"/*.$ext "${1}_data"/raw.dat
+        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -r -FI - "$1.aup" "${1}_data"/*.$ext "${1}_data"/info.txt "${1}_data"/raw.dat
         ;;
 
     *)
-        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES raw.dat
+        timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES info.txt raw.dat
         ;;
 esac | (cat || cat > /dev/null)
 

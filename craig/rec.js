@@ -140,6 +140,11 @@ function session(msg, prefix, rec) {
     // Our current track number
     var trackNo = 1;
 
+    // Information for the note stream
+    var noteStreamOn = false;
+    var noteStreamNo = 65536;
+    var notePacketNo = 0;
+
     // Set up our recording OGG header and data file
     var startTime = process.hrtime();
     var recFileBase = "rec/" + id + ".ogg";
@@ -411,6 +416,25 @@ function session(msg, prefix, rec) {
         }
         return onReceive(user, chunk);
     });
+
+    // Support for receiving notes
+    rec.note = function(msg, prefix, note) {
+        try {
+            var chunk;
+            if (notePacketNo === 0) {
+                chunk = Buffer.from("STREAMNOTE");
+                write(recOggHStream[0], 0, noteStreamNo, 0, chunk, ogg.BOS);
+                notePacketNo++;
+            }
+            var chunkTime = process.hrtime(startTime);
+            var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
+            chunk = Buffer.from("NOTE" + note);
+            write(recOggStream, chunkGranule, noteStreamNo, notePacketNo++, chunk);
+            reply(msg, false, prefix, l("noted", lang));
+        } catch (ex) {
+            console.error(ex);
+        }
+    }
 
     // When we're disconnected from the channel...
     var disconnected = false;
@@ -921,6 +945,22 @@ commands["stop"] = function(msg, cmd) {
         reply(msg, false, cmd[1], "But I haven't started!");
     }
 
+}
+
+// Take notes
+commands["note"] = commands["n"] = function(msg, cmd) {
+    var guild = msg.guild;
+    if (!guild)
+        return;
+    var guildId = guild.id;
+    if (guildId in activeRecordings) {
+        for (var channelId in activeRecordings[guildId]) {
+            try {
+                var rec = activeRecordings[guildId][channelId];
+                rec.note(msg, cmd[1], cmd[3]);
+            } catch (ex) {}
+        }
+    }
 }
 
 // Checks for catastrophic recording errors
