@@ -28,6 +28,7 @@ const client = cc.client;
 const config = cc.config;
 const logex = cc.logex;
 
+const db = require("./db.js").db;
 const commands = require("./commands.js").commands;
 
 const cu = require("./utils.js");
@@ -68,8 +69,9 @@ function features(id, gid) {
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
-    // Journal of blesses
-    var blessJournalF = null;
+    // Bless statements
+    const blessStmt = db.prepare("INSERT OR REPLACE INTO blessings (uid, gid) VALUES (@uid, @gid)");
+    const unblessStmt = db.prepare("DELETE FROM blessings WHERE uid=@uid AND gid=@gid");
 
     // Add a reward to a user
     function addRewards(uid, rew) {
@@ -147,11 +149,10 @@ if (config.rewards) (function() {
     function removeBlessLocal(uid) {
         if (uid in blessU2G) {
             var gid = blessU2G[uid];
-            var step = {u:uid};
             delete blessU2G[uid];
             delete blessG2U[gid];
-            if (!cc.dead && blessJournalF)
-                blessJournalF.write("," + JSON.stringify(step) + "\n");
+            if (!cc.dead && cc.master)
+                unblessStmt.run({uid:uid, gid:gid});
         }
     }
 
@@ -175,11 +176,10 @@ if (config.rewards) (function() {
         if (uid in blessU2G)
             removeBlessLocal(uid);
 
-        var step = {u:uid, g:gid};
         blessU2G[uid] = gid;
         blessG2U[gid] = uid;
-        if (!cc.dead && blessJournalF)
-            blessJournalF.write("," + JSON.stringify(step) + "\n");
+        if (!cc.dead && cc.master)
+            blessStmt.run({uid,gid});
     }
 
     function addBless(uid, gid) {
@@ -232,33 +232,10 @@ if (config.rewards) (function() {
             });
 
             // Get our bless status
-            if (cu.accessSyncer("craig-bless.json")) {
-                try {
-                    var lines = fs.readFileSync("craig-bless.json", "utf8").split("\n");
-                    try {
-                        blessU2G = JSON.parse(lines[0]);
-                    } catch (ex) {
-                        logex(ex);
-                    }
-                    for (var li = 1; li < lines.length; li++) {
-                        try {
-                            var step = JSON.parse("[0" + lines[li] + "]")[1];
-                            if (!step) continue;
-                            if ("g" in step)
-                                blessU2G[step.u] = step.g;
-                            else
-                                delete blessU2G[step.u];
-                        } catch (ex) {
-                            logex(ex);
-                        }
-                    }
-                } catch (ex) {
-                    logex(ex);
-                }
-            }
+            db.prepare("SELECT * FROM blessings").all().forEach((row) => {
+                blessU2G[row.uid] = row.gid;
+            });
             resolveBlesses();
-            blessJournalF = fs.createWriteStream("craig-bless.json", "utf8");
-            blessJournalF.write(JSON.stringify(blessU2G) + "\n");
 
             // Send our blesses along
             if (client.shard) {

@@ -74,3 +74,20 @@ const banStmt = db.prepare("INSERT INTO bans (id, name) VALUES (@id, @name)");
 for (var id in bans) {
     banStmt.run({id:id, name:bans[id]});
 }
+
+// craig-bless -> blessings
+const blessLog = JSON.parse("[" + fs.readFileSync("craig-bless.json", "utf8") + "]");
+const blessings = blessLog[0];
+for (var i = 1; i < blessLog.length; i++) {
+    var step = blessLog[i];
+    if ("g" in step) {
+        blessings[step.u] = step.g;
+    } else {
+        delete blessings[step.u];
+    }
+}
+
+const blessStmt = db.prepare("INSERT INTO blessings (uid, gid) VALUES (@uid, @gid)");
+for (var uid in blessings) {
+    blessStmt.run({uid:uid, gid:blessings[uid]});
+}

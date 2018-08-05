@@ -15,3 +15,8 @@ CREATE TABLE IF NOT EXISTS bans (
     id TEXT PRIMARY KEY,
     name TEXT
 );
+
+CREATE TABLE IF NOT EXISTS blessings (
+    uid TEXT PRIMARY KEY,
+    gid TEXT
+);
