@@ -948,7 +948,7 @@ commands["stop"] = function(msg, cmd) {
 }
 
 // Take notes
-commands["note"] = commands["n"] = function(msg, cmd) {
+function cmdNote(lang) { return function(msg, cmd) {
     var guild = msg.guild;
     if (!guild)
         return;
@@ -961,7 +961,8 @@ commands["note"] = commands["n"] = function(msg, cmd) {
             } catch (ex) {}
         }
     }
-}
+} }
+cl.register(commands, "note", cmdNote);
 
 // Checks for catastrophic recording errors
 clients.forEach((client) => {
