@@ -10,3 +10,8 @@ CREATE TABLE IF NOT EXISTS auto (
     tids TEXT,
     PRIMARY KEY (uid, gid, cid)
 );
+
+CREATE TABLE IF NOT EXISTS bans (
+    id TEXT PRIMARY KEY,
+    name TEXT
+);

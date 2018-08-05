@@ -57,3 +57,20 @@ for (var uid in auto) {
         });
     });
 }
+
+// craig-bans -> bans
+const banLog = JSON.parse("[" + fs.readFileSync("craig-bans.json", "utf8") + "]");
+const bans = banLog[0];
+for (var i = 1; i < banLog.length; i++) {
+    var step = banLog[i];
+    if ("u" in step) {
+        bans[step.i] = step.u;
+    } else {
+        delete bans[step.i];
+    }
+}
+
+const banStmt = db.prepare("INSERT INTO bans (id, name) VALUES (@id, @name)");
+for (var id in bans) {
+    banStmt.run({id:id, name:bans[id]});
+}

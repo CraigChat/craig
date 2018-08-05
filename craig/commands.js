@@ -35,6 +35,8 @@ const l = cl.l;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
+const db = require("./db.js").db;
+
 const gms = require("./gms.js");
 
 // Our list of command handlers
@@ -45,36 +47,14 @@ const ownerCommands = {};
 
 // Banned users
 let banned = {};
-var banJournalF = null;
+const banStmt = db.prepare("INSERT OR REPLACE INTO bans (id, name) VALUES (@id, @name)");
+const unbanStmt = db.prepare("DELETE FROM bans WHERE id=@id");
 
 if (cc.master) {
     // Get our bans
-    if (cu.accessSyncer("craig-bans.json")) {
-        try {
-            var lines = fs.readFileSync("craig-bans.json", "utf8").split("\n");
-            try {
-                banned = JSON.parse(lines[0]);
-            } catch (ex) {
-                logex(ex);
-            }
-            for (var li = 1; li < lines.length; li++) {
-                try {
-                    var step = JSON.parse("[0" + lines[li] + "]")[1];
-                    if (!step) continue;
-                    if ("u" in step)
-                        banned[step.i] = step.u;
-                    else
-                        delete banned[step.i];
-                } catch (ex) {
-                    logex(ex);
-                }
-            }
-        } catch (ex) {
-            logex(ex);
-        }
-    }
-    banJournalF = fs.createWriteStream("craig-bans.json", "utf8");
-    banJournalF.write(JSON.stringify(banned) + "\n");
+    db.prepare("SELECT * FROM bans").all().forEach((row) => {
+        banned[row.id] = row.u;
+    });
 
     // Send to clients
     if (cc.sm) (function(){
@@ -91,8 +71,8 @@ if (cc.master) {
 // Functions to ban/unban
 function banLocal(id, user) {
     banned[id] = user;
-    if (banJournalF)
-        banJournalF.write("," + JSON.stringify({"i":id,"u":user}) + "\n");
+    if (cc.master)
+        banStmt.run({id:id, name:user});
 }
 
 function ban(id, user) {
@@ -112,8 +92,8 @@ cc.processCommands["ban"] = function(msg) {
 
 function unbanLocal(id) {
     delete banned[id];
-    if (banJournalF)
-        banJournalF.write("," + JSON.stringify({"i":id}) + "\n");
+    if (cc.master)
+        unbanStmt.run({id});
 }
 
 function unban(id) {
