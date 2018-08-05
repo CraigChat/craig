@@ -86,7 +86,7 @@ if ((stripos($_SERVER["HTTP_USER_AGENT"], "android") !== false || isset($_REQUES
 
 // Figure out the locale
 $locale = "en";
-$locales = array("en", "pt", "de", "fr", "it", "nl");
+$locales = array("en", "pt", "de", "fr", "it", "ja", "nl");
 $l = array();
 
 $notrust = "/[^A-Za-z0-9_-]/";
