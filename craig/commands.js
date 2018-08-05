@@ -113,6 +113,7 @@ cc.processCommands["unban"] = function(msg) {
 
 // Our command regex changes to match our user ID
 var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/i;
+const genericCommand = /^()[, ]*([^ ]*) ?(.*)$/i;
 if (client) client.on("ready", () => {
     log("Logged in as " + client.user.username);
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$", "i");
@@ -148,10 +149,28 @@ function userIsAuthorized(member) {
     return false;
 }
 
+// Prefixes per server
+const prefixes = {};
+db.prepare("SELECT * FROM prefixes").all().forEach((row) => {
+    prefixes[row.id] = row.prefix;
+});
+
 // Our message receiver and command handler
 function onMessage(msg) {
-    // We don't care if it's not a command
-    var cmd = msg.content.match(craigCommand);
+    var cmd = null;
+
+    // Does this match the custom prefix?
+    if (msg.guild && msg.guild.id in prefixes) {
+        var prefix = prefixes[msg.guild.id];
+        if (msg.content.slice(0, prefix.length) === prefix)
+            cmd = msg.content.slice(prefix.length).match(genericCommand);
+    }
+    
+    // Try the true prefix
+    if (cmd === null)
+        cmd = msg.content.match(craigCommand);
+
+    // If it's not a command, who cares
     if (cmd === null) return;
 
     // Is this from our glorious leader?
@@ -221,16 +240,57 @@ function cmdBanUnban(isBan, msg, cmd) {
 
         if (isBan) {
             ban(bid, buser);
-            reply(msg, false, cmd[1], "User <@" + bid + "> has been banned.");
+            if (!cc.dead)
+                reply(msg, false, cmd[1], "User <@" + bid + "> has been banned.");
         } else {
             unban(bid);
-            reply(msg, false, cmd[1], "User <@" + bid + "> has been unbanned.");
+            if (!cc.dead)
+                reply(msg, false, cmd[1], "User <@" + bid + "> has been unbanned.");
         }
     }
 }
 
 commands["ban"] = function(msg, cmd) { cmdBanUnban(true, msg, cmd); }
 commands["unban"] = function(msg, cmd) { cmdBanUnban(false, msg, cmd); }
+
+// Prefix command interface
+const prefixStmt = db.prepare("INSERT OR REPLACE INTO prefixes (id, prefix) VALUES (@id, @prefix)");
+const unprefixStmt = db.prepare("DELETE FROM prefixes WHERE id=@id");
+function cmdPrefixUnprefix(isPrefix, msg, cmd) {
+    // You can only set or unset a prefix if you have administrator privileges
+    if (!msg.member || !msg.member.permission.has("manageGuild"))
+        return;
+
+    var gid = msg.guild.id;
+
+    if (isPrefix) {
+        if (cmd[3] === "") {
+            if (!cc.dead) {
+                if (gid in prefixes)
+                    reply(msg, false, cmd[1], "Your prefix is " + prefixes[gid]);
+                else
+                    reply(msg, false, cmd[1], "No prefix is set.");
+            }
+        } else {
+            prefixes[gid] = cmd[3];
+            if (!cc.dead) {
+                prefixStmt.run({id:gid, prefix:cmd[3]});
+                reply(msg, false, cmd[1], "Prefix set.");
+            }
+        }
+
+    } else {
+        delete prefixes[gid];
+        if (!cc.dead) {
+            unprefixStmt.run({id:gid});
+            reply(msg, false, cmd[1], "Prefix unset.");
+        }
+
+    }
+}
+
+commands["prefix"] = function(msg, cmd) { cmdPrefixUnprefix(true, msg, cmd); }
+commands["unprefix"] = function(msg, cmd) { cmdPrefixUnprefix(false, msg, cmd); }
 
 // The help command is covered here as there's nowhere better for it
 function cmdHelp(lang) { return function(msg, cmd) {

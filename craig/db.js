@@ -38,7 +38,8 @@ schema.split(";").forEach((x) => {
 const deleteSqls = [
     "DELETE FROM guildMembershipStatus WHERE id=?",
     "DELETE FROM auto WHERE gid=?",
-    "DELETE FROM blessings WHERE gid=?"
+    "DELETE FROM blessings WHERE gid=?",
+    "DELETE FROM prefixes WHERE id=?"
 ];
 const deleteStmts = deleteSqls.map((x) => {
     return db.prepare(x);

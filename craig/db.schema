@@ -20,3 +20,8 @@ CREATE TABLE IF NOT EXISTS blessings (
     uid TEXT PRIMARY KEY,
     gid TEXT
 );
+
+CREATE TABLE IF NOT EXISTS prefixes (
+    id TEXT PRIMARY KEY,
+    prefix TEXT
+);

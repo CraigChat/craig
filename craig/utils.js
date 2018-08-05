@@ -49,6 +49,8 @@ const opusHeader = [
 
 // Function to respond to a message by any means necessary
 function reply(msg, dm, prefix, pubtext, privtext) {
+    if (prefix === "") prefix = null;
+
     if (dm) {
         // Try to send the message privately
         if (typeof privtext === "undefined")
