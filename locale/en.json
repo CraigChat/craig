@@ -30,5 +30,12 @@
     "noted":            "Noted.",
 
     "cmd:leave":        ["leave", "part"],
-    "notrecording":     "But I'm not recording that channel!"
+    "notrecording":     "But I'm not recording that channel!",
+
+    "cmd:prefix":       ["prefix"],
+    "cmd:unprefix":     ["unprefix"],
+    "prefixis":         "Your prefix is %1",
+    "noprefix":         "No prefix is set.",
+    "prefixset":        "Prefix set.",
+    "prefixunset":      "Prefix unset."
 }

@@ -256,7 +256,7 @@ commands["unban"] = function(msg, cmd) { cmdBanUnban(false, msg, cmd); }
 // Prefix command interface
 const prefixStmt = db.prepare("INSERT OR REPLACE INTO prefixes (id, prefix) VALUES (@id, @prefix)");
 const unprefixStmt = db.prepare("DELETE FROM prefixes WHERE id=@id");
-function cmdPrefixUnprefix(isPrefix, msg, cmd) {
+function cmdPrefixUnprefix(isPrefix, lang, msg, cmd) {
     // You can only set or unset a prefix if you have administrator privileges
     if (!msg.member || !msg.member.permission.has("manageGuild"))
         return;
@@ -267,15 +267,15 @@ function cmdPrefixUnprefix(isPrefix, msg, cmd) {
         if (cmd[3] === "") {
             if (!cc.dead) {
                 if (gid in prefixes)
-                    reply(msg, false, cmd[1], "Your prefix is " + prefixes[gid]);
+                    reply(msg, false, cmd[1], l("prefixis", lang, prefixes[gid]));
                 else
-                    reply(msg, false, cmd[1], "No prefix is set.");
+                    reply(msg, false, cmd[1], l("noprefix", lang));
             }
         } else {
             prefixes[gid] = cmd[3];
             if (!cc.dead) {
                 prefixStmt.run({id:gid, prefix:cmd[3]});
-                reply(msg, false, cmd[1], "Prefix set.");
+                reply(msg, false, cmd[1], l("prefixset", lang));
             }
         }
 
@@ -283,14 +283,16 @@ function cmdPrefixUnprefix(isPrefix, msg, cmd) {
         delete prefixes[gid];
         if (!cc.dead) {
             unprefixStmt.run({id:gid});
-            reply(msg, false, cmd[1], "Prefix unset.");
+            reply(msg, false, cmd[1], l("prefixunset", lang));
         }
 
     }
 }
 
-commands["prefix"] = function(msg, cmd) { cmdPrefixUnprefix(true, msg, cmd); }
-commands["unprefix"] = function(msg, cmd) { cmdPrefixUnprefix(false, msg, cmd); }
+function cmdPrefix(lang) { return function(msg, cmd) { cmdPrefixUnprefix(true, lang, msg, cmd); } }
+function cmdUnprefix(lang) { return function(msg, cmd) { cmdPrefixUnprefix(false, lang, msg, cmd); } }
+cl.register(commands, "prefix", cmdPrefix);
+cl.register(commands, "unprefix", cmdUnprefix);
 
 // The help command is covered here as there's nowhere better for it
 function cmdHelp(lang) { return function(msg, cmd) {
