@@ -211,13 +211,17 @@ function session(msg, prefix, rec) {
     recFUStream.write("\"0\":{}\n");
 
     // And our ogg encoders
+    var hitHardLimit = false;
     function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
         size += chunk.length;
         if (config.hardLimit && size >= config.hardLimit) {
-            log("Terminating " + id + ": Size limit.");
-            reply(true, l("sizelimit", lang));
-            rec.disconnected = true;
-            connection.disconnect();
+            if (!hitHardLimit) {
+                hitHardLimit = true;
+                log("Terminating " + id + ": Size limit.");
+                sReply(true, l("sizelimit", lang));
+                rec.disconnected = true;
+                connection.disconnect();
+            }
         } else {
             stream.write(granulePos, streamNo, packetNo, chunk, flags);
         }
@@ -555,7 +559,7 @@ function safeJoin(channel, err) {
 const argPart = /^-([A-Za-z0-9]+) *(.*)$/;
 
 // The recording indicator
-const recIndicator = / *\[RECORDING\] */;
+const recIndicator = / *\[RECORDING\] */g;
 
 // Start recording
 function cmdJoin(lang) { return function(msg, cmd) {
