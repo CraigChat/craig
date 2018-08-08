@@ -33,7 +33,7 @@
     "notrecording":     "Maar ik ben dat kanaal helemaal niet aan het opnemen!",
     
     "cmd:prefix":       ["voorvoegsel"],
-    "cmd:unprefix":     ["reset-voorvoegsel"],
+    "cmd:unprefix":     ["reset-voorvoegsel", "resetvoorvoegsel"],
     "prefixis":         "Je voorvoegsel is %1",
     "noprefix":         "Geen voorvoegsel ingesteld.",
     "prefixset":        "Voorvoegsel ingesteld.",
