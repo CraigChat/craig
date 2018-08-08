@@ -68,7 +68,7 @@ if (cc.master) {
         if (cc.dead) return;
         guildLeave(guild);
         delete guildMembershipStatus[guild.id];
-        db.deleteGuild(guild.id);
+        cdb.deleteGuild(guild.id);
     }
 
     if (sm) {
