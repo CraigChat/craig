@@ -58,7 +58,7 @@ var autoCur = {};
 // Use server roles to give rewards
 if (config.rewards) (function() {
     // And the journal of autorecord changes
-    const autoAddStmt = db.prepare("INSERT OR REPLACE INTO auto (uid, gid, cid, tids) VALUES (@uid, @gid, @cid, @tids)");
+    const autoAddStmt = db.prepare("INSERT OR REPLACE INTO auto (uid, gid, cid, tids, min) VALUES (@uid, @gid, @cid, @tids, @min)");
     const autoRemStmt = db.prepare("DELETE FROM auto WHERE uid=@uid AND gid=@gid AND cid=@cid");
     const autoRemUStmt = db.prepare("DELETE FROM auto WHERE uid=@uid");
     const autoRemUGStmt = db.prepare("DELETE FROM auto WHERE uid=@uid AND gid=@gid");
@@ -124,39 +124,41 @@ if (config.rewards) (function() {
     }
 
     // Add an autorecord for a user
-    function addAutorecordLocal(uid, gid, cid, tids) {
+    function addAutorecordLocal(uid, gid, cid, tids, min) {
         removeAutorecordLocal(uid, gid, cid);
-        var i = {u:uid, g:gid, c:cid};
+        var i = {u:uid, g:gid, c:cid, min:1};
         var dbtids = [];
         if (tids) {
             i.t = tids;
             for (var tid in tids)
                 dbtids.push(tid);
         }
+        if (typeof min !== "undefined" && min > 0)
+            i.min = min;
         if (!(uid in autoU2GC)) autoU2GC[uid] = [];
         if (!(gid in autoG2C2U)) autoG2C2U[gid] = {};
         if (!(cid in autoG2C2U[gid])) autoG2C2U[gid][cid] = [];
         autoU2GC[uid].push(i);
         autoG2C2U[gid][cid].push(i);
         if (!cc.dead)
-            autoAddStmt.run({uid, gid, cid, tids: dbtids.join(",")});
+            autoAddStmt.run({uid, gid, cid, tids: dbtids.join(","), min});
     }
 
-    function addAutorecord(uid, gid, cid, tids) {
+    function addAutorecord(uid, gid, cid, tids, min) {
         if (tids && Object.keys(tids).length === 0)
             tids = undefined;
-        addAutorecordLocal(uid, gid, cid, tids);
+        addAutorecordLocal(uid, gid, cid, tids, min);
         if (client.shard)
-            client.shard.send({t:"addAutorecord", from:client.shard.id, u:uid, g:gid, c:cid, tids:(tids?tids:false)});
+            client.shard.send({t:"addAutorecord", from:client.shard.id, u:uid, g:gid, c:cid, tids:(tids?tids:false), min});
     }
 
     cc.shardCommands["addAutorecord"] = function(shard, msg) {
-        addAutorecordLocal(msg.u, msg.g, msg.c, msg.tids?msg.tids:undefined);
+        addAutorecordLocal(msg.u, msg.g, msg.c, msg.tids?msg.tids:undefined, msg.min?msg.min:undefined);
         cc.sm.broadcast(msg);
     }
 
     cc.processCommands["addAutorecord"] = function(msg) {
-        addAutorecordLocal(msg.u, msg.g, msg.c, msg.tids?msg.tids:undefined);
+        addAutorecordLocal(msg.u, msg.g, msg.c, msg.tids?msg.tids:undefined, msg.min?msg.min:undefined);
     }
 
     if (cc.sm) {
@@ -167,7 +169,7 @@ if (config.rewards) (function() {
                     shard.send({
                         t:"addAutorecord",
                         u:uid,
-                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:false)
+                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:false), min:(gc.min?gc.min:1)
                     });
                 });
             }
@@ -205,7 +207,7 @@ if (config.rewards) (function() {
                     tids[tid] = true;
                 });
             }
-            addAutorecord(row.uid, row.gid, row.cid, tids);
+            addAutorecord(row.uid, row.gid, row.cid, tids, (typeof row.min === "number")?row.min:1);
         });
         resolveAutos();
 
@@ -218,7 +220,7 @@ if (config.rewards) (function() {
                         t:"addAutorecord",
                         from:client.shard.id,
                         u:uid,
-                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:undefined)
+                        g:gc.g, c:gc.c, tids:(gc.t?gc.t:undefined), min:gc.min,
                     });
                 });
             }
@@ -227,6 +229,8 @@ if (config.rewards) (function() {
 
     const subcmdRE = /^([A-Za-z]*)[ \t,]*(.*)$/;
     const mention = /^<@!?([0-9]*)>[ \t,]*(.*)$/;
+    const flag = /^-([A-Za-z]*)[ \t,]*(.*)$/;
+    const value = /^([^ \t,]*)[ \t,]*(.*)$/;
 
     // And a command to set up autorecording
     commands["autorecord"] = function(msg, cmd) {
@@ -248,7 +252,7 @@ if (config.rewards) (function() {
             case "help":
                 reply(msg, false, cmd[1], 
                     "\nUse:\n\n" +
-                    "> `:craig:, autorecord on [triggers] [channel name]`\n" +
+                    "> `:craig:, autorecord on [-min (minimum # of members)] [triggers] [channel name]`\n" +
                     "To activate autorecording on a given channel. Triggers must be @mentions.\n\n" +
                     "> `:craig:, autorecord off [channel name]`\n" +
                     "To deactivate autorecording. Give no channel name to deactivate all autorecordings on this server.\n\n" +
@@ -259,12 +263,25 @@ if (config.rewards) (function() {
             case "on":
                 // Look for triggers first
                 var triggers = {};
+                var min = 1;
                 var t, tc = 0;
-                while ((t = mention.exec(cname)) !== null) {
-                    // Has a trigger
-                    triggers[t[1]] = true;
-                    cname = t[2];
-                    tc++;
+                while (true) {
+                    if ((t = mention.exec(cname)) !== null) {
+                        // Has a trigger
+                        triggers[t[1]] = true;
+                        cname = t[2];
+                        tc++;
+                    } else if ((t = flag.exec(cname)) !== null) {
+                        if (t[1].toLowerCase() === "min") {
+                            // Has a min
+                            if ((t = value.exec(t[2])) !== null) {
+                                min = ~~(t[1]);
+                                cname = t[2];
+                            } else break;
+                        } else {
+                            cname = t[2];
+                        }
+                    } else break;
                 }
                 if (tc === 0) triggers = undefined;
 
@@ -274,7 +291,7 @@ if (config.rewards) (function() {
                     return;
                 }
 
-                addAutorecord(msg.author.id, msg.guild.id, channel.id, triggers);
+                addAutorecord(msg.author.id, msg.guild.id, channel.id, triggers, min);
                 reply(msg, false, cmd[1], "I will now automatically record " + channel.name + ". Please make sure you can receive DMs from me; I will NOT send autorecord links publicly!");
                 break;
 
@@ -303,6 +320,8 @@ if (config.rewards) (function() {
                         var channel = msg.guild.channels.get(gc.c);
                         if (!channel) channel = {name:gc.c};
                         info += "\n" + channel.name;
+                        if (gc.min && gc.min > 1)
+                            info += " (min: " + gc.min + ")";
                         if (gc.t)
                             info += " (specific triggers)";
                     }
@@ -344,7 +363,7 @@ if (config.rewards) (function() {
     function updateAutorecord(guild, voiceChannel, us) {
         var guildId = guild.id;
         var channelId = voiceChannel.id;
-        var u;
+        var u, ct = 0;
 
         // Something has happened on a voice channel we're watching for autorecording
         var recording = false, shouldRecord = false;
@@ -352,18 +371,25 @@ if (config.rewards) (function() {
             channelId in cr.activeRecordings[guildId])
             recording = true;
         voiceChannel.members.some((member) => {
+            if (!member.user.bot)
+                ct++;
             for (var ui = 0; ui < us.length; ui++) {
                 u = us[ui];
                 var triggers = u.t;
                 if ((triggers && triggers[member.id]) ||
                     (!triggers && !member.user.bot)) {
                     shouldRecord = true;
-                    return true;
+                    if (!u.min || u.min <= 1)
+                        return true;
                 }
             }
             return false;
         });
         if (!u) return;
+
+        // Shouldn't record if fewer than the minimum
+        if (u.min && u.min > ct)
+            shouldRecord = false;
 
         // Check if we're already recording
         var ac;

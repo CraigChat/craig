@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS auto (
     gid TEXT,
     cid TEXT,
     tids TEXT,
+    min INTEGER,
     PRIMARY KEY (uid, gid, cid)
 );
 
