@@ -121,7 +121,7 @@ function l($key) {
 }
 
 // Function to present a download link
-function download($title, $format="flac", $container="zip") {
+function download($title, $format="flac", $container="zip", $flags="") {
     global $id, $key;
     print "<a href=\"?id=$id&amp;key=$key";
     if ($format === "raw") {
@@ -132,6 +132,7 @@ function download($title, $format="flac", $container="zip") {
             print "&amp;format=$format";
         if ($container !== "zip")
             print "&amp;container=$container";
+        print "$flags";
     }
     print "\">$title</a> ";
 }
@@ -250,11 +251,14 @@ if (isset($_REQUEST["delete"])) {
             $mime = "application/octet-stream";
         }
     }
+    $exflags = "";
+    if (isset($_REQUEST["dynaudnorm"]))
+        $exflags .= " dynaudnorm";
     header("Content-disposition: attachment; filename=$id.$ext");
     header("Content-type: $mime");
     ob_flush();
     flush();
-    passthru("/home/yahweasel/craig/cook.sh $id $format $container");
+    passthru("/home/yahweasel/craig/cook.sh $id $format $container$exflags");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "avatars") {
     $format = "png";

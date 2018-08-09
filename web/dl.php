@@ -310,7 +310,6 @@ foreach ($locales as $la) {
 
         <div class="para">
         <?PHP l("intro1"); ?>
-        <span class="js"><?PHP l("intro2"); ?></span>
         <?PHP l("intro3"); print " $id"; ?>.
         <?PHP
             if ($info !== false && isset($info["startTime"]))
@@ -345,6 +344,27 @@ if (isset($features["mp3"]) && $features["mp3"])
 ?>
         </span></span><br/><br/>
 
+        <span class="big">
+        <span class="lbl"><?PHP l("mtld"); ?>&nbsp;</span>
+        <span class="choices">
+<?PHP
+// FIXME: Horrific duplication of above
+if (!$iphone && !$android)
+    download(ls("audacity"), "flac", "aupzip", "&amp;dynaudnorm");
+download("FLAC", "flac", "zip", "&amp;dynaudnorm");
+if ($windows) {
+    download("wav <div style=\"font-size: 0.6em\">(Windows extractor)</div>", "wavsfx", "exe", "&amp;dynaudnorm");
+} else if ($macosx && !$iphone) {
+    download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm", "zip", "&amp;dynaudnorm");
+} else if ($unix && !$android) {
+    download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu", "zip", "&amp;dynaudnorm");
+}
+download("AAC (MPEG-4)", "aac", "zip", "&amp;dynaudnorm");
+if (isset($features["mp3"]) && $features["mp3"])
+    download("MP3", "mp3", "zip", "&amp;dynaudnorm");
+?>
+        </span></span><br/><br/>
+
 <?PHP
 if (isset($features["mix"]) && $features["mix"]) {
 ?>
@@ -364,67 +384,6 @@ if (isset($features["mp3"]) && $features["mp3"])
 ?>
         
         <span class="js">
-        <span class="local">
-        <span class="lbl"><?PHP l("mtp"); ?>&nbsp;</span>
-        <span class="choices">
-        <button id="mflac">FLAC</button>
-        <?PHP if ($macosx) { ?><button id="malac">ALAC (Apple Lossless)</button><?PHP } ?>
-        <button id="mm4a">M4A (MPEG-4)</button>
-        <button id="mmp3">MP3 (MPEG-1)</button>
-        <button id="mwav">wav (<?PHP l("uncomp"); ?>)</button>
-        </span></span><br/><br/>
-
-        <span class="local">
-        <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
-        <span class="choices">
-        <button id="sflac">FLAC</button>
-        <?PHP if ($macosx) { ?><button id="salac">ALAC (Apple Lossless)</button><?PHP } ?>
-        <button id="sm4a">M4A (MPEG-4)</button>
-        <button id="smp3">MP3 (MPEG-1)</button>
-        <button id="swav">wav (<?PHP l("uncomp"); ?>)</button>
-        </span></span><br/><br/><br/><br/>
-
-        <button id="localProcessingB"><?PHP l("local"); ?></button><br/><br/>
-
-        <div id="localProcessing" style="display: none; margin: auto; max-width: 60em;">
-            <label for="format"><?PHP l("format"); ?></label>
-            <select id="format">
-                <option value="flac,flac">FLAC</option>
-                <option value="mp4,alac">ALAC (Apple Lossless)</option>
-                <option value="mp4,aac">M4A (MPEG-4)</option>
-                <option value="mp3,mp3">MP3 (MPEG-1)</option>
-                <option value="wav,pcm_s16le">wav (<?PHP l("uncomp"); ?>)</option>
-            </select><br/><br/>
-
-            <input id="mix" type="checkbox" checked />
-            <label for="mix"><?PHP l("mix"); ?></label><br/><br/>
-
-            <span id="ludditeBox" style="display: none">
-                <input id="luddite" type="checkbox" />
-                <label for="luddite"><?PHP l("luddite"); ?></label><br/><br/>
-            </span>
-
-            <span id="wavBox" style="display: none">
-                <input id="wav" type="checkbox" />
-                <label for="wav"><?PHP l("wav"); ?></label><br/><br/>
-            </span>
-
-            <button id="convert"><?PHP l("begin"); ?></button><br/><br/>
-
-            <div id="ffmstatus" style="background-color: #cccccc; color: #000000; padding: 0.5em;"></div>
-
-            <ul id="ffmoutput"></ul><br/><br/>
-
-            These formats are provided by
-            <a href="http://ffmpeg.org">ffmpeg</a>,
-            <a href="http://opus-codec.org/downloads/">Opus</a> and
-            <a href="http://lame.sourceforge.net/">LAME</a>, by way of
-            <a href="https://github.com/Kagami/ffmpeg.js">ffmpeg.js</a>.
-            <a href="ffmpeg-js-license.txt">License</a> and
-            <a href="ffmpeg-js-craig-2018-03-23.tar.xz">source</a>.
-        </div><br/><br/>
-        </span>
-
         <button id="avatarsB"><?PHP l("avatars"); ?></button><br/><br/>
 
         <div id="avatars" style="display: none; margin: auto; max-width: 60em;">
@@ -613,10 +572,6 @@ print "0:0};\n";
                     l.scrollIntoView();
             }
 
-            gid("localProcessingB").onclick = function() {
-                vis("localProcessing");
-            }
-
             gid("avatarsB").onclick = function() {
                 vis("avatars");
             }
@@ -669,78 +624,6 @@ print "0:0};\n";
                 durationX.open("GET", craigBase + "&duration&r=" + Math.random(), true);
                 durationX.send();
             }
-
-            var format = gid("format");
-            var cb = gid("convert");
-            var mix = gid("mix");
-            var ludditeBox = gid("ludditeBox");
-            var luddite = gid("luddite");
-            var wavBox = gid("wavBox");
-            var wav = gid("wav");
-            var status = gid("ffmstatus");
-
-            luddite.checked = wav.checked = false;
-
-            // Set up the form
-            function formatChange() {
-                ludditeBox.style.display = "none";
-                wavBox.style.display = "none";
-                if (format.value === "mp3,mp3") {
-                    ludditeBox.style.display = "block";
-                } else if (format.value === "wav,pcm_s16le") {
-                    wavBox.style.display = "block";
-                }
-            }
-            format.onchange = formatChange;
-
-            function go() {
-                if (format.value === "mp3,mp3" && !luddite.checked) {
-                    status.innerText = "<?PHP l("nomp3"); ?>";
-                    return;
-                } else if (format.value === "wav,pcm_s16le" && !wav.checked) {
-                    status.innerText = "<?PHP l("nowav"); ?>";
-                    return;
-                }
-
-                cb.disabled = true;
-
-                var f = format.value.split(",");
-                var opts = {
-                    locale: craigLocale,
-                    mix: mix.checked,
-                    callback: function(){cb.disabled = false;}
-                };
-                craigFfmpeg(craigOgg, f[0], f[1], opts);
-            }
-            cb.onclick = go;
-
-            // And map all the buttons
-            var bmap = {
-                "flac": "flac,flac",
-                "alac": "mp4,alac",
-                "m4a": "mp4,aac",
-                "mp3": "mp3,mp3",
-                "wav": "wav,pcm_s16le"
-            };
-
-            function mapButton(id) {
-                var b = gid(id);
-                console.log(b);
-                if (!b) return;
-                var mixed = (id[0] === "s");
-                var bformat = bmap[id.substr(1)];
-                b.onclick = function() {
-                    if (cb.disabled)
-                        return;
-                    format.value = bformat;
-                    formatChange();
-                    mix.checked = mixed;
-                    vis("localProcessing", "block");
-                    go();
-                }
-            }
-
-            Object.keys(bmap).forEach(function(t){mapButton("m"+t);mapButton("s"+t);});
         })();
         --></script>
     </body>
