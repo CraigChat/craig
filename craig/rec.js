@@ -43,6 +43,9 @@ const l = cl.l;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
+const cdb = require("./db.js");
+const db = cdb.db;
+
 const ccmds = require("./commands.js");
 const commands = ccmds.commands;
 
@@ -57,6 +60,9 @@ const cf = require("./features.js");
 const activeRecordings = {};
 
 const emptyBuf = Buffer.alloc(0);
+
+// Our query to decide whether to run a Drive upload
+const driveStmt = db.prepare("SELECT * FROM drive WHERE id=@id");
 
 // Our recording session proper
 function session(msg, prefix, rec) {
@@ -497,8 +503,8 @@ function session(msg, prefix, rec) {
             receiver.destroy();
         } catch (ex) {}
 
-        // Start post-recording processing
-        if (rec.features.drive) {
+        // Start post-recording processing if the user has any postproc
+        if (driveStmt.get({id:rec.uid})) {
             cp.spawn("./postrec.js", [
                 rec.uid+"",
                 rec.id+"",
