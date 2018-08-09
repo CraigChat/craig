@@ -26,6 +26,9 @@ const fs = require("fs");
 const cp = require("child_process");
 const readline = require("readline");
 const {google} = require("googleapis");
+const sqlite3 = require("better-sqlite3");
+const db = new sqlite3("craig.db");
+db.pragma("journal_mode = WAL");
 
 if (process.argv.length !== 6) process.exit(1);
 const uid = process.argv[2];
@@ -37,7 +40,6 @@ const info = JSON.parse(process.argv[5]);
 if (!features.drive) process.exit(0);
 
 const SCOPES = ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.metadata.readonly"];
-const TOKEN_PATH = process.env.HOME + "/craig-drive/" + uid + "-credentials.json";
 
 // Load client secrets
 fs.readFile(process.env.HOME + "/craig-drive/client_secret.json", (err, content) => {
@@ -53,18 +55,17 @@ function authorize(credentials, callback) {
         client_id, client_secret, redirect_uris[0]);
 
     // If we haven't stored a token, oh well
-    fs.readFile(TOKEN_PATH, (err, token) => {
-        if (err) return;
-        oAuth2Client.setCredentials(JSON.parse(token));
-        if (oAuth2Client.isTokenExpiring()) {
-            oAuth2Client.refreshToken().then((newToken) => {
-                fs.writeFile(TOKEN_PATH, JSON.stringify(newToken), ()=>{});
-                callback(oAuth2Client);
-            }).catch(()=>{});
-        } else {
+    var row = db.prepare("SELECT * FROM drive WHERE id=?").get(uid);
+    if (!row) return;
+    oAuth2Client.setCredentials(JSON.parse(row.data));
+    if (oAuth2Client.isTokenExpiring()) {
+        oAuth2Client.refreshToken().then((newToken) => {
+            fs.writeFile(TOKEN_PATH, JSON.stringify(newToken), ()=>{});
             callback(oAuth2Client);
-        }
-    });
+        }).catch(()=>{});
+    } else {
+        callback(oAuth2Client);
+    }
 }
 
 // Search for or create a Craig directory, then upload to it

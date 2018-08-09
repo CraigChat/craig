@@ -1,7 +1,9 @@
 const fs = require("fs");
 const sqlite3 = require("better-sqlite3");
 const db = new sqlite3("craig.db");
+db.pragma("journal_mode = WAL");
 
+/*
 // craig-guild-membership-status -> guildMembershipStatus
 const gmsLog = JSON.parse("[" + fs.readFileSync("craig-guild-membership-status.json", "utf8") + "]");
 const gms = gmsLog[0];
@@ -91,3 +93,13 @@ const blessStmt = db.prepare("INSERT INTO blessings (uid, gid) VALUES (@uid, @gi
 for (var uid in blessings) {
     blessStmt.run({uid:uid, gid:blessings[uid]});
 }
+*/
+
+// *-credentials.json -> drive
+const credFiles = fs.readdirSync("/home/yahweasel/craig-drive");
+const credFileRE = /^([0-9]*)-credentials\.json$/;
+credFiles.forEach((credFile) => {
+    var cp = credFileRE.exec(credFile);
+    if (cp === null) return;
+    db.prepare("INSERT INTO drive (id, data) VALUES (?, ?)").run(cp[1], fs.readFileSync("/home/yahweasel/craig-drive/" + credFile));
+});

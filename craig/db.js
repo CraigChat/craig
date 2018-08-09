@@ -17,7 +17,7 @@
 /*
  * Craig: A multi-track voice channel recording bot for Discord.
  *
- * Guild membership status and automatic guild leaving when not in use.
+ * Interface with Craig's database
  */
 
 const fs = require("fs");
