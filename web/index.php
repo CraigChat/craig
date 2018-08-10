@@ -84,41 +84,7 @@ if ((stripos($_SERVER["HTTP_USER_AGENT"], "android") !== false || isset($_REQUES
     !isset($_REQUEST["noandroid"]))
     $android = true;
 
-// Figure out the locale
-$locale = "en";
-$locales = array("en", "pt", "de", "fr", "it", "ja", "nl");
-$l = array();
-
-$notrust = "/[^A-Za-z0-9_-]/";
-if (isset($_REQUEST["locale"])) {
-    $locale = preg_replace($notrust, "_", $_REQUEST["locale"]);
-    setcookie("CRAIG_LOCALE", $locale);
-} else if (isset($_COOKIE["CRAIG_LOCALE"])) {
-    $locale = preg_replace($notrust, "_", $_COOKIE["CRAIG_LOCALE"]);
-} else if (isset($_SERVER["HTTP_ACCEPT_LANGUAGE"])) {
-    $locale = locale_accept_from_http($_SERVER["HTTP_ACCEPT_LANGUAGE"]);
-} else {
-    $locale = "en";
-}
-$locale = locale_lookup($locales, $locale, false, "en");
-
-// Load in the locale
-require("locale/en.php");
-if ($locale !== "en")
-    require("locale/$locale.php");
-
-// Locale handling functions
-function ls($key) {
-    global $locale;
-    global $l;
-    if (isset($l[$locale][$key]))
-        return $l[$locale][$key];
-    else
-        return $l["en"][$key];
-}
-function l($key) {
-    print ls($key);
-}
+require("locale.php");
 
 // Function to present a download link
 function download($title, $format="flac", $container="zip", $flags="") {
@@ -200,7 +166,7 @@ if (isset($_REQUEST["delete"])) {
     }
     print "]";
 
-} else if ($_REQUEST["fetch"] === "cooked") {
+} else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "cooked") {
     $format = "flac";
     if (isset($_REQUEST["format"])) {
         $rf = $_REQUEST["format"];
@@ -301,6 +267,9 @@ if (isset($_REQUEST["delete"])) {
     readfile("$base/$id.ogg.header1");
     readfile("$base/$id.ogg.header2");
     readfile("$base/$id.ogg.data");
+
+} else if (isset($_REQUEST["localecheck"])) {
+    include("locale-check.php");
 
 } else {
     include("dl.php");

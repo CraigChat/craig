@@ -20,6 +20,8 @@ ob_start("ob_gzhandler");
 // You must install the Google Drive API with Composer
 require_once "vendor/autoload.php";
 
+require "../locale.php";
+
 $db = new SQLite3("/home/yahweasel/craig/craig.db");
 $db->exec("PRAGMA journal_mode=WAL;");
 
@@ -204,25 +206,25 @@ if (isset($_REQUEST["logoff"])) {
     </head>
     <body>
         <div class="para">
-        Craig can integrate with Google Drive to automatically upload your recordings. To activate automatic upload, just log in to Discord and Drive below. To deactivate, just come back here and log out of Drive. Recordings uploaded to Drive will be in multi-track FLAC format.<br/><br/>
+        <?PHP l("ddesc"); ?><br/><br/>
 
         <?PHP
             if ($discord === false) {
-                print "<a href=\"" . htmlspecialchars($discordAuthURL) . "\">Log in to Discord</a>";
+                print "<a href=\"" . htmlspecialchars($discordAuthURL) . "\">" . ls("dili") . "</a>";
             } else {
-                print "<a href=\"?logoff=discord\">Log out of Discord</a><br/><br/>";
+                print "<a href=\"?logoff=discord\">" . ls("dilo") . "</a><br/><br/>";
 
                 if (!$gdrive) {
-                    print "<a href=\"" . htmlspecialchars($gclientAuthURL) . "\">Log in to Google Drive</a>";
+                    print "<a href=\"" . htmlspecialchars($gclientAuthURL) . "\">" . ls("drli") . "</a>";
                 } else {
-                    print "<a href=\"?logoff=gdrive\">Log out of Google Drive</a><br/><br/>";
+                    print "<a href=\"?logoff=gdrive\">" . ls("drlo") . "</a><br/><br/>";
 
-                    ?> Your accounts are linked. Your Craig recordings will automatically upload to Google Drive! <?PHP
+                    l("ddone");
                 }
             }
         ?><br/><br/>
 
-        <a href="/home/">Back to home page</a>
+        <a href="/home/"><?PHP l("back"); ?></a>
 
         </div>
     </body>

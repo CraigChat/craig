@@ -1,6 +1,7 @@
 <?PHP
 $l["en"] = array(
     "intro1" =>     "You may fetch your recording in various formats. All downloads are multi-track.",
+    "intro1-updated" => 20180809,
     "intro2" =>     "Other formats, including single-track mixed audio, require processing locally in your browser, and thus require a modern browser and some patience, won't work well on mobile devices, and will likely fail with long recordings or many users.",
     "intro3" =>     "Your recording ID:",
     "starttime" =>  "Start time",
@@ -52,6 +53,15 @@ $l["en"] = array(
     "yes" =>        "Yes",
     "no" =>         "No",
 
-    "deleted" =>    "Deleted!"
+    "deleted" =>    "Deleted!",
+
+    "back" =>       "Back to home page",
+
+    "ddesc" =>      "Craig can integrate with Google Drive to automatically upload your recordings. To activate automatic upload, just log in to Discord and Drive below. To deactivate, just come back here and log out of Drive. Recordings uploaded to Drive will be in multi-track FLAC format.",
+    "dili" =>       "Log in to Discord",
+    "dilo" =>       "Log out of Discord",
+    "drli" =>       "Log in to Google Drive",
+    "drlo" =>       "Log out of Google Drive",
+    "ddone" =>      "Your accounts are linked. Your Craig recordings will automatically upload to Google Drive!"
 );
 ?>
