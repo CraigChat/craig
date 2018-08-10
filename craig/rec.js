@@ -856,9 +856,12 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
                     // Tell them
                     var rmsg = 
-                        l("recording", lang, f.limits.record+"",
-                            f.limits.download+"", channel.name+"",
-                            ~~(f.limits.download/24)+"") +
+                        l("recording", lang,
+                            f.limits.record+"",
+                            f.limits.download+"",
+                            channel.name+"",
+                            ~~(f.limits.download/24)+"",
+                            info.startTime) +
                         (hint?("\n\n"+hint):"") +
                         "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
 
