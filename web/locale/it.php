@@ -1,6 +1,7 @@
 <?PHP
 $l["it"] = array(
-    "intro1" =>     "Puoi ottenere la tua registrazione in diversi formati. I formati multi-traccia più utili (FLAC, Ogg Vorbis e AAC), possono essere scaricati.",
+    "intro1" =>     "Puoi recuperare le tue registrazioni in vari formati. Tutti i download sono multi-traccia.",
+    "intro1-updated" => 20180809,
     "intro2" =>     "Gli altri formati, tra cui l'audio mixato in una singola traccia, richiedono un'elaborazione locale nel tuo browser, pertanto richiedono un browser moderno e un po' di pazienza, e la procedura non funziona bene sui dispositivi mobili.",
     "intro3" =>     "L'ID della tua registrazione è:",
     "starttime" =>  "Ora di inizio",
@@ -8,6 +9,7 @@ $l["it"] = array(
     "duration" =>   "Durata",
 
     "mtd" =>        "Download multi-traccia:",
+    "mtld" =>       "Download multi-traccia con livellamento intelligente:",
     "mtp" =>        "Elaborazione multi-traccia:",
     "stm" =>        "Elaborazione singola traccia:",
     "std" =>        "Download del mix intelligente su singola traccia:",
@@ -39,8 +41,10 @@ $l["it"] = array(
     "glowers" =>    "Indicatori",
     "transparent" =>"Sfondo trasparente",
     "transnote1" => "Nota: WebM supporta la trasparenza, ma la maggior parte degli editor video non supporta WebM. ",
-    "transnotesfx" => "MOV supporta la trasparenza ed è ampiamente supportato dagli editor video, ma è decisamente troppo grande da generare e inviare direttamente. Se scegli MOV, riceverai dei file compressi e un estrattore. ",
-    "transnotewin" => "MOV supporta la trasparenza ed è ampiamente supportato dagli editor video, ma è decisamente troppo grande da generare e inviare direttamente. Se scegli MOV, riceverai dei file compressi e un estrattore. Devi solo eseguire RunMe.bat. ",
+    "transnotesfx" => "MOV supporta la trasparenza ed è ampiamente supportato dagli editor video, ma è decisamente troppo grande da generare e inviare direttamente. Al suo posto, se scegli MOV, ti verranno inviati dei file compressi e un estrattore. MOV può contenere QuickTime Animation o PNG; alcuni editor video supportano l'uno o l'altro, e alcuni li supportano entrambi, ma sono funzionalmente equivalenti. ",
+    "transnotesfx-updated" => 20180810,
+    "transnotewin" => "MOV supporta la trasparenza ed è ampiamente supportato dagli editor video, ma è decisamente troppo grande da generare e inviare direttamente. Al suo posto, se scegli MOV, ti verranno inviati dei file compressi e un estrattore. MOV può contenere QuickTime Animation o PNG; alcuni editor video supportano l'uno o l'altro, e alcuni li supportano entrambi, ma sono funzionalmente equivalenti. Devi solo lanciare RunMe.bat. ", 
+    "transnotewin-updated" => 20180810,
     "transnote2" => "MPEG-4 non supporta la trasparenza, quindi se scegli MKV, riceverai sia un’immagine statica PNG che un MKV che rappresenta il canale alpha (trasparenza). La maggior parte degli editor video può essere configurato per utilizzare un file per il colore e un altro file per l’alpha (trasparenza).",
     "bgc" =>        "Colore di sfondo",
     "fgc" =>        "Colore dell’indicatore",
@@ -51,6 +55,15 @@ $l["it"] = array(
     "yes" =>        "Sì",
     "no" =>         "No",
 
-    "deleted" =>    "Eliminata!"
+    "deleted" =>    "Eliminata!",
+
+    "back" =>       "Torna alla home page",
+
+    "ddesc" =>      "Craig può integrarsi con Google Drive per caricare automaticamente le tue registrazioni. Per attivare il caricamento automatico, accedi a Discord e a Drive in basso. Per disattivarlo,  torna qui ed esci da Drive. Le registrazioni caricate su Drive saranno nel formato FLAC multi-traccia.",
+    "dili" =>       "Accedi a Discord",
+    "dilo" =>       "Esci da Discord",
+    "drli" =>       "Accedi a Google Drive",
+    "drlo" =>       "Esci da Google Drive",
+    "ddone" =>      "I tuoi account sono collegati. Le tue registrazioni Craig saranno caricate automaticamente su Google Drive!"
 );
 ?>

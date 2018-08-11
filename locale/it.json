@@ -3,7 +3,8 @@
     "help":             "Ciao! Sono Craig! Sono un registratore multi-traccia per canali vocali. Per ulteriori informazioni, visita %1 .",
 
     "cmd:join":         ["entra", "registra", "avvia", "inizia"],
-    "recording":        "Sto registrando il canale %3! Registrerò fino a %1 ore. Le registrazioni saranno eliminate automaticamente dopo %2 ora dall’avvio della registrazione. L’audio può essere scaricato mentre sto ancora registrando.",
+    "recording":        "Sto registrando il canale %3 (%5)! Registrerò fino a %1 ore. Le registrazioni sono eliminate automaticamente dopo %4 giorni dall'avvio della registrazione. L'audio può essere scaricato anche mentre sto ancora registrando.",
+    "recording-updated":20180810,
     "downloadlink":     "Link per il download: %1?id=%2&key=%3",
     "deletelink":       "Per eliminarlo: %1?id=%2&key=%3&delete=%4",
 
