@@ -255,7 +255,7 @@ if [ "$CONTAINER" = "zip" -o "$CONTAINER" = "aupzip" -o "$CONTAINER" = "exe" ]
 then
     mkfifo $OUTDIR/raw.dat
     timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$ID" |
-        timeout $DEF_TIMEOUT cat - $I$.ogg.header1 $ID.ogg.header2 $ID.ogg.data > $OUTDIR/raw.dat &
+        timeout $DEF_TIMEOUT cat - $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data > $OUTDIR/raw.dat &
     (
         timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$ID" text;
         timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
