@@ -1,26 +1,20 @@
 include Makefile.share
 
-FFMPEG_VER=3.4.2
+FFMPEG_VER=4.0.2
 CFG=--cross-prefix=$(CROSS_PREFIX) --arch=i686 --target-os=win32 --disable-everything --enable-protocol=file --disable-xlib --disable-zlib --disable-schannel
 
-all: ../cook/ffmpeg-movqtrle.exe ../cook/ffmpeg-wav.exe ../cook/sfx.exe
+all: ../cook/ffmpeg-movqtrle.exe ../cook/ffmpeg-movpng.exe \
+	../cook/ffmpeg-wav.exe ../cook/ffmpeg-fat.exe ../cook/sfx.exe
 
-../cook/ffmpeg-movqtrle.exe: ffmpeg-$(FFMPEG_VER)/configure
-	-cd ffmpeg-$(FFMPEG_VER) && $(MAKE) distclean
+../cook/ffmpeg-%.exe: ffmpeg-$(FFMPEG_VER)/configure
+	-cd ffmpeg-$(FFMPEG_VER)/build-$* && $(MAKE) distclean
 	cd ffmpeg-$(FFMPEG_VER) && \
-	./configure $(CFG) --enable-encoder=qtrle --enable-decoder=h264 --enable-muxer=mov --enable-demuxer=matroska \
-		--enable-filter=alphamerge --enable-filter=crop --enable-filter=split --enable-filter=scale && \
+	mkdir -p build-$* && \
+	cd build-$* && \
+	../configure $(CFG) `cat ../../../cook/ffmpeg-flags/$*.cfg` && \
 	$(MAKE) && \
 	upx ffmpeg.exe && \
-	cp ffmpeg.exe ../../cook/ffmpeg-movqtrle.exe
-
-../cook/ffmpeg-wav.exe: ../cook/ffmpeg-movqtrle.exe ffmpeg-$(FFMPEG_VER)/configure
-	-cd ffmpeg-$(FFMPEG_VER) && $(MAKE) distclean
-	cd ffmpeg-$(FFMPEG_VER) && \
-	./configure $(CFG) --enable-encoder=pcm_s16le --enable-decoder=flac --enable-muxer=wav --enable-demuxer=flac && \
-	$(MAKE) && \
-	upx ffmpeg.exe && \
-	cp ffmpeg.exe ../../cook/ffmpeg-wav.exe
+	cp ffmpeg.exe ../../../cook/ffmpeg-$*.exe
 
 ffmpeg-$(FFMPEG_VER)/configure:
 	tar Jxf ffmpeg-$(FFMPEG_VER).tar.xz
