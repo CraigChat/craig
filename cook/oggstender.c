@@ -143,7 +143,7 @@ int main(int argc, char **argv)
             continue;
 
         // Account for gaps
-        if (oggHeader.granulePos > trueGranulePos + packetTime * 5) {
+        if (oggHeader.granulePos > trueGranulePos + packetTime * (lastWasSilence ? 1 : 5)) {
             // We are behind
             if (lastWasSilence ||
                 oggHeader.granulePos > lastGranulePos + packetTime * 25) {
