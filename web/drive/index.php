@@ -197,6 +197,13 @@ if (isset($_REQUEST["logoff"])) {
                 color: #99e;
             }
 
+            .flag {
+                height: 1em;
+                width: auto;
+                vertical-align: middle;
+                margin-bottom: 0.15em;
+            }
+
             .para {
                 font-size: 1.25em;
                 margin: auto;
@@ -205,6 +212,8 @@ if (isset($_REQUEST["logoff"])) {
         </style>
     </head>
     <body>
+        <?PHP localeFlags(); ?>
+
         <div class="para">
         <?PHP l("ddesc"); ?><br/><br/>
 
@@ -229,3 +238,4 @@ if (isset($_REQUEST["logoff"])) {
         </div>
     </body>
 </html>
+<?PHP ob_end_flush(); ?>

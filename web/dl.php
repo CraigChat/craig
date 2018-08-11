@@ -20,16 +20,6 @@ if (!isset($id))
 
 ob_start("ob_gzhandler");
 
-$flags = array(
-    "en" => ["us", "uk"],
-    "pt" => ["br", "pt"],
-    "de" => ["de"],
-    "fr" => ["fr"],
-    "it" => ["it"],
-    "ja" => ["ja"],
-    "nl" => ["nl"]
-);
-
 ?>
 <!doctype html>
 <html>
@@ -287,26 +277,7 @@ $flags = array(
         </style>
     </head>
     <body>
-        <div style="text-align: right">
-<?PHP
-foreach ($locales as $la) {
-    if ($la !== "en")
-        print " | ";
-    if ($locale === $la) print "•";
-    print "<a href=\"?id=$id&amp;key=$key&amp;locale=$la\">";
-    if (isset($flags[$la])) {
-        $fs = $flags[$la];
-        foreach ($fs as $i=>$f)
-            print "<img src=\"data:image/png;base64," .
-                base64_encode(file_get_contents("home/images/flags/$f.png")) .
-                "\" alt=\"$la\" class=\"flag\" />";
-    } else {
-        print "$la";
-    }
-    print "</a>";
-}
-?>
-        </div>
+        <?PHP localeFlags(); ?>
 
         <div class="para">
         <?PHP l("intro1"); ?>

@@ -20,6 +20,16 @@ $locale = "en";
 $locales = array("en", "pt", "de", "fr", "it", "ja", "nl");
 $l = array();
 
+$flags = array(
+    "en" => ["us", "uk"],
+    "pt" => ["br", "pt"],
+    "de" => ["de"],
+    "fr" => ["fr"],
+    "it" => ["it"],
+    "ja" => ["ja"],
+    "nl" => ["nl"]
+);
+
 $notrust = "/[^A-Za-z0-9_-]/";
 if (isset($_REQUEST["locale"])) {
     $locale = preg_replace($notrust, "_", $_REQUEST["locale"]);
@@ -49,5 +59,30 @@ function ls($key) {
 }
 function l($key) {
     print ls($key);
+}
+
+function localeFlags() {
+    global $locales;
+    global $locale;
+    global $flags;
+
+    print '<div style="text-align: right">';
+    foreach ($locales as $la) {
+        if ($la !== "en")
+            print " | ";
+        if ($locale === $la) print "•";
+        print "<a href=\"?id=$id&amp;key=$key&amp;locale=$la\">";
+        if (isset($flags[$la])) {
+            $fs = $flags[$la];
+            foreach ($fs as $i=>$f)
+                print "<img src=\"data:image/png;base64," .
+                    base64_encode(file_get_contents(__DIR__ . "/home/images/flags/$f.png")) .
+                    "\" alt=\"$la\" class=\"flag\" />";
+        } else {
+            print "$la";
+        }
+        print "</a>";
+    }
+    print "</div>";
 }
 ?>
