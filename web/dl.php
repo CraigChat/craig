@@ -404,9 +404,18 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 
                 <label for="aformat"><?PHP l("format"); ?></label>
                 <select id="aformat" name="format">
-                    <?PHP if ($windows) { ?><option value="movsfx">MOV (QuickTime Animation, Windows extractor)</option><?PHP } ?>
-                    <?PHP if ($macosx && !$iphone) {?><option value="movsfxm">MOV (QuickTime Animation, Mac OS X extractor)</option><?PHP } ?>
-                    <?PHP if ($unix && !$android) {?><option value="movsfxu">MOV (QuickTime Animation, Unix extractor)</option><?PHP } ?>
+                    <?PHP if ($windows) { ?>
+                    <option value="movsfx">MOV (QuickTime Animation, Windows extractor)</option>
+                    <option value="movpngsfx">MOV (PNG, Windows extractor)</option>
+                    <?PHP } ?>
+                    <?PHP if ($macosx && !$iphone) {?>
+                    <option value="movsfxm">MOV (QuickTime Animation, Mac OS X extractor)</option>
+                    <option value="movpngsfxm">MOV (PNG, Mac OS X extractor)</option>
+                    <?PHP } ?>
+                    <?PHP if ($unix && !$android) {?>
+                    <option value="movsfxu">MOV (QuickTime Animation, Unix extractor)</option>
+                    <option value="movpngsfxu">MOV (PNG, Unix extractor)</option>
+                    <?PHP } ?>
                     <option value="mkvh264">MKV (MPEG-4)</option>
                     <option value="webmvp8">WebM (VP8)</option>
                 </select><br/><br/>

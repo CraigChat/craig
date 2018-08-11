@@ -237,13 +237,16 @@ if (isset($_REQUEST["delete"])) {
             $_REQUEST["format"] === "webmvp8" ||
             $_REQUEST["format"] === "movsfx" ||
             $_REQUEST["format"] === "movsfxm" ||
-            $_REQUEST["format"] === "movsfxu")
+            $_REQUEST["format"] === "movsfxu" ||
+            $_REQUEST["format"] === "movpngsfx" ||
+            $_REQUEST["format"] === "movpngsfxm" ||
+            $_REQUEST["format"] === "movpngsfxu")
             $format = $_REQUEST["format"];
 
         if ((isset($_REQUEST["container"]) && $_REQUEST["container"] === "exe") ||
-            (!isset($_REQUEST["container"]) && $format === "movsfx")) {
+            (!isset($_REQUEST["container"]) && ($format === "movsfx" || $format === "movpngsfx"))) {
             $container = "exe";
-            $ext = "mov.exe";
+            $ext = ($format==="movpngsfx")?"movpng.exe":"mov.exe";
             $mime = "application/vnd.microsoft.portable-executable";
         }
     }

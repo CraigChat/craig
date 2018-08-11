@@ -51,6 +51,15 @@ ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=
 case "$FORMAT" in
     mkvh264|movsfx|movsfxm|movsfxu)
         ext=mkv
+        FORMAT_GEN=qtrle
+        FORMAT_FFMPEG=movqtrle
+        CODEC="-c:v libx264 -crf 16"
+        ;;
+    movpngsfx|movpngsfxm|movpngsfxu)
+        ext=mkv
+        FORMAT=mov${FORMAT#movpng}
+        FORMAT_GEN=png
+        FORMAT_FFMPEG=movpng
         CODEC="-c:v libx264 -crf 16"
         ;;
     webmvp8)
@@ -104,7 +113,7 @@ if [ "$FORMAT" = "movsfx" ]
 then
     sed 's/^/@REM   / ; s/$/\r/g' "$SCRIPTBASE/cook/ffmpeg-lgpl21.txt" > "$tmpdir/out/RunMe.bat"
     mkfifo "$tmpdir/out/ffmpeg.exe"
-    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-movqtrle.exe" > "$tmpdir/out/ffmpeg.exe" &
+    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-$FORMAT_FFMPEG.exe" > "$tmpdir/out/ffmpeg.exe" &
     FILES="$FILES RunMe.bat ffmpeg.exe"
 
 elif [ "$FORMAT" = "movsfxm" -o "$FORMAT" = "movsfxu" ]
@@ -112,7 +121,7 @@ then
     RUNMESUFFIX=sh
     if [ "$FORMAT" = "movsfxm" ]
     then
-        cp "$SCRIPTBASE/cook/ffmpeg-movqtrle.macosx" "$tmpdir/out/ffmpeg"
+        cp "$SCRIPTBASE/cook/ffmpeg-$FORMAT_FFMPEG.macosx" "$tmpdir/out/ffmpeg"
         chmod a+x "$tmpdir/out/ffmpeg"
         FILES="$FILES ffmpeg"
         RUNMESUFFIX=command
@@ -247,16 +256,16 @@ else
 
         elif [ "$FORMAT" = "movsfx" ]
         then
-            printf 'ffmpeg -i %s -filter_complex "[0:v]split[vid][alpha];[vid]crop=160:160:0:0[vid];[alpha]crop=160:160:160:0[alpha];[vid][alpha]alphamerge[vid]" -map [vid] -c:v qtrle %s\r\ndel %s\r\n\r\n' \
-                "$O_FN" "${O_FN%.mkv}.mov" "$O_FN" \
+            printf 'ffmpeg -i %s -filter_complex "[0:v]split[vid][alpha];[vid]crop=160:160:0:0[vid];[alpha]crop=160:160:160:0[alpha];[vid][alpha]alphamerge[vid]" -map [vid] -c:v %s %s\r\ndel %s\r\n\r\n' \
+                "$O_FN" "$FORMAT_GEN" "${O_FN%.mkv}.mov" "$O_FN" \
                 >> "$tmpdir/out/RunMe.bat"
 
         elif [ "$FORMAT" = "movsfxm" -o "$FORMAT" = "movsfxu" ]
         then
             (
                 [ "$FORMAT" != "movsfxm" ] || printf './'
-                printf 'ffmpeg -i %s -filter_complex '\''[0:v]split[vid][alpha];[vid]crop=160:160:0:0[vid];[alpha]crop=160:160:160:0[alpha];[vid][alpha]alphamerge[vid]'\'' -map '\''[vid]'\'' -c:v qtrle %s\nrm %s\n\n' \
-                    "$O_FN" "${O_FN%.mkv}.mov" "$O_FN"
+                printf 'ffmpeg -i %s -filter_complex '\''[0:v]split[vid][alpha];[vid]crop=160:160:0:0[vid];[alpha]crop=160:160:160:0[alpha];[vid][alpha]alphamerge[vid]'\'' -map '\''[vid]'\'' -c:v %s %s\nrm %s\n\n' \
+                    "$O_FN" "$FORMAT_GEN" "${O_FN%.mkv}.mov" "$O_FN"
             ) >> "$tmpdir/out/RunMe.$RUNMESUFFIX"
 
         fi
