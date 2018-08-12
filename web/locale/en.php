@@ -3,6 +3,7 @@ $l["en"] = array(
     "intro1" =>     "You may fetch your recording in various formats. All downloads are multi-track.",
     "intro1-updated" => 20180809,
     "intro2" =>     "Other formats, including single-track mixed audio, require processing locally in your browser, and thus require a modern browser and some patience, won't work well on mobile devices, and will likely fail with long recordings or many users.",
+    "intro2b" =>    "If you need single-track mixed audio, or the ALAC (Apple Lossless) audio format, you can use the local processing option, which is a software program which can perform various simple editing tasks.",
     "intro3" =>     "Your recording ID:",
     "starttime" =>  "Start time",
     "users" =>      "Users",
@@ -10,11 +11,15 @@ $l["en"] = array(
 
     "mtd" =>        "Multi-track download:",
     "mtld" =>       "Multi-track smart leveled download:",
+    "lp" =>         "Local processing:",
     "std" =>        "Single-track smart mix download:",
     "mtp" =>        "Multi-track processed:",
     "stm" =>        "Single-track mixed:",
 
     "audacity" =>   "Audacity project",
+    "winapp" =>     "Windows application",
+    "macosxapp" =>  "Mac OS X application",
+    "unixscript" => "Unix script",
     "uncomp" =>     "uncompressed",
     "raw" =>        "Raw",
     "rawnote" =>    "Note: Almost no audio editors will support this raw file",

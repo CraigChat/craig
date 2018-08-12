@@ -181,6 +181,9 @@ if (isset($_REQUEST["delete"])) {
             $rf === "wavsfx" ||
             $rf === "wavsfxm" ||
             $rf === "wavsfxu" ||
+            $rf === "powersfx" ||
+            $rf === "powersfxm" ||
+            $rf === "powersfxu" ||
             $rf === "ra")
             $format = $rf;
         else if ($rf === "mp3" &&

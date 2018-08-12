@@ -61,7 +61,7 @@ function l($key) {
     print ls($key);
 }
 
-function localeFlags() {
+function localeFlags($urlargs = "") {
     global $locales;
     global $locale;
     global $flags;
@@ -71,7 +71,7 @@ function localeFlags() {
         if ($la !== "en")
             print " | ";
         if ($locale === $la) print "•";
-        print "<a href=\"?id=$id&amp;key=$key&amp;locale=$la\">";
+        print "<a href=\"?$urlargs" . "locale=$la\">";
         if (isset($flags[$la])) {
             $fs = $flags[$la];
             foreach ($fs as $i=>$f)

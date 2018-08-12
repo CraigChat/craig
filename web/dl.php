@@ -277,10 +277,11 @@ ob_start("ob_gzhandler");
         </style>
     </head>
     <body>
-        <?PHP localeFlags(); ?>
+        <?PHP localeFlags("id=$id&amp;key=$key&amp;"); ?>
 
         <div class="para">
         <?PHP l("intro1"); ?>
+        <?PHP if ($windows || ($macosx&&!$iphone) || ($unix&&!$android)) l("intro2b"); ?>
         <?PHP l("intro3"); print " $id"; ?>.
         <?PHP
             if ($info !== false && isset($info["startTime"]))
@@ -337,6 +338,21 @@ if (isset($features["mp3"]) && $features["mp3"])
         </span></span><br/><br/>
 
 <?PHP
+if ($windows || ($macosx && !$iphone) || ($unix && !$android)) {
+?>
+	<span class="big">
+	<span class="lbl"><?PHP l("lp"); ?></span>
+	<span class="choices">
+		<?PHP l("lpwarn"); ?>
+<?PHP
+if ($windows) download(ls("winapp"), "powersfx", "exe");
+if ($macosx) download(ls("macosxapp"), "powersfxm");
+if ($unix) download(ls("unixscript"), "powersfxu");
+?>
+	</span></span><br/><br/>
+<?PHP
+}
+
 if (isset($features["mix"]) && $features["mix"]) {
 ?>
         <span class="big">
