@@ -1153,7 +1153,7 @@ const char *license =
 
 static const char *aupHeader = "<?xml version=\"1.0\" standalone=\"no\" ?>\n"
     "<!DOCTYPE project PUBLIC \"-//audacityproject-1.3.0//DTD//EN\" \"http://audacity.sourceforge.net/xml/audacityproject-1.3.0.dtd\" >\n"
-    "<project xmlns=\"http://audacity.sourceforge.net/xml/\" projname=\"@PROJNAME@\" version=\"1.3.0\" audacityversion=\"2.2.2\" rate=\"48000.0\">\n"
+    "<project xmlns=\"http://audacity.sourceforge.net/xml/\" projname=\"Craig\" version=\"1.3.0\" audacityversion=\"2.2.2\" rate=\"48000.0\">\n"
     "\t<tags/>\n";
 
 #include <FL/Fl_File_Chooser.H>
@@ -1177,6 +1177,7 @@ static const char *aupHeader = "<?xml version=\"1.0\" standalone=\"no\" ?>\n"
 #define TARGET_AUP      1
 #define TARGET_WAV      2
 #define TARGET_M4A      3
+#define TARGET_ALAC     4
 #define TARGET_AUPPART  65536
 
 #ifdef _WIN32
@@ -1338,6 +1339,7 @@ string targetName(int target, string file)
             break;
 
         case TARGET_M4A:
+        case TARGET_ALAC:
             ret += ".m4a";
             break;
     }
@@ -1365,6 +1367,10 @@ void targetFormat(int target, vector<string> &args)
 
         case TARGET_M4A:
             F("aac", "ipod");
+            break;
+
+        case TARGET_ALAC:
+            F("alac", "ipod");
             break;
     }
 }
@@ -1420,7 +1426,10 @@ void extract(Fl_Button *a, void *b)
         struct dirent *de;
         while ((de = readdir(cwd))) {
             size_t namelen = strlen(de->d_name);
-            if (namelen > 5 && !strcasecmp(de->d_name + namelen - 5, ".flac"))
+            if (namelen >= 6 &&
+                !strcasecmp(de->d_name + namelen - 5, ".flac") &&
+                de->d_name[namelen - 6] >= '0' &&
+                de->d_name[namelen - 6] <= '9')
                 files.push_back(de->d_name);
         }
         closedir(cwd);

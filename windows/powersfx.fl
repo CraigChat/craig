@@ -30,9 +30,9 @@ class PowerSFX {open
         xywh {380 170 115 20} labelsize 10
       }
       Fl_Choice format {
-        label {&Format:} open
+        label {&Format:} open selected
         xywh {130 35 365 25} down_box BORDER_BOX
-        code0 {o->add("&FLAC|&Audacity Project|&wav|&MP4 AAC (M4A)");}
+        code0 {o->add("&FLAC|&Audacity Project|&wav|&MPEG-4 AAC (M4A)|A&LAC");}
         code1 {o->value(0);}
       } {}
       Fl_Check_Button mix {
@@ -44,7 +44,7 @@ class PowerSFX {open
         xywh {5 90 490 25} down_box DOWN_BOX
       }
       Fl_Check_Button keepTmps {
-        label {&Keep intermediate files} selected
+        label {&Keep intermediate files}
         xywh {5 115 490 25} down_box DOWN_BOX
       }
     }

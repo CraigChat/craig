@@ -21,7 +21,7 @@ ffmpeg-$(FFMPEG_VER)/configure:
 	tar Jxf ffmpeg-$(FFMPEG_VER).tar.xz
 
 ../cook/%sfx.exe: unzip/unzipsfx.a %sfx.cxx
-	$(CROSS_PREFIX)g++ -static -Os -mwindows $*sfx.cxx $*sfxcb.cxx unzip/unzipsfx.a -lfltk -lgdi32 -lole32 -lcomctl32 -luuid -o $*sfx.exe
+	$(CROSS_PREFIX)g++ -static -Os $*sfx.cxx $*sfxcb.cxx unzip/unzipsfx.a -lfltk -lgdi32 -lole32 -lcomctl32 -luuid -o $*sfx.exe
 	$(CROSS_PREFIX)strip $*sfx.exe
 	upx $*sfx.exe
 	mv $*sfx.exe ../cook/

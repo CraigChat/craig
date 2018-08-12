@@ -106,12 +106,17 @@ case "$FORMAT" in
         ENCODE="flac - -c"
         EXTRAFILES="RunMe.bat ffmpeg.exe"
         ;;
-    wavsfxm)
+    powersfx)
+        ext=flac
+        ENCODE="flac - -c"
+        EXTRAFILES="ffmpeg.exe"
+        ;;
+    wavsfxm|powersfxm)
         ext=flac
         ENCODE="flac - -c"
         EXTRAFILES="RunMe.command ffmpeg"
         ;;
-    wavsfxu)
+    wavsfxu|powersfxu)
         ext=flac
         ENCODE="flac - -c"
         EXTRAFILES="RunMe.sh"
@@ -169,6 +174,11 @@ then
     mkfifo "$OUTDIR/ffmpeg.exe"
     timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-wav.exe" > "$OUTDIR/ffmpeg.exe" &
 
+elif [ "$FORMAT" = "powersfx" ]
+then
+    mkfifo "$OUTDIR/ffmpeg.exe"
+    timeout $DEF_TIMEOUT cat "$SCRIPTBASE/cook/ffmpeg-fat.exe" > "$OUTDIR/ffmpeg.exe" &
+
 elif [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
 then
     RUNMESUFFIX=sh
@@ -185,6 +195,17 @@ then
         printf 'set -e\ncd "$(dirname "$0")"\n\n'
     ) > "$OUTDIR/RunMe.$RUNMESUFFIX"
     chmod a+x "$OUTDIR/RunMe.$RUNMESUFFIX"
+
+elif [ "$FORMAT" = "powersfxm" ]
+then
+    cp "$SCRIPTBASE/cook/ffmpeg-fat.macosx" "$OUTDIR/ffmpeg"
+    cp "$SCRIPTBASE/cook/powersfx.sh" "$OUTDIR/RunMe.command"
+    chmod a+x "$OUTDIR/ffmpeg" "$OUTDIR/RunMe.command"
+
+elif [ "$FORMAT" = "powersfxu" ]
+then
+    cp "$SCRIPTBASE/cook/powersfx.sh" "$OUTDIR/RunMe.sh"
+    chmod a+x "$OUTDIR/RunMe.sh"
 
 fi
 if [ "$CONTAINER" = "aupzip" ]
@@ -309,8 +330,10 @@ case "$CONTAINER" in
         ;;
 
     exe)
+        SFX="$SCRIPTBASE/cook/sfx.exe"
+        [ "$FORMAT" != "powersfx" ] || SFX="$SCRIPTBASE/cook/powersfx.exe"
         timeout $DEF_TIMEOUT $NICE zip $ZIPFLAGS -FI - *.$ext $EXTRAFILES info.txt raw.dat |
-        cat "$SCRIPTBASE/cook/sfx.exe" -
+        cat "$SFX" -
         ;;
 
     aupzip)
