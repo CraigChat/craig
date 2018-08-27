@@ -116,18 +116,16 @@ function session(msg, prefix, rec) {
     }
     cc.recordingEvents.emit("start", rec);
 
-    // Send the recording message [temporarily only to 15% of servers]
-    try {
-    var servCat = (+connection.channel.guild.id.slice(-2)) % 20;
-    if (servCat >= 17)
+    // Send the recording message
     setTimeout(()=>{
         var nowRec = "data/nowrecording.opus";
         fs.access(nowRec, fs.constants.R_OK, (err) => {
-            if (!err)
-                connection.play("data/nowrecording.opus", {format: "ogg"});
+            try {
+                if (!err)
+                    connection.play("data/nowrecording.opus", {format: "ogg"});
+            } catch (ex) {}
         });
     }, 200);
-    } catch (ex) {}
 
     // Active users, by ID
     var users = {};
