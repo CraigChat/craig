@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     uint64_t lastGranulePos = 0;
     uint64_t trueGranulePos = 0;
     uint32_t lastSequenceNo = 0;
-    uint32_t packetSize;
+    uint32_t packetSize, skip;
     unsigned char segmentCount, segmentVal;
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
@@ -142,6 +142,11 @@ int main(int argc, char **argv)
         if (packetSize == 0)
             continue;
 
+        // Does this have obscure nonsense attached?
+        skip = 0;
+        if (packetSize > 2 && !memcmp(buf, "\x90\x00", 2))
+            skip = 2;
+
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * (lastWasSilence ? 1 : 5)) {
             // We are behind
@@ -192,7 +197,7 @@ int main(int argc, char **argv)
 
         // Then insert the current packet
         oggHeader.sequenceNo = lastSequenceNo++;
-        writeOgg(&oggHeader, buf, packetSize);
+        writeOgg(&oggHeader, buf + skip, packetSize - skip);
     }
 
     return 0;
