@@ -28,6 +28,8 @@ const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
+const cb = (config.backup && !config.backup.master) ? require("./backup.js") : null;
+
 // accessSync with a less stupid UI
 function accessSyncer(file) {
     try {
@@ -51,53 +53,70 @@ const opusHeader = [
 function reply(msg, dm, prefix, pubtext, privtext) {
     if (prefix === "") prefix = null;
 
-    if (dm) {
-        // Try to send the message privately
-        if (typeof privtext === "undefined")
-            privtext = pubtext;
-        else
-            privtext = pubtext + "\n\n" + privtext;
-        log("Reply to " + nameId(msg.author) + ": " + JSON.stringify(privtext));
+    function doReply() {
+        if (dm) {
+            // Try to send the message privately
+            if (typeof privtext === "undefined")
+                privtext = pubtext;
+            else
+                privtext = pubtext + "\n\n" + privtext;
+            log("Reply to " + nameId(msg.author) + ": " + JSON.stringify(privtext));
 
-        function rereply() {
-            reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
+            function rereply() {
+                reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
+            }
+            try {
+                msg.author.send(privtext).catch(rereply);
+            } catch (ex) {
+                rereply();
+            }
+            return;
         }
+
+        // Try to send it by conventional means
+        log("Public reply to " + nameId(msg.author) + ": " + JSON.stringify(pubtext));
+        msg.reply((prefix ? (prefix + " <(") : "") +
+                  pubtext +
+                  (prefix ? ")" : "")).catch((err) => {
+
+        log("Failed to reply to " + nameId(msg.author));
+
+        // If this wasn't a guild message, nothing to be done
+        var guild = msg.guild;
+        if (!guild)
+            return;
+
+        // We can't get a message to them properly, so kill any active recording
         try {
-            msg.author.send(privtext).catch(rereply);
-        } catch (ex) {
-            rereply();
-        }
+            guild.voiceConnection.disconnect();
+        } catch (ex) {}
+
+        // And give ourself a name indicating error
+        setTimeout(() => {
+            try {
+                guild.editNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
+            } catch (ex) {
+                logex(ex);
+            }
+        }, 2000);
+
+        });
+    }
+
+    // Normal reply
+    if (!cb) {
+        doReply();
         return;
     }
 
-    // Try to send it by conventional means
-    log("Public reply to " + nameId(msg.author) + ": " + JSON.stringify(pubtext));
-    msg.reply((prefix ? (prefix + " <(") : "") +
-              pubtext +
-              (prefix ? ")" : "")).catch((err) => {
-
-    log("Failed to reply to " + nameId(msg.author));
-
-    // If this wasn't a guild message, nothing to be done
-    var guild = msg.guild;
-    if (!guild)
+    // The backup bot should *never* respond to strictly public commands
+    if (!dm)
         return;
 
-    // We can't get a message to them properly, so kill any active recording
-    try {
-        guild.voiceConnection.disconnect();
-    } catch (ex) {}
-
-    // And give ourself a name indicating error
+    // Reply after a short delay to make sure the main message comes first
     setTimeout(() => {
-        try {
-            guild.editNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
-        } catch (ex) {
-            logex(ex);
-        }
-    }, 2000);
-
-    });
+        cb.reply(msg.author.id, privtext ? (pubtext + "\n\n" + privtext) : pubtext, doReply);
+    }, 1000);
 }
 
 // Find a voice channel matching the given name

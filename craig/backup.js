@@ -52,7 +52,6 @@ if (config.backup.master) {
         var data = "";
 
         function send(cmd, data) {
-            console.error("SENDING " + cmd);
             socket.write(JSON.stringify({c:cmd, d:data}) + "\n");
         }
 
@@ -69,7 +68,6 @@ if (config.backup.master) {
             var lines = data.split("\n");
             data = lines.pop();
             lines.forEach((line) => {
-                console.error("RECEIVED " + line);
                 var cmd;
                 try {
                     cmd = JSON.parse(line);
@@ -101,6 +99,94 @@ if (config.backup.master) {
 
 } else {
     // We're the backup
-    // ...
+    var data = "";
+    var replies = {};
+
+    const socket = tls.connect({
+        host: config.backup.host,
+        port: backupPort,
+        rejectUnauthorized: true,
+        ca: [ fs.readFileSync(config.backup.remote) ],
+        key: fs.readFileSync(config.backup.key),
+        cert: fs.readFileSync(config.backup.cert)
+    });
+
+    // Send a message to the host
+    function send(cmd, data) {
+        socket.write(JSON.stringify({c:cmd, d:data}) + "\n");
+    }
+
+    // Send a reply via the host
+    function reply(id, text, fail) {
+        if (socket.destroyed) {
+            fail();
+            return;
+        }
+
+        // Choose an id for this reply
+        var rid = ~~(Math.random() * 1000000000);
+        while (rid in replies)
+            rid = ~~(Math.random() * 1000000000);
+        var rep = replies[rid] = {};
+
+        // If our attempt to reply via the host succeeds, no timeout
+        rep.ack = function() {
+            if (this.timeout)
+                clearTimeout(this.timeout);
+            delete replies[rid];
+        }
+
+        // If our attempt to reply fails, do it locally
+        rep.fail = function() {
+            this.ack();
+            fail();
+        }
+
+        // Set a ten-second timeout to succeed
+        rep.timeout = setTimeout(rep.fail.bind(rep), 10000);
+
+        // Now send it
+        try {
+            send("reply", {i:rid, u:id, t: text});
+        } catch (ex) {
+            logex(ex);
+            fail();
+        }
+    }
+
+    socket.on("error", (ex) => {
+        logex(ex);
+    });
+
+    // Data from the server
+    socket.on("data", (chunk) => {
+        data += chunk;
+        var lines = data.split("\n");
+        data = lines.pop();
+        lines.forEach((line) => {
+            var cmd;
+            try {
+                cmd = JSON.parse(line);
+            } catch (ex) {
+                logex(ex);
+                return;
+            }
+            switch (cmd.c) {
+                case "ack":
+                    // Successful reply
+                    if (cmd.d.i in replies)
+                        replies[cmd.d.i].ack();
+                    break;
+
+                case "fail":
+                    // Failed to reply
+                    if (cmd.d.i in replies)
+                        replies[cmd.d.i].fail();
+                    break;
+            }
+        });
+    });
+
+    module.exports = {reply};
 
 }
