@@ -40,6 +40,7 @@ const commands = ccmds.commands;
 const cr = require("./craig/rec.js");
 const activeRecordings = cr.activeRecordings;
 const ca = require("./craig/auto.js");
+const cb = require("./craig/backup.js");
 
 // Not used directly, but handy for eval
 const gms = require("./craig/gms.js");
