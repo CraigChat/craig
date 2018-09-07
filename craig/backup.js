@@ -139,23 +139,18 @@ if (config.backup.master) {
     var data = "";
     var replies = {};
 
-    const socket = tls.connect({
-        host: config.backup.host,
-        port: backupPort,
-        rejectUnauthorized: true,
-        ca: [ fs.readFileSync(config.backup.remote) ],
-        key: fs.readFileSync(config.backup.key),
-        cert: fs.readFileSync(config.backup.cert)
-    });
+    var socket = null;
+    var closed = false;
 
     // Send a message to the host
     function send(cmd, data) {
+        if (!socket) return;
         socket.write(JSON.stringify({c:cmd, d:data}) + "\n");
     }
 
     // Send a reply via the host
     function reply(id, text, fail) {
-        if (socket.destroyed) {
+        if (!socket || socket.destroyed) {
             fail();
             return;
         }
@@ -191,39 +186,63 @@ if (config.backup.master) {
         }
     }
 
-    socket.on("error", (ex) => {
-        logex(ex);
-    });
-
-    // Data from the server
-    socket.on("data", (chunk) => {
-        data += chunk;
-        var lines = data.split("\n");
-        data = lines.pop();
-        lines.forEach((line) => {
-            var cmd;
-            try {
-                cmd = JSON.parse(line);
-            } catch (ex) {
-                logex(ex);
-                return;
-            }
-            switch (cmd.c) {
-                case "ack":
-                    // Successful reply
-                    if (cmd.d.i in replies)
-                        replies[cmd.d.i].ack();
-                    break;
-
-                case "fail":
-                    // Failed to reply
-                    if (cmd.d.i in replies)
-                        replies[cmd.d.i].fail();
-                    break;
-            }
+    function connect() {
+        socket = tls.connect({
+            host: config.backup.host,
+            port: backupPort,
+            rejectUnauthorized: true,
+            ca: [ fs.readFileSync(config.backup.remote) ],
+            key: fs.readFileSync(config.backup.key),
+            cert: fs.readFileSync(config.backup.cert)
         });
-    });
+    
+        socket.on("close", (ex) => {
+            socket = null;
+            setTimeout(() => {
+                if (!cc.dead)
+                    connect();
+            }, 5000);
+        });
 
-    module.exports = {reply};
+        socket.on("error", () => {});
+
+        // Data from the server
+        socket.on("data", (chunk) => {
+            data += chunk;
+            var lines = data.split("\n");
+            data = lines.pop();
+            lines.forEach((line) => {
+                var cmd;
+                try {
+                    cmd = JSON.parse(line);
+                } catch (ex) {
+                    logex(ex);
+                    return;
+                }
+                switch (cmd.c) {
+                    case "ack":
+                        // Successful reply
+                        if (cmd.d.i in replies)
+                            replies[cmd.d.i].ack();
+                        break;
+    
+                    case "fail":
+                        // Failed to reply
+                        if (cmd.d.i in replies)
+                            replies[cmd.d.i].fail();
+                        break;
+                }
+            });
+        });
+    }
+
+    connect();
+
+    // Stop the backup connection when we're quitting
+    function stop() {
+        if (socket) socket.end();
+    }
+
+    module.exports = {stop, reply};
 
 }

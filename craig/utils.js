@@ -113,9 +113,12 @@ function reply(msg, dm, prefix, pubtext, privtext) {
     if (!dm)
         return;
 
+    var text = privtext ? (pubtext + "\n\n" + privtext) : pubtext;
+    log("Proxy reply to " + nameId(msg.author) + ": " + JSON.stringify(text));
+
     // Reply after a short delay to make sure the main message comes first
     setTimeout(() => {
-        cb.reply(msg.author.id, privtext ? (pubtext + "\n\n" + privtext) : pubtext, doReply);
+        cb.reply(msg.author.id, text, doReply);
     }, 1000);
 }
 
