@@ -51,6 +51,8 @@ const commands = ccmds.commands;
 
 const cf = require("./features.js");
 
+const cb = require("./backup.js");
+
 /* Active recordings by guild, channel
  *
  * SHARDS:
@@ -1186,6 +1188,7 @@ function gracefulRestart() {
 
     // Stop responding to input
     cc.dead = true;
+    if (cb.stop) cb.stop();
     if (cc.sm) {
         // And make sure the shards do too
         cc.sm.broadcast({t:"term"});
@@ -1204,6 +1207,7 @@ ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
 // Terminus command
 cc.processCommands["term"] = function(msg) {
     cc.dead = true;
+    if (cb.stop) cb.stop();
 }
 
 // And exit command

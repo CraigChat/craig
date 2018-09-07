@@ -28,10 +28,12 @@ const backupPort = 57341;
 
 if (!config.backup) return; // No backup at all!
 
-// Only one shard should handle this
-if (!cc.client) return;
-if ("SHARD_ID" in process.env) {
-    if (process.env["SHARD_ID"] !== "0") return;
+// If we're the backup master, only one shard should handle this
+if (config.backup.master) {
+    if (!cc.client) return;
+    if ("SHARD_ID" in process.env) {
+        if (process.env["SHARD_ID"] !== "0") return;
+    }
 }
 
 const fs = require("fs");
@@ -41,6 +43,8 @@ const cu = require("./utils.js");
 const reply = cu.reply;
 
 if (config.backup.master) {
+    const sockets = new Set();
+
     // We are the master, so create a TLS server
     const server = tls.createServer({
         key: fs.readFileSync(config.backup.key),
@@ -50,6 +54,12 @@ if (config.backup.master) {
         ca: [ fs.readFileSync(config.backup.remote) ]
     }, (socket) => {
         var data = "";
+
+        sockets.add(socket);
+
+        socket.on("close", () => {
+            sockets.delete(socket);
+        });
 
         function send(cmd, data) {
             socket.write(JSON.stringify({c:cmd, d:data}) + "\n");
@@ -78,13 +88,12 @@ if (config.backup.master) {
                 switch (cmd.c) {
                     case "reply":
                         // Send a reply
-                        var to = cc.client.users.get(cmd.d.u);
-                        if (!to) {
-                            fail(cmd.d.i);
-                            return;
-                        }
-                        to.send("[BACKUP]\n\n" + cmd.d.t).then(() => {
-                            ack(cmd.d.i);
+                        cc.client.getDMChannel(cmd.d.u).then((dm) => {
+                            dm.createMessage("[BACKUP]\n\n" + cmd.d.t).then(() => {
+                                ack(cmd.d.i);
+                            }).catch(() => {
+                                fail(cmd.d.i);
+                            });
                         }).catch(() => {
                             fail(cmd.d.i);
                         });
@@ -94,8 +103,36 @@ if (config.backup.master) {
         });
     });
 
-    // FIXME: Any previous instance will already have this port!
-    server.listen(backupPort, () => {});
+    // Start the server
+    function startServer() {
+        server.listen(backupPort);
+    }
+
+    server.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+            // Just try again
+            setTimeout(() => {
+                if (!cc.dead)
+                    startServer();
+            }, 5000);
+        }
+    });
+
+    startServer();
+
+    // When the server resets, we stop listening
+    function stop() {
+        try {
+            server.close();
+        } catch (ex) {}
+        sockets.forEach((socket) => {
+            try {
+                socket.end();
+            } catch (ex) {}
+        });
+    }
+
+    module.exports = {stop};
 
 } else {
     // We're the backup
