@@ -24,6 +24,8 @@ const cc = require("./client.js");
 const config = cc.config;
 const logex = cc.logex;
 
+const cd = require("./db.js");
+
 const backupPort = 57341;
 
 if (!config.backup) return; // No backup at all!
@@ -97,6 +99,11 @@ if (config.backup.master) {
                         }).catch(() => {
                             fail(cmd.d.i);
                         });
+                        break;
+
+                    case "db":
+                        // Send our database
+                        send("db", cd.dbDump);
                         break;
                 }
             });

@@ -52,4 +52,40 @@ function deleteGuild(id) {
     });
 }
 
-module.exports = {db, deleteGuild};
+// Dump the entire database except for guild membership status and Drive connection
+function dumpDB() {
+    var tables = ["auto", "bans", "blessings", "prefixes"];
+    var dump = [];
+
+    function quote(v) {
+        if (typeof v === "number")
+            return ""+v;
+        if (v === null)
+            return "NULL";
+        return "'" + (""+v).replace("'", "''") + "'";
+    }
+
+    tables.forEach((table) => {
+        dump.push("DELETE FROM " + table);
+        var stmt = db.prepare("SELECT * FROM " + table);
+        stmt.all().forEach((row) => {
+            var cols = Object.keys(row);
+
+            var line = "INSERT INTO " + table + " (" +
+                cols.join(",") + ") VALUES (" +
+                cols.map((col)=>quote(row[col])).join(",") + ")";
+            dump.push(line);
+        });
+    });
+
+    return dump;
+}
+
+const dbDump = dumpDB();
+
+// Load a database dump
+function loadDB(dump) {
+    db.transaction(dump).run();
+}
+
+module.exports = {db, deleteGuild, dbDump, loadDB};
