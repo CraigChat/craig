@@ -49,6 +49,8 @@ const opusHeader = [
         0x00, 0x00, 0x00, 0xff])
 ];
 
+const isMention = /^\s*<?@/;
+
 // Function to respond to a message by any means necessary
 function reply(msg, dm, prefix, pubtext, privtext) {
     if (prefix === "") prefix = null;
@@ -109,7 +111,12 @@ function reply(msg, dm, prefix, pubtext, privtext) {
         return;
     }
 
-    // The backup bot should *never* respond to strictly public commands
+    /* The backup bot should only respond to public commands if they were
+     * directed specifically at the backup bot */
+    if (isMention.test(msg.content)) {
+        doReply();
+        return;
+    }
     if (!dm)
         return;
 
