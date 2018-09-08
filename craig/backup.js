@@ -145,6 +145,7 @@ if (config.backup.master) {
     // We're the backup
     var data = "";
     var replies = {};
+    var gotDB = false;
 
     var socket = null;
     var closed = false;
@@ -201,6 +202,10 @@ if (config.backup.master) {
             ca: [ fs.readFileSync(config.backup.remote) ],
             key: fs.readFileSync(config.backup.key),
             cert: fs.readFileSync(config.backup.cert)
+        }, () => {
+            // We just connected. If we're the first shard and we haven't yet, request the DB dump
+            if (!gotDB && (!("SHARD_ID" in process.env) || process.env["SHARD_ID"] === "0"))
+                send("db", 0);
         });
     
         socket.on("close", (ex) => {
@@ -237,6 +242,12 @@ if (config.backup.master) {
                         // Failed to reply
                         if (cmd.d.i in replies)
                             replies[cmd.d.i].fail();
+                        break;
+
+                    case "db":
+                        // Database backup
+                        cd.loadDB(cmd.d);
+                        gotDB = true;
                         break;
                 }
             });
