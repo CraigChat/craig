@@ -127,5 +127,6 @@ function upload(drive, craigDir) {
     }, function (err, file) {
         if (err)
             console.error("Error upload: " + err);
+        process.exit(0);
     });
 }
