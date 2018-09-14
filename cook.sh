@@ -21,7 +21,7 @@ timeout() {
 }
 
 DEF_TIMEOUT=7200
-ulimit -v $(( 2 * 1024 * 1024 ))
+ulimit -v $(( 8 * 1024 * 1024 ))
 echo 10 > /proc/self/oom_adj
 
 PATH="/opt/node/bin:$PATH"
@@ -320,7 +320,7 @@ case "$CONTAINER" in
         done
         MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
         FILTER="$FILTER$MIXFILTER"
-        DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $ID.ogg.data`
+        DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < "$SCRIPTBASE/rec/$ID.ogg.data"`
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$DURATION" |
             (
