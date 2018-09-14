@@ -33,6 +33,24 @@ Finally, the self extractors require compilation if you want them:
 cd windows; make
 cd macosx; make
 
-No documentation is provided for running your own instances of Craig. More
-information on the main instance of Craig can be found at
-https://craigrecords.yahweasel.com/
+More information on Craig can be found at
+https://craig.chat/
+
+
+No documentation is provided for running your own instances of Craig.
+
+RUNNING CRAIG IS NOT LIKE RUNNING ANY OTHER BOT. MOST OF THE COMPLEXITY OF
+CRAIG IS NOT IN THE BOT ITSELF, BUT IN THE AUDIO PROCESSING.
+
+IF YOU ARE NOT FAMILIAR WITH C AND UNIX, DO NOT WASTE YOUR TIME OR MINE. IF YOU
+DELUDE YOURSELF INTO THINKING YOU WILL HOST CRAIG ON WINDOWS, DO NOT WASTE YOUR
+TIME OR MINE. CRAIG IS NOT MERELY BUILT FOR UNIX, CRAIG IS BUILT ON THE UNIX
+PHILOSOPHY.
+
+"THIS ONE TIME I RAN A LINUX VM" IS NOT SUFFICIENT. "I CAN USE PUTTY" WON'T CUT
+IT. IF THE WORD "WINDOWS" DOESN'T MAKE YOUR SKIN CRAWL, YOU ARE NOT THE KIND OF
+PERSON WHO WILL SUCCEED IN RUNNING CRAIG.
+
+If you're familiar with C and Unix, it shouldn't be too difficult to get your
+own Craig working. Yahweasel is generally happy to help if you have the
+requisite background.
