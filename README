@@ -29,6 +29,10 @@ cd cook
 for i in *.c; do gcc -O3 -o ${i%.c} $i; done
 for i in *.svg; do inkscape -e ${i%.svg}.png $i; done
 
+Finally, the self extractors require compilation if you want them:
+cd windows; make
+cd macosx; make
+
 No documentation is provided for running your own instances of Craig. More
 information on the main instance of Craig can be found at
 https://craigrecords.yahweasel.com/
