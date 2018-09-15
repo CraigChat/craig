@@ -3,6 +3,7 @@ $l["it"] = array(
     "intro1" =>     "Puoi recuperare le tue registrazioni in vari formati. Tutti i download sono multi-traccia.",
     "intro1-updated" => 20180809,
     "intro2" =>     "Gli altri formati, tra cui l'audio mixato in una singola traccia, richiedono un'elaborazione locale nel tuo browser, pertanto richiedono un browser moderno e un po' di pazienza, e la procedura non funziona bene sui dispositivi mobili.",
+    "intro2b" =>    "Se hai bisogno dell'audio mixato su singola traccia, o del formato audio ALAC (Apple Lossless), puoi usare l'opzione di elaborazione locale, che è un programma che può effettuare varie semplici operazioni di editing.",
     "intro3" =>     "L'ID della tua registrazione è:",
     "starttime" =>  "Ora di inizio",
     "users" =>      "Utenti",
@@ -10,11 +11,15 @@ $l["it"] = array(
 
     "mtd" =>        "Download multi-traccia:",
     "mtld" =>       "Download multi-traccia con livellamento intelligente:",
+    "lp" =>         "Elaborazione locale:",
     "mtp" =>        "Elaborazione multi-traccia:",
     "stm" =>        "Elaborazione singola traccia:",
     "std" =>        "Download del mix intelligente su singola traccia:",
 
     "audacity" =>   "Progetto Audacity",
+    "winapp" =>     "Applicazione Windows",
+    "macosxapp" =>  "Applicazione Mac OS X",
+    "unixscript" => "Script Unix",
     "uncomp" =>     "non compresso",
     "raw" =>        "Raw",
     "rawnote" =>    "Nota: Quasi nessun editor audio supporta questo file raw",
