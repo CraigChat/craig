@@ -3,7 +3,8 @@
     "help":             "Hallo! Ik ben Craig! Ik ben een meersporige spraakkanaal opneem bot. Kijk voor meer informatie op %1 .",
 
     "cmd:join":         ["opnemen", "verbinden"],
-    "recording":        "Kanaal %3 aan het opnemen! Ik zal tot %1 uren opnemen. Opnames worden %4 dagen na het begin van de opname automatisch verwijderd. De audio kan worden gedownload zelfs als ik nog aan het opnemen ben.",
+    "recording":        "Kanaal %3 aan het opnemen (%5)! Ik zal tot %1 uur opnemen. Opnames worden %4 dagen na het begin van de opname automatisch verwijderd. De audio kan worden gedownload zelfs als ik nog aan het opnemen ben.",
+    "recording-updated": 20180810,
     "downloadlink":     "Download link: %1?id=%2&key=%3",
     "deletelink":       "Om te verwijderen: %1?id=%2&key=%3&delete=%4",
 
@@ -28,10 +29,10 @@
 
     "cmd:note":         ["opmerking", "notitie"],
     "noted":            "Genoteerd.",
-    
+
     "cmd:leave":        ["verbreek", "verlaat", "klaar"],
     "notrecording":     "Maar ik ben dat kanaal helemaal niet aan het opnemen!",
-    
+
     "cmd:prefix":       ["voorvoegsel"],
     "cmd:unprefix":     ["reset-voorvoegsel", "resetvoorvoegsel"],
     "prefixis":         "Je voorvoegsel is %1",

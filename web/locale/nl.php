@@ -1,18 +1,25 @@
 <?PHP
 $l["nl"] = array(
-    "intro1" =>     "Je kunt je opname ophalen in verschillende formaten. De meest nuttige meer-sporige formaten, inclusief FLAC and MPEG-4 AAC, zijn rechtstreeks downloadbaar.",
+    "intro1" =>     "Je kunt je opname in verschillende formaten ophalen. Alle downloads zijn meersporig.",
+    "intro1-updated" => 20180809,
     "intro2" =>     "Andere formaten, zoals enkel-sporig gemixte audio, moeten lokaal door je browser verwerkt worden, en vereisen daarom een moderne browser en wat geduld, en zullen niet goed werken op mobiele apparaten.",
+    "intro2b" =>    "Als je de audio in een enkel spoor, of in het ALAC (Apple Lossless) formaat nodig hebt, kun je de lokale verwerkingsopties gebruiken, dat is een software programma die verschillende simpele bewerkingen kan verrichten.",
     "intro3" =>     "Je opname ID:",
     "starttime" =>  "Starttijd",
     "users" =>      "Gebruikers",
     "duration" =>   "Opnameduur",
 
     "mtd" =>        "Meer-sporige download:",
+    "mtld" =>       "Meer-sporig, slim gemixte download:",
+    "lp" =>         "Lokale verwerking:",
     "std" =>        "Enkel-sporige slimme mix download:",
     "mtp" =>        "Meer-sporig verwerkt:",
     "stm" =>        "Enkel-sporig gemixt:",
 
     "audacity" =>   "Audacity project",
+    "winapp" =>     "Windows applicatie",
+    "macosxapp" =>  "Mac OS X programma",
+    "unixscript" => "Unix script",
     "uncomp" =>     "ongecomprimeerd",
     "raw" =>        "onbewerkt",
     "rawnote" =>    "Let op: Bijne geen enkel audio-bewerkingsprogramma zal dit onbewerkte bestand ondersteunen.",
@@ -39,8 +46,10 @@ $l["nl"] = array(
     "glowers" =>    "Glowers",
     "transparent" =>"Doorzichtige achtergrond",
     "transnote1" => "Let op: WebM ondersteund doorzichtigheid, maar de meeste video-bewerkingsprogrammas ondersteunen WebM niet. ",
-    "transnotesfx" => "MOV ondersteund doorzichtigheid en wordt ondersteund door de meeste video-bewerkingsprogrammas, maar is veel te groot om rechtstreeks te genereren en sturen. In plaats daarvan, als je MOV kiest, krijg je gecomprimeerde bestanden en een programma om ze mee uit te pakken. ",
-    "transnotewin" => "MOV ondersteund doorzichtigheid en wordt ondersteund door de meeste video-bewerkingsprogrammas, maar is veel te groot om rechtstreeks te genereren en sturen. In plaats daarvan, als je MOV kiest, krijg je gecomprimeerde bestanden en een programma om ze mee uit te pakken. Je hoeft alleen maar RunMe.bat te draaien en je bent klaar. ",
+    "transnotesfx" => "MOV ondersteunt doorzichtigheid en wordt goed ondersteund door de meeste video-bewerkings programma's, maar het is veel te groot om rechtstreeks te genereren en sturen. In plaats daarvan, als je MOV kiest, krijg je gecomprimeerde bestanden toegestuurd met een uitpakker. MOV kan Quiktime Animation of PNG bevatten; Sommige programma's ondersteunen de een of de ander, en andere ondersteunen allebij, maar ze zijn gelijkwaardig qua mogelijkheden. ",
+    "transnotesfx-updated" => 20180810,
+    "transnotewin" => "MOV ondersteunt doorzichtigheid en wordt goed ondersteund door de meeste video-bewerkings programma's, maar het is veel te groot om rechtstreeks te genereren en sturen. In plaats daarvan, als je MOV kiest, krijg je gecomprimeerde bestanden toegestuurd met een uitpakker. MOV kan Quiktime Animation of PNG bevatten; Sommige programma's ondersteunen de een of de ander, en andere ondersteunen allebij, maar ze zijn gelijkwaardig qua mogelijkheden. Je hoeft alleen RunMe.bat te draaien. ",
+    "transnotewin-updated" => 20180810,
     "transnote2" => "MPEG-4 ondersteunt geen doorzichtigheid, dus als MKV wordt geselecteerd, worden zowel een statische PNG afbeelding en een MKV die het alpha(doorzichtigheid) kanaal representeerd gestuurd. De meeste video-bewerkingsprogrammas kunnen worden ingesteld om één bestand te gebruiken voor kleur en een ander voor alpha (doorzichtigheid).",
     "bgc" =>        "Achtergrond kleur",
     "fgc" =>        "Gloed kleur",
@@ -51,6 +60,15 @@ $l["nl"] = array(
     "yes" =>        "Ja",
     "no" =>         "Nee",
 
-    "deleted" =>    "Verwijderd!"
+    "deleted" =>    "Verwijderd!",
+
+    "back" =>       "Terug naar de startpagina",
+
+    "ddesc" =>      "Craig kan integreren met Google Drive om automatisch je opnames te uploaden. Om automatisch uploaden te activeren, hoef je alleen hieronder in te loggen met Discord en Drive. Om het te deactiveren, kom je gewoon hier terug en log je uit bij Drive. Opnames die worden geupload zijn in meersporig FLAC formaat.",
+    "dili" =>       "Log in met Discord",
+    "dilo" =>       "Log Discord uit",
+    "drli" =>       "Log in met Google Drive",
+    "drlo" =>       "Log Google Drive uit",
+    "ddone" =>      "Je accounts zijn gekoppeld. Je Craig opnames zullen automatisch naar Google Drive worden geupload!"
 );
 ?>
