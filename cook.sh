@@ -310,15 +310,24 @@ case "$CONTAINER" in
         INPUT=""
         FILTER=""
         MIXFILTER=""
-        c=0
+        ci=0
+        co=0
         for i in *.$ext
         do
             INPUT="$INPUT -codec libopus -copyts -i $i"
-            FILTER="$FILTER[$c:a]$ARESAMPLE,dynaudnorm[aud$c];"
-            MIXFILTER="$MIXFILTER[aud$c]"
-            c=$((c+1))
+            FILTER="$FILTER[$ci:a]$ARESAMPLE,dynaudnorm[aud$co];"
+            MIXFILTER="$MIXFILTER[aud$co]"
+            ci=$((ci+1))
+            co=$((co+1))
+
+            # amix can only mix 32 at a time, so if we reached that, we have to start again
+            if [ "$co" = "32" ]
+            then
+                MIXFILTER="$MIXFILTER amix=32,dynaudnorm[aud0];[aud0]"
+                co=1
+            fi
         done
-        MIXFILTER="$MIXFILTER amix=$c,dynaudnorm[aud]"
+        MIXFILTER="$MIXFILTER amix=$co,dynaudnorm[aud]"
         FILTER="$FILTER$MIXFILTER"
         DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < "$SCRIPTBASE/rec/$ID.ogg.data"`
         timeout $DEF_TIMEOUT $NICE ffmpeg $INPUT -filter_complex "$FILTER" -map '[aud]' -flags bitexact -f wav - < /dev/null |
