@@ -539,6 +539,8 @@
 # That's all there is to it!
 
 
+cd "$(dirname "$0")"
+
 yesno() {
     case "$1" in
         y*|Y*)
