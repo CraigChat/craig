@@ -37,7 +37,7 @@ const features = JSON.parse(process.argv[4]);
 const info = JSON.parse(process.argv[5]);
 
 // Currently, only Drive auto-upload is supported, so just quit if the feature isn't there
-if (!features.drive) process.exit(0);
+//if (!features.drive) process.exit(0);
 
 const SCOPES = ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.metadata.readonly"];
 
