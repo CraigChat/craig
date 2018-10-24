@@ -172,7 +172,6 @@ if (config.stats) {
                     }
                 }
             } catch (ex) {
-                logex(ex);
             }
         });
 

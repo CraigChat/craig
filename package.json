@@ -16,7 +16,6 @@
         "googleapis": "^27.0.0",
         "node-opus": "*",
         "request": "^2.83.0",
-        "sodium": "^2.0.3",
-        "uws": "^0.14.5"
+        "sodium": "^2.0.3"
     }
 }

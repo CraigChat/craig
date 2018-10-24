@@ -48,7 +48,7 @@ const deleteStmts = deleteSqls.map((x) => {
 // Completely delete a guild
 function deleteGuild(id) {
     deleteStmts.forEach((x) => {
-        db.run(id);
+        x.run(id);
     });
 }
 

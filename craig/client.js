@@ -78,6 +78,32 @@ const sm = vsm;
 const master = vmaster;
 const clients = [client]; // For secondary connections
 
+// A message to distinguish us from other shards
+var vshardMsg = "";
+if (shard)
+    vshardMsg = " (shard " + (+process.env["SHARD_ID"]) + "/" + (+process.env["SHARD_COUNT"]) + ", pid " + process.pid + ")";
+const shardMsg = vshardMsg;
+
+
+// Announce our connection
+if (client) client.on("ready", () => {
+    log("Logged in as " + client.user.username + shardMsg);
+});
+
+// Announce problems
+var dced = false;
+if (client) client.on("disconnect", (err) => {
+    log("Disconnected! " + err + shardMsg);
+});
+
+if (client) client.on("shardDisconnect", (err) => {
+    log("Disconnected (shard)! " + err + shardMsg);
+});
+
+if (client) client.on("error", (err) => {
+    log("Client error! " + err + shardMsg);
+});
+
 // Handle shard commands
 if (sm) sm.on("message", (shard, msg) => {
     if (typeof msg !== "object") return;
