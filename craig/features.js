@@ -218,7 +218,11 @@ if (config.rewards) (function() {
     }
 
     // Get our initial rewards on connection
-    if (client) client.on("ready", () => {
+    var rewardsInited = false;
+    function initRewards() {
+        if (rewardsInited) return;
+        rewardsInited = true;
+
         var rr = config.rewards.roles;
         var guild = client.guilds.get(config.rewards.guild);
         if (!guild) return;
@@ -245,7 +249,11 @@ if (config.rewards) (function() {
 
             rewardsEvents.emit("ready");
         });
-    });
+    }
+    if (client) {
+        client.on("ready", initRewards);
+        client.on("shardReady", initRewards);
+    }
 
     // Reresolve a member when their roles change
     if (client) client.on("guildMemberUpdate", (guild, to, from) => {
