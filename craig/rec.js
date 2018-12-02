@@ -753,6 +753,13 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 logex(ex);
             }
 
+            // If the local nick just accidentally has "RECORDING" on it, get rid of it
+            if (localNick) {
+                localNick = localNick.replace(recIndicator, "");
+                if (localNick === configNick)
+                    localNick = undefined;
+            }
+
             var closed = false;
             function close() {
                 if (closed)
