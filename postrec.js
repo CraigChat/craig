@@ -36,9 +36,6 @@ const rid = process.argv[3];
 const features = JSON.parse(process.argv[4]);
 const info = JSON.parse(process.argv[5]);
 
-// Currently, only Drive auto-upload is supported, so just quit if the feature isn't there
-//if (!features.drive) process.exit(0);
-
 const SCOPES = ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive.metadata.readonly"];
 
 // Load client secrets
@@ -61,15 +58,15 @@ function authorize(credentials, callback) {
     if (oAuth2Client.isTokenExpiring()) {
         oAuth2Client.refreshToken().then((newToken) => {
             fs.writeFile(TOKEN_PATH, JSON.stringify(newToken), ()=>{});
-            callback(oAuth2Client);
+            callback(oAuth2Client, row);
         }).catch(()=>{});
     } else {
-        callback(oAuth2Client);
+        callback(oAuth2Client, row);
     }
 }
 
 // Search for or create a Craig directory, then upload to it
-function findUploadDir(auth) {
+function findUploadDir(auth, row) {
     const drive = google.drive({version: "v3", auth});
     const opts = {
         pageSize: 1000,
@@ -96,7 +93,7 @@ function findUploadDir(auth) {
             return (file.name.toLowerCase() === "craig");
         });
         if (craigDir) {
-            upload(drive, craigDir);
+            upload(drive, craigDir, row);
         } else {
             drive.files.create({
                 resource: {"name": "Craig", "mimeType": "application/vnd.google-apps.folder"},
@@ -105,7 +102,7 @@ function findUploadDir(auth) {
                 if (err) {
                     console.error("Failed to create Craig directory: " + err);
                 } else {
-                    upload(drive, craigDir.data);
+                    upload(drive, craigDir.data, row);
                 }
             });
         }
@@ -113,9 +110,17 @@ function findUploadDir(auth) {
 }
 
 // Upload the file
-function upload(drive, craigDir) {
+function upload(drive, craigDir, row) {
+    // Choose our format
+    var format = "flac";
+    if (row.format)
+        format = row.format;
+    var container = "zip";
+    if (row.container)
+        container = row.container;
+
     // Start the cooker
-    var cook = cp.spawn("./cook.sh", [rid], {
+    var cook = cp.spawn("./cook.sh", [rid, format, container], {
         stdio: ["ignore", "pipe", "ignore"]
     });
     drive.files.create({

@@ -29,5 +29,7 @@ CREATE TABLE IF NOT EXISTS prefixes (
 
 CREATE TABLE IF NOT EXISTS drive (
     id TEXT PRIMARY KEY,
-    data TEXT
+    data TEXT,
+    format TEXT,
+    container TEXT
 );

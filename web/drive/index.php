@@ -25,6 +25,14 @@ require "../locale.php";
 $db = new SQLite3("/home/yahweasel/craig/craig.db");
 $db->exec("PRAGMA journal_mode=WAL;");
 
+$formats = array(
+    "flac" => "FLAC",
+    "aup" => "Audacity",
+    "aac" => "AAC (MPEG-4)",
+    "vorbis" => "Ogg Vorbis"
+);
+$formatNms = array_keys($formats);
+
 $discordConfig = json_decode(file_get_contents("/home/yahweasel/craig-drive/discord_client_secret.json"), true);
 $discordBase = "https://discordapp.com/api/v6";
 $discordAuthURL = "https://discordapp.com/api/oauth2/authorize?client_id=272937604339466240&redirect_uri=https%3A%2F%2Fcraig.chat%2Fdrive%2F%3Fauth%3Ddiscord&response_type=code&scope=identify";
@@ -175,6 +183,45 @@ if (isset($_REQUEST["logoff"])) {
         $discord = $discordID = false;
     }
 }
+
+// If they asked to change our format, do so
+if ($discord && $gdrive && isset($_REQUEST["format"])) {
+    // Make sure it's a legal format
+    $format = "flac";
+    $container = "zip";
+    $maybeFormat = $_REQUEST["format"];
+    foreach ($formatNms as $formatNm) {
+        if ($maybeFormat === $formatNm)
+            $format = $formatNm;
+    }
+
+    if ($format === "aup") {
+        $format = "flac";
+        $container = "aupzip";
+    }
+
+    // And update it in the DB
+    $db->exec("UPDATE drive SET format = '$format', container = '$container' WHERE id='$discordID';");
+}
+
+// If we're fully logged in, get our format
+$format = "flac";
+$container = "zip";
+if ($discord && $gdrive) {
+    $res = $db->query("SELECT * FROM drive WHERE id='$discordID';");
+    $row = $res->fetchArray();
+    if ($row !== false) {
+        $format = $row["format"];
+        if ($format === null)
+            $format = "flac";
+        $container = $row["container"];
+        if ($container === null)
+            $container = "zip";
+    }
+
+    if ($container === "aupzip")
+        $format = "aup";
+}
 ?>
 <!doctype html>
 <html>
@@ -229,6 +276,13 @@ if (isset($_REQUEST["logoff"])) {
                     print "<a href=\"?logoff=gdrive\">" . ls("drlo") . "</a><br/><br/>";
 
                     l("ddone");
+                    print "<br/><br/>";
+
+                    print '<form action="." method="GET">';
+                    print ls("format") . ' <select name="format" onchange="this.form.submit()">';
+                    foreach ($formats as $formatNm => $formatDesc)
+                        print "<option value=\"$formatNm\"" . (($format===$formatNm)?" selected":"") . ">$formatDesc</option>\n";
+                    print "</select>\n</form>\n";
                 }
             }
         ?><br/><br/>
