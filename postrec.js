@@ -71,7 +71,7 @@ function findUploadDir(auth, row) {
     const opts = {
         pageSize: 1000,
         fields: "nextPageToken, files(id, name)",
-        q: "'root' in parents and mimeType = 'application/vnd.google-apps.folder'"
+        q: "mimeType = 'application/vnd.google-apps.folder'"
     };
     var files = [];
     drive.files.list(opts, page);
