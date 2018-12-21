@@ -311,6 +311,8 @@ function featuresToStr(f, guild, prefix) {
         ret += "\nYou may download avatar glowers.";
     if (f.bless && !guild)
         ret += "\nYou may bless servers.";
+    if (f.ennuicastr)
+        ret += "\nYou have alpha access to EnnuiCastr.";
     if (f.mp3)
         ret += "\nYou may download MP3.";
 

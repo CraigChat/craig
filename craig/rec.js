@@ -23,6 +23,8 @@
 
 const cp = require("child_process");
 const fs = require("fs");
+const https = require("https");
+const ws = require("ws");
 
 const ogg = require("./ogg.js");
 const opus = new (require("node-opus")).OpusEncoder(48000);
@@ -53,6 +55,8 @@ const cf = require("./features.js");
 
 const cb = require("./backup.js");
 
+const ecp = require("./ennuicastr-protocol.js");
+
 /* Active recordings by guild, channel
  *
  * SHARDS:
@@ -60,6 +64,13 @@ const cb = require("./backup.js");
  * shards have only the recordings active for them.
  */
 const activeRecordings = {};
+
+/* Active recordings by ID */
+const arID = {};
+
+/* The https and websocket servers, once they've been established */
+var hs = null;
+var wss = null;
 
 const emptyBuf = Buffer.alloc(0);
 
@@ -132,13 +143,19 @@ function session(msg, prefix, rec) {
     // Active users, by ID
     var users = {};
 
+    // Active web users, by username#web
+    var webUsers = {};
+
+    // Active ping connections, simply so we can close them when we're done with them
+    var webPingers = {};
+
     // Track numbers for each active user
     var userTrackNos = {};
 
     // Packet numbers for each active user
     var userPacketNos = {};
 
-    // Recent packets, before they've been flushed, for each active user
+    // Recent packets, before they've been flushed, for each active non-web user
     var userRecentPackets = {};
 
     // Have we warned about this user's data being corrupt?
@@ -447,12 +464,202 @@ function session(msg, prefix, rec) {
         }
     }
 
+    // Support for receiving web data
+    if (rec.features.ennuicastr)
+    rec.onweb = function(ws, msg) {
+        var p = ecp.parts.login;
+
+        // First check the login message itself
+        var givenKey = msg.readUInt32LE(p.key);
+        if (givenKey !== rec.ennuiKey)
+            return ws.close();
+
+        // Switch based on what kind of connection it is
+        var flags = msg.readUInt32LE(p.flags);
+        if (flags & 1) {
+            // It's a data connection
+            webDataConnection(ws, msg);
+
+        } else {
+            // It's just a ping connection
+            webPingConnection(ws);
+
+        }
+
+        // And acknowledge them
+        var op = ecp.parts.ack;
+        var ret = Buffer.alloc(op.length);
+        ret.writeUInt32LE(ecp.ids.ack, 0);
+        ret.writeUInt32LE(ecp.ids.login, op.ackd);
+        ws.send(ret);
+    };
+
+    // Handle data from web connections
+    function webDataConnection(ws, msg) {
+        // Firstly we need to find if the user is already connected, and rename them if so
+        var username = "_";
+        try {
+            username = msg.toString("utf8", ecp.parts.login.nick).substring(0, 32);
+        } catch (ex) {}
+
+        var wu = username + "#web";
+
+        var user = webUsers[wu];
+        if (user && user.connected) {
+            // Try another track
+            var i;
+            for (i = 2; i < 16; i++) {
+                wu = username + " (" + i + ")#web";
+                user = webUsers[wu];
+                if (!user || !user.connected)
+                    break;
+            }
+            if (i === 16) {
+                // No free tracks, nothing we can do!
+                return ws.close();
+            }
+
+            username = username + " (" + i + ")";
+            wu = username + "#web";
+        }
+
+        var userTrackNo;
+        if (!user) {
+            /* Initialize this user's data (FIXME: partially duplicated from
+             * the Discord version) */
+            userTrackNo = trackNo++;
+            userTrackNos[wu] = userTrackNo;
+            userPacketNos[wu] = userPacketNo = 2;
+
+            // Put a valid Opus header at the beginning
+            try {
+                write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeader[0], ogg.BOS);
+                write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeader[1]);
+            } catch (ex) {
+                logex(ex);
+            }
+
+            webUsers[wu] = user = {
+                connected: true,
+                ws
+            };
+
+        } else {
+            userTrackNo = userTrackNos[wu];
+            user.connected = true;
+            user.ws = ws;
+
+        }
+
+        // Now accept their actual data
+        ws.on("message", (msg) => {
+            msg = Buffer.from(msg);
+            if (msg.length < 4)
+                return ws.close();
+
+            var cmd = msg.readUInt32LE(0);
+
+            switch (cmd) {
+                case ecp.ids.data:
+                    var p = ecp.parts.data;
+                    if (msg.length < p.length)
+                        return ws.close();
+
+                    var granulePos = msg.readUIntLE(p.granulePos, 6);
+
+                    // Calculate our "correct" time to make sure it's not unacceptably far off
+                    var arrivalTime = process.hrtime(startTime);
+                    arrivalTime = arrivalTime[0] * 48000 + ~~(arrivalTime[1] / 20833.333);
+
+                    if (granulePos < arrivalTime - 30*48000 || granulePos > arrivalTime + 30*48000)
+                        granulePos = arrivalTime;
+
+                    // And accept the data
+                    write(recOggStream, granulePos, userTrackNo, userPacketNos[wu]++, msg.slice(p.length));
+                    break;
+
+                default:
+                    // No other commands are accepted
+                    return ws.close();
+            }
+        });
+
+        ws.on("close", () => {
+            user.connected = false;
+        });
+    }
+
+    // Handle data from ping connections
+    function webPingConnection(ws) {
+        // We need to index these simply so that we can close them when we're done
+        var wpid;
+        do {
+            wpid = ~~(Math.random() * 1000000000);
+        } while (wpid in webPingers);
+        webPingers[wpid] = ws;
+
+        // Now accept commands
+        ws.on("message", (msg) => {
+            msg = Buffer.from(msg);
+            if (msg.length < 4)
+                return ws.close();
+
+            var cmd = msg.readUInt32LE(0);
+
+            switch (cmd) {
+                case ecp.ids.ping:
+                    var p = ecp.parts.ping;
+                    if (msg.length !== p.length)
+                        return ws.close();
+
+                    // Pong with our current time
+                    var op = ecp.parts.pong;
+                    var ret = Buffer.alloc(op.length);
+                    ret.writeUInt32LE(ecp.ids.pong, 0);
+                    msg.copy(ret, op.clientTime, p.clientTime);
+                    var tm = process.hrtime(startTime);
+                    ret.writeDoubleLE(tm[0]*1000 + (tm[1]/1000000), op.serverTime);
+                    ws.send(ret);
+                    break;
+
+                default:
+                    // No other commands accepted
+                    return ws.close();
+            }
+        });
+
+        ws.on("close", () => {
+            delete webPingers[wpid];
+        });
+    }
+
     // When we're disconnected from the channel...
     var disconnected = false;
     function onDisconnect() {
         if (disconnected)
             return;
         disconnected = true;
+
+        // Close any web connections
+        for (var wu in webUsers) {
+            try {
+                var user = webUsers[wu];
+                if (user.connected)
+                    user.ws.close();
+            } catch (ex) {
+                logex(ex);
+            }
+        }
+        rec.onweb = null;
+
+        // And web ping connections
+        for (var wpid in webPingers) {
+            try {
+                webPingers[wpid].close();
+            } catch (ex) {
+                logex(ex);
+            }
+        }
 
         // Flush any remaining data
         for (var uid in userRecentPackets) {
@@ -702,6 +909,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
             // Make the access keys for it
             var accessKey = ~~(Math.random() * 1000000000);
+            var ennuiKey = ~~(Math.random() * 1000000000);
             var deleteKey = ~~(Math.random() * 1000000000);
 
             // Set up the info
@@ -771,6 +979,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 if (Object.keys(activeRecordings[guildId]).length === 0) {
                     delete activeRecordings[guildId];
                 }
+                delete arID[id];
 
                 // Rename the bot in this guild
                 var fixNick = undefined;
@@ -820,6 +1029,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 connection: null,
                 id: id,
                 accessKey: accessKey,
+                ennuiKey: ennuiKey,
                 lang: lang,
                 client: chosenClient,
                 clientNum: chosenClientNum,
@@ -828,6 +1038,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 close: close
             };
             activeRecordings[guildId][channelId] = rec;
+            arID[id] = rec;
 
             if (noSilenceDisconnect)
                 rec.noSilenceDisconnect = true;
@@ -871,6 +1082,11 @@ function cmdJoin(lang) { return function(msg, cmd) {
                             info.startTime) +
                         (hint?("\n\n"+hint):"") +
                         "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
+
+                    if (f.ennuicastr && hs)
+                        rmsg += "\n\nEnnuiCastr client link: https://c.ennuicastr.com/?id=" + id +
+                            "&key=" + ennuiKey +
+                            "&port=" + hs.address().port;
 
                     reply(msg, true, cmd[1], rmsg,
                         l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
@@ -1223,6 +1439,68 @@ cc.processCommands["exit"] = function(msg) {
         process.exit(0);
     }, 30000);
 }
+
+
+// Start the EnnuiCastr server
+function startEnnuiCastr() {
+    var attempts = 0;
+    var home = process.env.HOME; // FIXME: Make this path configurable
+    var hst = https.createServer({
+        cert: fs.readFileSync(home+"/cert/fullchain.pem", "utf8"),
+        key: fs.readFileSync(home+"/cert/privkey.pem", "utf8")
+    });
+
+    hst.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+            // Try again
+            if (attempts++ < 16)
+                startHTTPS();
+        }
+    });
+
+    hst.on("listening", startWS);
+
+    // Start the HTTPS server
+    function startHTTPS() { 
+        hst.listen(36678 + ~~(Math.random()*1024));
+    }
+
+    startHTTPS();
+
+    // Start the websocket server
+    function startWS() {
+        hs = hst;
+        wss = new ws.Server({
+            server: hs
+        });
+
+        wss.on("connection", (ws) => {
+            // We must receive a login first
+            ws.once("message", (msg) => {
+                msg = Buffer.from(msg); // Just in case
+                var p = ecp.parts.login;
+                if (msg.length < p.length)
+                    return ws.close();
+
+                var cmd = msg.readUInt32LE(0);
+                if (cmd !== ecp.ids.login)
+                    return ws.close();
+
+                // The ID is the only thing we check here
+                var id = ""+msg.readUInt32LE(p.id);
+                if (!(id in arID))
+                    return ws.close();
+
+                var cb = arID[id].onweb;
+                if (!cb)
+                    return ws.close();
+
+                messageHandler = cb(ws, msg);
+            });
+        });
+    }
+}
+startEnnuiCastr();
 
 // Memory leaks (yay) force us to gracefully restart every so often
 if(cc.master)
