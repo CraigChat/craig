@@ -527,6 +527,7 @@ function session(msg, prefix, rec) {
         if (!user) {
             /* Initialize this user's data (FIXME: partially duplicated from
              * the Discord version) */
+            var userData = {id: wu, name: username, discrim: "web"};
             userTrackNo = trackNo++;
             userTrackNos[wu] = userTrackNo;
             userPacketNos[wu] = userPacketNo = 2;
@@ -538,6 +539,9 @@ function session(msg, prefix, rec) {
             } catch (ex) {
                 logex(ex);
             }
+
+            // Write their username etc to the recording data
+            recFUStream.write(",\"" + userTrackNo + "\":" + JSON.stringify(userData) + "\n");
 
             webUsers[wu] = user = {
                 connected: true,
