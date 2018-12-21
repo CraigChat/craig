@@ -555,6 +555,9 @@ function session(msg, prefix, rec) {
 
         }
 
+        // Announce them
+        sReply(true, "", "User " + JSON.stringify(username) + " has connected via EnnuiCastr.");
+
         // Now accept their actual data
         ws.on("message", (msg) => {
             msg = Buffer.from(msg);
@@ -590,6 +593,11 @@ function session(msg, prefix, rec) {
 
         ws.on("close", () => {
             user.connected = false;
+
+            // Announce their disconnection
+            if (!disconnected)
+                sReply(true, "", "EnnuiCastr user " + JSON.stringify(username) + " has disconnected.");
+
         });
     }
 

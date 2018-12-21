@@ -69,12 +69,13 @@ function reply(msg, dm, prefix, pubtext, privtext) {
             // Try to send the message privately
             if (typeof privtext === "undefined")
                 privtext = pubtext;
-            else
+            else if (pubtext !== "")
                 privtext = pubtext + "\n\n" + privtext;
             log("Reply to " + nameId(msg.author) + ": " + JSON.stringify(privtext));
 
             function rereply() {
-                reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
+                if (pubtext !== "")
+                    reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
             }
             try {
                 msg.author.send(privtext).catch(rereply);
