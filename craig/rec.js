@@ -533,8 +533,8 @@ function session(msg, prefix, rec) {
 
             // Put a valid Opus header at the beginning
             try {
-                write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeader[0], ogg.BOS);
-                write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeader[1]);
+                write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeaderMono[0], ogg.BOS);
+                write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeaderMono[1]);
             } catch (ex) {
                 logex(ex);
             }
