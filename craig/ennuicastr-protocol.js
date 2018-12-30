@@ -26,6 +26,7 @@
             "ack": 0x00,
 
             "login": 0x10,
+            "info": 0x11,
 
             "ping": 0x20,
             "pong": 0x21,
@@ -47,6 +48,12 @@
                 "nick": 16
             },
 
+            "info": {
+                "length": 12,
+                "key": 4,
+                "value": 8
+            },
+
             "ping": {
                 "length": 12,
                 "clientTime": 4
@@ -63,6 +70,24 @@
                 "granulePos": 4,
                 "packet": 12
             }
+        },
+
+        "flags": {
+            "connectionTypeMask": 0xF,
+            "connectionType": {
+                "ping": 0x0,
+                "data": 0x1,
+                "monitor": 0x8
+            },
+            "dataTypeMask": 0xF0,
+            "dataType": {
+                "opus": 0x00,
+                "flac": 0x10
+            }
+        },
+
+        "info": {
+            "sampleRate": 0
         }
     };
 

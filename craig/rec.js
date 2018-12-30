@@ -476,13 +476,22 @@ function session(msg, prefix, rec) {
 
         // Switch based on what kind of connection it is
         var flags = msg.readUInt32LE(p.flags);
-        if (flags & 1) {
+        var ctype = flags & ecp.flags.connectionTypeMask;
+        var dtype = flags & ecp.flags.dataTypeMask;
+        if (dtype !== ecp.flags.dataType.opus) {
+            // Only Opus is supported for now
+            return ws.close();
+        }
+        if (ctype === ecp.flags.connectionType.data) {
             // It's a data connection
             webDataConnection(ws, msg);
 
-        } else {
+        } else if (ctype === ecp.flags.connectionType.ping) {
             // It's just a ping connection
             webPingConnection(ws);
+
+        } else {
+            return ws.close();
 
         }
 
