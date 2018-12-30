@@ -162,10 +162,10 @@ exec 9< "$ID.ogg.data"
 flock -s 9
 
 NICE="nice -n10 ionice -c3 chrt -i 0"
-NB_STREAMS=`timeout 10 cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
+CODECS=`timeout 10 cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
     timeout 10 ffprobe - 2>&1 |
-    grep 'Audio: opus' |
-    wc -l`
+    grep 'Audio: \(opus\|flac\)'`
+NB_STREAMS=`echo "$CODECS" | wc -l`
 
 # Prepare the self-extractor or project file
 if [ "$FORMAT" = "wavsfx" ]
@@ -232,9 +232,11 @@ do
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
 
     else
+        CODEC=`echo "$CODECS" | sed -n "$c"'s/.*Audio: \([^ ,]*\).*/\1/p'`
+        [ "$CODEC" = "opus" ] && CODEC=libopus
         timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |
-            timeout $DEF_TIMEOUT $NICE ffmpeg -codec libopus -copyts -i - \
+            timeout $DEF_TIMEOUT $NICE ffmpeg -codec $CODEC -copyts -i - \
             -af "$FILTER" \
             -flags bitexact -f wav - |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$T_DURATION" |

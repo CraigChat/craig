@@ -478,13 +478,9 @@ function session(msg, prefix, rec) {
         var flags = msg.readUInt32LE(p.flags);
         var ctype = flags & ecp.flags.connectionTypeMask;
         var dtype = flags & ecp.flags.dataTypeMask;
-        if (dtype !== ecp.flags.dataType.opus) {
-            // Only Opus is supported for now
-            return ws.close();
-        }
         if (ctype === ecp.flags.connectionType.data) {
             // It's a data connection
-            webDataConnection(ws, msg);
+            webDataConnection(ws, msg, dtype);
 
         } else if (ctype === ecp.flags.connectionType.ping) {
             // It's just a ping connection
@@ -504,7 +500,7 @@ function session(msg, prefix, rec) {
     };
 
     // Handle data from web connections
-    function webDataConnection(ws, msg) {
+    function webDataConnection(ws, msg, dtype) {
         // Firstly we need to find if the user is already connected, and rename them if so
         var username = "_";
         try {
@@ -514,13 +510,13 @@ function session(msg, prefix, rec) {
         var wu = username + "#web";
 
         var user = webUsers[wu];
-        if (user && user.connected) {
+        if (user && (user.connected || user.dtype !== dtype)) {
             // Try another track
             var i;
             for (i = 2; i < 16; i++) {
                 wu = username + " (" + i + ")#web";
                 user = webUsers[wu];
-                if (!user || !user.connected)
+                if (!user || (!user.connected && user.dtype === dtype))
                     break;
             }
             if (i === 16) {
@@ -536,17 +532,19 @@ function session(msg, prefix, rec) {
         if (!user) {
             /* Initialize this user's data (FIXME: partially duplicated from
              * the Discord version) */
-            var userData = {id: wu, name: username, discrim: "web"};
+            var userData = {id: wu, name: username, discrim: "web", dtype};
             userTrackNo = trackNo++;
             userTrackNos[wu] = userTrackNo;
             userPacketNos[wu] = userPacketNo = 2;
 
-            // Put a valid Opus header at the beginning
-            try {
-                write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeaderMono[0], ogg.BOS);
-                write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeaderMono[1]);
-            } catch (ex) {
-                logex(ex);
+            // Put a valid Opus header at the beginning if we're Opus
+            if (dtype === ecp.flags.dataType.opus) {
+                try {
+                    write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeaderMono[0], ogg.BOS);
+                    write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeaderMono[1]);
+                } catch (ex) {
+                    logex(ex);
+                }
             }
 
             // Write their username etc to the recording data
@@ -576,6 +574,23 @@ function session(msg, prefix, rec) {
             var cmd = msg.readUInt32LE(0);
 
             switch (cmd) {
+                case ecp.ids.info:
+                    // FIXME: We're counting on the fact that only FLAC sends info right now
+                    var p = ecp.parts.info;
+                    if (msg.length != p.length)
+                        return ws.close();
+
+                    var key = msg.readUInt32LE(p.key);
+                    var value = msg.readUInt32LE(p.value);
+                    if (key === ecp.info.sampleRate) {
+                        // Now we can write our header
+                        write(recOggHStream[0], 0, userTrackNo, 0,
+                            (value===44100)?cu.flacHeader44k:cu.flacHeader48k,
+                            ogg.BOS);
+                        write(recOggHStream[1], 0, userTrackNo, 1, cu.flacTags);
+                    }
+                    break;
+
                 case ecp.ids.data:
                     var p = ecp.parts.data;
                     if (msg.length < p.length)

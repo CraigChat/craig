@@ -42,8 +42,15 @@ struct OggHeader {
 
 // The encoding for a packet with only zeroes
 const unsigned char zeroPacket[] = { 0xF8, 0xFF, 0xFE };
-const uint32_t zeroPacketCRC = 0xD8881845;
 const uint32_t packetTime = 960;
+
+// The encoding for a FLAC packet with only zeroes, 48k
+const unsigned char zeroPacketFLAC48k[] = { 0xFF, 0xF8, 0x7A, 0x0C, 0x00, 0x03,
+    0xBF, 0x94, 0x00, 0x00, 0x00, 0x00, 0xB1, 0xCA };
+
+// The encoding for a FLAC packet with only zeroes, 44.1k
+const unsigned char zeroPacketFLAC44k[] = { 0xFF, 0xF8, 0x79, 0x0C, 0x00, 0x03,
+    0x71, 0x56, 0x00, 0x00, 0x00, 0x00, 0x63, 0xC5 };
 
 ssize_t readAll(int fd, void *vbuf, size_t count)
 {
@@ -94,6 +101,7 @@ int main(int argc, char **argv)
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
     unsigned char correctTimestamps = 0, lastWasSilence = 1;
+    uint32_t flacRate = 0;
 
     if (argc != 2) {
         fprintf(stderr, "Use: oggstender <track no>\n");
@@ -135,7 +143,9 @@ int main(int argc, char **argv)
             continue;
 
         // Is this badly-timed data?
-        if (oggHeader.granulePos == 0 && packetSize > 4 && memcmp(buf, "Opus", 4))
+        if (oggHeader.granulePos == 0 && packetSize > 5 &&
+            memcmp(buf, "Opus", 4) && memcmp(buf, "\x7f""FLAC", 5) &&
+            memcmp(buf, "\x04\0\0\x41", 4))
             continue;
 
         // Is this empty data (Craig uses empty data packets for timestamp references)
@@ -146,6 +156,12 @@ int main(int argc, char **argv)
         skip = 0;
         if (packetSize > 2 && !memcmp(buf, "\x90\x00", 2))
             skip = 2;
+
+        // Check if this is a FLAC header
+        if (oggHeader.granulePos == 0 && packetSize > 29 && !memcmp(buf, "\x7f""FLAC", 5)) {
+            // Get our sample rate
+            flacRate = ((uint32_t) buf[27] << 12) + ((uint32_t) buf[28] << 4) + ((uint32_t) buf[29] >> 4);
+        }
 
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * (lastWasSilence ? 1 : 5)) {
@@ -160,8 +176,17 @@ int main(int argc, char **argv)
                     gapHeader.granulePos = trueGranulePos;
                     gapHeader.streamNo = keepStreamNo;
                     gapHeader.sequenceNo = lastSequenceNo++;
-                    gapHeader.crc = zeroPacketCRC;
-                    writeOgg(&gapHeader, zeroPacket, sizeof(zeroPacket));
+                    gapHeader.crc = 0;
+                    switch (flacRate) {
+                        case 0: // Ogg
+                            writeOgg(&gapHeader, zeroPacket, sizeof(zeroPacket));
+                            break;
+                        case 44100:
+                            writeOgg(&gapHeader, zeroPacketFLAC44k, sizeof(zeroPacketFLAC44k));
+                            break;
+                        default:
+                            writeOgg(&gapHeader, zeroPacketFLAC48k, sizeof(zeroPacketFLAC48k));
+                    }
                     trueGranulePos += packetTime;
                     gapTime -= packetTime;
                 }
@@ -188,7 +213,7 @@ int main(int argc, char **argv)
         }
 
         // It's safer to place gaps during silence, so "silence detect" by looking for tiny packets
-        lastWasSilence = (packetSize < 8);
+        lastWasSilence = (packetSize < (flacRate?16:8));
 
         // Now fix up our own granule positions
         lastGranulePos = oggHeader.granulePos;
