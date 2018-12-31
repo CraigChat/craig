@@ -14,24 +14,22 @@ all: ../cook/ffmpeg-movqtrle.exe ../cook/ffmpeg-movpng.exe \
 	cd build-$* && \
 	../configure $(CFG) `cat ../../../cook/ffmpeg-flags/$*.cfg` && \
 	$(MAKE) && \
-	upx ffmpeg.exe && \
 	cp ffmpeg.exe ../../../cook/ffmpeg-$*.exe
 
 ffmpeg-$(FFMPEG_VER)/configure:
 	tar Jxf ffmpeg-$(FFMPEG_VER).tar.xz
 
-../cook/%sfx.exe: unzip/unzipsfx.a %sfx.cxx
-	$(CROSS_PREFIX)g++ -static -Os $*sfx.cxx $*sfxcb.cxx unzip/unzipsfx.a -lfltk -lgdi32 -lole32 -lcomctl32 -luuid -o $*sfx.exe
-	$(CROSS_PREFIX)strip $*sfx.exe
-	upx $*sfx.exe
-	mv $*sfx.exe ../cook/
+../cook/%fx.exe: unzip/unzipsfx.a %fx.cxx
+	$(CROSS_PREFIX)g++ -static -Os $*fx.cxx $*fxcb.cxx unzip/unzipsfx.a -lfltk -lgdi32 -lole32 -lcomctl32 -luuid -o $*fx.exe
+	$(CROSS_PREFIX)strip $*fx.exe
+	mv $*fx.exe ../cook/
 
 unzip/unzipsfx.a:
 	cd unzip && \
 	$(MAKE)
 
-%sfx.cxx:
-	fluid -c $*sfx.fl
+%fx.cxx:
+	fluid -c $*fx.fl
 
 clean:
 	rm -f sfx.cxx sfx.h powersfx.cxx powersfx.h

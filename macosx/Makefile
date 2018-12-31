@@ -12,7 +12,6 @@ all: ../cook/ffmpeg-movqtrle.macosx ../cook/ffmpeg-movpng.macosx \
 	cd build-$* && \
 	../configure $(CFG) `cat ../../../cook/ffmpeg-flags/$*.cfg` && \
 	$(MAKE) && \
-	upx ffmpeg && \
 	cp ffmpeg ../../../cook/ffmpeg-$*.macosx
 
 ffmpeg-$(FFMPEG_VER)/configure:
