@@ -225,5 +225,22 @@ int main(int argc, char **argv)
         writeOgg(&oggHeader, buf + skip, packetSize - skip);
     }
 
+    if (lastSequenceNo <= 2) {
+        // This track had no actual audio. To avoid breakage, throw some on.
+        struct OggHeader oggHeader = {0};
+        oggHeader.streamNo = keepStreamNo;
+        oggHeader.sequenceNo = lastSequenceNo++;
+        switch (flacRate) {
+            case 0: // Ogg
+                writeOgg(&oggHeader, zeroPacket, sizeof(zeroPacket));
+                break;
+            case 44100:
+                writeOgg(&oggHeader, zeroPacketFLAC44k, sizeof(zeroPacketFLAC44k));
+                break;
+            default:
+                writeOgg(&oggHeader, zeroPacketFLAC48k, sizeof(zeroPacketFLAC48k));
+        }
+    }
+
     return 0;
 }
