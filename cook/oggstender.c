@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Yahweasel
+ * Copyright (c) 2017, 2018 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/* NOTE: We don't use libogg here because the behavior if this program is so
+/* NOTE: We don't use libogg here because the behavior of this program is so
  * trivial, the added memory bandwidth of using it is just a waste of energy */
 
 /* NOTE: This program assumes little-endian for speed, it WILL NOT WORK on a

@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/* NOTE: We don't use libogg here because the behavior if this program is so
+/* NOTE: We don't use libogg here because the behavior of this program is so
  * trivial, the added memory bandwidth of using it is just a waste of energy */
 
 /* NOTE: This program assumes little-endian for speed, it WILL NOT WORK on a
