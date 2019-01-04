@@ -167,6 +167,18 @@ if (isset($_REQUEST["delete"])) {
     print "]";
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "cooked") {
+    // Don't allow multiple downloads
+    $fp = fopen("$base/$id.ogg.data", "r+");
+    if ($fp !== false) {
+        $ready = flock($fp, LOCK_EX|LOCK_NB);
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        if (!$ready) {
+            http_response_code(429);
+            die("Too many requests");
+        }
+    }
+
     $format = "flac";
     if (isset($_REQUEST["format"])) {
         $rf = $_REQUEST["format"];

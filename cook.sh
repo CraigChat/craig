@@ -159,7 +159,7 @@ fi
 
 # Take a lock on the data file so that we can detect active downloads
 exec 9< "$ID.ogg.data"
-flock -s 9
+flock -n 9 || exit 1
 
 NICE="nice -n10 ionice -c3 chrt -i 0"
 CODECS=`timeout 10 cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
