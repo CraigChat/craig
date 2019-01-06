@@ -28,7 +28,8 @@ const client = cc.client;
 const config = cc.config;
 const logex = cc.logex;
 
-const db = require("./db.js").db;
+const cdb = require("./db.js");
+const db = cdb.db;
 const commands = require("./commands.js").commands;
 
 const cu = require("./utils.js");
@@ -152,7 +153,7 @@ if (config.rewards) (function() {
             delete blessU2G[uid];
             delete blessG2U[gid];
             if (!cc.dead && cc.master)
-                unblessStmt.run({uid:uid, gid:gid});
+                cdb.dbRun(unblessStmt, {uid:uid, gid:gid});
         }
     }
 
@@ -179,7 +180,7 @@ if (config.rewards) (function() {
         blessU2G[uid] = gid;
         blessG2U[gid] = uid;
         if (!cc.dead && cc.master)
-            blessStmt.run({uid,gid});
+            cdb.dbRun(blessStmt, {uid,gid});
     }
 
     function addBless(uid, gid) {

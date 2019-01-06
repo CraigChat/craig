@@ -83,7 +83,7 @@ if (config.rewards) (function() {
 
                 var step = {u:uid, g:gid, c:cid};
                 if (!cc.dead)
-                    autoRemStmt.run({uid, gid, cid});
+                    cdb.dbRun(autoRemStmt, {uid, gid, cid});
             }
         }
 
@@ -143,7 +143,7 @@ if (config.rewards) (function() {
         autoU2GC[uid].push(i);
         autoG2C2U[gid][cid].push(i);
         if (!cc.dead)
-            autoAddStmt.run({uid, gid, cid, tids: dbtids.join(","), min});
+            cdb.dbRun(autoAddStmt, {uid, gid, cid, tids: dbtids.join(","), min});
     }
 
     function addAutorecord(uid, gid, cid, tids, min) {

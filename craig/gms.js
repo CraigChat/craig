@@ -59,7 +59,7 @@ function guildRefresh(guild) {
     if (cc.dead) return;
     var step = {id: guild.id, refreshed: (new Date().getTime())};
     guildMembershipStatus[step.id] = step.refreshed;
-    guildRefreshStmt.run(step);
+    cdb.dbRun(guildRefreshStmt, step);
 }
 
 var guildDelete;

@@ -73,7 +73,7 @@ if (cc.master) {
 function banLocal(id, user) {
     banned[id] = user;
     if (cc.master)
-        banStmt.run({id:id, name:user});
+        cdb.dbRun(banStmt, {id:id, name:user});
 }
 
 function ban(id, user) {
@@ -94,7 +94,7 @@ cc.processCommands["ban"] = function(msg) {
 function unbanLocal(id) {
     delete banned[id];
     if (cc.master)
-        unbanStmt.run({id});
+        cdb.dbRun(unbanStmt, {id});
 }
 
 function unban(id) {
@@ -282,7 +282,7 @@ function cmdPrefixUnprefix(isPrefix, lang, msg, cmd) {
         } else {
             prefixes[gid] = cmd[3];
             if (!cc.dead) {
-                prefixStmt.run({id:gid, prefix:cmd[3]});
+                cdb.dbRun(prefixStmt, {id:gid, prefix:cmd[3]});
                 reply(msg, false, cmd[1], l("prefixset", lang));
             }
         }
@@ -290,7 +290,7 @@ function cmdPrefixUnprefix(isPrefix, lang, msg, cmd) {
     } else {
         delete prefixes[gid];
         if (!cc.dead) {
-            unprefixStmt.run({id:gid});
+            cdb.dbRun(unprefixStmt, {id:gid});
             reply(msg, false, cmd[1], l("prefixunset", lang));
         }
 

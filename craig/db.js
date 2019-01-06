@@ -41,6 +41,43 @@ schema.split(";").forEach((x) => {
 
 logdb.exec(lschema);
 
+// A runner for DB transactions with retry
+function dbRun(stmt, vals) {
+    if (typeof vals === "undefined") vals = {};
+    var retries = 30;
+    function retry() {
+        try {
+            stmt.run(vals);
+        } catch (ex) {
+            if (--retries <= 0) {
+                // :(
+                console.error(ex);
+            } else {
+                setTimeout(retry, 1000);
+            }
+        }
+    }
+    retry();
+}
+
+// A runner for log transactions with retry
+function logRun(stmt, vals) {
+    if (typeof vals === "undefined") vals = {};
+    var retries = 30;
+    function retry() {
+        stmt.run(vals, function(err) {
+            if (!err) return;
+            if (--retries <= 0) {
+                // :(
+                console.error(ex);
+            } else {
+                setTimeout(retry, 1000);
+            }
+        });
+    }
+    retry();
+}
+
 // Prepare the guild deletion statements
 const deleteSqls = [
     "DELETE FROM guildMembershipStatus WHERE id=?",
@@ -127,7 +164,7 @@ function log(type, details, extra) {
         else
             vals["@"+key] = null;
     });
-    logStmt.run(vals);
+    logRun(logStmt, vals);
 }
 
-module.exports = {db, logdb, deleteGuild, dbDump, loadDB, log};
+module.exports = {db, logdb, dbRun, deleteGuild, dbDump, loadDB, log};
