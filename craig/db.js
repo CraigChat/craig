@@ -110,14 +110,14 @@ function log(type, details, extra) {
     if (typeof extra === "undefined") extra = {};
 
     // Convenience conversions
-    if ("u" in extra)
+    if (extra.u)
         extra.uid = extra.u.id;
-    if ("tc" in extra) {
-        extra.gid = extra.tc.guild ? null : extra.tc.guild.id;
+    if (extra.tc) {
+        extra.gid = extra.tc.guild ? extra.tc.guild.id : null;
         extra.tcid = extra.tc.id;
     }
-    if ("vc" in extra) {
-        extra.gid = extra.vc.guild ? null : extra.tc.guild.id;
+    if (extra.vc) {
+        extra.gid = extra.vc.guild ? extra.vc.guild.id : null;
         extra.vcid = extra.vc.id;
     }
 

@@ -104,7 +104,7 @@ if (client) client.on("shardDisconnect", (err) => {
 });
 
 if (client) client.on("error", (err) => {
-    log("client-error", "" + err + shardMsg);
+    log("client-error", shardMsg + " " + err + " " + JSON.stringify(err.stack+""));
 });
 
 // Handle shard commands

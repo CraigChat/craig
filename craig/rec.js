@@ -105,7 +105,7 @@ function session(msg, prefix, rec) {
         this.alive = true;
     });
     const pingInterval = setInterval(() => {
-        if (!connection.ws.alive) {
+        if (!connection.ws || !connection.ws.alive) {
             connection.disconnect();
         } else {
             connection.ws.alive = false;
@@ -1094,6 +1094,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
             // If we have voice channel issue, do our best to rectify them
             function onJoinError(ex) {
                 error(false, l("joinfail", lang) + " " + ex);
+                logex(ex);
                 close();
             }
 
