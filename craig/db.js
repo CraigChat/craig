@@ -25,7 +25,12 @@ const sqlite3 = require("better-sqlite3");
 const db = new sqlite3("craig.db");
 db.pragma("journal_mode = WAL");
 
+const asqlite3 = require("sqlite3"); // Yes, we use both
+const logdb = new asqlite3.Database("log.db");
+logdb.run("PRAGMA journal_mode = WAL");
+
 const schema = fs.readFileSync("craig/db.schema", "utf8");
+const lschema = fs.readFileSync("craig/logdb.schema", "utf8");
 
 // Initialize it if necessary
 schema.split(";").forEach((x) => {
@@ -33,6 +38,8 @@ schema.split(";").forEach((x) => {
     if (x === "") return;
     db.prepare(x).run();
 });
+
+logdb.exec(lschema);
 
 // Prepare the guild deletion statements
 const deleteSqls = [
@@ -88,4 +95,39 @@ function loadDB(dump) {
     db.transaction(dump).run();
 }
 
-module.exports = {db, deleteGuild, dbDump, loadDB};
+// Our logging statement
+const logStmt = logdb.prepare(
+    "INSERT INTO log (time, type, uid, gid, tcid, vcid, rid, details) VALUES " +
+    "(strftime('%Y-%m-%d %H:%M:%f', @time), @type, @uid, @gid, @tcid, @vcid, @rid, @details)");
+
+// And function
+function log(type, details, extra) {
+    var vals = {
+        "@time": new Date().toISOString(),
+        "@type": type,
+        "@details": details
+    };
+    if (typeof extra === "undefined") extra = {};
+
+    // Convenience conversions
+    if ("u" in extra)
+        extra.uid = extra.u.id;
+    if ("tc" in extra) {
+        extra.gid = extra.tc.guild ? null : extra.tc.guild.id;
+        extra.tcid = extra.tc.id;
+    }
+    if ("vc" in extra) {
+        extra.gid = extra.vc.guild ? null : extra.tc.guild.id;
+        extra.vcid = extra.vc.id;
+    }
+
+    ["uid", "gid", "tcid", "vcid", "rid"].forEach((key) => {
+        if (key in extra)
+            vals["@"+key] = extra[key];
+        else
+            vals["@"+key] = null;
+    });
+    logStmt.run(vals);
+}
+
+module.exports = {db, logdb, deleteGuild, dbDump, loadDB, log};

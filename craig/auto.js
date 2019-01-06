@@ -25,14 +25,16 @@ const fs = require("fs");
 const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;
-const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
 const cu = require("./utils.js");
 const reply = cu.reply;
 
-const db = require("./db.js").db;
+const cdb = require("./db.js");
+const db = cdb.db;
+const log = cdb.log;
+
 const commands = require("./commands.js").commands;
 
 const cf = require("./features.js");
@@ -443,9 +445,13 @@ if (config.rewards) (function() {
                     }
                 };
 
-                log("Auto-record " + (shouldRecord?"join":"leave") + ": " +
+                log("autorecord-" + (shouldRecord?"start":"stop"),
                     nameId(voiceChannel) + "@" + nameId(guild) +
-                    " requested by " + nameId(member));
+                    " requested by " + nameId(member),
+                    {
+                        uid: member.id,
+                        vc: voiceChannel
+                    });
 
                 // Retry after 10 seconds to avoid spamming retries when things change quickly
                 if (ac.retries > 0) {

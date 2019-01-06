@@ -17,7 +17,7 @@
 /*
  * Craig: A multi-track voice channel recording bot for Discord.
  *
- * The actual Discord client, logging and other core functionality.
+ * The actual Discord client, some logging and other core functionality.
  */
 
 const EventEmitter = require("events");
@@ -25,6 +25,9 @@ const fs = require("fs");
 const Discord = require("discord.js");
 const Eris = require("eris");
 require("./eris-flavor.js");
+
+const cdb = require("./db.js");
+const log = cdb.log;
 
 const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
 
@@ -87,21 +90,21 @@ const shardMsg = vshardMsg;
 
 // Announce our connection
 if (client) client.on("ready", () => {
-    log("Logged in as " + client.user.username + shardMsg);
+    log("login", "Logged in as " + client.user.username + shardMsg);
 });
 
 // Announce problems
 var dced = false;
 if (client) client.on("disconnect", (err) => {
-    log("Disconnected! " + err + shardMsg);
+    log("disconnected", "" + err + shardMsg);
 });
 
 if (client) client.on("shardDisconnect", (err) => {
-    log("Disconnected (shard)! " + err + shardMsg);
+    log("shard-disconnected", "" + err + shardMsg);
 });
 
 if (client) client.on("error", (err) => {
-    log("Client error! " + err + shardMsg);
+    log("client-error", "" + err + shardMsg);
 });
 
 // Handle shard commands
@@ -124,36 +127,10 @@ process.on("message", (msg) => {
 class RecordingEvent extends EventEmitter {}
 const recordingEvents = new RecordingEvent();
 
-// Logging function (not REALLY client-related, but this is the best place for it)
-var vlog;
-if ("log" in config) {
-    if (!master) {
-        vlog = function(line) {
-            client.shard.send({t:"log", l:line+""});
-        }
-    } else {
-        const logStream = fs.createWriteStream(config.log, {"flags": "a"});
-        vlog = function(line) {
-            logStream.write((new Date().toISOString()) + ": " + line + "\n");
-        }
-    }
-} else {
-    vlog = function(line) {
-        console.log((new Date().toISOString()) + ": " + line);
-    }
-}
-
-const log = vlog;
-
-// Shards log via the master
-shardCommands["log"] = function(shard, msg) {
-    log(msg.l);
-}
-
 // Log exceptions
 function logex(ex, r) {
     if (typeof r === "undefined") r = "";
-    log("EXCEPTION: " + r + " " + JSON.stringify(ex.stack+""));
+    log("exception", r + " " + JSON.stringify(ex.stack+""));
 }
 
 // Convenience function to turn entities into name#id strings:
@@ -189,7 +166,7 @@ module.exports = {
     client, sm, master, clients,
     config,
     recordingEvents,
-    log, logex,
+    logex,
     shardCommands, processCommands,
     nameId,
     dead: false

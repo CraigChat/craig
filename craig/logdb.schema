@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS log (
+    time TEXT,
+    type TEXT,
+    uid TEXT,
+    gid TEXT,
+    tcid TEXT,
+    vcid TEXT,
+    rid TEXT,
+    details TEXT
+);
+
+CREATE INDEX IF NOT EXISTS log_time ON log (time);
+CREATE INDEX IF NOT EXISTS log_uid ON log (uid);
+CREATE INDEX IF NOT EXISTS log_gid ON log (gid);

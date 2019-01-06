@@ -26,12 +26,14 @@ const cp = require("child_process");
 const cc = require("./craig/client.js");
 const client = cc.client;
 const config = cc.config;
-const log = cc.log;
 const logex = cc.logex;
 const recordingEvents = cc.recordingEvents;
 
 const cu = require("./craig/utils.js");
 const reply = cu.reply;
+
+const cdb = require("./craig/db.js");
+const log = cdb.log;
 
 const ccmds = require("./craig/commands.js");
 const commands = ccmds.commands;
@@ -231,7 +233,7 @@ if (config.stats) {
                 return;
 
             var statsOut = "";
-            statsCp = cp.fork("./stats.js", [config.log], {
+            statsCp = cp.fork("./stats.js", [], {
                 stdio: ["ignore", "pipe", process.stderr, "ipc"]
             });
             statsCp.on("exit", ()=>{

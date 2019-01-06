@@ -35,7 +35,6 @@ const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
 const clients = cc.clients;
-const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
@@ -47,6 +46,7 @@ const reply = cu.reply;
 
 const cdb = require("./db.js");
 const db = cdb.db;
+const log = cdb.log;
 
 const ccmds = require("./commands.js");
 const commands = ccmds.commands;
@@ -115,7 +115,9 @@ function session(msg, prefix, rec) {
 
     // Leave if the recording goes over their limit
     const partTimeout = setTimeout(() => {
-        log("Terminating " + id + ": Time limit.");
+        log("rec-term",
+            "Time limit",
+            {uid: rec.uid, vc: connection.channel, rid: id});
         sReply(true, l("timelimit", lang));
         rec.disconnected = true;
         connection.disconnect();
@@ -123,7 +125,9 @@ function session(msg, prefix, rec) {
 
     // Log it
     try {
-        log("Started recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+        log("rec-start",
+            nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id,
+            {uid: rec.uid, vc: connection.channel, rid: id});
     } catch(ex) {
         logex(ex);
     }
@@ -198,7 +202,8 @@ function session(msg, prefix, rec) {
                     sReply(true, msg);
                     usedMinutes++; // Just to make this warning not resound
                 } else {
-                    log("Terminating " + id + ": No data.");
+                    log("rec-term", "No data",
+                        {uid: rec.uid, vc: connection.channel, rid: id});
                     sReply(true, msg);
                     rec.disconnected = true;
                     connection.disconnect();
@@ -241,7 +246,8 @@ function session(msg, prefix, rec) {
         if (config.hardLimit && size >= config.hardLimit) {
             if (!hitHardLimit) {
                 hitHardLimit = true;
-                log("Terminating " + id + ": Size limit.");
+                log("rec-term", "Size limit",
+                    {uid: rec.uid, vc: connection.channel, rid: id});
                 sReply(true, l("sizelimit", lang));
                 rec.disconnected = true;
                 connection.disconnect();
@@ -708,7 +714,9 @@ function session(msg, prefix, rec) {
         if (!rec.disconnected) {
             // Not an intentional disconnect
             try {
-                log("Unexpected disconnect from " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+                log("rec-term",
+                    "Unexpected disconnection",
+                    {uid: rec.uid, vc: connection.channel, rid: id});
             } catch (ex) {
                 logex(ex);
             }
@@ -722,7 +730,9 @@ function session(msg, prefix, rec) {
 
         // Log it
         try {
-            log("Finished recording " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id);
+            log("rec-stop",
+                nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id,
+                {uid: rec.uid, vc: connection.channel, rid: id});
         } catch (ex) {
             logex(ex);
         }
@@ -772,7 +782,9 @@ function session(msg, prefix, rec) {
             if (failedToDecrypt.test(warning)) {
                 // Ignored
             } else {
-                log("VoiceConnection WARN in " + nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id + ": " + warning);
+                log("vc-warn",
+                    nameId(connection.channel) + "@" + nameId(connection.channel.guild) + " with ID " + id + ": " + warning,
+                    {uid: rec.uid, vc: connection.channel, rid: id});
             }
         } catch (ex) {
             logex(ex);
@@ -1093,7 +1105,9 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 else
                     recNick = configNick + " [RECORDING]";
                 guild.editNickname(recNick).then(join).catch((err) => {
-                    log("Terminating " + id + ": Lack nick change permission.");
+                    log("rec-term",
+                        "Lack nick change permission",
+                        {uid: userId, vc: channel, rid: id});
                     sReply(true, l("cannotnick", lang));
                     rec.disconnected = true;
                     close();
@@ -1250,7 +1264,9 @@ clients.forEach((client) => {
                     channelId in activeRecordings[guildId] &&
                     toChannel !== fromChannel) {
                     // We do not tolerate being moved
-                    log("Terminating recording: Moved to a different channel.");
+                    log("rec-term",
+                        "Moved to a different channel",
+                        {gid: guildId, vcid: channelId, rid: activeRecordings[guildId][channelId].id});
                     member.guild.voiceConnection.disconnect();
                 }
             }
@@ -1268,7 +1284,9 @@ clients.forEach((client) => {
             if (from.region !== to.region &&
                 to.voiceConnection) {
                 // The server has moved regions. This breaks recording.
-                log("Terminating recording: Moved to a different voice region.");
+                log("rec-term",
+                    "Moved to a different voice region",
+                    {vc: to.voiceConnection.channel});
                 to.voiceConnection.disconnect();
             }
         } catch (ex) {
@@ -1285,7 +1303,9 @@ clients.forEach((client) => {
                 if (guild.id in activeRecordings &&
                     guild.voiceConnection.channel.id in activeRecordings[guild.id]) {
                     // They attempted to hide the fact that Craig is recording. Not acceptable.
-                    log("Terminating recording: Nick changed wrongly.");
+                    log("rec-term",
+                        "Nick changed wrongly",
+                        {vc: guild.voiceConnection.channel, rid: activeRecordings[guild.id][guild.voiceConnection.channel.id].id});
                     to.guild.voiceConnection.disconnect();
                 }
             }

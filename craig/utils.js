@@ -24,9 +24,11 @@ const fs = require("fs");
 
 const cc = require("./client.js");
 const config = cc.config;
-const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
+
+const cdb = require("./db.js");
+const log = cdb.log;
 
 const cb = (config.backup && !config.backup.master) ? require("./backup.js") : null;
 
@@ -93,7 +95,9 @@ function reply(msg, dm, prefix, pubtext, privtext) {
                 privtext = pubtext;
             else if (pubtext !== "")
                 privtext = pubtext + "\n\n" + privtext;
-            log("Reply to " + nameId(msg.author) + ": " + JSON.stringify(privtext));
+            log("reply",
+                "To " + nameId(msg.author) + ": " + JSON.stringify(privtext),
+                {u: msg.author});
 
             function rereply() {
                 if (pubtext !== "")
@@ -108,12 +112,16 @@ function reply(msg, dm, prefix, pubtext, privtext) {
         }
 
         // Try to send it by conventional means
-        log("Public reply to " + nameId(msg.author) + ": " + JSON.stringify(pubtext));
+        log("reply",
+            "Public to " + nameId(msg.author) + ": " + JSON.stringify(pubtext),
+            {u: msg.author, tc: msg.channel});
         msg.reply((prefix ? (prefix + " <(") : "") +
                   pubtext +
                   (prefix ? ")" : "")).catch((err) => {
 
-        log("Failed to reply to " + nameId(msg.author));
+        log("reply-fail",
+            nameId(msg.author),
+            {u: msg.author});
 
         // If this wasn't a guild message, nothing to be done
         var guild = msg.guild;
@@ -153,7 +161,9 @@ function reply(msg, dm, prefix, pubtext, privtext) {
         return;
 
     var text = privtext ? (pubtext + "\n\n" + privtext) : pubtext;
-    log("Proxy reply to " + nameId(msg.author) + ": " + JSON.stringify(text));
+    log("reply-proxy",
+        "To " + nameId(msg.author) + ": " + JSON.stringify(text),
+        {u:msg.author});
 
     // Reply after a short delay to make sure the main message comes first
     setTimeout(() => {

@@ -25,7 +25,6 @@ const fs = require("fs");
 const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
-const log = cc.log;
 const logex = cc.logex;
 const nameId = cc.nameId;
 
@@ -35,7 +34,9 @@ const l = cl.l;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
-const db = require("./db.js").db;
+const cdb = require("./db.js")
+const db = cdb.db;
+const log = cdb.log;
 
 const gms = require("./gms.js");
 
@@ -177,7 +178,9 @@ function onMessage(msg) {
         msg.author.id && msg.author.id === config.owner) {
         if (cc.dead) return;
         try {
-            log("Owner command: " + nameId(msg.author) + ": " + msg.content);
+            log("owner-command",
+                nameId(msg.author) + ": " + msg.content,
+                {uid: msg.author.id});
         } catch (ex) {
             logex(ex);
         }
@@ -191,7 +194,13 @@ function onMessage(msg) {
 
     // Log it
     try {
-        log("Command: " + nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content);
+        log("command",
+            nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content,
+            {
+                uid: msg.member.id,
+                gid: msg.channel.guild.id,
+                tcid: msg.channel.id
+            });
     } catch (ex) {
         logex(ex);
     }
