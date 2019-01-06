@@ -45,7 +45,15 @@ function log(type, details, extra) {
         vals["rid"] = +extra.rid;
     else
         vals["rid"] = null;
-    logStmt.run(vals);
+
+    function retry() {
+        try {
+            logStmt.run(vals);
+            setImmediate(go);
+        } catch (ex) {
+            setTimeout(retry, 100);
+        }
+    }
 }
 
 const tsl = /^(....-..-..T..:..:..\....Z): (.*)$/;
@@ -71,10 +79,16 @@ const clientError = /^Client error!(.*)/;
 
 const obsolete = /^Failed to reconnect to.*/;
 
-for (var li = 0; li < lines.length; li++) {
+var li = 0;
+function go() {
+    if (li >= lines.length) return;
     var line = lines[li];
     var res = tsl.exec(line);
-    if (res === null) continue;
+    if (res === null) {
+        li++;
+        setImmediate(go);
+        return;
+    }
     ts = res[1];
     line = res[2];
 
@@ -124,4 +138,6 @@ for (var li = 0; li < lines.length; li++) {
     }
 
     if ((li % 1000) === 0) process.stderr.write(li + "\r");
+    li++;
 }
+go();
