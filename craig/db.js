@@ -98,7 +98,7 @@ function loadDB(dump) {
 // Our logging statement
 const logStmt = logdb.prepare(
     "INSERT INTO log (time, type, uid, gid, tcid, vcid, rid, details) VALUES " +
-    "(strftime('%Y-%m-%d %H:%M:%f', @time), @type, @uid, @gid, @tcid, @vcid, @rid, @details)");
+    "(strftime('%Y-%m-%d %H:%M:%f', @time), @type, @uid, @gid, @tcid, @vcid, cast(@rid as integer), @details)");
 
 // And function
 function log(type, details, extra) {

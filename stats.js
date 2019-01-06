@@ -15,9 +15,12 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 const fs = require("fs");
+const sqlite3 = require("better-sqlite3");
+const db = new sqlite3("log.db");
+db.pragma("journal_mode = WAL");
 
-var log = fs.readFileSync(process.argv[2], "utf8");
-var lines = log.split("\n");
+const stmt = db.prepare("SELECT time, type, rid FROM log WHERE type='rec-start' OR type='rec-stop' ORDER BY time ASC");
+
 var events = [];
 var recordings = {};
 var stats = {
@@ -29,38 +32,27 @@ var stats = {
     averagePerDay: 0,
     averageLast30Days: 0
 };
-for (var li = 0; li < lines.length; li++) {
-    var line = lines[li];
-    if (line.match(/^....-..-..T..:..:...[0-9]*Z:/)) {
-        // It's a log line
-        var m = line.match(/(.*): Started.*with ID ([0-9]*)/);
-        if (m && m[2]) {
-            // Started recording
-            var rec = {
-                id: m[2],
-                start: new Date(m[1]),
-                end: null,
-                endEvent: -1
-            };
+for (var row of stmt.iterate()) {
+    if (row.type === "rec-start") {
+        // Started recording
+        var rec = {
+            id: row.rid,
+            start: new Date(row.time),
+            end: null,
+            ended: false
+        };
 
-            rec.startEvent = events.length;
-            events.push({event: "start", rec: rec});
-            recordings[m[2]] = rec;
-            continue;
-        }
+        events.push({event: "start", rec: rec});
+        recordings[row.rid] = rec;
 
-        m = line.match(/(.*): Finished.*with ID ([0-9]*)/);
-        if (m && m[2]) {
-            // Stopped recording
-            var rec = recordings[m[2]];
-            if (!rec) continue;
+    } else if (row.type === "rec-stop") {
+        // Stopped recording
+        var rec = recordings[row.rid];
+        if (!rec) continue;
 
-            rec.end = new Date(m[1]);
-            rec.endEvent = events.length;
-            events.push({event: "end", rec: rec});
-            delete recordings[m[2]];
-            continue;
-        }
+        rec.end = new Date(row.time);
+        events.push({event: "end", rec: rec});
+        delete recordings[row.rid];
     }
 }
 
