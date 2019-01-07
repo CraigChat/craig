@@ -54,6 +54,7 @@ function log(type, details, extra) {
             setTimeout(retry, 100);
         }
     }
+    retry();
 }
 
 const tsl = /^(....-..-..T..:..:..\....Z): (.*)$/;
