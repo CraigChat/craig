@@ -158,7 +158,7 @@ if (isset($_REQUEST["delete"])) {
     print "[";
     if (file_exists("$base/$id.ogg.users")) {
         $users = json_decode("{".file_get_contents("$base/$id.ogg.users")."}", true);
-        for ($ui = 1; $ui < 32; $ui++) {
+        for ($ui = 1;; $ui++) {
             if (!isset($users[$ui])) break;
             if ($ui !== 1) print ",";
             print json_encode($users[$ui]["name"]);
