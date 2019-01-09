@@ -89,7 +89,7 @@ int main(int argc, char **argv)
             continue;
 
         // Skip the data
-        if (packetSize > bufSz) {
+        while (packetSize > bufSz) {
             if (readAll(0, buf, bufSz) != bufSz)
                 break;
             packetSize -= bufSz;
