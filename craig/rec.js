@@ -1559,8 +1559,8 @@ function startEnnuiCastr() {
 }
 startEnnuiCastr();
 
-// Memory leaks (yay) force us to gracefully restart every so often
+// Restart every so often so we can upgrade, reevaluate shards, etc
 if(cc.master)
-    var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 24*60*60*1000);
+    var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 4*24*60*60*1000);
 
 module.exports = {activeRecordings, gracefulRestart, uptimeTimeout};
