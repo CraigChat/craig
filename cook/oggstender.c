@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
-    unsigned char correctTimestamps = 0, lastWasSilence = 1;
+    unsigned char correctTimestamps = 0, uncorrectedFrames = 0, lastWasSilence = 1;
     uint32_t flacRate = 0;
 
     if (argc != 2) {
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         if (oggHeader.granulePos > trueGranulePos + packetTime * (lastWasSilence ? 1 : 5)) {
             // We are behind
             if (lastWasSilence ||
-                oggHeader.granulePos > lastGranulePos + packetTime * 25) {
+                oggHeader.granulePos > trueGranulePos + packetTime * 25) {
                 // There was a real gap, fill it
                 uint64_t gapTime = oggHeader.granulePos - trueGranulePos;
                 while (gapTime >= packetTime) {
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
                     gapHeader.sequenceNo = lastSequenceNo++;
                     gapHeader.crc = 0;
                     switch (flacRate) {
-                        case 0: // Ogg
+                        case 0: // Opus
                             writeOgg(&gapHeader, zeroPacket, sizeof(zeroPacket));
                             break;
                         case 44100:
@@ -206,8 +206,17 @@ int main(int argc, char **argv)
                 correctTimestamps = 0;
 
             } else {
-                // Jump a bit
-                trueGranulePos += packetTime / 10;
+                /* We adjust our rate of correction based on how far we are
+                 * behind. There's no "correct" scale for this, but my metric
+                 * is that if we're 5 frames behind (the minimum to enable
+                 * this), we do 2.5% correction, and we scale linearly from
+                 * there at a rate of 1% per frame. If we get more than half a
+                 * second behind, we just fill the gap.
+                 * */
+                uint64_t pmcorr = 10 * (oggHeader.granulePos - trueGranulePos) / packetTime;
+                if (pmcorr < 50)
+                    pmcorr = 50;
+                trueGranulePos += packetTime * (pmcorr-25) / 1000;
 
             }
         }

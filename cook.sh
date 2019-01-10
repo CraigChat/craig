@@ -44,7 +44,11 @@ CONTAINER=zip
 [ "$1" ] && CONTAINER="$1"
 shift
 
-ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=15:first_pts=0"
+# NOTE: The max_soft_comp hand min_hard_comp here are just arbitrarily high, as
+# the timestamps are already being smoothed by oggstender such that (a) we'll
+# always do stretching/squeezing and (b) the rate of stretching/squeezing is
+# limited by the drop rate of packets
+ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0"
 FILTER="$ARESAMPLE"
 
 for arg in "$@"
