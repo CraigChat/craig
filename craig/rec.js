@@ -84,6 +84,7 @@ function session(msg, prefix, rec) {
     var id = rec.id;
     var client = rec.client;
     var lang = rec.lang;
+    var sizeLimit = config.hardLimit;
 
     function sReply(dm, pubtext, privtext) {
         reply(msg, dm, prefix, pubtext, privtext);
@@ -243,7 +244,7 @@ function session(msg, prefix, rec) {
     var hitHardLimit = false;
     function write(stream, granulePos, streamNo, packetNo, chunk, flags) {
         size += chunk.length;
-        if (config.hardLimit && size >= config.hardLimit) {
+        if (sizeLimit && size >= sizeLimit) {
             if (!hitHardLimit) {
                 hitHardLimit = true;
                 log("rec-term", "Size limit",
@@ -479,6 +480,9 @@ function session(msg, prefix, rec) {
         var givenKey = msg.readUInt32LE(p.key);
         if (givenKey !== rec.ennuiKey)
             return ws.close();
+
+        // If we get a valid connection, our size limit switches to the web version
+        sizeLimit = config.hardLimitWeb;
 
         // Switch based on what kind of connection it is
         var flags = msg.readUInt32LE(p.flags);

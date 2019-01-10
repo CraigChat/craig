@@ -12,6 +12,9 @@ module.exports = {
     // Record disk size limit, in bytes
     "hardLimit": 536870912,
 
+    // Record disk size limit for web users, in bytes
+    "hardLimitWeb": 4294967296,
+
     // Max time to spend unused in a guild before leaving it, in milliseconds
     "guildMembershipTimeout": 604800000,
 
