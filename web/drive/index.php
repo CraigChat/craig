@@ -262,7 +262,7 @@ if ($discord && $gdrive) {
         <?PHP localeFlags(); ?>
 
         <div class="para">
-        <?PHP l("ddesc"); ?><br/><br/>
+        <?PHP print ls("ddesc") . " <a href=\"/home/privacy.php\">" . ls("dprivacy") . "</a>"; ?><br/><br/>
 
         <?PHP
             if ($discord === false) {

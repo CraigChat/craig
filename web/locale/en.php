@@ -64,8 +64,9 @@ $l["en"] = array(
 
     "back" =>       "Back to home page",
 
-    "ddesc" =>      "Craig can integrate with Google Drive to automatically upload your recordings. To activate automatic upload, just log in to Discord and Drive below. To deactivate, just come back here and log out of Drive.",
-    "ddesc-updated" => 20181230,
+    "ddesc" =>      "Craig can connect to Google Drive to automatically upload your recordings. To activate automatic upload, just log in to Discord and Drive below. To deactivate, just come back here and log out of Drive. This product is not associated with Discord or Google and provides this connection as a convenience to its users.",
+    "ddesc-updated" => 20190109,
+    "dprivacy" =>   "Privacy policy",
     "dili" =>       "Log in to Discord",
     "dilo" =>       "Log out of Discord",
     "drli" =>       "Log in to Google Drive",
