@@ -1113,7 +1113,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                     log("rec-term",
                         "Lack nick change permission",
                         {uid: userId, vc: channel, rid: id});
-                    sReply(true, l("cannotnick", lang));
+                    error(false, l("cannotnick", lang));
                     rec.disconnected = true;
                     close();
                 });
