@@ -221,35 +221,14 @@ then
     ) > "$tmpdir/out/$ID.aup"
 fi
 
-# Encode thru fifos
+# Make our fifos and surrounding content
 for c in `seq -w 1 $NB_STREAMS`
 do
     O_USER="`$SCRIPTBASE/cook/userinfo.js $ID $c`"
     [ "$O_USER" ] || unset O_USER
     O_FN="$c${O_USER+-}$O_USER.$ext"
     O_FFN="$OUTDIR/$O_FN"
-    T_DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" $c < $ID.ogg.data`
     mkfifo "$O_FFN"
-    if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
-    then
-        timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
-
-    else
-        CODEC=`echo "$CODECS" | sed -n "$c"'s/.*Audio: \([^ ,]*\).*/\1/p'`
-        [ "$CODEC" = "opus" ] && CODEC=libopus
-        timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |
-            timeout $DEF_TIMEOUT $NICE ffmpeg -codec $CODEC -copyts -i - \
-            -af "$FILTER" \
-            -flags bitexact -f wav - |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$T_DURATION" |
-            (
-                timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN";
-                cat > /dev/null
-            ) &
-
-    fi
 
     # Make the extractor line for this file
     if [ "$FORMAT" = "wavsfx" ]
@@ -270,6 +249,7 @@ do
             "$O_FN" >> "$tmpdir/out/$ID.aup"
     fi
 done
+
 if [ "$FORMAT" = "wavsfxm" -o "$FORMAT" = "wavsfxu" ]
 then
     printf "printf '\\\\n\\\\n===\\\\nProcessing complete.\\\\n===\\\\n\\\\n'\\n" >> "$OUTDIR/RunMe.$RUNMESUFFIX"
@@ -278,6 +258,45 @@ if [ "$CONTAINER" = "aupzip" ]
 then
     printf '</project>\n' >> "$tmpdir/out/$ID.aup"
 fi
+
+
+# Encode thru fifos
+for c in `seq -w 1 $NB_STREAMS`
+do
+    O_USER="`$SCRIPTBASE/cook/userinfo.js $ID $c`"
+    [ "$O_USER" ] || unset O_USER
+    O_FN="$c${O_USER+-}$O_USER.$ext"
+    O_FFN="$OUTDIR/$O_FN"
+    T_DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" $c < $ID.ogg.data`
+    if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
+    then
+        timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
+
+    else
+        CODEC=`echo "$CODECS" | sed -n "$c"'s/.*Audio: \([^ ,]*\).*/\1/p'`
+        [ "$CODEC" = "opus" ] && CODEC=libopus
+        timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |
+            timeout $DEF_TIMEOUT $NICE ffmpeg -codec $CODEC -copyts -i - \
+            -af "$FILTER" \
+            -flags bitexact -f wav - |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/wavduration" "$T_DURATION" |
+            (
+                timeout $DEF_TIMEOUT $NICE $ENCODE > "$O_FFN";
+                cat > /dev/null
+            )
+
+    fi
+done &
+if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
+then
+    # Wait for the immediate child, which has spawned more children
+    wait
+fi
+
+
+# Also provide raw.dat and info.txt
 if [ "$CONTAINER" = "zip" -o "$CONTAINER" = "aupzip" -o "$CONTAINER" = "exe" ]
 then
     mkfifo $OUTDIR/raw.dat
@@ -289,6 +308,7 @@ then
             timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/extnotes"
     ) > $OUTDIR/info.txt
 fi
+
 
 # Put them into their container
 cd "$tmpdir/out"
