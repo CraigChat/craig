@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018 Yahweasel
+ * Copyright (c) 2017-2019 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,6 +42,19 @@ function accessSyncer(file) {
     return true;
 }
 
+// The header we use for continuous data with inline VAD data
+/* FORMAT:
+ * Bytes 0-5: ECVADD (magic word)
+ * Bytes 6-7: Length of remaining VAD header data (always 3)
+ * Byte 8: Version (0)
+ * Byte 9: Number of VAD levels (3)
+ * Byte 10: >= this value is considered speaking (1)
+ */
+const vadHeader = [
+    Buffer.from([0x45, 0x43, 0x56, 0x41, 0x44, 0x44, 0x03, 0x00, 0x00, 0x03,
+        0x01])
+];
+
 // A precomputed Opus header, made by node-opus 
 const opusHeader = [
     Buffer.from([0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02,
@@ -59,6 +72,7 @@ const opusHeaderMono = [
         0x00, 0x00, 0x65, 0x6E, 0x6E, 0x75, 0x69, 0x63, 0x61, 0x73, 0x74,
         0x72])
 ];
+const opusHeaderMonoVAD = Buffer.concat([vadHeader, opusHeaderMono[0]]);
 
 // A precompiled FLAC header, modified from one made by flac
 const flacHeader48k =
@@ -67,7 +81,7 @@ const flacHeader48k =
         0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, 0xB8, 0x01, 0x70, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00]);
-
+const flacHeader48kVAD = Buffer.concat([vadHeader, flacHeader48k]);
 
 // A precompiled FLAC header for 44.1k
 const flacHeader44k =
@@ -76,11 +90,13 @@ const flacHeader44k =
         0x00, 0x00, 0x00, 0x00, 0x00, 0x0A, 0xC4, 0x41, 0x70, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00]);
+const flacHeader44kVAD = Buffer.concat([vadHeader, flacHeader44k]);
 
 // FLAC tags to say we're ennuicastr
 const flacTags =
     Buffer.from([0x04, 0x00, 0x00, 0x41, 0x0A, 0x00, 0x00, 0x00, 0x65, 0x6E,
         0x6E, 0x75, 0x69, 0x63, 0x61, 0x73, 0x74, 0x72]);
+
 
 const isMention = /^\s*<?@/;
 
@@ -208,5 +224,9 @@ function pseudoMessage(member, guild) {
     };
 }
 
-module.exports = {accessSyncer, opusHeader, opusHeaderMono, flacHeader48k,
-    flacHeader44k, flacTags, reply, findChannel, pseudoMessage};
+module.exports = {
+    accessSyncer,
+    vadHeader, opusHeader, opusHeaderMono, opusHeaderMonoVAD, flacHeader48k,
+    flacHeader48kVAD, flacHeader44k, flacHeader44kVAD, flacTags,
+    reply, findChannel, pseudoMessage
+};

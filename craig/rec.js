@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018 Yahweasel
+ * Copyright (c) 2017-2019 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -490,7 +490,7 @@ function session(msg, prefix, rec) {
         var dtype = flags & ecp.flags.dataTypeMask;
         if (ctype === ecp.flags.connectionType.data) {
             // It's a data connection
-            webDataConnection(ws, msg, dtype);
+            webDataConnection(ws, msg, dtype, flags);
 
         } else if (ctype === ecp.flags.connectionType.ping) {
             // It's just a ping connection
@@ -510,7 +510,9 @@ function session(msg, prefix, rec) {
     };
 
     // Handle data from web connections
-    function webDataConnection(ws, msg, dtype) {
+    function webDataConnection(ws, msg, dtype, flags) {
+        var continuous = !!(flags & ecp.flags.features.continuous);
+
         // Firstly we need to find if the user is already connected, and rename them if so
         var username = "_";
         try {
@@ -520,13 +522,13 @@ function session(msg, prefix, rec) {
         var wu = username + "#web";
 
         var user = webUsers[wu];
-        if (user && (user.connected || user.dtype !== dtype)) {
+        if (user && (user.connected || user.dtype !== dtype || user.continuous !== continuous)) {
             // Try another track
             var i;
             for (i = 2; i < 16; i++) {
                 wu = username + " (" + i + ")#web";
                 user = webUsers[wu];
-                if (!user || (!user.connected && user.dtype === dtype))
+                if (!user || (!user.connected && user.dtype === dtype && user.continuous === continuous))
                     break;
             }
             if (i === 16) {
@@ -545,12 +547,12 @@ function session(msg, prefix, rec) {
             var userData = {id: wu, name: username, discrim: "web", dtype};
             userTrackNo = trackNo++;
             userTrackNos[wu] = userTrackNo;
-            userPacketNos[wu] = userPacketNo = 2;
+            userPacketNos[wu] = userPacketNo = 0;
 
             // Put a valid Opus header at the beginning if we're Opus
             if (dtype === ecp.flags.dataType.opus) {
                 try {
-                    write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeaderMono[0], ogg.BOS);
+                    write(recOggHStream[0], 0, userTrackNo, 0, continuous?cu.opusHeaderMonoVAD:cu.opusHeaderMono[0], ogg.BOS);
                     write(recOggHStream[1], 0, userTrackNo, 1, cu.opusHeaderMono[1]);
                 } catch (ex) {
                     logex(ex);
@@ -562,7 +564,7 @@ function session(msg, prefix, rec) {
 
             webUsers[wu] = user = {
                 connected: true,
-                ws
+                dtype, continuous, ws
             };
 
         } else {
@@ -595,7 +597,9 @@ function session(msg, prefix, rec) {
                     if (key === ecp.info.sampleRate) {
                         // Now we can write our header
                         write(recOggHStream[0], 0, userTrackNo, 0,
-                            (value===44100)?cu.flacHeader44k:cu.flacHeader48k,
+                            (value===44100) ?
+                                (continuous?cu.flacHeader44kVAD:cu.flacHeader44k) :
+                                (continuous?cu.flacHeader48kVAD:cu.flacHeader48k),
                             ogg.BOS);
                         write(recOggHStream[1], 0, userTrackNo, 1, cu.flacTags);
                     }
@@ -1139,9 +1143,10 @@ function cmdJoin(lang) { return function(msg, cmd) {
                         "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
 
                     if (f.ennuicastr && hs)
-                        rmsg += "\n\nEnnuiCastr client link: https://c.ennuicastr.com/?id=" + id +
-                            "&key=" + ennuiKey +
-                            "&port=" + hs.address().port;
+                        rmsg += "\n\nEnnuiCastr menu: https://c.ennuicastr.com/?i=" + id.toString(36) +
+                            "&k=" + ennuiKey.toString(36) +
+                            "&p=" + hs.address().port.toString(36) +
+                            "&s=1";
 
                     reply(msg, true, cmd[1], rmsg,
                         l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");

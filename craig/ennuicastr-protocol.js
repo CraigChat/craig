@@ -83,6 +83,10 @@
             "dataType": {
                 "opus": 0x00,
                 "flac": 0x10
+            },
+            "featuresMask": 0xFF00,
+            "features": {
+                "continuous": 0x100
             }
         },
 
