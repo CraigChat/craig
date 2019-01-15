@@ -50,10 +50,9 @@ function accessSyncer(file) {
  * Byte 9: Number of VAD levels (3)
  * Byte 10: >= this value is considered speaking (1)
  */
-const vadHeader = [
+const vadHeader =
     Buffer.from([0x45, 0x43, 0x56, 0x41, 0x44, 0x44, 0x03, 0x00, 0x00, 0x03,
-        0x01])
-];
+        0x01]);
 
 // A precomputed Opus header, made by node-opus 
 const opusHeader = [

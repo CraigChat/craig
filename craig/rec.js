@@ -1146,7 +1146,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                         rmsg += "\n\nEnnuiCastr menu: https://c.ennuicastr.com/?i=" + id.toString(36) +
                             "&k=" + ennuiKey.toString(36) +
                             "&p=" + hs.address().port.toString(36) +
-                            "&s=1";
+                            "&f=h&s=1";
 
                     reply(msg, true, cmd[1], rmsg,
                         l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
