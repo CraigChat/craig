@@ -166,9 +166,7 @@ exec 9< "$ID.ogg.data"
 flock -n 9 || exit 1
 
 NICE="nice -n10 ionice -c3 chrt -i 0"
-CODECS=`timeout 10 cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
-    timeout 10 ffprobe - 2>&1 |
-    grep 'Audio: \(opus\|flac\)'`
+CODECS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" < $ID.ogg.header1`
 NB_STREAMS=`echo "$CODECS" | wc -l`
 
 # Prepare the self-extractor or project file
@@ -274,7 +272,7 @@ do
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
 
     else
-        CODEC=`echo "$CODECS" | sed -n "$c"'s/.*Audio: \([^ ,]*\).*/\1/p'`
+        CODEC=`echo "$CODECS" | sed -n "$c"p`
         [ "$CODEC" = "opus" ] && CODEC=libopus
         timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
             timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |

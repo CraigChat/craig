@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018 Yahweasel
+ * Copyright (c) 2017-2019 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -92,7 +92,6 @@ void writeOgg(struct OggHeader *header, const unsigned char *data, uint32_t size
 int main(int argc, char **argv)
 {
     uint32_t keepStreamNo;
-    uint64_t lastGranulePos = 0;
     uint64_t trueGranulePos = 0;
     uint32_t lastSequenceNo = 0;
     uint32_t packetSize, skip;
@@ -100,7 +99,8 @@ int main(int argc, char **argv)
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
-    unsigned char correctTimestamps = 0, uncorrectedFrames = 0, lastWasSilence = 1;
+    unsigned char vadLevel = 0, correctTimestampsUp = 0,
+        correctTimestampsDown = 0, lastWasSilence = 1;
     uint32_t flacRate = 0;
 
     if (argc != 2) {
@@ -142,11 +142,34 @@ int main(int argc, char **argv)
         if (oggHeader.streamNo != keepStreamNo)
             continue;
 
-        // Is this badly-timed data?
-        if (oggHeader.granulePos == 0 && packetSize > 5 &&
-            memcmp(buf, "Opus", 4) && memcmp(buf, "\x7f""FLAC", 5) &&
-            memcmp(buf, "\x04\0\0\x41", 4))
+        // Handle headers
+        if (oggHeader.granulePos == 0) {
+            skip = 0;
+            if (packetSize > 8 && !memcmp(buf, "ECVADD", 6)) {
+                // It's our VAD header. Get our VAD info and skip
+                skip = 8 + *((unsigned short *) (buf + 6));
+                if (packetSize > 9)
+                    vadLevel = buf[9];
+            }
+
+            if (packetSize < (skip+5) ||
+                (memcmp(buf + skip, "Opus", 4) &&
+                 memcmp(buf + skip, "\x7f""FLAC", 5) &&
+                 memcmp(buf + skip, "\x04\0\0\x41", 4))) {
+                // This isn't an expected header!
+                continue;
+            }
+
+            // Check if this is a FLAC header
+            if (packetSize > skip + 29 && !memcmp(buf + skip, "\x7f""FLAC", 5)) {
+                // Get our sample rate
+                flacRate = ((uint32_t) buf[skip+27] << 12) + ((uint32_t) buf[skip+28] << 4) + ((uint32_t) buf[skip+29] >> 4);
+            }
+
+            // Pass through the normal header
+            writeOgg(&oggHeader, buf + skip, packetSize - skip);
             continue;
+        }
 
         // Is this empty data (Craig uses empty data packets for timestamp references)
         if (packetSize == 0)
@@ -157,14 +180,14 @@ int main(int argc, char **argv)
         if (packetSize > 2 && !memcmp(buf, "\x90\x00", 2))
             skip = 2;
 
-        // Check if this is a FLAC header
-        if (oggHeader.granulePos == 0 && packetSize > 29 && !memcmp(buf, "\x7f""FLAC", 5)) {
-            // Get our sample rate
-            flacRate = ((uint32_t) buf[27] << 12) + ((uint32_t) buf[28] << 4) + ((uint32_t) buf[29] >> 4);
-        }
+        // Account for VAD
+        if (vadLevel)
+            skip++;
 
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * (lastWasSilence ? 1 : 5)) {
+            correctTimestampsDown = 0;
+
             // We are behind
             if (lastWasSilence ||
                 oggHeader.granulePos > trueGranulePos + packetTime * 25) {
@@ -190,20 +213,27 @@ int main(int argc, char **argv)
                     trueGranulePos += packetTime;
                     gapTime -= packetTime;
                 }
-                correctTimestamps = 0;
+                correctTimestampsUp = 0;
 
             } else {
                 // No real gap, just adjust timestamps a bit and fix the audio in post
-                correctTimestamps = 1;
+                correctTimestampsUp = 1;
 
             }
         }
 
+        // And account for excess data
+        if (trueGranulePos > oggHeader.granulePos + packetTime * (lastWasSilence ? 5 : 25)) {
+            // We are ahead
+            correctTimestampsUp = 0;
+            correctTimestampsDown = 1;
+        }
+
         // Fix timestamps
-        if (correctTimestamps) {
+        if (correctTimestampsUp) {
             if (oggHeader.granulePos <= trueGranulePos + packetTime) {
                 // We've adjusted enough
-                correctTimestamps = 0;
+                correctTimestampsUp = 0;
 
             } else {
                 /* We adjust our rate of correction based on how far we are
@@ -220,12 +250,26 @@ int main(int argc, char **argv)
 
             }
         }
+        if (correctTimestampsDown) {
+            if (trueGranulePos <= oggHeader.granulePos + packetTime) {
+                correctTimestampsDown = 0;
+            } else {
+                uint64_t pmcorr = 10 * (trueGranulePos - oggHeader.granulePos) / packetTime;
+                if (pmcorr < 50)
+                    pmcorr = 50;
+                trueGranulePos -= packetTime * (pmcorr-25) / 1000;
+            }
+        }
 
-        // It's safer to place gaps during silence, so "silence detect" by looking for tiny packets
-        lastWasSilence = (packetSize < (flacRate?16:8));
+        // It's safer to place gaps during silence, so silence detect
+        if (vadLevel) {
+            lastWasSilence = (buf[0] < vadLevel);
+        } else {
+            // Silly detection: look for tiny packets
+            lastWasSilence = (packetSize < (flacRate?16:8));
+        }
 
         // Now fix up our own granule positions
-        lastGranulePos = oggHeader.granulePos;
         oggHeader.granulePos = trueGranulePos;
         trueGranulePos += packetTime;
 
