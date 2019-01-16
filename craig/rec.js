@@ -1159,7 +1159,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
             // If we don't have a connection in 15 seconds, assume something went wrong
             setTimeout(()=>{
-                if (!rec.connection) close();
+                if (!rec.connection) onJoinError(new Error("Timed out"));
             }, 15000);
         }
 
