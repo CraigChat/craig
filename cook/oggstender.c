@@ -148,8 +148,8 @@ int main(int argc, char **argv)
             if (packetSize > 8 && !memcmp(buf, "ECVADD", 6)) {
                 // It's our VAD header. Get our VAD info and skip
                 skip = 8 + *((unsigned short *) (buf + 6));
-                if (packetSize > 9)
-                    vadLevel = buf[9];
+                if (packetSize > 10)
+                    vadLevel = buf[10];
             }
 
             if (packetSize < (skip+5) ||
@@ -223,10 +223,16 @@ int main(int argc, char **argv)
         }
 
         // And account for excess data
-        if (trueGranulePos > oggHeader.granulePos + packetTime * (lastWasSilence ? 5 : 25)) {
+        if (trueGranulePos > oggHeader.granulePos + packetTime * (lastWasSilence ? 1 : 25)) {
             // We are ahead
             correctTimestampsUp = 0;
-            correctTimestampsDown = 1;
+            if (vadLevel && buf[0] < vadLevel) {
+                // It's just silence. We can skip it.
+                correctTimestampsDown = 0;
+                continue;
+            } else {
+                correctTimestampsDown = 1;
+            }
         }
 
         // Fix timestamps
@@ -254,10 +260,7 @@ int main(int argc, char **argv)
             if (trueGranulePos <= oggHeader.granulePos + packetTime) {
                 correctTimestampsDown = 0;
             } else {
-                uint64_t pmcorr = 10 * (trueGranulePos - oggHeader.granulePos) / packetTime;
-                if (pmcorr < 50)
-                    pmcorr = 50;
-                trueGranulePos -= packetTime * (pmcorr-25) / 1000;
+                trueGranulePos -= packetTime / 100;
             }
         }
 
