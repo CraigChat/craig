@@ -35,6 +35,9 @@ const commands = require("./commands.js").commands;
 const cu = require("./utils.js");
 const reply = cu.reply;
 
+const cl = require("./locale.js");
+const l = cl.l;
+
 const gms = require("./gms.js");
 
 /* SHARDING NOTE:
@@ -48,6 +51,9 @@ const rewardsEvents = new RewardsEvent();
 // A map user ID -> rewards
 var rewards = {}; // NOTE: Ref can change!
 var defaultFeatures = {"limits": config.limits};
+
+// A map user ID -> other features (right now, just EnnuiCastr)
+var otherFeatures = {};
 
 // A map of users with rewards -> blessed guilds. Vice-versa is in gms.
 var blessU2G = {};
@@ -293,6 +299,97 @@ if (config.rewards) (function() {
     }
 })();
 
+// Support for other features
+(function() {
+    // Insertion or removal of EnnuiCastr support
+    const ennuicastrOnStmt = db.prepare("INSERT OR REPLACE INTO ennuicastr (uid) VALUES (@uid)");
+    const ennuicastrOffStmt = db.prepare("DELETE FROM ennuicastr WHERE uid=@uid");
+
+    // Enable EnnuiCastr for a user
+    function ecEnable(uid) {
+        otherFeatures[uid] = {ennuicastr: true};
+        if (client.shard)
+            client.shard.send({t:"ecEnable", from:client.shard.id, u:uid});
+    }
+
+    cc.shardCommands["ecEnable"] = function(shard, msg) {
+        otherFeatures[msg.u] = {ennuicastr: true};
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["ecEnable"] = function(msg) {
+        otherFeatures[msg.u] = {ennuicastr: true};
+    }
+
+    // Disable EnnuiCastr for a user
+    function ecDisable(uid) {
+        delete otherFeatures[uid];
+        if (client.shard)
+            client.shard.send({t:"ecDisable", from:client.shard.id, u:uid});
+    }
+
+    cc.shardCommands["ecDisable"] = function(shard, msg) {
+        delete otherFeatures[msg.u];
+        cc.sm.broadcast(msg);
+    }
+
+    cc.processCommands["ecDisable"] = function(msg) {
+        delete otherFeatures[msg.u];
+    }
+
+    if (cc.sm) {
+        cc.sm.on("launch", (shard) => {
+            for (var uid in otherFeatures) {
+                if (otherFeatures[uid].ennuicastr)
+                    shard.send({t:"ecEnable", u:uid});
+            }
+        });
+    }
+
+    // Get our initial other features on connection
+    var ennuicastrInited = false;
+    function initEnnuicastr() {
+        if (ennuicastrInited) return;
+        ennuicastrInited = true;
+
+        db.prepare("SELECT * FROM ennuicastr").all().forEach((row) => {
+            otherFeatures[row.uid] = {ennuicastr: true};
+        });
+    }
+    if (client) {
+        client.on("ready", initEnnuicastr);
+        client.on("shardReady", initEnnuicastr);
+    }
+
+    // A command to enable or disable EnnuiCastr use
+    function cmdEnnuicastr(lang) { return function(msg, cmd) {
+        if (cc.dead) return;
+        var uid = msg.author.id;
+
+        switch (cmd[3].toLowerCase()) {
+            case "on":
+                cdb.dbRun(ennuicastrOnStmt, {uid});
+                ecEnable(uid);
+                reply(msg, false, cmd[1], l("ecenable", lang));
+                break;
+
+            case "off":
+                cdb.dbRun(ennuicastrOffStmt, {uid});
+                ecDisable(uid);
+                reply(msg, false, cmd[1], l("ecdisable", lang));
+                break;
+
+            default:
+                if (otherFeatures[uid] && otherFeatures[uid].ennuicastr)
+                    reply(msg, false, cmd[1], l("ecenabled", lang));
+                else
+                    reply(msg, false, cmd[1], l("ecdisabled", lang));
+        }
+    } }
+    if (config.ennuicastr)
+        cl.register(commands, "ennuicastr", cmdEnnuicastr);
+})();
+
 // Turn features into a string
 function featuresToStr(f, guild, prefix) {
     var ret = "\n";
@@ -312,8 +409,10 @@ function featuresToStr(f, guild, prefix) {
         ret += "\nYou may download avatar glowers.";
     if (f.bless && !guild)
         ret += "\nYou may bless servers.";
-    if (f.ennuicastr)
-        ret += "\nYou have alpha access to EnnuiCastr.";
+    if (f.eccontinuous)
+        ret += "\nYou may use continuous mode in EnnuiCastr.";
+    if (f.ecflac)
+        ret += "\nYou may record FLAC with EnnuiCastr.";
     if (f.mp3)
         ret += "\nYou may download MP3.";
 
@@ -334,4 +433,4 @@ commands["features"] = function(msg, cmd) {
     reply(msg, false, false, ret);
 }
 
-module.exports = {rewardsEvents, defaultFeatures, features};
+module.exports = {rewardsEvents, defaultFeatures, features, otherFeatures};

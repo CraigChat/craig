@@ -472,7 +472,6 @@ function session(msg, prefix, rec) {
     }
 
     // Support for receiving web data
-    if (rec.features.ennuicastr)
     rec.onweb = function(ws, msg) {
         var p = ecp.parts.login;
 
@@ -484,10 +483,19 @@ function session(msg, prefix, rec) {
         // If we get a valid connection, our size limit switches to the web version
         sizeLimit = config.hardLimitWeb;
 
-        // Switch based on what kind of connection it is
         var flags = msg.readUInt32LE(p.flags);
         var ctype = flags & ecp.flags.connectionTypeMask;
         var dtype = flags & ecp.flags.dataTypeMask;
+
+        // If it's invalid, reject it outright
+        if (dtype !== ecp.flags.dataType.opus &&
+            !rec.features.ecflac)
+            return ws.close();
+        if ((flags & ecp.flags.features.continuous) &&
+            !rec.features.eccontinuous)
+            return ws.close();
+
+        // Switch based on what kind of connection it is
         if (ctype === ecp.flags.connectionType.data) {
             // It's a data connection
             webDataConnection(ws, msg, dtype, flags);
@@ -1142,11 +1150,19 @@ function cmdJoin(lang) { return function(msg, cmd) {
                         (hint?("\n\n"+hint):"") +
                         "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
 
-                    if (f.ennuicastr && hs)
-                        rmsg += "\n\nEnnuiCastr menu: https://c.ennuicastr.com/?i=" + id.toString(36) +
+                    if (hs && cf.otherFeatures[userId] && cf.otherFeatures[userId].ennuicastr) {
+                        var url = config.ennuicastr + "?i=" + id.toString(36) +
                             "&k=" + ennuiKey.toString(36) +
-                            "&p=" + hs.address().port.toString(36) +
-                            "&f=h&s=1";
+                            "&p=" + hs.address().port.toString(36);
+                        if (!f.eccontinuous && !f.ecflac) {
+                            rmsg += "\n\n" + l("ennuicastrlink", lang, url);
+                        } else {
+                            // Give them a menu
+                            var ecf = (f.eccontinuous?1:0) | (f.ecflac?ecp.flags.dataType.flac:0);
+                            url += "&f=" + ecf.toString(36) + "&s=1";
+                            rmsg += "\n\n" + l("ennuicastrmenu", lang, url);
+                        }
+                    }
 
                     reply(msg, true, cmd[1], rmsg,
                         l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");

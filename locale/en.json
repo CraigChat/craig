@@ -7,6 +7,8 @@
     "recording-updated":20180810,
     "downloadlink":     "Download link: %1?id=%2&key=%3",
     "deletelink":       "To delete: %1?id=%2&key=%3&delete=%4",
+    "ennuicastrlink":   "EnnuiCastr client link: %1",
+    "ennuicastrmenu":   "EnnuiCastr menu: %1",
 
     "cantsee":          "I can't see any channel with that name.",
     "whatchannel":      "What channel?",
@@ -32,6 +34,12 @@
 
     "cmd:leave":        ["leave", "part"],
     "notrecording":     "But I'm not recording that channel!",
+
+    "cmd:ennuicastr":   ["ennuicastr", "webapp"],
+    "ecenable":         "EnnuiCastr enabled. You will be sent an EnnuiCastr client link at the beginning of every recording.",
+    "ecdisable":        "EnnuiCastr disabled.",
+    "ecenabled":        "You have enabled EnnuiCastr.",
+    "ecdisabled":       "You have not enabled EnnuiCastr.",
 
     "cmd:prefix":       ["prefix"],
     "cmd:unprefix":     ["unprefix"],

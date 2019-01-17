@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS prefixes (
     prefix TEXT
 );
 
+CREATE TABLE IF NOT EXISTS ennuicastr (
+    uid TEXT PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS drive (
     id TEXT PRIMARY KEY,
     data TEXT,
