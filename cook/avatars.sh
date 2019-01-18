@@ -46,7 +46,7 @@ FG=008000
 
 set -e
 
-ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=0.025:min_hard_comp=15:first_pts=0"
+ARESAMPLE="aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0"
 
 case "$FORMAT" in
     mkvh264|movsfx|movsfxm|movsfxu)
@@ -87,10 +87,8 @@ exec 9< "$1.ogg.data"
 flock -s 9
 
 NICE="nice -n10 ionice -c3 chrt -i 0"
-NB_STREAMS=`timeout 10 cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-    timeout 10 ffprobe -print_format flat -show_format - 2> /dev/null |
-    grep '^format\.nb_streams' |
-    sed 's/^[^=]*=//'`
+CODECS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" < $1.ogg.header1`
+NB_STREAMS=`echo "$CODECS" | wc -l`
 DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" < $1.ogg.data`
 
 TRACKS=
