@@ -278,6 +278,8 @@ int main(int argc, char **argv)
 
         // Then insert the current packet
         oggHeader.sequenceNo = lastSequenceNo++;
+        if (flacRate == 44100)
+            oggHeader.granulePos = oggHeader.granulePos * 44100 / 48000;
         writeOgg(&oggHeader, buf + skip, packetSize - skip);
     }
 
