@@ -27,6 +27,8 @@
 /* NOTE: This program assumes little-endian for speed, it WILL NOT WORK on a
  * big-endian system */
 
+static unsigned char outTrackNum = 0;
+
 struct OggPreHeader {
     unsigned char capturePattern[4];
     unsigned char version;
@@ -40,7 +42,7 @@ struct OggHeader {
     uint32_t crc;
 } __attribute__((packed));
 
-ssize_t readAll(int fd, void *vbuf, size_t count)
+static ssize_t readAll(int fd, void *vbuf, size_t count)
 {
     unsigned char *buf = (unsigned char *) vbuf;
     ssize_t rd = 0, ret;
@@ -52,6 +54,14 @@ ssize_t readAll(int fd, void *vbuf, size_t count)
     return rd;
 }
 
+static void out(struct OggHeader *header, const char *type)
+{
+    if (outTrackNum)
+        printf("%d\n", header->streamNo);
+    else
+        printf("%s\n", type);
+}
+
 int main(int argc, char **argv)
 {
     uint32_t packetSize;
@@ -60,6 +70,9 @@ int main(int argc, char **argv)
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
+
+    if (argc > 1 && !strcmp(argv[1], "-n"))
+        outTrackNum = 1;
 
     while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
         struct OggHeader oggHeader;
@@ -99,9 +112,9 @@ int main(int argc, char **argv)
 
         // Is it a header?
         if (!memcmp(buf + skip, "Opus", 4))
-            printf("opus\n");
+            out(&oggHeader, "opus");
         else if (!memcmp(buf + skip, "\x7f""FLAC", 5))
-            printf("flac\n");
+            out(&oggHeader, "flac");
     }
 
     return 0;

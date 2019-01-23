@@ -167,6 +167,7 @@ flock -n 9 || exit 1
 
 NICE="nice -n10 ionice -c3 chrt -i 0"
 CODECS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" < $ID.ogg.header1`
+STREAM_NOS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" -n < $ID.ogg.header1`
 NB_STREAMS=`echo "$CODECS" | wc -l`
 
 # Prepare the self-extractor or project file
@@ -266,16 +267,17 @@ do
     O_FN="$c${O_USER+-}$O_USER.$ext"
     O_FFN="$OUTDIR/$O_FN"
     T_DURATION=`timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggduration" $c < $ID.ogg.data`
+    sno=`echo "$STREAM_NOS" | sed -n "$c"p`
     if [ "$FORMAT" = "copy" -o "$CONTAINER" = "mix" ]
     then
         timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c > "$O_FFN" &
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $sno > "$O_FFN" &
 
     else
         CODEC=`echo "$CODECS" | sed -n "$c"p`
         [ "$CODEC" = "opus" ] && CODEC=libopus
         timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
-            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c |
+            timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $sno |
             timeout $DEF_TIMEOUT $NICE ffmpeg -codec $CODEC -copyts -i - \
             -af "$FILTER" \
             -flags bitexact -f wav - |
