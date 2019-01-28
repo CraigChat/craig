@@ -1270,6 +1270,14 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
             // Join the channel
             function join() {
+                if (guild.voiceConnection) {
+                    // Disconnect the old (broken?) one first
+                    guild.voiceConnection.disconnect();
+                    chosenClient.voiceConnections.delete(guild.id);
+                    setTimeout(join, 1000);
+                    return;
+                }
+
                 safeJoin(channel, onJoinError).then((connection) => {
                     // Get a language hint
                     var hint = cl.hint(channel, lang);
@@ -1428,6 +1436,7 @@ clients.forEach((client) => {
                 var channelId = fromChannel.id;
                 if (guildId in activeRecordings &&
                     channelId in activeRecordings[guildId] &&
+                    activeRecordings[guildId][channelId].connection &&
                     toChannel !== fromChannel) {
                     // We do not tolerate being moved
                     log("rec-term",
