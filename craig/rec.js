@@ -85,6 +85,7 @@ function session(msg, prefix, rec) {
     var client = rec.client;
     var lang = rec.lang;
     var sizeLimit = config.hardLimit;
+    var monWs = null;
 
     function sReply(dm, pubtext, privtext) {
         reply(msg, dm, prefix, pubtext, privtext);
@@ -335,6 +336,9 @@ function session(msg, prefix, rec) {
             userPacketNos[user.id] = 2;
             userRecents = userRecentPackets[user.id] = [];
 
+            // Announce them
+            monConnect(userTrackNo, user.username + "#" + user.discriminator);
+
             // Put a valid Opus header at the beginning
             try {
                 write(recOggHStream[0], 0, userTrackNo, 0, cu.opusHeader[0], ogg.BOS);
@@ -419,6 +423,17 @@ function session(msg, prefix, rec) {
         // If the list is getting long, flush it
         if (userRecents.length >= 16)
             flush(user, recOggStream, userTrackNo, userRecents, 1);
+
+        // And inform the monitor
+        if (userRecents.monTimeout) {
+            clearTimeout(userRecents.monTimeout);
+        } else {
+            monSpeakOn(userTrackNo);
+        }
+        userRecents.monTimeout = setTimeout(function() {
+            monSpeakOff(userTrackNo);
+            userRecents.monTimeout = null;
+        }, 2000);
     }
     receiver.on("opus", onReceive);
     receiver.on("data", (chunk, userId, timestamp) => {
@@ -475,17 +490,21 @@ function session(msg, prefix, rec) {
     rec.onweb = function(ws, msg) {
         var p = ecp.parts.login;
 
-        // First check the login message itself
-        var givenKey = msg.readUInt32LE(p.key);
-        if (givenKey !== rec.ennuiKey)
-            return ws.close();
-
-        // If we get a valid connection, our size limit switches to the web version
-        sizeLimit = config.hardLimitWeb;
-
         var flags = msg.readUInt32LE(p.flags);
         var ctype = flags & ecp.flags.connectionTypeMask;
         var dtype = flags & ecp.flags.dataTypeMask;
+
+        // First check the login message itself
+        var givenKey = msg.readUInt32LE(p.key);
+        if (ctype === ecp.flags.connectionType.monitor) {
+            // Monitor requires the normal key
+            if (givenKey !== rec.accessKey)
+                return ws.close();
+        } else {
+            // All others have their own key
+            if (givenKey !== rec.ennuiKey)
+                return ws.close();
+        }
 
         // If it's invalid, reject it outright
         if (dtype !== ecp.flags.dataType.opus &&
@@ -495,6 +514,10 @@ function session(msg, prefix, rec) {
             !rec.features.eccontinuous)
             return ws.close();
 
+        // If we get a valid FLAC/continuous connection, our size limit switches to the web version
+        if (dtype !== ecp.flags.dataType.opus || (flags & ecp.flags.features.continuous))
+            sizeLimit = config.hardLimitWeb;
+
         // Switch based on what kind of connection it is
         if (ctype === ecp.flags.connectionType.data) {
             // It's a data connection
@@ -503,6 +526,10 @@ function session(msg, prefix, rec) {
         } else if (ctype === ecp.flags.connectionType.ping) {
             // It's just a ping connection
             webPingConnection(ws);
+
+        } else if (ctype === ecp.flags.connectionType.monitor) {
+            // Separate monitor connection
+            webMonitorConnection(ws);
 
         } else {
             return ws.close();
@@ -572,6 +599,7 @@ function session(msg, prefix, rec) {
 
             webUsers[wu] = user = {
                 connected: true,
+                data: userData,
                 dtype, continuous, ws
             };
 
@@ -584,6 +612,7 @@ function session(msg, prefix, rec) {
 
         // Announce them
         sReply(true, "", "User " + JSON.stringify(username) + " has connected via EnnuiCastr.");
+        monConnect(userTrackNo, username + "#web");
 
         // Now accept their actual data
         ws.on("message", (msg) => {
@@ -627,8 +656,23 @@ function session(msg, prefix, rec) {
                     if (granulePos < arrivalTime - 30*48000 || granulePos > arrivalTime + 30*48000)
                         granulePos = arrivalTime;
 
-                    // And accept the data
-                    write(recOggStream, granulePos, userTrackNo, userPacketNos[wu]++, msg.slice(p.length));
+                    // Accept the data
+                    var data = msg.slice(p.length);
+                    write(recOggStream, granulePos, userTrackNo, userPacketNos[wu]++, data);
+
+                    // And inform the monitor
+                    if (monWs) {
+                        // Determine if it's silence
+                        var silence = false;
+                        if (continuous && data.length) {
+                            silence = !data.readUInt8(0);
+                        } else if (dtype === ecp.flags.dataType.flac) {
+                            silence = (data.length < 16);
+                        } else {
+                            silence = (data.length < 8);
+                        }
+                        monSpeak(userTrackNo, !silence);
+                    }
                     break;
 
                 default:
@@ -643,6 +687,7 @@ function session(msg, prefix, rec) {
             // Announce their disconnection
             if (!disconnected)
                 sReply(true, "", "EnnuiCastr user " + JSON.stringify(username) + " has disconnected.");
+            monDisconnect(userTrackNo, username + "#web");
 
         });
     }
@@ -691,6 +736,86 @@ function session(msg, prefix, rec) {
         });
     }
 
+    // Our monitor handler
+    function webMonitorConnection(ws) {
+        if (monWs) {
+            // There's already a monitor!
+            monWs.close();
+        }
+
+        // Acknowledge them
+        var op = ecp.parts.ack;
+        var ret = Buffer.alloc(op.length);
+        ret.writeUInt32LE(ecp.ids.ack, 0);
+        ret.writeUInt32LE(ecp.ids.login, op.ackd);
+        ws.send(ret);
+
+        monWs = ws;
+
+        // Send info for all current clients
+        for (var u in users) {
+            var user = users[u];
+            monConnect(userTrackNos[u], user.username + "#" + user.discriminator);
+        }
+
+        for (var wu in webUsers) {
+            var user = webUsers[wu].data;
+            monConnect(userTrackNos[wu], user.name + "#web");
+        }
+
+        ws.on("message", (msg) => {
+            // We should never receive messages from the monitor
+            return ws.close();
+        });
+
+        ws.on("close", () => {
+            monWs = null;
+        });
+    }
+
+    // Inform the monitor (if any) of a user's connection
+    function monConnect(idx, nick) {
+        monConDis(idx, nick, true);
+    }
+
+    // Inform the monitor (if any) of a user's disconnection
+    function monDisconnect(idx, nick) {
+        monConDis(idx, nick, false);
+    }
+
+    // General monitor connection/disconnection
+    function monConDis(idx, nick, con) {
+        if (!monWs) return;
+        var p = ecp.parts.user;
+        var nickBuf = Buffer.from(nick, "utf8");
+        var buf = Buffer.alloc(p.length + nickBuf.length);
+        buf.writeUInt32LE(ecp.ids.user, 0);
+        buf.writeUInt32LE(idx, p.index);
+        buf.writeUInt32LE(con?1:0, p.status);
+        nickBuf.copy(buf, p.nick);
+        monWs.send(buf);
+    }
+
+    // Inform the monitor that a user is speaking
+    function monSpeakOn(idx) {
+        monSpeak(idx, true);
+    }
+
+    // Inform the monitor that a user has stopped speaking
+    function monSpeakOff(idx) {
+        monSpeak(idx, false);
+    }
+
+    // General speech/stop informer
+    function monSpeak(idx, on) {
+        if (!monWs) return;
+        var p = ecp.parts.speech;
+        var buf = Buffer.alloc(p.length);
+        buf.writeUInt32LE(ecp.ids.speech, 0);
+        buf.writeUInt32LE((idx<<1)|(on?1:0), p.indexStatus);
+        monWs.send(buf);
+    }
+
     // When we're disconnected from the channel...
     var disconnected = false;
     function onDisconnect() {
@@ -717,6 +842,16 @@ function session(msg, prefix, rec) {
             } catch (ex) {
                 logex(ex);
             }
+        }
+
+        // And the monitor
+        if (monWs) {
+            try {
+                monWs.close();
+            } catch (ex) {
+                logex(ex);
+            }
+            monWs = null;
         }
 
         // Flush any remaining data
@@ -1154,6 +1289,11 @@ function cmdJoin(lang) { return function(msg, cmd) {
                         var url = config.ennuicastr + "?i=" + id.toString(36) +
                             "&k=" + ennuiKey.toString(36) +
                             "&p=" + hs.address().port.toString(36);
+                        var mon = config.ennuicastr + "?i=" + id.toString(36) +
+                            "&k=" + accessKey.toString(36) +
+                            "&p=" + hs.address().port.toString(36) +
+                            "&mon=1";
+                        rmsg += "\n\n" + l("ennuicastrmon", lang, mon);
                         if (!f.eccontinuous && !f.ecflac) {
                             rmsg += "\n\n" + l("ennuicastrlink", lang, url);
                         } else {

@@ -31,7 +31,11 @@
             "ping": 0x20,
             "pong": 0x21,
 
-            "data": 0x30
+            "data": 0x30,
+
+            // Monitoring
+            "user": 0x40,
+            "speech": 0x41,
         },
 
         "parts": {
@@ -69,6 +73,18 @@
                 "length": 12,
                 "granulePos": 4,
                 "packet": 12
+            },
+
+            "user": {
+                "length": 12,
+                "index": 4,
+                "status": 8,
+                "nick": 12
+            },
+
+            "speech": {
+                "length": 8,
+                "indexStatus": 4
             }
         },
 

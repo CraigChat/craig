@@ -9,6 +9,7 @@
     "deletelink":       "To delete: %1?id=%2&key=%3&delete=%4",
     "ennuicastrlink":   "EnnuiCastr client link: %1",
     "ennuicastrmenu":   "EnnuiCastr menu: %1",
+    "ennuicastrmon":    "Recording monitor: %1",
 
     "cantsee":          "I can't see any channel with that name.",
     "whatchannel":      "What channel?",
