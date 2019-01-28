@@ -81,9 +81,8 @@ if (config.rewards) (function() {
                     delete autoU2GC[uid];
                 gci--;
 
-                var step = {u:uid, g:gid, c:cid};
                 if (!cc.dead)
-                    cdb.dbRun(autoRemStmt, {uid, gid, cid});
+                    cdb.dbRun(autoRemStmt, {uid, gid, cid: gc.c});
             }
         }
 
