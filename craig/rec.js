@@ -1272,7 +1272,11 @@ function cmdJoin(lang) { return function(msg, cmd) {
             function join() {
                 if (guild.voiceConnection) {
                     // Disconnect the old (broken?) one first
-                    guild.voiceConnection.disconnect();
+                    try {
+                        guild.voiceConnection.disconnect();
+                    } catch (ex) {
+                        logex(ex);
+                    }
                     chosenClient.voiceConnections.delete(guild.id);
                     setTimeout(join, 1000);
                     return;
