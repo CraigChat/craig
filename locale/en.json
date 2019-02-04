@@ -37,6 +37,8 @@
     "notrecording":     "But I'm not recording that channel!",
 
     "cmd:ennuicastr":   ["ennuicastr", "webapp"],
+    "on":               "on",
+    "off":              "off",
     "ecenable":         "EnnuiCastr enabled. You will be sent an EnnuiCastr client link at the beginning of every recording.",
     "ecdisable":        "EnnuiCastr disabled.",
     "ecenabled":        "You have enabled EnnuiCastr.",

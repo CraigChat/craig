@@ -365,15 +365,19 @@ if (config.rewards) (function() {
     function cmdEnnuicastr(lang) { return function(msg, cmd) {
         if (cc.dead) return;
         var uid = msg.author.id;
+        var lon = l("on", lang);
+        var loff = l("off", lang);
 
         switch (cmd[3].toLowerCase()) {
             case "on":
+            case lon:
                 cdb.dbRun(ennuicastrOnStmt, {uid});
                 ecEnable(uid);
                 reply(msg, false, cmd[1], l("ecenable", lang));
                 break;
 
             case "off":
+            case loff:
                 cdb.dbRun(ennuicastrOffStmt, {uid});
                 ecDisable(uid);
                 reply(msg, false, cmd[1], l("ecdisable", lang));
