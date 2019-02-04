@@ -7,6 +7,8 @@
     "recording-updated": 20180810,
     "downloadlink":     "ダウンロードリンク: %1?id=%2&key=%3",
     "deletelink":       "削除用リンク: %1?id=%2&key=%3&delete=%4",
+    "ennuicastrlink":   "EnnuiCastr クライアントへのリンク: %1",
+    "ennuicastrmenu":   "EnnuiCastr メニュー: %1",
 
     "cantsee":          "指定された名前のチャンネルが見つかりません。",
     "whatchannel":      "どのチャンネルですか？",
@@ -32,6 +34,12 @@
 
     "cmd:leave":        ["終了", "停止", "退出"],
     "notrecording":     "しかし　そのチャンネルは　録音していなかった！",
+
+    "cmd:ennuicastr":   ["アンニュイ","アンニュイキャスター","ウェブアプリ"],
+    "ecenable":         "EnnuiCastr が有効になりました。録音開始時にEnnuiCastr クライアントへのリンクが送られます。",
+    "ecdisable":        "EnnuiCastr が無効になりました。",
+    "ecenabled":        "EnnuiCastr が有効です。",
+    "ecdisabled":       "EnnuiCastr が有効になっていません。",
 
     "cmd:prefix":       ["プレフィックス"],
     "cmd:unprefix":     ["プレフィックス解除"],
