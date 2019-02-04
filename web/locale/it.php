@@ -12,9 +12,9 @@ $l["it"] = array(
     "mtd" =>        "Download multi-traccia:",
     "mtld" =>       "Download multi-traccia con livellamento intelligente:",
     "lp" =>         "Elaborazione locale:",
+    "std" =>        "Download del mix intelligente su singola traccia:",
     "mtp" =>        "Elaborazione multi-traccia:",
     "stm" =>        "Elaborazione singola traccia:",
-    "std" =>        "Download del mix intelligente su singola traccia:",
 
     "audacity" =>   "Progetto Audacity",
     "winapp" =>     "Applicazione Windows",
@@ -64,7 +64,9 @@ $l["it"] = array(
 
     "back" =>       "Torna alla home page",
 
-    "ddesc" =>      "Craig può integrarsi con Google Drive per caricare automaticamente le tue registrazioni. Per attivare il caricamento automatico, accedi a Discord e a Drive in basso. Per disattivarlo,  torna qui ed esci da Drive. Le registrazioni caricate su Drive saranno nel formato FLAC multi-traccia.",
+    "ddesc" =>      "Craig può connettersi a Google Drive per caricare automaticamente le tue registrazioni. Per attivare il caricamento automatico, devi solo accedere a Discord e a Drive in basso. Per disattivarlo, torna qui ed esci da Drive. Questo prodotto non è associato a Discord o a Google, e fornisce questa connessione per la comodità dei suoi utenti.",
+    "ddesc-updated"=>20190109,
+    "dprivacy" =>   "Politica sulla privacy",
     "dili" =>       "Accedi a Discord",
     "dilo" =>       "Esci da Discord",
     "drli" =>       "Accedi a Google Drive",

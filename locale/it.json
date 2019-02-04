@@ -7,6 +7,9 @@
     "recording-updated":20180810,
     "downloadlink":     "Link per il download: %1?id=%2&key=%3",
     "deletelink":       "Per eliminarlo: %1?id=%2&key=%3&delete=%4",
+    "ennuicastrlink":   "Link al client EnnuiCastr: %1",
+    "ennuicastrmenu":   "Menù EnnuiCastr: %1",
+    "ennuicastrmon":    "Monitor di registrazione: %1",
 
     "cantsee":          "Non vedo alcun canale con quel nome.",
     "whatchannel":      "Quale canale?",
@@ -32,6 +35,14 @@
 
     "cmd:leave":        ["esci", "lascia"],
     "notrecording":     "Ma non sto registrando quel canale!",
+
+    "cmd:ennuicastr":   ["applicazioneweb"],
+    "on":               "accesa",
+    "off":              "spenta",
+    "ecenable":         "EnnuiCastr attivato. Ti sarà inviato un link al client EnnuiCastr all'inizio di ogni registrazione.",
+    "ecdisable":        "EnnuiCastr disabilitato.",
+    "ecenabled":        "Hai attivato EnnuiCastr.",
+    "ecdisabled":       "Non hai attivato EnnuiCastr.",
 
     "cmd:prefix":       ["prefisso"],
     "cmd:unprefix":     ["eliminaprefisso"],
