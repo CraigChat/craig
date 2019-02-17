@@ -455,13 +455,13 @@ if (config.rewards) (function() {
                         vc: voiceChannel
                     });
 
-                // Retry after 10 seconds to avoid spamming retries when things change quickly
+                // Retry after 30 seconds to avoid spamming retries when things change quickly
                 if (ac.retries > 0) {
                     ac.retries--;
                     ac.to = setTimeout(() => {
                         ac.to = null;
                         updateAutorecord(guild, voiceChannel, us);
-                    }, 10000);
+                    }, 30000);
                 }
 
                 if (shouldRecord) {
