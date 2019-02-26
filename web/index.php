@@ -239,7 +239,7 @@ if (isset($_REQUEST["delete"])) {
     header("Content-type: $mime");
     ob_flush();
     flush();
-    passthru("/home/yahweasel/craig/cook.sh $id $format $container$exflags");
+    passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook.sh $id $format $container$exflags");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "avatars") {
     $format = "png";
@@ -277,7 +277,7 @@ if (isset($_REQUEST["delete"])) {
     header("Content-type: $mime");
     ob_flush();
     flush();
-    passthru("/home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
+    passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
 
 } else if (isset($_REQUEST["fetch"])) {
     header("Content-disposition: attachment; filename=$id.ogg");
