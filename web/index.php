@@ -90,8 +90,8 @@ require("locale.php");
 function download($title, $format="flac", $container="zip", $flags="") {
     global $id, $key;
     print "<a href=\"?id=$id&amp;key=$key";
-    if ($format === "raw") {
-        print "&amp;fetch=raw";
+    if ($format === "raw" || $format === "info") {
+        print "&amp;fetch=$format";
     } else {
         print "&amp;fetch=cooked";
         if ($format !== "flac")
@@ -278,6 +278,10 @@ if (isset($_REQUEST["delete"])) {
     ob_flush();
     flush();
     passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
+
+} else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] == "info") {
+    header("Content-type: application/json");
+    passthru("/home/yahweasel/craig/cook/info.sh $id");
 
 } else if (isset($_REQUEST["fetch"])) {
     header("Content-disposition: attachment; filename=$id.ogg");

@@ -443,19 +443,24 @@ if (isset($features["glowers"]) && $features["glowers"]) {
             download("Ogg Vorbis", "vorbis");
             download("ADPCM wav", "adpcm");
             download("8-bit wav", "wav8");
+            /*
             print("<br/>");
             download("MKV FLAC", "flac", "matroska");
             download("MKV AAC", "aac", "matroska");
             download("MKV HE-AAC", "heaac", "matroska");
             download("MKV Opus", "opus", "matroska");
             download("MKV Vorbis", "vorbis", "matroska");
+            */
             ?>
         </div><br/><br/>
 
 <?PHP
 download(ls("raw"), "raw");
 ?>
-        (<?PHP l("rawnote"); ?>)
+        (<?PHP l("rawnote"); ?>),
+<?PHP
+download("info.json", "info");
+?>
         </div>
 
         <script type="text/javascript"><!--
@@ -550,7 +555,7 @@ print "0:0};\n";
             }
             initCheck();
 
-            if (!craigMobile)
+            //if (!craigMobile)
                 document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
 
             function vis(id, setTo) {
