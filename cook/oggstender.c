@@ -197,6 +197,8 @@ int main(int argc, char **argv)
                     struct OggHeader gapHeader;
                     gapHeader.type = 0;
                     gapHeader.granulePos = trueGranulePos;
+                    if (flacRate == 44100)
+                        gapHeader.granulePos = gapHeader.granulePos * 147 / 160;
                     gapHeader.streamNo = keepStreamNo;
                     gapHeader.sequenceNo = lastSequenceNo++;
                     gapHeader.crc = 0;
@@ -279,7 +281,7 @@ int main(int argc, char **argv)
         // Then insert the current packet
         oggHeader.sequenceNo = lastSequenceNo++;
         if (flacRate == 44100)
-            oggHeader.granulePos = oggHeader.granulePos * 44100 / 48000;
+            oggHeader.granulePos = oggHeader.granulePos * 147 / 160;
         writeOgg(&oggHeader, buf + skip, packetSize - skip);
     }
 
