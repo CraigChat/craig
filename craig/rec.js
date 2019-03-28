@@ -675,6 +675,13 @@ function session(msg, prefix, rec) {
                     }
                     break;
 
+                case ecp.ids.error:
+                    // A client error occurred. Log it.
+                    try {
+                        log("ennuicastr-error", msg.toString("utf8", 4));
+                    } catch (ex) {}
+                    break;
+
                 default:
                     // No other commands are accepted
                     return ws.close();

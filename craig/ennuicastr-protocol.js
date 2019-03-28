@@ -27,6 +27,7 @@
 
             "login": 0x10,
             "info": 0x11,
+            "error": 0x12,
 
             "ping": 0x20,
             "pong": 0x21,
