@@ -1,9 +1,11 @@
 <?PHP
 $l["en"] = array(
-    "intro1" =>     "You may fetch your recording in various formats. All downloads are multi-track.",
+    "intro1" =>     "You may fetch your recording in various formats.",
     "intro1-updated" => 20180809,
     "intro2" =>     "Other formats, including single-track mixed audio, require processing locally in your browser, and thus require a modern browser and some patience, won't work well on mobile devices, and will likely fail with long recordings or many users.",
     "intro2b" =>    "If you need single-track mixed audio, or the ALAC (Apple Lossless) audio format, you can use the local processing option, which is a software program which can perform various simple editing tasks.",
+    "intro2c" =>    "Formats labeled with '*' require processing in your browser.",
+    "intro2cbeta" =>"This is currently a beta feature; if you have problems, choose a different format.",
     "intro3" =>     "Your recording ID:",
     "starttime" =>  "Start time",
     "users" =>      "Users",

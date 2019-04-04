@@ -280,8 +280,7 @@ ob_start("ob_gzhandler");
         <?PHP localeFlags("id=$id&amp;key=$key&amp;"); ?>
 
         <div class="para">
-        <?PHP l("intro1"); ?>
-        <?PHP if ($windows || ($macosx&&!$iphone) || ($unix&&!$android)) l("intro2b"); ?>
+        <?PHP l("intro1"); print " "; l("intro2c"); print " "; l("intro2cbeta"); ?>
         <?PHP l("intro3"); print " $id"; ?>.
         <?PHP
             if ($info !== false && isset($info["startTime"]))
@@ -303,13 +302,7 @@ ob_start("ob_gzhandler");
 if (!$iphone && !$android)
     download(ls("audacity"), "flac", "aupzip");
 download("FLAC", "flac");
-if ($windows) {
-    download("wav <div style=\"font-size: 0.6em\">(Windows extractor)</div>", "wavsfx", "exe");
-} else if ($macosx && !$iphone) {
-    download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm");
-} else if ($unix && !$android) {
-    download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu");
-}
+ezel("wav *", 5);
 download("AAC (MPEG-4)", "aac");
 if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3");
@@ -317,42 +310,17 @@ if (isset($features["mp3"]) && $features["mp3"])
         </span></span><br/><br/>
 
         <span class="big">
-        <span class="lbl"><?PHP l("mtld"); ?>&nbsp;</span>
+        <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
         <span class="choices">
 <?PHP
-// FIXME: Horrific duplication of above
-if (!$iphone && !$android)
-    download(ls("audacity"), "flac", "aupzip", "&amp;dynaudnorm");
-download("FLAC", "flac", "zip", "&amp;dynaudnorm");
-if ($windows) {
-    download("wav <div style=\"font-size: 0.6em\">(Windows extractor)</div>", "wavsfx", "exe", "&amp;dynaudnorm");
-} else if ($macosx && !$iphone) {
-    download("wav <div style=\"font-size: 0.6em\">(Mac OS X extractor, run RunMe.command)</div>", "wavsfxm", "zip", "&amp;dynaudnorm");
-} else if ($unix && !$android) {
-    download("wav <div style=\"font-size: 0.6em\">(Unix extractor, run RunMe.sh)</div>", "wavsfxu", "zip", "&amp;dynaudnorm");
-}
-download("AAC (MPEG-4)", "aac", "zip", "&amp;dynaudnorm");
-if (isset($features["mp3"]) && $features["mp3"])
-    download("MP3", "mp3", "zip", "&amp;dynaudnorm");
+ezel("FLAC *", 0x30);
+ezel("wav *", 0x35);
+ezel("AAC (MPEG-4) *", 0x31);
+ezel("Other *", 0x230);
 ?>
         </span></span><br/><br/>
 
 <?PHP
-if ($windows || ($macosx && !$iphone) || ($unix && !$android)) {
-?>
-	<span class="big">
-	<span class="lbl"><?PHP l("lp"); ?></span>
-	<span class="choices">
-		<?PHP l("lpwarn"); ?>
-<?PHP
-if ($windows) download(ls("winapp"), "powersfx", "exe");
-if ($macosx) download(ls("macosxapp"), "powersfxm");
-if ($unix) download(ls("unixscript"), "powersfxu");
-?>
-	</span></span><br/><br/>
-<?PHP
-}
-
 if (isset($features["mix"]) && $features["mix"]) {
 ?>
         <span class="big">
@@ -435,7 +403,10 @@ if (isset($features["glowers"]) && $features["glowers"]) {
 
         <button id="otherFormatsB"><?PHP l("otherformats"); ?></button><br/><br/>
 
-        <div id="otherFormats" style="display: none; margin: auto; max-width: 60em; line-height: 4em;" class="big">
+        <div id="otherFormats" style="display: none">
+            <span class="big">
+            <span class="lbl"><?PHP l("otherformats"); ?>:&nbsp;</span>
+            <span class="choices">
             <?PHP
             download("Ogg FLAC", "oggflac");
             download("HE-AAC", "heaac");
@@ -443,15 +414,46 @@ if (isset($features["glowers"]) && $features["glowers"]) {
             download("Ogg Vorbis", "vorbis");
             download("ADPCM wav", "adpcm");
             download("8-bit wav", "wav8");
-            /*
-            print("<br/>");
-            download("MKV FLAC", "flac", "matroska");
-            download("MKV AAC", "aac", "matroska");
-            download("MKV HE-AAC", "heaac", "matroska");
-            download("MKV Opus", "opus", "matroska");
-            download("MKV Vorbis", "vorbis", "matroska");
-            */
             ?>
+            </span></span><br/><br/>
+
+            <span class="big">
+            <span class="lbl"><?PHP l("mtld"); ?>&nbsp;</span>
+            <span class="choices">
+<?PHP
+// FIXME: Horrific duplication of above
+if (!$iphone && !$android)
+    download(ls("audacity"), "flac", "aupzip", "&amp;dynaudnorm");
+download("FLAC", "flac", "zip", "&amp;dynaudnorm");
+ezel("wav *", 0x25);
+download("AAC (MPEG-4)", "aac", "zip", "&amp;dynaudnorm");
+if (isset($features["mp3"]) && $features["mp3"])
+    download("MP3", "mp3", "zip", "&amp;dynaudnorm");
+?>
+            </span></span><br/><br/>
+
+<?PHP
+if ($windows || ($macosx && !$iphone) || ($unix && !$android) || $beta) {
+?>
+            <span class="big">
+            <span class="lbl"><?PHP l("lp"); ?></span>
+            <span class="choices">
+		<?PHP l("lpwarn"); ?>
+<?PHP
+if ($windows) download(ls("winapp"), "powersfx", "exe");
+if ($macosx) download(ls("macosxapp"), "powersfxm");
+if ($unix) download(ls("unixscript"), "powersfxu");
+if ($beta) {
+    print "<a href=\"https://c.ennuicastr.com/ennuizel/?i=" .
+        base_convert($id, 10, 36) .
+        "&amp;k=" .
+        base_convert($key, 10, 36) .
+        "\">Ennuizel</a>";
+}
+?>
+            </span></span><br/><br/>
+<?PHP } ?>
+
         </div><br/><br/>
 
 <?PHP
@@ -465,10 +467,7 @@ download("info.json", "info");
 
         <script type="text/javascript"><!--
 <?PHP
-readfile("convert.js");
-print "craigOgg=\"?id=" . $id . "&key=" . $key . "&fetch=cooked&format=copy&container=ogg\";\n";
 print "craigBase=\"?id=" . $id . "&key=" . $key . "\";\n";
-print "craigMobile=" . (($android||$iphone)?"true":"false") . ";\n";
 print "craigLocale={";
 foreach (array("users", "duration", "nomp3", "nowav", "downloading", "notracks", "complete") as $lstr) {
     print "\"$lstr\":\"" . ls($lstr) . "\",";
@@ -555,8 +554,7 @@ print "0:0};\n";
             }
             initCheck();
 
-            //if (!craigMobile)
-                document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
+            document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
 
             function vis(id, setTo) {
                 var l = gid(id);

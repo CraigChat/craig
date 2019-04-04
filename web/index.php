@@ -16,6 +16,7 @@
  */
 
 $base = "/home/yahweasel/craig/rec";
+$ennuizel = "https://c.ennuicastr.com/ennuizel/";
 
 // No ID => Send them to homepage
 if (!isset($_REQUEST["id"])) {
@@ -84,6 +85,9 @@ if ((stripos($_SERVER["HTTP_USER_AGENT"], "android") !== false || isset($_REQUES
     !isset($_REQUEST["noandroid"]))
     $android = true;
 
+// Check if they're asking for beta features
+$beta = isset($_REQUEST["beta"]);
+
 require("locale.php");
 
 // Function to present a download link
@@ -103,7 +107,22 @@ function download($title, $format="flac", $container="zip", $flags="") {
     print "\">$title</a> ";
 }
 
-// Present them their options
+// Function to present an Ennuizel link
+function ezel($title, $w) {
+    global $id, $key, $ennuizel;
+    $ids = base_convert($id, 10, 36);
+    $keys = base_convert($key, 10, 36);
+
+    print "<span class=\"local js\"><a href=\"" .
+        $ennuizel . "?i=$ids&amp;k=$keys";
+        
+    if ($w !== false)
+        print "&amp;w=" . base_convert($w, 10, 36);
+
+    print "\">$title</a></span> ";
+}
+
+// Perform an action based on the request
 if (isset($_REQUEST["delete"])) {
     $deleteKey = intval($_REQUEST["delete"]);
     if ($info !== false)
