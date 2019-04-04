@@ -132,6 +132,9 @@ var Ennuizel = (function(ez) {
         ez.mke(ez.modalDialog, "span", {text: "  "});
         var auto = ez.mke(ez.modalDialog, "button", {text: "Auto"});
 
+        ez.modalToggle(true);
+        auto.focus();
+
         return new Promise(function(res, rej) {
             cancel.onclick = function() {
                 res("cancel");
