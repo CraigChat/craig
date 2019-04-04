@@ -83,8 +83,8 @@ var Ennuizel = (function(ez) {
         // Get our wizard options, one way or another
         wizardConvertOpts();
 
-        if (wizardOptsS === null) {
-            // None were provided, so ask
+        if (wizardOptsS === null || wizardOpts.ask) {
+            // None were provided, or we were asked to ask, so ask
             return mainMode().then(function(mode) {
                 if (mode === "wizard") {
                     autoWizard = true;
@@ -125,7 +125,7 @@ var Ennuizel = (function(ez) {
     function mainMode() {
         ez.modalDialog.innerHTML = "";
 
-        ez.mke(ez.modalDialog, "div", {text: "This tool will download, process, and export your audio. Click \"Auto\" to do all of that in automatic mode, \"Edit\" if you'd like to perform other editing, or \"Cancel\" otherwise.\n\n"});
+        ez.mke(ez.modalDialog, "div", {text: "THIS SERVICE IS IN BETA. If you have any problems, please go back and choose a different format. In particular, on mobile devices, this is likely to be unusable for very long recordings or recordings with many participants.\n\nThis tool will download, process, and export your audio. Click \"Auto\" to do all of that in automatic mode, \"Edit\" if you'd like to perform other editing, or \"Cancel\" otherwise.\n\n"});
         var cancel = ez.mke(ez.modalDialog, "button", {text: "Cancel"});
         ez.mke(ez.modalDialog, "span", {text: "  "});
         var edit = ez.mke(ez.modalDialog, "button", {text: "Edit"});
@@ -589,7 +589,8 @@ var Ennuizel = (function(ez) {
             format: inOpts & 0xF,
             mix: !!(inOpts & 0x10),
             level: !!(inOpts & 0x20),
-            keep: !!(inOpts & 0x100)
+            keep: !!(inOpts & 0x100),
+            ask: !!(inOpts & 0x200)
         };
     }
 
