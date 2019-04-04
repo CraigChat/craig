@@ -14,11 +14,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/select.h>
 #include <unistd.h>
 
 /* NOTE: We don't use libogg here because the behavior of this program is so
@@ -64,29 +66,54 @@ ssize_t readAll(int fd, void *vbuf, size_t count)
     return rd;
 }
 
+ssize_t writeAll(int fd, const void *vbuf, size_t count)
+{
+    const unsigned char *buf = (const unsigned char *) vbuf;
+    ssize_t wt = 0, ret;
+    while (wt < count) {
+        ret = write(fd, buf + wt, count - wt);
+
+        if (ret <= 0) {
+            if (ret < 0 && errno == EAGAIN) {
+                // Wait 'til we can write again
+                fd_set wfds;
+                FD_ZERO(&wfds);
+                FD_SET(fd, &wfds);
+                select(fd + 1, NULL, &wfds, NULL, NULL);
+                continue;
+            }
+
+            perror("write");
+            return ret;
+        }
+        wt += ret;
+    }
+    return wt;
+}
+
 void writeOgg(struct OggHeader *header, const unsigned char *data, uint32_t size)
 {
     unsigned char sequencePart;
     uint32_t sizeMod;
 
-    if (write(1, "OggS\0", 5) != 5 ||
-        write(1, header, sizeof(*header)) != sizeof(*header))
+    if (writeAll(1, "OggS\0", 5) != 5 ||
+        writeAll(1, header, sizeof(*header)) != sizeof(*header))
         exit(1);
 
     // Write out the sequence info
     sequencePart = (size+254)/255;
-    if (write(1, &sequencePart, 1) != 1) exit(1);
+    if (writeAll(1, &sequencePart, 1) != 1) exit(1);
     sequencePart = 255;
     sizeMod = size;
     while (sizeMod > 255) {
-        if (write(1, &sequencePart, 1) != 1) exit(1);
+        if (writeAll(1, &sequencePart, 1) != 1) exit(1);
         sizeMod -= 255;
     }
     sequencePart = sizeMod;
-    if (write(1, &sequencePart, 1) != 1) exit(1);
+    if (writeAll(1, &sequencePart, 1) != 1) exit(1);
 
     // Then write the data
-    if (write(1, data, size) != size) exit(1);
+    if (writeAll(1, data, size) != size) exit(1);
 }
 
 int main(int argc, char **argv)
