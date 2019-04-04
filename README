@@ -37,6 +37,20 @@ More information on Craig can be found at
 https://craig.chat/
 
 
+Craig can integrate with other tools (largely also by Yahweasel) to provide
+improved functionality.
+
+EnnuiCastr ( https://bitbucket.org/Yahweasel/ennuicastr/ ) is a browser-based
+audio capture tool which records more reliably than Discord, and can be used to
+get higher-quality audio if config.ennuicastr is set to an appropriate URL.
+
+Ennuizel ( https://bitbucket.org/Yahweasel/ennuizel/ ) is a browser-based audio
+editor which can provide audio processing features too heavy to put on the
+server. The 'ennuizel' directory here is the associated client plugin for
+Ennuizel as well as the server component, only required when combining Ennuizel
+with Craig.
+
+
 No documentation is provided for running your own instances of Craig.
 
 RUNNING CRAIG IS NOT LIKE RUNNING ANY OTHER BOT. MOST OF THE COMPLEXITY OF
