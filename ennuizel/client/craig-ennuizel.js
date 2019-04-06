@@ -309,8 +309,12 @@ var Ennuizel = (function(ez) {
 
             // Good! Get the JSON out
             var json = "";
-            for (var j = 0; j < i; j++)
-                json += String.fromCharCode(rdbuf[j]);
+            if (window.TextDecoder) {
+                json += new TextDecoder().decode(rdbuf.subarray(0, i));
+            } else {
+                for (var j = 0; j < i; j++)
+                    json += String.fromCharCode(rdbuf[j]);
+            }
             info = {};
             try {
                 info = JSON.parse(json);
