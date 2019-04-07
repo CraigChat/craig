@@ -47,9 +47,6 @@ var Ennuizel = (function(ez) {
     var wsUrl = (url.protocol==="http"?"ws":"wss") + "://" + url.hostname + ":34181";
     var sock;
 
-    var report = document.createElement("div");
-    document.body.appendChild(report);
-
     // Are we still in the JSON (info) bit?
     var inJSON = true;
 
@@ -68,6 +65,20 @@ var Ennuizel = (function(ez) {
 
     // Handler to send a packet (or null for EOF) to Ennuizel
     var packet = null;
+
+    /* We report back success or failure. This is so that Yahweasel can judge
+     * how well this feature is working, and eventually redirect people towards
+     * it. This reporting will be removed when Ennuizel is more stable */
+    function report(success) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/ennuizel/report.php?id=" + id + "&s=" + (success?1:0));
+        xhr.send();
+    }
+
+    function error(err) {
+        report(false);
+        return ez.error(err);
+    }
 
     // At startup, just choose our mode
     function start() {
@@ -155,7 +166,7 @@ var Ennuizel = (function(ez) {
                 return ez.warn(l("postedit")).then(function() { return mode; });
             return mode;
 
-        }).catch(ez.error);
+        }).catch(error);
     }
 
     function downloader() {
@@ -426,7 +437,7 @@ var Ennuizel = (function(ez) {
         // Send this packet through
         p.then(function() {
             return packet(packetData);
-        }).then(handle).catch(ez.error);
+        }).then(handle).catch(error);
     }
 
     // Create a new track
@@ -476,7 +487,7 @@ var Ennuizel = (function(ez) {
                     frame = ret[3];
 
                     return trackData(name, eof, fmt_ctx, [0], [0], [c], [pkt], [frame]);
-                }).catch(ez.error);
+                }).catch(error);
             } else {
                 return Promise.all([]);
             }
@@ -504,7 +515,7 @@ var Ennuizel = (function(ez) {
                 libav.avformat_close_input_js(fmt_ctx),
                 libav.unlink("dev.ogg")
             ]);
-        }).catch(ez.error);
+        }).catch(error);
 
         var againRes, downPromise, downRes;
 
@@ -717,6 +728,7 @@ var Ennuizel = (function(ez) {
 
         // Finally, tell them we're done
         p = p.then(function() {
+            report(true);
             var msg = l("done");
             if (opts.keep)
                 return ez.warn(msg);
