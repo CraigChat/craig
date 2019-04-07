@@ -438,7 +438,6 @@ if ($windows || ($macosx && !$iphone) || ($unix && !$android) || $beta) {
             <span class="big">
             <span class="lbl"><?PHP l("lp"); ?></span>
             <span class="choices">
-		<?PHP l("lpwarn"); ?>
 <?PHP
 if ($windows) download(ls("winapp"), "powersfx", "exe");
 if ($macosx) download(ls("macosxapp"), "powersfxm");

@@ -15,7 +15,7 @@
  */
 
 var Ennuizel = (function(ez) {
-    var libav;
+    var libav, l;
 
     if (!ez.plugins) ez.plugins = [];
 
@@ -28,6 +28,8 @@ var Ennuizel = (function(ez) {
     var key = Number.parseInt(keyS, 36);
     var wizardOptsS = params.get("w");
     var wizardOpts = Number.parseInt(wizardOptsS, 36);
+    var lang = params.get("lang");
+    if (lang !== null) ez.lang = lang;
 
     // Set to true if we've been asked to use the wizard automatically
     var autoWizard = false;
@@ -70,6 +72,7 @@ var Ennuizel = (function(ez) {
     // At startup, just choose our mode
     function start() {
         libav = LibAV;
+        l = ez.l;
 
         // Create our wizard before anything else
         wizardAdd();
@@ -125,12 +128,12 @@ var Ennuizel = (function(ez) {
     function mainMode() {
         ez.modalDialog.innerHTML = "";
 
-        ez.mke(ez.modalDialog, "div", {text: "THIS SERVICE IS IN BETA. If you have any problems, please go back and choose a different format. In particular, on mobile devices, this is likely to be unusable for very long recordings or recordings with many participants.\n\nThis tool will download, process, and export your audio. Click \"Auto\" to do all of that in automatic mode, \"Edit\" if you'd like to perform other editing, or \"Cancel\" otherwise.\n\n"});
-        var cancel = ez.mke(ez.modalDialog, "button", {text: "Cancel"});
+        ez.mke(ez.modalDialog, "div", {text: l("betawarning") + "\n\n" + l("wizarddesc") + "\n\n"});
+        var cancel = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
         ez.mke(ez.modalDialog, "span", {text: "  "});
-        var edit = ez.mke(ez.modalDialog, "button", {text: "Edit"});
+        var edit = ez.mke(ez.modalDialog, "button", {text: l("edit")});
         ez.mke(ez.modalDialog, "span", {text: "  "});
-        var auto = ez.mke(ez.modalDialog, "button", {text: "Auto"});
+        var auto = ez.mke(ez.modalDialog, "button", {text: l("auto")});
 
         ez.modalToggle(true);
         auto.focus();
@@ -147,8 +150,9 @@ var Ennuizel = (function(ez) {
             };
 
         }).then(function(mode) {
+            ez.modal(l("loadinge"));
             if (mode === "downloader")
-                return ez.warn("After downloading and performing any editing you wish, you may click \"Wizard\" to continue automatic processing.").then(function() { return mode; });
+                return ez.warn(l("postedit")).then(function() { return mode; });
             return mode;
 
         }).catch(ez.error);
@@ -165,10 +169,10 @@ var Ennuizel = (function(ez) {
             if (projects.includes(pid)) {
                 // They've already imported this!
                 ez.modalDialog.innerHTML = "";
-                ez.mke(ez.modalDialog, "div", {text: "The requested ID already exists. You may have already downloaded it. If so, I can load the existing project, which you may have modified after downloading.\n\n"});
-                var load = ez.mke(ez.modalDialog, "button", {text: "Load the existing project"});
+                ez.mke(ez.modalDialog, "div", {text: l("projectexists") + "\n\n"});
+                var load = ez.mke(ez.modalDialog, "button", {text: l("loadexisting")});
                 ez.mke(ez.modalDialog, "span", {text: "  "});
-                var del = ez.mke(ez.modalDialog, "button", {text: "Delete the existing project"});
+                var del = ez.mke(ez.modalDialog, "button", {text: l("deleteexisting")});
                 ez.modalToggle(true);
                 load.focus();
 
@@ -205,7 +209,7 @@ var Ennuizel = (function(ez) {
 
     function connect() {
         // Now establish our WebSocket connection
-        ez.modal("Connecting...");
+        ez.modal(l("loadinge"));
         sock = new WebSocket(wsUrl);
         sock.binaryType = "arraybuffer";
 
@@ -236,7 +240,7 @@ var Ennuizel = (function(ez) {
             if (msg.getUint32(0, true) !== 0 ||
                 msg.getUint32(4, true) !== 0) {
                 sock.close();
-                throw new Error("Invalid ID or key.");
+                throw new Error(l("invalid"));
             }
 
             // From now on, messages are our primary data
@@ -244,10 +248,10 @@ var Ennuizel = (function(ez) {
             sock.onclose = onclose;
             sock.onerror = function(err) {
                 onclose();
-                alert("Connection error! " + err);
+                alert(l("error") + " " + err);
             }
 
-            ez.modal("Downloading...");
+            ez.modal(l("loadinge"));
 
             return false;
 
@@ -422,12 +426,12 @@ var Ennuizel = (function(ez) {
         // Send this packet through
         p.then(function() {
             return packet(packetData);
-        }).then(handle);
+        }).then(handle).catch(ez.error);
     }
 
     // Create a new track
     function newTrack(name) {
-        ez.modal("Downloading " + name + "...");
+        ez.modal(l("loadingx", name) + "...");
 
         var data = new Uint8Array(0);
 
@@ -472,7 +476,7 @@ var Ennuizel = (function(ez) {
                     frame = ret[3];
 
                     return trackData(name, eof, fmt_ctx, [0], [0], [c], [pkt], [frame]);
-                });
+                }).catch(ez.error);
             } else {
                 return Promise.all([]);
             }
@@ -500,7 +504,7 @@ var Ennuizel = (function(ez) {
                 libav.avformat_close_input_js(fmt_ctx),
                 libav.unlink("dev.ogg")
             ]);
-        });
+        }).catch(ez.error);
 
         var againRes, downPromise, downRes;
 
@@ -578,7 +582,7 @@ var Ennuizel = (function(ez) {
     // Add our wizard to the menu
     function wizardAdd() {
         ez.menu.push({
-            name: "Wizard",
+            name: l("wizard"),
             on: wizardMode
         });
         ez.showMenu();
@@ -619,7 +623,7 @@ var Ennuizel = (function(ez) {
 
         var form = ez.mke(ez.modalDialog, "div", {"class": "modalform"});
 
-        ez.mke(form, "label", {text: "Format:", "class": "inputlabel", "for": "format"});
+        ez.mke(form, "label", {text: l("format") + ":", "class": "inputlabel", "for": "format"});
         var fmtSelect = ez.mke(form, "select", {id: "format"});
         for (var i = 0; i < formats.length; i++) {
             var format = getExportFormat(formats[i]);
@@ -634,25 +638,25 @@ var Ennuizel = (function(ez) {
         var mix = ez.mke(form, "input", {id: "mix"});
         mix.type = "checkbox";
         mix.checked = wizardOpts.mix;
-        ez.mke(form, "label", {text: " Mix into single track?", "for": "mix"});
+        ez.mke(form, "label", {text: " " + l("domix"), "for": "mix"});
         ez.mke(form, "br");
 
         var level = ez.mke(form, "input", {id: "level"});
         level.type = "checkbox";
         level.checked = wizardOpts.level;
-        ez.mke(form, "label", {text: " Level volume?", "for": "level"});
+        ez.mke(form, "label", {text: " " + l("dolevel"), "for": "level"});
         ez.mke(form, "br");
 
         var keep = ez.mke(form, "input", {id: "keep"});
         keep.type = "checkbox";
         keep.checked = wizardOpts.keep;
-        ez.mke(form, "label", {text: " Keep intermediate project files?", "for": "keep"});
+        ez.mke(form, "label", {text: " " + l("dokeep"), "for": "keep"});
 
         ez.mke(ez.modalDialog, "div", {text: "\n\n"});
 
-        var cancel = ez.mke(ez.modalDialog, "button", {text: "Cancel"});
+        var cancel = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
         ez.mke(ez.modalDialog, "span", {text: "  "});
-        var ok = ez.mke(ez.modalDialog, "button", {text: "Go"});
+        var ok = ez.mke(ez.modalDialog, "button", {text: l("go")});
 
         ez.modalToggle(true);
         ok.focus();
@@ -713,7 +717,7 @@ var Ennuizel = (function(ez) {
 
         // Finally, tell them we're done
         p = p.then(function() {
-            var msg = "Done! You may now close this page.";
+            var msg = l("done");
             if (opts.keep)
                 return ez.warn(msg);
             else

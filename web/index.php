@@ -109,7 +109,7 @@ function download($title, $format="flac", $container="zip", $flags="") {
 
 // Function to present an Ennuizel link
 function ezel($title, $w) {
-    global $id, $key, $ennuizel;
+    global $id, $key, $locale, $ennuizel;
     $ids = base_convert($id, 10, 36);
     $keys = base_convert($key, 10, 36);
 
@@ -118,6 +118,9 @@ function ezel($title, $w) {
         
     if ($w !== false)
         print "&amp;w=" . base_convert($w, 10, 36);
+
+    if ($locale !== "en")
+        print "&amp;lang=$locale";
 
     print "\">$title</a></span> ";
 }
