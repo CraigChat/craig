@@ -41,6 +41,7 @@ $l["en"] = array(
     "notracks" =>   "No tracks detected!",
     "complete" =>   "Processing complete.",
 
+    "other" =>      "Other",
     "otherformats" => "Other formats",
 
     "avatars" =>    "Avatars",

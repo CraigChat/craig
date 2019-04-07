@@ -316,7 +316,7 @@ if (isset($features["mp3"]) && $features["mp3"])
 ezel("FLAC *", 0x30);
 ezel("wav *", 0x35);
 ezel("AAC (MPEG-4) *", 0x31);
-ezel("Other *", 0x230);
+ezel(ls("other") . " *", 0x230);
 ?>
         </span></span><br/><br/>
 

@@ -41,6 +41,7 @@ $l["it"] = array(
     "notracks" =>   "Nessuna traccia trovata!",
     "complete" =>   "Elaborazione completa.",
 
+    "other" =>      "Altri",
     "otherformats" => "Altri formati",
 
     "avatars" =>    "Avatar",
