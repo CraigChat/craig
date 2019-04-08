@@ -1,6 +1,6 @@
 <?PHP
 /*
- * Copyright (c) 2017, 2018 Yahweasel
+ * Copyright (c) 2017-2019 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,6 +19,24 @@ if (!isset($id))
     die();
 
 ob_start("ob_gzhandler");
+
+if ($beta)
+    $features = array();
+
+/* We default to download, rather than local processing, on mobile devices and
+ * for all patrons */
+$defaultdl = ($iphone || $android || (isset($features["bless"]) && $features["bless"]));
+
+// Local processing is in beta, so only suggest it in 10% of cases for now
+$defaultdl = $defaultdl || ($id%10!==4);
+
+function secHead($nm) {
+    print '<span class="big"><span class="lbl">' . $nm . '&nbsp;</span><span class="choices">';
+}
+
+function secTail() {
+    print "</span></span><br/><br/>";
+}
 
 ?>
 <!doctype html>
@@ -295,49 +313,41 @@ ob_start("ob_gzhandler");
         <div class="panel">
         <span id="loading" class="la-line-scale la-3x"><div></div><div></div><div></div><div></div><div></div></span>
 
-        <span class="big">
-        <span class="lbl"><?PHP l("mtd"); ?>&nbsp;</span>
-        <span class="choices">
 <?PHP
+secHead(ls("mtd"));
 if (!$iphone && !$android)
     download(ls("audacity"), "flac", "aupzip");
-download("FLAC", "flac");
+if ($defaultdl)
+    download("FLAC", "flac");
+else
+    ezel("FLAC *", 0);
 ezel("wav *", 5);
-download("AAC (MPEG-4)", "aac");
+if ($defaultdl)
+    download("AAC (MPEG-4)", "aac");
+else
+    ezel("AAC (MPEG-4) *", 1);
 if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3");
-?>
-        </span></span><br/><br/>
+secTail();
 
-        <span class="big">
-        <span class="lbl"><?PHP l("stm"); ?>&nbsp;</span>
-        <span class="choices">
-<?PHP
+secHead(ls("stm"));
 ezel("FLAC *", 0x30);
 ezel("wav *", 0x35);
 ezel("AAC (MPEG-4) *", 0x31);
 ezel(ls("other") . " *", 0x230);
-?>
-        </span></span><br/><br/>
+secTail();
 
-<?PHP
 if (isset($features["mix"]) && $features["mix"]) {
-?>
-        <span class="big">
-        <span class="lbl"><?PHP l("std"); ?></span>
-        <span class="choices">
-<?PHP
-download("FLAC", "flac", "mix");
-download("Ogg Vorbis", "vorbis", "mix");
-download("AAC (MPEG-4)", "aac", "mix");
-if (isset($features["mp3"]) && $features["mp3"])
-    download("MP3", "mp3", "mix");
-?>
-        </span></span><br/><br/>
-<?PHP
+    secHead(ls("std"));
+    download("FLAC", "flac", "mix");
+    download("Ogg Vorbis", "vorbis", "mix");
+    download("AAC (MPEG-4)", "aac", "mix");
+    if (isset($features["mp3"]) && $features["mp3"])
+        download("MP3", "mp3", "mix");
+    secTail();
 }
 ?>
-        
+
         <span class="js">
         <button id="avatarsB"><?PHP l("avatars"); ?></button><br/><br/>
 
@@ -402,56 +412,51 @@ if (isset($features["glowers"]) && $features["glowers"]) {
         </div><br/><br/>
 
         <button id="otherFormatsB"><?PHP l("otherformats"); ?></button><br/><br/>
+        </span>
 
-        <div id="otherFormats" style="display: none">
-            <span class="big">
-            <span class="lbl"><?PHP l("otherformats"); ?>:&nbsp;</span>
-            <span class="choices">
+        <div id="otherFormats">
             <?PHP
+            // The download-vs-local-prop opposite of above
+            secHead(ls("mtd"));
+            if ($defaultdl) {
+                ezel("FLAC *", 0);
+                ezel("AAC (MPEG-4) *", 1);
+            } else {
+                download("FLAC", "flac");
+                download("AAC (MPEG-4)", "aac");
+            }
+            secTail();
+
+            // Other available formats, download only
+            secHead(ls("otherformats") . ":");
             download("Ogg FLAC", "oggflac");
             download("HE-AAC", "heaac");
             download("Opus", "opus");
             download("Ogg Vorbis", "vorbis");
             download("ADPCM wav", "adpcm");
             download("8-bit wav", "wav8");
+            secTail();
+
+            // Leveled download
+            secHead(ls("mtld"));
+            if (!$iphone && !$android)
+                download(ls("audacity"), "flac", "aupzip", "&amp;dynaudnorm");
+            download("FLAC", "flac", "zip", "&amp;dynaudnorm");
+            ezel("wav *", 0x25);
+            download("AAC (MPEG-4)", "aac", "zip", "&amp;dynaudnorm");
+            if (isset($features["mp3"]) && $features["mp3"])
+                download("MP3", "mp3", "zip", "&amp;dynaudnorm");
+            secTail();
+
+            // Binary local processing tool
+            if ($windows || ($macosx && !$iphone) || ($unix && !$android) || $beta) {
+                secHead(ls("lp"));
+                if ($windows) download(ls("winapp"), "powersfx", "exe");
+                if ($macosx) download(ls("macosxapp"), "powersfxm");
+                if ($unix) download(ls("unixscript"), "powersfxu");
+                secTail();
+            }
             ?>
-            </span></span><br/><br/>
-
-            <span class="big">
-            <span class="lbl"><?PHP l("mtld"); ?>&nbsp;</span>
-            <span class="choices">
-<?PHP
-// FIXME: Horrific duplication of above
-if (!$iphone && !$android)
-    download(ls("audacity"), "flac", "aupzip", "&amp;dynaudnorm");
-download("FLAC", "flac", "zip", "&amp;dynaudnorm");
-ezel("wav *", 0x25);
-download("AAC (MPEG-4)", "aac", "zip", "&amp;dynaudnorm");
-if (isset($features["mp3"]) && $features["mp3"])
-    download("MP3", "mp3", "zip", "&amp;dynaudnorm");
-?>
-            </span></span><br/><br/>
-
-<?PHP
-if ($windows || ($macosx && !$iphone) || ($unix && !$android) || $beta) {
-?>
-            <span class="big">
-            <span class="lbl"><?PHP l("lp"); ?></span>
-            <span class="choices">
-<?PHP
-if ($windows) download(ls("winapp"), "powersfx", "exe");
-if ($macosx) download(ls("macosxapp"), "powersfxm");
-if ($unix) download(ls("unixscript"), "powersfxu");
-if ($beta) {
-    print "<a href=\"https://c.ennuicastr.com/ennuizel/?i=" .
-        base_convert($id, 10, 36) .
-        "&amp;k=" .
-        base_convert($key, 10, 36) .
-        "\">Ennuizel</a>";
-}
-?>
-            </span></span><br/><br/>
-<?PHP } ?>
 
         </div><br/><br/>
 
@@ -554,6 +559,7 @@ print "0:0};\n";
             initCheck();
 
             document.querySelectorAll(".js").forEach(function(e){e.style.display="inline";});
+            gid("otherFormats").style.display = "none";
 
             function vis(id, setTo) {
                 var l = gid(id);
