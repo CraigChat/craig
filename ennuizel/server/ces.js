@@ -41,7 +41,7 @@ function start() {
     hst.on("listening", startWS);
 
     // Start the HTTPS server
-    hst.listen(34181);
+    hst.listen(34182);
 
     // Start the websocket server
     function startWS() {
@@ -63,16 +63,17 @@ function connection(ws) {
 
         // The first message has to be a login request
         var p = {
-            cmd: 0,
+            alllogin: 0x10,
+            onelogin: 0x11,
             id: 4,
             key: 8,
-            length: 12
+            track: 12
         };
-        if (msg.length != p.length)
+        if (msg.length < p.track)
             return ws.close();
 
         var cmd = msg.readUInt32LE(p.cmd);
-        if (cmd !== 0x10)
+        if (cmd !== p.alllogin && cmd !== p.onelogin)
             return ws.close();
 
         var id = ""+msg.readUInt32LE(p.id);
@@ -90,10 +91,19 @@ function connection(ws) {
         if (key !== info.key)
             return ws.close();
 
+        // Get the requested track
+        var track = null;
+        if (cmd === p.onelogin) {
+            if (msg.length !== p.track + 4)
+                return ws.close();
+            track = msg.readInt32LE(p.track);
+            if (track < 0) track = "info";
+        }
+
         // Tell them "OK"
         var buf = Buffer.alloc(8);
         buf.writeUInt32LE(0, 0);
-        buf.writeUInt32LE(0, 4);
+        buf.writeUInt32LE(cmd, 4);
         ws.send(buf);
 
         // Send based on what's acknowledged
@@ -103,7 +113,7 @@ function connection(ws) {
         // Start getting data
         buf = Buffer.alloc(4);
         buf.writeUInt32LE(sending, 0);
-        var c = cp.spawn("cook/raw-partwise.sh", [id], {
+        var c = cp.spawn("cook/raw-partwise.sh", (track === null) ? [id] : [id, ""+track], {
             stdio: ["ignore", "pipe", "inherit"]
         });
 

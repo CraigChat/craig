@@ -17,6 +17,13 @@
 var Ennuizel = (function(ez) {
     var libav, l;
 
+    if (typeof LibAV === "undefined") LibAV = {};
+
+    /* Use half as many threads as we have available, to sort of play nice with
+     * the rest of the system */
+    if (navigator.hardwareConcurrency)
+        LibAV.threads = Math.ceil(navigator.hardwareConcurrency/2);
+
     if (!ez.plugins) ez.plugins = [];
 
     // Some info we can get before Ennuizel starts
@@ -42,29 +49,19 @@ var Ennuizel = (function(ez) {
     window.history.pushState({}, "Ennuizel", url.toString());
 
     // Global state info
-    var msgbuf = [];
-    var rdbuf = new Uint8Array(0);
-    var wsUrl = (url.protocol==="http"?"ws":"wss") + "://" + url.hostname + ":34181";
-    var sock;
-
-    // Are we still in the JSON (info) bit?
-    var inJSON = true;
+    var wsUrl = (url.protocol==="http"?"ws":"wss") + "://" + url.hostname + ":34182";
 
     // Once we have the JSON, the info
     var info = null;
 
-    // Are we currently handling data?
-    var handling = false;
+    // The track numbers to request
+    var tracks = [];
+
+    // Has there been a catastrophic error?
     var error = false;
 
     // The current track serial number
     var curTrackNo = null;
-
-    // Set when we're done downloading
-    var eos = false;
-
-    // Handler to send a packet (or null for EOF) to Ennuizel
-    var packet = null;
 
     /* We report back success or failure. This is so that Yahweasel can judge
      * how well this feature is working, and eventually redirect people towards
@@ -75,9 +72,11 @@ var Ennuizel = (function(ez) {
         xhr.send();
     }
 
-    function error(err) {
+    function reportError(err) {
         report(false);
-        return ez.error(err);
+        //return ez.error(err);
+        alert(err + "\n\n" + err.stack);
+        return Promise.all([]);
     }
 
     // At startup, just choose our mode
@@ -166,7 +165,7 @@ var Ennuizel = (function(ez) {
                 return ez.warn(l("postedit")).then(function() { return mode; });
             return mode;
 
-        }).catch(error);
+        }).catch(reportError);
     }
 
     function downloader() {
@@ -218,10 +217,22 @@ var Ennuizel = (function(ez) {
         });
     }
 
+    // General purpose ack for received messages
+    function ack(sock, msg) {
+        var seq = new DataView(msg.buffer).getUint32(0, true);
+        msg = msg.subarray(4);
+        var ackbuf = new DataView(new ArrayBuffer(8));
+        ackbuf.setUint32(0, 0, true);
+        ackbuf.setUint32(4, seq, true);
+        sock.send(ackbuf.buffer);
+        return msg;
+    }
+
+    // Perform our initial connection
     function connect() {
         // Now establish our WebSocket connection
         ez.modal(l("loadinge"));
-        sock = new WebSocket(wsUrl);
+        var sock = new WebSocket(wsUrl);
         sock.binaryType = "arraybuffer";
 
         return new Promise(function(res, rej) {
@@ -232,10 +243,11 @@ var Ennuizel = (function(ez) {
 
         }).then(function() {
             // Send our login request
-            var loginbuf = new DataView(new ArrayBuffer(12));
-            loginbuf.setUint32(0, 0x10, true);
+            var loginbuf = new DataView(new ArrayBuffer(16));
+            loginbuf.setUint32(0, 0x11, true);
             loginbuf.setUint32(4, id, true);
             loginbuf.setUint32(8, key, true);
+            loginbuf.setInt32(12, -1, true);
             sock.send(loginbuf.buffer);
 
             return new Promise(function(res, rej) {
@@ -249,20 +261,56 @@ var Ennuizel = (function(ez) {
             // The first message must be the login acknowledgement
             msg = new DataView(msg.data);
             if (msg.getUint32(0, true) !== 0 ||
-                msg.getUint32(4, true) !== 0) {
+                msg.getUint32(4, true) !== 0x11) {
                 sock.close();
                 throw new Error(l("invalid"));
             }
 
-            // From now on, messages are our primary data
-            sock.onmessage = onmessage;
-            sock.onclose = onclose;
-            sock.onerror = function(err) {
-                onclose();
-                alert(l("error") + " " + err);
+            // The rest will be the info
+            var buf = new Uint8Array(0);
+            sock.onmessage = function(msg) {
+                msg = ack(sock, new Uint8Array(msg.data));
+                var c = new Uint8Array(buf.length + msg.length);
+                c.set(buf, 0);
+                c.set(msg, buf.length);
+                buf = c;
+            };
+
+            return new Promise(function(res, rej) {
+                sock.onclose = function() {
+                    res(buf);
+                };
+                sock.onerror = function(err) {
+                    rej(new Error(err));
+                };
+            });
+
+        }).then(function(buf) {
+            // Convert the whole thing to string
+            var msg = "";
+            if (window.TextDecoder) {
+                msg += new TextDecoder().decode(buf);
+            } else {
+                for (var i = 0; i < buf.length; i++)
+                    msg += String.fromCharCode(buf[i]);
             }
 
-            ez.modal(l("loadinge"));
+            // Split it into lines
+            msg = msg.trim().split("\n");
+
+            // The first line is the info JSON
+            info = {};
+            try {
+                info = JSON.parse(msg[0]);
+            } catch (ex) {}
+            if (!("tracks" in info)) info.tracks = {};
+
+            // The rest of the buffer is our tracks
+            for (var i = 1; i < msg.length; i++)
+                tracks.push(+msg[i]);
+
+            // Now start our actual downloads
+            doDownloads();
 
             return false;
 
@@ -274,310 +322,342 @@ var Ennuizel = (function(ez) {
         });
     }
 
-    // Our normal message receiver
-    var total = 0;
-    function onmessage(msg) {
-        if (error) return;
-        msg = new Uint8Array(msg.data);
-        var msgid = new DataView(msg.buffer).getUint32(0, true);
-        msg = msg.subarray(4);
-        msgbuf.push([msgid, msg]);
+    // Manage all of our downloaders
+    function doDownloads() {
+        var threads = libav.threads;
+        var downloaders = [], downloaded = [];
+        var i, j;
+        for (i = 0; i < threads; i++) downloaders.push(null);
+        for (i = 0; i < tracks.length; i++) downloaded.push(false);
 
-        if (!handling)
-            handle();
-    }
-
-    // Receiver when the socket is closed
-    function onclose() {
-        eos = true;
-        if (!handling)
-            handle();
-    }
-
-    // Data handler
-    function handle() {
-        handling = true;
-
-        // Get a message from the queue and acknowledge it
-        if (msgbuf.length > 0) {
-            var msg = msgbuf.shift();
-            var ack = new DataView(new ArrayBuffer(8));
-            ack.setUint32(0, 0, true);
-            ack.setUint32(4, msg[0], true);
-            sock.send(ack.buffer);
-            msg = msg[1];
-            var c = new Uint8Array(rdbuf.length + msg.length);
-            c.set(rdbuf, 0);
-            c.set(msg, rdbuf.length);
-            rdbuf = c;
-        }
-
-        // Are we still waiting for JSON data?
-        if (inJSON) {
-            // We're still in the JSON, so just look for its end
-            for (var i = 0; i < rdbuf.length; i++)
-                if (rdbuf[i] === 10) break;
-            if (i === rdbuf.length) {
-                handling = false;
-                return;
-            }
-
-            // Good! Get the JSON out
-            var json = "";
-            if (window.TextDecoder) {
-                json += new TextDecoder().decode(rdbuf.subarray(0, i));
-            } else {
-                for (var j = 0; j < i; j++)
-                    json += String.fromCharCode(rdbuf[j]);
-            }
-            info = {};
-            try {
-                info = JSON.parse(json);
-            } catch (ex) {}
-            if (!("tracks" in info)) info.tracks = {};
-            inJSON = false;
-
-            // The rest is real data
-            rdbuf = rdbuf.slice(i+1);
-        }
-
-
-        if (rdbuf.length === 0) {
-            if (eos) {
-                // We're done!
-                return packet(null).then(function() {
-                    if (autoWizard)
-                        return wizard(wizardOpts);
-                    ez.modalToggle(false);
-                    handling = false;
-                });
-            } else {
-                // Need more data
-                handling = false;
-                return;
-            }
-        }
-
-        // Keep getting chunks so long as they're within the current track
-        var p = Promise.all([]);
-        var end = 0;
-        while (true) {
-            if (rdbuf.length - end < 27)
-                break;
-
-            if (new DataView(rdbuf.buffer).getUint32(end) !== 0x4F676753) {
-                // Magic didn't match, not Ogg!
-                handling = false;
-                error = true;
-                var err = "Invalid data!\n";
-                if (end > 512)
-                    err += Array.prototype.join.call(rdbuf.slice(end-512, end), ", ") + "\n";
-                err += Array.prototype.join.call(rdbuf.slice(end, end+32), ", ") + "\n";
-                alert(err);
-                rdbuf = null;
-                return;
-            }
-
-            // Figure out the length
-            var segments = rdbuf[end+26];
-            if (rdbuf.length - end < 27 + segments)
-                break;
-            var dataLength = 0;
-            for (var i = 0; i < segments; i++)
-                dataLength += rdbuf[end + 27 + i];
-            var length = 27 + segments + dataLength;
-
-            if (rdbuf.length - end < length)
-                break;
-
-            // Check the track number
-            var pTrack = new DataView(rdbuf.buffer).getUint32(end + 14, true);
-            if (pTrack !== curTrackNo) {
-                if (end !== 0) {
-                    // Send through the other data first
-                    break;
-                }
-
-                // OK, starting here
-                if (packet)
-                    p = packet(null);
-                curTrackNo = pTrack;
-
-                // And start the new track
-                p = p.then(function() {
-                    var name;
-                    if (pTrack in info.tracks) {
-                        var track = info.tracks[pTrack];
-                        name = pTrack + "-" + track.name + "#" + track.discrim;
-                    } else {
-                        name = "" + pTrack;
+        function mainLoop() {
+            // Activate any inactive threads
+            var allInactive = true;
+            for (i = 0; i < threads; i++) {
+                if (downloaders[i] === null) {
+                    // Find an undownloaded track
+                    for (j = 0; j < tracks.length; j++)
+                        if (!downloaded[j]) break;
+                    if (j !== tracks.length) {
+                        downloaders[i] = doDownload(i, j);
+                        downloaded[j] = true;
+                        allInactive = false;
                     }
-                    return newTrack(name);
+                } else allInactive = false;
+            }
+
+            if (allInactive) {
+                // We're done!
+                var p = ez.updateTrackViews();
+                if (autoWizard)
+                    return p.then(function() {
+                        return wizard(wizardOpts);
+                    });
+                return p.then(function() {
+                    ez.modal();
                 });
             }
 
-            end += length;
+            // Wait for one (or more) to finish
+            var active = [];
+            for (i = 0; i < threads; i++) {
+                if (downloaders[i] !== null)
+                    active.push(downloaders[i]);
+            }
+
+            return Promise.race(active).then(function(i) {
+                downloaders[i] = null;
+                multiModal(i, ".");
+            }).then(mainLoop);
         }
 
-        if (end === 0) {
-            if (msgbuf.length) {
-                // Didn't get enough data, try to get more
-                p.then(handle);
-            } else {
-                // Need to wait for more data
-                handling = false;
-            }
-            return;
-        }
-
-        // Split it here
-        var packetData = rdbuf.slice(0, end);
-        rdbuf = rdbuf.slice(end);
-
-        // Send this packet through
-        p.then(function() {
-            return packet(packetData);
-        }).then(handle).catch(error);
+        return mainLoop().catch(reportError);
     }
 
-    // Create a new track
-    function newTrack(name) {
-        ez.modal(l("loadingx", name) + "...");
+    // Perform a single download
+    function doDownload(thread, trackNo) {
+        trackNo = tracks[trackNo];
 
-        var data = new Uint8Array(0);
+        var sock = new WebSocket(wsUrl);
+        sock.binaryType = "arraybuffer";
 
-        // Stage 1: Wait for enough data to start the LibAV part
-        // Stage 2: Normal data
-        // Stage 3: EOF
-        var eof = false;
+        // First we need to send our login and get an ack
+        return new Promise(function(res, rej) {
+            sock.onopen = res;
+            sock.onerror = function(err) {
+                rej(new Error(err));
+            };
 
-        var fmt_ctx, stream, c, pkt, frame;
+        }).then(function() {
+            // Send our login and anticipate acknowledgement
+            var loginbuf = new DataView(new ArrayBuffer(16));
+            loginbuf.setUint32(0, 0x11, true);
+            loginbuf.setUint32(4, id, true);
+            loginbuf.setUint32(8, key, true);
+            loginbuf.setInt32(12, trackNo, true);
+            sock.send(loginbuf.buffer);
 
-        // Packet handler for before we've started LibAV
-        packet = function(chunk) {
-            if (chunk !== null) {
-                var c = new Uint8Array(data.length + chunk.length);
-                c.set(data, 0);
-                c.set(chunk, data.length);
-                data = c;
-            } else
-                eof = true;
+            return new Promise(function(res, rej) {
+                sock.onmessage = res;
+                sock.onclose = sock.onerror = function(err) {
+                    rej(new Error(err));
+                };
+            });
 
-            // Collect data until we have 32K or EOF
-            if (data.length >= 1024*1024 || eof) {
-                // Now it's time to start libav. First make the device.
-                return libav.mkreaderdev("dev.ogg").then(function() {
-                    return libav.ff_reader_dev_send("dev.ogg", data);
-
-                }).then(function() {
-                    if (eof)
-                        return libav.ff_reader_dev_send("dev.ogg", null);
-
-                }).then(function() {
-                    return libav.ff_init_demuxer_file("dev.ogg");
-
-                }).then(function(ret) {
-                    fmt_ctx = ret[0];
-                    stream = ret[1][0];
-                    return libav.ff_init_decoder(stream.codec_id);
-
-                }).then(function(ret) {
-                    c = ret[1];
-                    pkt = ret[2];
-                    frame = ret[3];
-
-                    return trackData(name, eof, fmt_ctx, [0], [0], [c], [pkt], [frame]);
-                }).catch(error);
-            } else {
-                return Promise.all([]);
+        }).then(function(msg) {
+            msg = new DataView(msg.data);
+            if (msg.getUint32(0, true) !== 0 ||
+                msg.getUint32(4, true) !== 0x11) {
+                sock.close();
+                throw new Error(l("invalid"));
             }
-        };
+
+            // Now we're into normal message mode
+            return connection(sock, thread, trackNo);
+
+        }).catch(reportError);
     }
 
-    // Normal track data handler
-    function trackData(name, eof, fmt_ctx, idxs, durations, cs, pkts, frameptrs) {
-        /* We need to create an intricate interaction between two promise
-         * chains: The actual importing will call back either with 'again', or,
-         * upon EOF, by finishing, while the downloader has its own stream of
-         * events to create the data. */
-        var data = new Uint8Array(0);
+    // The main loop for a single download
+    function connection(sock, thread, trackNo) {
+        var la = libav.targets[thread];
 
-        var importPromise = ez.importTrackLibAV(
-            name, fmt_ctx, idxs, durations, cs, pkts, frameptrs,
-            {
-                devfile: "dev.ogg",
-                againCb: againCb,
-                filter: "aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0"
-            }).then(function() {
-            // Clean up
-            return Promise.all([
-                libav.ff_free_decoder(cs[0], pkts[0], frameptrs[0]),
-                libav.avformat_close_input_js(fmt_ctx),
-                libav.unlink("dev.ogg")
-            ]);
-        }).catch(error);
+        // And we have a message buffer for handling
+        var msgbuf = [];
 
-        var againRes, downPromise, downRes;
+        // Are we currently handling messages?
+        var handling = false;
 
-        downPromise = new Promise(function(res, rej) {
-            downRes = res;
+        // Is the stream over?
+        var eos = false;
+
+        // Handler to send a packet (or null for EOF) to Ennuizel
+        var packet = null;
+
+        /* This whole function returns a promise which will resolve after it's
+         * done, so get the resolution here */
+        var res, rej;
+        var promise = new Promise(function(pres, prej) {
+            res = pres;
+            rej = prej;
         });
 
-        function againCb() {
-            // Prepare to wait for more download
-            var ret = new Promise(function(res, rej) {
-                againRes = res;
-            });
+        /* Our message receiver fills up the message buffer and starts the
+         * handler */
+        sock.onmessage = function(msg) {
+            if (error) return;
+            msg = new Uint8Array(msg.data);
+            msgbuf.push(msg);
 
-            // And ask for it
-            downRes();
-
-            return ret;
-        }
-
-        packet = function(chunk) {
-            // Append it
-            if (chunk !== null) {
-                var c = new Uint8Array(data.length + chunk.length);
-                c.set(data, 0);
-                c.set(chunk, data.length);
-                data = c;
-
-                // Send it when we have a big chunk
-                if (data.length < 1024*1024)
-                    return Promise.all([]);
-            }
-
-            // Send the data we have
-            var p = libav.ff_reader_dev_send("dev.ogg", data).then(function() {
-                data = new Uint8Array(0);
-                if (chunk === null)
-                    return libav.ff_reader_dev_send("dev.ogg", null);
-
-            }).then(function() {
-                // Tell them we have more
-                var waiter = new Promise(function(res, rej) {
-                    downRes = res;
-                });
-                againRes();
-                sent = 0;
-                return waiter;
-
-            });
-
-            if (chunk === null) {
-                // EOF
-                return importPromise;
-            } else {
-                return p;
-            }
+            if (!handling)
+                handle();
         };
 
-        if (eof) {
-            return importPromise;
+        // When we're closed, we're done
+        sock.onclose = function() {
+            eos = true;
+            if (!handling)
+                handle();
+        };
+
+        // If there's an error, die
+        sock.onerror = function(err) {
+            reportError(new Error(err));
+            rej(err);
+        };
+
+        // Start our new track and we're done for now
+        var name;
+        if (trackNo in info.tracks) {
+            var track = info.tracks[trackNo];
+            name = trackNo + "-" + track.name + "#" + track.discrim;
         } else {
-            return downPromise;
+            name = "" + trackNo;
         }
+        newTrack();
+        return promise;
+
+        // Data handler
+        function handle() {
+            handling = true;
+
+            // Get a message from the queue and acknowledge it
+            var msg = null;
+            if (msgbuf.length > 0)
+                msg = ack(sock, msgbuf.shift());
+
+            // Perhaps we're done?
+            if (msg === null) {
+                if (eos) {
+                    // We're done!
+                    return packet(null).then(function() {
+                        res(thread);
+                        /* If we're not rendering, it's safe to show the tracks
+                         * in multithreaded mode */
+                         if (ez.skipRendering)
+                             ez.updateTrackViews();
+                    }).catch(rej);
+                } else {
+                    // Need more data
+                    handling = false;
+                    return;
+                }
+            }
+
+            // Send this packet through
+            return packet(msg).then(handle).catch(reportError);
+        }
+
+        // Create a new track
+        function newTrack() {
+            multiModal(thread, l("loadingx", name) + "...");
+
+            var data = new Uint8Array(0);
+
+            // Stage 1: Wait for enough data to start the LibAV part
+            // Stage 2: Normal data
+            // Stage 3: EOF
+            var eof = false;
+
+            var fmt_ctx, stream, c, pkt, frame;
+
+            // Packet handler for before we've started LibAV
+            packet = function(chunk) {
+                if (chunk !== null) {
+                    var c = new Uint8Array(data.length + chunk.length);
+                    c.set(data, 0);
+                    c.set(chunk, data.length);
+                    data = c;
+                } else
+                    eof = true;
+
+                // Collect data until we have 1MB or EOF
+                if (data.length >= 1024*1024 || eof) {
+                    // Now it's time to start libav. First make the device.
+                    return la.mkreaderdev("dev.ogg").then(function() {
+                        return la.ff_reader_dev_send("dev.ogg", data);
+
+                    }).then(function() {
+                        if (eof)
+                            return la.ff_reader_dev_send("dev.ogg", null);
+
+                    }).then(function() {
+                        return la.ff_init_demuxer_file("dev.ogg");
+
+                    }).then(function(ret) {
+                        fmt_ctx = ret[0];
+                        stream = ret[1][0];
+                        return la.ff_init_decoder(stream.codec_id);
+
+                    }).then(function(ret) {
+                        c = ret[1];
+                        pkt = ret[2];
+                        frame = ret[3];
+
+                        return trackData(eof, fmt_ctx, [0], [0], [c], [pkt], [frame]);
+                    }).catch(error);
+                } else {
+                    return Promise.all([]);
+                }
+            };
+        }
+
+        // Normal track data handler
+        function trackData(eof, fmt_ctx, idxs, durations, cs, pkts, frameptrs) {
+            /* We need to create an intricate interaction between two promise
+             * chains: The actual importing will call back either with 'again', or,
+             * upon EOF, by finishing, while the downloader has its own stream of
+             * events to create the data. */
+            var data = new Uint8Array(0);
+
+            var importPromise = ez.importTrackLibAV(
+                name, fmt_ctx, idxs, durations, cs, pkts, frameptrs,
+                {
+                    libav: la,
+                    report: function(x) { return multiModal(thread, x); },
+                    devfile: "dev.ogg",
+                    againCb: againCb,
+                    filter: "aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0"
+                }).then(function() {
+                // Clean up
+                return Promise.all([
+                    la.ff_free_decoder(cs[0], pkts[0], frameptrs[0]),
+                    la.avformat_close_input_js(fmt_ctx),
+                    la.unlink("dev.ogg")
+                ]);
+            }).catch(error);
+
+            var againRes, downPromise, downRes;
+
+            downPromise = new Promise(function(res, rej) {
+                downRes = res;
+            });
+
+            function againCb() {
+                // Prepare to wait for more download
+                var ret = new Promise(function(res, rej) {
+                    againRes = res;
+                });
+
+                // And ask for it
+                downRes();
+
+                return ret;
+            }
+
+            packet = function(chunk) {
+                // Append it
+                if (chunk !== null) {
+                    var c = new Uint8Array(data.length + chunk.length);
+                    c.set(data, 0);
+                    c.set(chunk, data.length);
+                    data = c;
+
+                    // Send it when we have a big chunk
+                    if (data.length < 1024*1024)
+                        return Promise.all([]);
+                }
+
+                // Send the data we have
+                var p = la.ff_reader_dev_send("dev.ogg", data).then(function() {
+                    data = new Uint8Array(0);
+                    if (chunk === null)
+                        return la.ff_reader_dev_send("dev.ogg", null);
+
+                }).then(function() {
+                    // Tell them we have more
+                    var waiter = new Promise(function(res, rej) {
+                        downRes = res;
+                    });
+                    againRes();
+                    sent = 0;
+                    return waiter;
+
+                });
+
+                if (chunk === null) {
+                    // EOF
+                    return importPromise;
+                } else {
+                    return p;
+                }
+            };
+
+            if (eof) {
+                return importPromise;
+            } else {
+                return downPromise;
+            }
+        }
+    }
+
+    // A function to handle making the modal dialog display multiple messages at once
+    var modalMsgs = [];
+    function multiModal(idx, msg) {
+        while (modalMsgs.length <= idx)
+            modalMsgs.push(".");
+        modalMsgs[idx] = msg;
+        ez.modal(modalMsgs.join("\n\n"));
     }
 
     // Get an export format based on a codec name

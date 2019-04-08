@@ -31,18 +31,40 @@ SCRIPTBASE=`realpath "$SCRIPTBASE/.."`
 
 [ "$1" ]
 ID="$1"
+STREAMS="$2"
 
 cd "$SCRIPTBASE/rec"
 
-NICE="nice -n10 ionice -c3 chrt -i 0"
-STREAM_NOS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" -n < $ID.ogg.header1`
-NB_STREAMS=`echo "$STREAM_NOS" | wc -l`
+NICE="nice -n10 taskset 3 ionice -c3 chrt -i 0"
 
-# Output the recording info
-timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$ID"
+if [ ! "$STREAMS" -o "$STREAMS" = info ]
+then
+    # Output the recording info
+    timeout 10 "$SCRIPTBASE/cook/recinfo.js" "$ID"
+    if [ "$STREAMS" = "info" ]
+    then
+        # Also tell them the tracks
+        timeout 10 "$SCRIPTBASE/cook/oggtracks" -n < $ID.ogg.header1
+        exit 0
+    fi
+fi
 
-# Output each component
-for c in `seq -w 1 $NB_STREAMS`
+# If no streams were specified,
+if [ ! "$STREAMS" ]
+then
+    # get every stream
+    STREAMS=""
+    STREAM_NOS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" -n < $ID.ogg.header1`
+    NB_STREAMS=`echo "$STREAM_NOS" | wc -l`
+    for c in `seq 1 $NB_STREAMS`
+    do
+        sno=`echo "$STREAM_NOS" | sed -n "$c"p`
+        STREAMS="$STREAMS $sno"
+    done
+fi
+
+# Output each requested component
+for c in $STREAMS
 do
     timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
         timeout $DEF_TIMEOUT $NICE "$SCRIPTBASE/cook/oggstender" $c
