@@ -17,12 +17,16 @@
 var Ennuizel = (function(ez) {
     var libav, l;
 
+    var craig = "https://craig.horse/";
+
     if (typeof LibAV === "undefined") LibAV = {};
 
     /* Use half as many threads as we have available, to sort of play nice with
-     * the rest of the system */
-    if (navigator.hardwareConcurrency)
+     * the rest of the system, but no more than 8, to play nice with the server */
+    if (navigator.hardwareConcurrency) {
         LibAV.threads = Math.ceil(navigator.hardwareConcurrency/2);
+        if (LibAV.threads > 8) LibAV.threads = 8;
+    }
 
     if (!ez.plugins) ez.plugins = [];
 
@@ -800,6 +804,14 @@ var Ennuizel = (function(ez) {
         p = p.then(function() {
             var format = getExportFormat(formats[opts.format]);
             return ez.exportProject(""+id, format);
+
+        }).then(function() {
+            // Including info.txt
+            var ifr = document.createElement("iframe");
+            ifr.style.display = "none";
+            ifr.src = craig + "?id=" + id + "&key=" + key + "&fetch=infotxt";
+            document.body.appendChild(ifr);
+
         });
 
         // Then possibly delete the project

@@ -305,6 +305,11 @@ if (isset($_REQUEST["delete"])) {
     header("Content-type: application/json");
     passthru("/home/yahweasel/craig/cook/info.sh $id");
 
+} else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] == "infotxt") {
+    header("Content-disposition: attachment; filename=$id-info.txt");
+    header("Content-type: text/plain");
+    passthru("/home/yahweasel/craig/cook/infotxt.sh $id");
+
 } else if (isset($_REQUEST["fetch"])) {
     header("Content-disposition: attachment; filename=$id.ogg");
     header("Content-type: audio/ogg");
