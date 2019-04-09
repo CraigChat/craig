@@ -27,8 +27,9 @@ if ($beta)
  * for all patrons */
 $defaultdl = ($iphone || $android || (isset($features["bless"]) && $features["bless"]));
 
-// Local processing is in beta, so only suggest it in 10% of cases for now
-$defaultdl = $defaultdl || ($id%10!==4);
+// Local processing is in beta, so only suggest it in 20% of cases for now
+if ($id%10 !== 4 && $id%10 !== 5)
+    $defaultdl = true;
 
 function secHead($nm) {
     print '<span class="big"><span class="lbl">' . $nm . '&nbsp;</span><span class="choices">';
@@ -326,6 +327,8 @@ if ($defaultdl)
     download("AAC (MPEG-4)", "aac");
 else
     ezel("AAC (MPEG-4) *", 1);
+if ($macosx)
+    ezel("ALAC (Apple Lossless) *", 6);
 if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3");
 secTail();
@@ -425,6 +428,7 @@ if (isset($features["glowers"]) && $features["glowers"]) {
                 download("FLAC", "flac");
                 download("AAC (MPEG-4)", "aac");
             }
+            ezel(ls("other") . " *", 0x200);
             secTail();
 
             // Other available formats, download only

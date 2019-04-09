@@ -46,7 +46,7 @@ var Ennuizel = (function(ez) {
     var autoWizard = false;
 
     // Our supported formats, as a subset of the export formats, named by codec
-    var formats = ["flac", "aac", "libvorbis", "libopus", "wavpack", "pcm_s16le"];
+    var formats = ["flac", "aac", "libvorbis", "libopus", "wavpack", "pcm_s16le", "alac"];
 
     // We don't want the ID and key to actually be in the URL
     url.search = "";
