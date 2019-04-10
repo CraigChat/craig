@@ -807,10 +807,12 @@ var Ennuizel = (function(ez) {
 
         }).then(function() {
             // Including info.txt
-            var ifr = document.createElement("iframe");
-            ifr.style.display = "none";
-            ifr.src = craig + "?id=" + id + "&key=" + key + "&fetch=infotxt";
-            document.body.appendChild(ifr);
+            if (idS !== null) {
+                var ifr = document.createElement("iframe");
+                ifr.style.display = "none";
+                ifr.src = craig + "?id=" + id + "&key=" + key + "&fetch=infotxt";
+                document.body.appendChild(ifr);
+            }
 
         });
 
