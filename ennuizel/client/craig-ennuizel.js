@@ -779,6 +779,12 @@ var Ennuizel = (function(ez) {
     function wizard(opts) {
         var p = Promise.all([]);
 
+        // Make sure we haven't been asked to do something nonsensical
+        if (ez.nonemptyTracks(ez.selectedTracks()).length === 0) {
+            ez.modal(l("empty"));
+            return ez.deleteProject();
+        }
+
         if (opts.mix) {
             // Start by mixing
             p = p.then(function() {

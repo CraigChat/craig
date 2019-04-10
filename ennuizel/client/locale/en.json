@@ -14,6 +14,7 @@
     "dokeep":               "Keep intermediate project files?",
     "go":                   "Go",
     "done":                 "Done! You may now close this page.",
+    "empty":                "This is an empty recording.",
 
     "ok":                   "OK",
     "cancel":               "Cancel",
