@@ -24,6 +24,9 @@
     "deleteproject":        "Delete project",
     "deletinge":            "Deleting...",
 
+    "persistence":          "To handle large projects, this tool must have permission for persistent storage. On some browsers, this permission is given through the notifications permission, so please accept that request if it is asked.",
+    "persistenceno":        "Failed to acquire permission for persistent storage. Large projects may fail.",
+
     "projectname":          "Project name",
     "project":              "Project",
     "areyousure":           "Are you sure?",
