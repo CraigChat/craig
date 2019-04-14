@@ -181,6 +181,12 @@ var Ennuizel = (function(ez) {
         }).then(function(projects) {
             projects = projects || [];
             if (projects.includes(pid)) {
+                if (autoWizard) {
+                    /* If they're using the wizard in auto mode, they clearly
+                     * want to delete anything that's already there */
+                    return "delete";
+                }
+
                 // They've already imported this!
                 ez.modalDialog.innerHTML = "";
                 ez.mke(ez.modalDialog, "div", {text: l("projectexists") + "\n\n"});
@@ -208,7 +214,11 @@ var Ennuizel = (function(ez) {
             if (action === "delete") {
                 // Delete the existing project and start fresh
                 ez.projectName = pid;
-                return ez.loadProject().then(ez.deleteProject).then(function() {
+                ez.modal(l("deletinge"));
+                return ez.loadProject().then(function() {
+                    ez.modal(l("deletinge"));
+                    return ez.deleteProject();
+                }).then(function() {
                     ez.projectName = pid;
                     return ez.createProject().then(connect);
                 });
