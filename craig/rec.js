@@ -1001,7 +1001,7 @@ function safeJoin(channel, err) {
 const argPart = /^-([A-Za-z0-9]+) *(.*)$/;
 
 // The recording indicator
-const recIndicator = / *\[RECORDING\] */g;
+const recIndicator = / *\!?\[RECORDING\] */g;
 
 // Start recording
 function cmdJoin(lang) { return function(msg, cmd) {
@@ -1281,10 +1281,11 @@ function cmdJoin(lang) { return function(msg, cmd) {
             // Rename ourself to indicate that we're recording
             var recNick;
             try {
+                // Using '!' to sort early
                 if (localNick)
-                    recNick = ("[RECORDING] " + localNick).substr(0, 32);
+                    recNick = ("![RECORDING] " + localNick).substr(0, 32);
                 else
-                    recNick = configNick + " [RECORDING]";
+                    recNick = "![RECORDING] " + configNick;
                 guild.editNickname(recNick).then(join).catch((err) => {
                     log("rec-term",
                         "Lack nick change permission",
