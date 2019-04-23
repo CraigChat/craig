@@ -127,10 +127,22 @@ ccmds.ownerCommands["eval"] = function(msg, cmd) {
     } else {
         // For everyone
         client.shard.broadcastEval("this.safeEval(" + JSON.stringify(cmd[3]) + ")").then((res) => {
-            var ret = "";
-            for (var ri = 0; ri < res.length; ri++)
-                ret += "__**" + ri + "**__\n" + res[ri] + "\n";
-            reply(msg, true, null, "", ret);
+            var ret = [];
+            var last = "";
+            for (var ri = 0; ri < res.length; ri++) {
+                var part = "__**" + ri + "**__\n" + res[ri] + "\n";
+                var lastt = last + part;
+                if (lastt.length >= 2000) {
+                    ret.push(last);
+                    last = part;
+                } else {
+                    last = lastt;
+                }
+            }
+            ret.push(last);
+            ret.forEach((part) => {
+                reply(msg, true, null, "", part);
+            });
         }).catch(logex);
 
     }
