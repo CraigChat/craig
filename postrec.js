@@ -119,16 +119,23 @@ function upload(drive, craigDir, row) {
     if (row.container)
         container = row.container;
 
+    var ext = "zip";
+    var mime = "application/zip";
+    if (row.container === "exe") {
+        ext = "exe";
+        mime = "application/vnd.microsoft.portable-executable";
+    }
+
     // Start the cooker
     var cook = cp.spawn("./cook.sh", [rid, format, container], {
         stdio: ["ignore", "pipe", "ignore"]
     });
     drive.files.create({
         resource: {
-            "name": info.startTime + "-" + info.channel.replace(/#.*/, "") + "-" + rid + ".zip",
+            "name": info.startTime + "-" + info.channel.replace(/#.*/, "") + "-" + rid + "." + ext,
             "parents": [craigDir.id]
         },
-        media: {"mimeType": "application/zip", "body": cook.stdout}
+        media: {"mimeType": mime, "body": cook.stdout}
     }, function (err, file) {
         if (err)
             console.error("Error upload: " + err);

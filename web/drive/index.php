@@ -29,7 +29,10 @@ $formats = array(
     "flac" => "FLAC",
     "aup" => "Audacity",
     "aac" => "AAC (MPEG-4)",
-    "vorbis" => "Ogg Vorbis"
+    "vorbis" => "Ogg Vorbis",
+    "powersfx" => "Local processing tool (Windows)",
+    "powersfxu" => "Local processing tool (Unix)",
+    "powersfxm" => "Local processing tool (Mac OS X)"
 );
 $formatNms = array_keys($formats);
 
@@ -45,7 +48,7 @@ function goodCurl($url) {
 }
 
 $gclient = new Google_Client();
-$gclient->setApplicationName("Craig Google Drive integration");
+$gclient->setApplicationName("Craig");
 //$gclient->setScopes([Google_Service_Drive::DRIVE_FILE, Google_Service_Drive::DRIVE_METADATA_READONLY]);
 $gclient->setScopes([Google_Service_Drive::DRIVE_FILE]);
 $gclient->setAuthConfig("/home/yahweasel/craig-drive/client_secret.json");
@@ -198,6 +201,10 @@ if ($discord && $gdrive && isset($_REQUEST["format"])) {
     if ($format === "aup") {
         $format = "flac";
         $container = "aupzip";
+    }
+
+    if ($format === "powersfx") {
+        $container = "exe";
     }
 
     // And update it in the DB
