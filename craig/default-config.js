@@ -12,7 +12,10 @@ module.exports = {
     // Record disk size limit, in bytes
     "hardLimit": 536870912,
 
-    // Record disk size limit for web users, in bytes
+    // Record disk size limit for Opus web users, in bytes
+    "hardLimitWebOpus": 1073741824,
+
+    // Record disk size limit for FLAC web users, in bytes
     "hardLimitWeb": 4294967296,
 
     // Max time to spend unused in a guild before leaving it, in milliseconds

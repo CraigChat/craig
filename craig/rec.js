@@ -536,9 +536,11 @@ function session(msg, prefix, rec) {
             !rec.features.eccontinuous)
             return ws.close();
 
-        // If we get a valid FLAC/continuous connection, our size limit switches to the web version
+        // We switch to a web size limit, depending on which features are enabled
         if (dtype !== ecp.flags.dataType.opus || (flags & ecp.flags.features.continuous))
             sizeLimit = config.hardLimitWeb;
+        else
+            sizeLimit = Math.max(sizeLimit, config.hardLimitWebOpus);
 
         // Switch based on what kind of connection it is
         if (ctype === ecp.flags.connectionType.data) {
