@@ -33,6 +33,14 @@ Finally, the self extractors require compilation if you want them:
 cd windows; make
 cd macosx; make
 
+If you want EnnuiCastr (browser-based recording) support, you must set
+config.ennuicastr to the web address, which must be on the same host as Craig.
+EnnuiCastr requires no further modification to work with Craig.
+
+If you want Ennuizel (browser-based processing) support, you must make it
+available at the location linked from the downloader (dl.php), and run ces.sh
+in ennuicastr/server.
+
 More information on Craig can be found at
 https://craig.chat/
 
