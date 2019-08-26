@@ -7,16 +7,17 @@
         "url": "https://bitbucket.org/Yahweasel/craig"
     },
     "dependencies": {
-        "better-sqlite3": "^4.1.4",
-        "bufferutil": "^3.0.3",
-        "cyclic-32": "*",
-        "discord.js": "^11.3.0",
-        "eris": "^0.8.6",
+        "better-sqlite3": "^5.4.2",
+        "bufferutil": "^4.0.1",
+        "cyclic-32": "^1.1.0",
+        "discord.js": "^11.5.1",
+        "eris": "^0.10.1",
         "erlpack": "hammerandchisel/erlpack",
-        "googleapis": "^27.0.0",
-        "node-opus": "*",
-        "request": "^2.83.0",
-        "sodium": "^2.0.3",
-        "sqlite3": "^4.0.4"
+        "googleapis": "^42.0.0",
+        "node-opus": "^0.3.2",
+        "posix-pipe": "^0.1.4",
+        "request": "^2.88.0",
+        "sodium": "^3.0.2",
+        "sqlite3": "^4.1.0"
     }
 }
