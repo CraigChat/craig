@@ -165,7 +165,7 @@ fi
 exec 9< "$ID.ogg.data"
 flock -n 9 || exit 1
 
-NICE="nice -n10 taskset 3 ionice -c3 chrt -i 0"
+NICE="nice -n10 taskset -c 0-7 ionice -c3 chrt -i 0"
 CODECS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" < $ID.ogg.header1`
 STREAM_NOS=`timeout 10 "$SCRIPTBASE/cook/oggtracks" -n < $ID.ogg.header1`
 NB_STREAMS=`echo "$CODECS" | wc -l`
@@ -340,7 +340,10 @@ case "$CONTAINER" in
         co=0
         for i in *.$ext
         do
-            INPUT="$INPUT -codec libopus -copyts -i $i"
+            CODEC=`echo "$CODECS" | sed -n "$((ci+1))"p`
+            [ "$CODEC" = "opus" ] && CODEC=libopus
+
+            INPUT="$INPUT -codec $CODEC -copyts -i $i"
             FILTER="$FILTER[$ci:a]$ARESAMPLE,dynaudnorm[aud$co];"
             MIXFILTER="$MIXFILTER[aud$co]"
             ci=$((ci+1))
