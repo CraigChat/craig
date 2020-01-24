@@ -1281,9 +1281,13 @@ function cmdJoin(lang) { return function(msg, cmd) {
                 rec.noSilenceDisconnect = true;
 
             // If we have voice channel issue, do our best to rectify them
+            var hadJoinError = false;
             function onJoinError(ex) {
-                error(false, l("joinfail", lang) + " " + ex);
-                logex(ex);
+                if (!hadJoinError) {
+                    error(false, l("joinfail", lang) + " " + ex);
+                    logex(ex);
+                    hadJoinError = true;
+                }
                 close();
             }
 
