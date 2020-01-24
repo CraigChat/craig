@@ -23,13 +23,7 @@ ob_start("ob_gzhandler");
 if ($beta)
     $features = array();
 
-/* We default to download, rather than local processing, on mobile devices and
- * for all patrons */
-$defaultdl = ($iphone || $android || (isset($features["bless"]) && $features["bless"]));
-
-// Local processing is in beta, so only suggest it in 20% of cases for now
-if ($id%10 !== 4 && $id%10 !== 5)
-    $defaultdl = true;
+$defaultdl = true;
 
 function secHead($nm) {
     print '<span class="big"><span class="lbl">' . $nm . '&nbsp;</span><span class="choices">';
