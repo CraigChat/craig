@@ -1125,17 +1125,24 @@ function cmdJoin(lang) { return function(msg, cmd) {
 
         } else {
             // Make a random ID for it
-            var id, infoWS;
+            var id, infoWS, recFileBase;
             while (true) {
                 id = ~~(Math.random() * 1000000000);
+                recFileBase = "rec/" + id + ".ogg";
                 try {
-                    infoWS = fs.createWriteStream("rec/" + id + ".ogg.info", {flags:"wx"});
+                    fs.accessSync(recFileBase + ".info");
+                    // ID existed
+                    continue;
+                } catch (ex) {
+                    // ID did not exist
+                }
+                try {
+                    infoWS = fs.createWriteStream(recFileBase + ".info", {flags:"wx"});
                     break;
                 } catch (ex) {
                     // ID existed
                 }
             }
-            var recFileBase = "rec/" + id + ".ogg";
 
             // Make the access keys for it
             var accessKey = ~~(Math.random() * 1000000000);
