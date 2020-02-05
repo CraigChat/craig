@@ -78,8 +78,15 @@ var Ennuizel = (function(ez) {
 
     function reportError(err) {
         report(false);
-        //return ez.error(err);
-        alert(err + "\n\n" + err.stack);
+
+        if (err instanceof Error) {
+            err = err + "\n\n" + err.stack;
+        } else if (typeof err === "object") {
+            try {
+                err = JSON.stringify(err);
+            } catch (ex) {}
+        }
+        alert(err);
         return Promise.all([]);
     }
 
@@ -140,28 +147,33 @@ var Ennuizel = (function(ez) {
 
     // In our "main" mode, we ask whether to use the wizard or not, or just bail out entirely
     function mainMode() {
-        ez.modalDialog.innerHTML = "";
+        return ez.modalWait().then(function(unlock) {
+            ez.modalDialog.innerHTML = "";
 
-        ez.mke(ez.modalDialog, "div", {text: l("betawarning") + "\n\n" + l("wizarddesc") + "\n\n"});
-        var cancel = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
-        ez.mke(ez.modalDialog, "span", {text: "  "});
-        var edit = ez.mke(ez.modalDialog, "button", {text: l("edit")});
-        ez.mke(ez.modalDialog, "span", {text: "  "});
-        var auto = ez.mke(ez.modalDialog, "button", {text: l("auto")});
+            ez.mke(ez.modalDialog, "div", {text: l("betawarning") + "\n\n" + l("wizarddesc") + "\n\n"});
+            var cancel = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
+            ez.mke(ez.modalDialog, "span", {text: "  "});
+            var edit = ez.mke(ez.modalDialog, "button", {text: l("edit")});
+            ez.mke(ez.modalDialog, "span", {text: "  "});
+            var auto = ez.mke(ez.modalDialog, "button", {text: l("auto")});
 
-        ez.modalToggle(true);
-        auto.focus();
+            ez.modalToggle(true);
+            auto.focus();
 
-        return new Promise(function(res, rej) {
-            cancel.onclick = function() {
-                res("cancel");
-            };
-            edit.onclick = function() {
-                res("downloader");
-            };
-            auto.onclick = function() {
-                res("wizard");
-            };
+            return new Promise(function(res, rej) {
+                cancel.onclick = function() {
+                    unlock();
+                    res("cancel");
+                };
+                edit.onclick = function() {
+                    unlock();
+                    res("downloader");
+                };
+                auto.onclick = function() {
+                    unlock();
+                    res("wizard");
+                };
+            });
 
         }).then(function(mode) {
             ez.modal(l("loadinge"));
@@ -188,17 +200,25 @@ var Ennuizel = (function(ez) {
                 }
 
                 // They've already imported this!
-                ez.modalDialog.innerHTML = "";
-                ez.mke(ez.modalDialog, "div", {text: l("projectexists") + "\n\n"});
-                var load = ez.mke(ez.modalDialog, "button", {text: l("loadexisting")});
-                ez.mke(ez.modalDialog, "span", {text: "  "});
-                var del = ez.mke(ez.modalDialog, "button", {text: l("deleteexisting")});
-                ez.modalToggle(true);
-                load.focus();
+                return ez.modalWait().then(function(unlock) {
+                    ez.modalDialog.innerHTML = "";
+                    ez.mke(ez.modalDialog, "div", {text: l("projectexists") + "\n\n"});
+                    var load = ez.mke(ez.modalDialog, "button", {text: l("loadexisting")});
+                    ez.mke(ez.modalDialog, "span", {text: "  "});
+                    var del = ez.mke(ez.modalDialog, "button", {text: l("deleteexisting")});
+                    ez.modalToggle(true);
+                    load.focus();
 
-                return new Promise(function(res) {
-                    load.onclick = function() { res("load"); };
-                    del.onclick = function() { res("delete"); };
+                    return new Promise(function(res) {
+                        load.onclick = function() {
+                            unlock();
+                            res("load");
+                        };
+                        del.onclick = function() {
+                            unlock();
+                            res("delete");
+                        };
+                    });
                 });
             }
 
@@ -569,7 +589,7 @@ var Ennuizel = (function(ez) {
                         frame = ret[3];
 
                         return trackData(eof, fmt_ctx, [0], [0], [c], [pkt], [frame]);
-                    }).catch(error);
+                    }).catch(reportError);
                 } else {
                     return Promise.all([]);
                 }
@@ -599,7 +619,7 @@ var Ennuizel = (function(ez) {
                     la.avformat_close_input_js(fmt_ctx),
                     la.unlink("dev.ogg")
                 ]);
-            }).catch(error);
+            }).catch(reportError);
 
             var againRes, downPromise, downRes;
 
@@ -723,62 +743,67 @@ var Ennuizel = (function(ez) {
         // Get our default options into a displayable state
         wizardConvertOpts();
 
-        // Display the menu
-        ez.modalDialog.innerHTML = "";
+        return ez.modalWait().then(function(unlock) {
+            // Display the menu
+            ez.modalDialog.innerHTML = "";
 
-        var form = ez.mke(ez.modalDialog, "div", {"class": "modalform"});
+            var form = ez.mke(ez.modalDialog, "div", {"class": "modalform"});
 
-        ez.mke(form, "label", {text: l("format") + ":", "class": "inputlabel", "for": "format"});
-        var fmtSelect = ez.mke(form, "select", {id: "format"});
-        for (var i = 0; i < formats.length; i++) {
-            var format = getExportFormat(formats[i]);
-            var opt = ez.mke(fmtSelect, "option", {text: format.name});
-            opt.value = i;
-            if (wizardOpts.format === i)
-                opt.selected = true;
-        }
+            ez.mke(form, "label", {text: l("format") + ":", "class": "inputlabel", "for": "format"});
+            var fmtSelect = ez.mke(form, "select", {id: "format"});
+            for (var i = 0; i < formats.length; i++) {
+                var format = getExportFormat(formats[i]);
+                var opt = ez.mke(fmtSelect, "option", {text: format.name});
+                opt.value = i;
+                if (wizardOpts.format === i)
+                    opt.selected = true;
+            }
 
-        ez.mke(form, "div", {text: "\n\n"});
+            ez.mke(form, "div", {text: "\n\n"});
 
-        var mix = ez.mke(form, "input", {id: "mix"});
-        mix.type = "checkbox";
-        mix.checked = wizardOpts.mix;
-        ez.mke(form, "label", {text: " " + l("domix"), "for": "mix"});
-        ez.mke(form, "br");
+            var mix = ez.mke(form, "input", {id: "mix"});
+            mix.type = "checkbox";
+            mix.checked = wizardOpts.mix;
+            ez.mke(form, "label", {text: " " + l("domix"), "for": "mix"});
+            ez.mke(form, "br");
 
-        var level = ez.mke(form, "input", {id: "level"});
-        level.type = "checkbox";
-        level.checked = wizardOpts.level;
-        ez.mke(form, "label", {text: " " + l("dolevel"), "for": "level"});
-        ez.mke(form, "br");
+            var level = ez.mke(form, "input", {id: "level"});
+            level.type = "checkbox";
+            level.checked = wizardOpts.level;
+            ez.mke(form, "label", {text: " " + l("dolevel"), "for": "level"});
+            ez.mke(form, "br");
 
-        var keep = ez.mke(form, "input", {id: "keep"});
-        keep.type = "checkbox";
-        keep.checked = wizardOpts.keep;
-        ez.mke(form, "label", {text: " " + l("dokeep"), "for": "keep"});
+            var keep = ez.mke(form, "input", {id: "keep"});
+            keep.type = "checkbox";
+            keep.checked = wizardOpts.keep;
+            ez.mke(form, "label", {text: " " + l("dokeep"), "for": "keep"});
 
-        ez.mke(ez.modalDialog, "div", {text: "\n\n"});
+            ez.mke(ez.modalDialog, "div", {text: "\n\n"});
 
-        var cancel = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
-        ez.mke(ez.modalDialog, "span", {text: "  "});
-        var ok = ez.mke(ez.modalDialog, "button", {text: l("go")});
+            var cancel = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
+            ez.mke(ez.modalDialog, "span", {text: "  "});
+            var ok = ez.mke(ez.modalDialog, "button", {text: l("go")});
 
-        ez.modalToggle(true);
-        ok.focus();
+            ez.modalToggle(true);
+            ok.focus();
 
-        return new Promise(function(res, rej) {
-            cancel.onclick = function() {
-                res(null);
-            };
-            ok.onclick = function() {
-                // Gather our options
-                res({
-                    format: fmtSelect.value,
-                    mix: mix.checked,
-                    level: level.checked,
-                    keep: keep.checked
-                });
-            };
+            return new Promise(function(res, rej) {
+                cancel.onclick = function() {
+                    unlock();
+                    res(null);
+                };
+                ok.onclick = function() {
+                    unlock();
+                    // Gather our options
+                    res({
+                        format: fmtSelect.value,
+                        mix: mix.checked,
+                        level: level.checked,
+                        keep: keep.checked
+                    });
+                };
+            });
+
         }).then(function(opts) {
             ez.modal();
             return opts;
