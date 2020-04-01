@@ -17,7 +17,7 @@
 
 // Figure out the locale
 $locale = "en";
-$locales = array("en", "pt", "de", "fr", "it", "ja", "nl");
+$locales = array("en", "pt", "de", "fr", "it", "ja", "ko", "nl");
 $l = array();
 
 $flags = array(
@@ -27,6 +27,7 @@ $flags = array(
     "fr" => ["fr"],
     "it" => ["it"],
     "ja" => ["ja"],
+    "ko" => ["ko"],
     "nl" => ["nl"]
 );
 

@@ -1301,7 +1301,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
                     recNick = "![RECORDING] " + configNick;
                 guild.editNickname(recNick).then(join).catch((err) => {
                     log("rec-term",
-                        "Lack nick change permission",
+                        "Lack nick change permission: " + JSON.stringify(err+""),
                         {uid: userId, vc: channel, rid: id});
                     error(false, l("cannotnick", lang));
                     rec.disconnected = true;
@@ -1622,6 +1622,29 @@ cc.processCommands["activeRecordings"] = function(msg) {
         cc.sm.on("launch", (shard) => { shard.send(msg); });
     }
 }
+
+/* If our shard disconnects, consider committing sudoku to get a fresh
+ * connection * /
+var dced = null;
+if (cc.client) cc.client.on("shardDisconnect", (err) => {
+    if (cc.dead) return; // Doesn't matter
+
+    // Have we been recently disconnected, and do we have no active recordings?
+    if (dced) {
+        // Actually, it's not like the recordings would work anyway...
+        //if (Object.keys(activeRecordings).length === 0) {
+            // Yup. Goodbye, cruel world!
+            process.exit(1);
+        /*} else {
+            log("shard-disconnected", "Cannot exit with active recordings");
+        }* /
+    } else {
+        // Don't be TOO eager to die
+        dced = setTimeout(function() {
+            dced = null;
+        }, 10*60*1000);
+    }
+}); */
 
 /* Graceful restart. This doesn't REALLY belong in rec.js, but maintaining the
  * currently active recordings is the only complicated part of gracefully

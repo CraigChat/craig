@@ -72,7 +72,7 @@ if (!config.shard || shard) {
 } else {
     // We are the sharding manager
     vclient = null;
-    vsm = new Discord.ShardingManager("./craig.js", {token: config.token});
+    vsm = new Discord.ShardingManager("./craig.js", {token: config.token, totalShards: 32});
     vmaster = true;
 }
 
@@ -94,7 +94,6 @@ if (client) client.on("ready", () => {
 });
 
 // Announce problems
-var dced = false;
 if (client) client.on("disconnect", (err) => {
     log("disconnected", "" + err + shardMsg);
 });

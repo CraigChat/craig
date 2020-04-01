@@ -1,6 +1,6 @@
 <?PHP
 /*
- * Copyright (c) 2017-2019 Yahweasel
+ * Copyright (c) 2017-2020 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -309,6 +309,7 @@ function secTail() {
         <span id="loading" class="la-line-scale la-3x"><div></div><div></div><div></div><div></div><div></div></span>
 
 <?PHP
+// Multi-track downloads
 secHead(ls("mtd"));
 if (!$iphone && !$android)
     download(ls("audacity"), "flac", "aupzip");
@@ -327,12 +328,15 @@ if (isset($features["mp3"]) && $features["mp3"])
     download("MP3", "mp3");
 secTail();
 
-secHead(ls("stm"));
-ezel("FLAC *", 0x30);
-ezel("wav *", 0x35);
-ezel("AAC (MPEG-4) *", 0x31);
-ezel(ls("other") . " *", 0x230);
-secTail();
+// Single-track local mixed (in-browser)
+//if (!$iphone && !$android) {
+    secHead(ls("stm"));
+    ezel("FLAC *", 0x30);
+    ezel("wav *", 0x35);
+    ezel("AAC (MPEG-4) *", 0x31);
+    ezel(ls("other") . " *", 0x230);
+    secTail();
+//}
 
 if (isset($features["mix"]) && $features["mix"]) {
     secHead(ls("std"));
@@ -424,6 +428,18 @@ if (isset($features["glowers"]) && $features["glowers"]) {
             }
             ezel(ls("other") . " *", 0x200);
             secTail();
+
+            // Single-track local mixed (in-browser)
+            /*
+            if ($iphone || $android) {
+                secHead(ls("stm"));
+                ezel("FLAC *", 0x30);
+                ezel("wav *", 0x35);
+                ezel("AAC (MPEG-4) *", 0x31);
+                ezel(ls("other") . " *", 0x230);
+                secTail();
+            }
+            */
 
             // Other available formats, download only
             secHead(ls("otherformats") . ":");

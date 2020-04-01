@@ -22,7 +22,7 @@
 
 const fs = require("fs");
 
-const langs = ["en", "pt", "it", "ja", "nl"];
+const langs = ["en", "pt", "it", "ja", "ko", "nl"];
 const locale = {};
 const channelHints = {};
 const regionHints = {};
