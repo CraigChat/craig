@@ -634,6 +634,14 @@ function session(msg, prefix, rec) {
 
         }
 
+        // Send them the "mode" (Craig is always recording)
+        var p = ecp.parts.info;
+        var msg = Buffer.alloc(p.length);
+        msg.writeUInt32LE(ecp.ids.info, 0);
+        msg.writeUInt32LE(ecp.info.mode, p.key);
+        msg.writeUInt32LE(ecp.mode.rec, p.value);
+        ws.send(msg);
+
         // Announce them
         sReply(true, "", "User " + JSON.stringify(username) + " has connected via EnnuiCastr.");
         monConnect(userTrackNo, username + "#web");
