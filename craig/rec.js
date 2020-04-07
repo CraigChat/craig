@@ -832,7 +832,9 @@ function session(msg, prefix, rec) {
         buf.writeUInt32LE(idx, p.index);
         buf.writeUInt32LE(con?1:0, p.status);
         nickBuf.copy(buf, p.nick);
-        monWs.send(buf);
+        try {
+            monWs.send(buf);
+        } catch (ex) {}
     }
 
     // Inform the monitor that a user is speaking
@@ -852,7 +854,9 @@ function session(msg, prefix, rec) {
         var buf = Buffer.alloc(p.length);
         buf.writeUInt32LE(ecp.ids.speech, 0);
         buf.writeUInt32LE((idx<<1)|(on?1:0), p.indexStatus);
-        monWs.send(buf);
+        try {
+            monWs.send(buf);
+        } catch (ex) {}
     }
 
     // When we're disconnected from the channel...
