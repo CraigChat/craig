@@ -6,7 +6,7 @@
     "recording":        "Gravando! Eu vou gravar até %1 horas. Gravações são deletadas automaticamente depois de %2 horas do começo da gravação. O áudio pode ser baixado até durante a gravação.",
     "downloadlink":     "Download link: %1?id=%2&key=%3",
     "deletelink":       "Para deletar: %1?id=%2&key=%3&delete=%4",
-
+    "tsdeletelink":     "Para deletar adicione isso ao final da URL acima: ```&delete=%1```",
     "cantsee":          "Eu não posso ver nenhum canal com esse nome.",
     "whatchannel":      "Que canal?",
     "already":          "Eu já estou gravando esse canal: %1?id=%2&key=%3",

@@ -1371,8 +1371,14 @@ function cmdJoin(lang) { return function(msg, cmd) {
                         }
                     }
 
-                    reply(msg, true, cmd[1], rmsg,
-                        l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
+					// ts stands for 'two-step'. Rename as taste
+					var deletemessage = l("tsdeletelink", lang, deleteKey+"");
+
+					if (deletemessage == "(MISSING STRING)") {
+						deletemessage = l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"");
+					}
+
+					reply(msg, true, cmd[1], rmsg, deletemessage+ "\n.");
 
                     rec.connection = connection;
 

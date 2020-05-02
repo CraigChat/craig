@@ -7,6 +7,7 @@
     "recording-updated":20180810,
     "downloadlink":     "Download link: %1?id=%2&key=%3",
     "deletelink":       "To delete: %1?id=%2&key=%3&delete=%4",
+    "tsdeletelink": 	"To delete append this to the url above: ```&delete=%1```",
     "ennuicastrlink":   "EnnuiCastr client link: %1",
     "ennuicastrmenu":   "EnnuiCastr menu: %1",
     "ennuicastrmon":    "Recording monitor: %1",
