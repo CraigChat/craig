@@ -29,9 +29,11 @@ cd cook
 for i in *.c; do gcc -O3 -o ${i%.c} $i; done
 for i in *.svg; do inkscape -e ${i%.svg}.png $i; done
 
-Finally, the self extractors require compilation if you want them:
+The self extractors require compilation if you want them:
 cd windows; make
 cd macosx; make
+
+Finally, the avatar stuff requires ImageMagick.
 
 If you want EnnuiCastr (browser-based recording) support, you must set
 config.ennuicastr to the web address, which must be on the same host as Craig.
