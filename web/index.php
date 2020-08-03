@@ -262,7 +262,7 @@ if (isset($_REQUEST["delete"])) {
     ob_flush();
     flush();
     set_time_limit(300);
-    passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook.sh $id $format $container$exflags");
+    passthru("/usr/bin/timeout 14400 /home/yahweasel/craig/cook.sh $id $format $container$exflags");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "avatars") {
     $format = "png";
@@ -300,7 +300,7 @@ if (isset($_REQUEST["delete"])) {
     header("Content-type: $mime");
     ob_flush();
     flush();
-    passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
+    passthru("/usr/bin/timeout 14400 /home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] == "info") {
     header("Content-type: application/json");
