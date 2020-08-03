@@ -72,7 +72,7 @@ if (!config.shard || shard) {
 } else {
     // We are the sharding manager
     vclient = null;
-    vsm = new Discord.ShardingManager("./craig.js", {token: config.token, totalShards: 32});
+    vsm = new Discord.ShardingManager("./craig.js", {token: config.token, totalShards: 128});
     vmaster = true;
 }
 
