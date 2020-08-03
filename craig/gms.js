@@ -153,7 +153,7 @@ function updateGuildCt() {
                 server_count: curServerCount
             });
 
-            var domains = {discordbotstoken: "discordbots.org", botsdiscordpwtoken: "bots.discord.pw"};
+            var domains = {discordbotstoken: "top.gg", botsdiscordpwtoken: "bots.discord.pw"};
             for (var tname in domains) {
                 var domain = domains[tname];
                 var dtoken = config[tname];
