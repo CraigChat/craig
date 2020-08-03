@@ -611,7 +611,8 @@ var Ennuizel = (function(ez) {
                     report: function(x) { return multiModal(thread, x); },
                     devfile: "dev.ogg",
                     againCb: againCb,
-                    filter: "aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0"
+                    filter: "aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0",
+                    ignoreErrors: true
                 }).then(function() {
                 // Clean up
                 return Promise.all([
