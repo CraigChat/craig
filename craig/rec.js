@@ -1813,7 +1813,8 @@ function startEnnuiCastr() {
         });
     }
 }
-startEnnuiCastr();
+if (config.ennuicastr)
+    startEnnuiCastr();
 
 // Restart every so often so we can upgrade, reevaluate shards, etc
 if(cc.master)
