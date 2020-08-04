@@ -54,8 +54,24 @@ static ssize_t readAll(int fd, void *vbuf, size_t count)
     return rd;
 }
 
-static void out(struct OggHeader *header, const char *type)
+static void out(struct OggHeader *header, int **alreadyPrinted, int *apSz, const char *type)
 {
+    if (*apSz <= header->streamNo) {
+        int i, oldSz = *apSz;
+        *apSz = header->streamNo + 1;
+        *alreadyPrinted = realloc(*alreadyPrinted, sizeof(int) * (*apSz));
+        if (!*alreadyPrinted) {
+            perror("realloc");
+            exit(1);
+        }
+        for (i = oldSz; i < *apSz; i++)
+            (*alreadyPrinted)[i] = 0;
+    }
+
+    if ((*alreadyPrinted)[header->streamNo])
+        return;
+    (*alreadyPrinted)[header->streamNo] = 1;
+
     if (outTrackNum)
         printf("%d\n", header->streamNo);
     else
@@ -70,6 +86,8 @@ int main(int argc, char **argv)
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
+    int *alreadyPrinted = NULL;
+    int apSz = 0;
 
     if (argc > 1 && !strcmp(argv[1], "-n"))
         outTrackNum = 1;
@@ -112,9 +130,9 @@ int main(int argc, char **argv)
 
         // Is it a header?
         if (!memcmp(buf + skip, "Opus", 4))
-            out(&oggHeader, "opus");
+            out(&oggHeader, &alreadyPrinted, &apSz, "opus");
         else if (!memcmp(buf + skip, "\x7f""FLAC", 5))
-            out(&oggHeader, "flac");
+            out(&oggHeader, &alreadyPrinted, &apSz, "flac");
     }
 
     return 0;
