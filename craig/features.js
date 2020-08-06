@@ -233,7 +233,9 @@ if (config.rewards) (function() {
         var rr = config.rewards.roles;
         var guild = client.guilds.get(config.rewards.guild);
         if (!guild) return;
-        guild.fetchMembers().then((guild) => {
+        guild.fetchAllMembers().then(() => {
+            /*
+            role.members no longer exists
             guild.roles.forEach((role) => {
                 if (typeof role === "string")
                     role = guild.roles.get(role);
@@ -241,6 +243,8 @@ if (config.rewards) (function() {
                 if (rn in rr)
                     role.members.forEach(resolveRewards);
             });
+            */
+            guild.members.map(resolveRewards);
 
             // Get our bless status
             db.prepare("SELECT * FROM blessings").all().forEach((row) => {

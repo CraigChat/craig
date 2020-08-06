@@ -94,15 +94,7 @@ Eris.Collection.prototype.some = Eris.Collection.prototype.find;
         if (member)
             return new Promise((res)=>{res(member);});
         return new Promise((res, rej) => {
-            this.fetchMembers().then(() => {res(guild.members.get(id));}).catch(rej);
-        });
-    });
-    odf(egp, "fetchMembers", function () {
-        // There's no good way to simulate this
-        const guild = this;
-        this.fetchAllMembers();
-        return new Promise((res, rej) => {
-            setTimeout(()=>{res(guild);}, 1000);
+            this.fetchAllMembers().then(() => {res(guild.members.get(id));}).catch(rej);
         });
     });
     odg(egp, "voiceConnection", function(){return this.shard.client.voiceConnections.get(this.id);});
