@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     uint32_t keepStreamNo;
     uint64_t trueGranulePos = 0;
     uint32_t lastSequenceNo = 0;
-    uint32_t packetSize, skip;
+    uint32_t packetSize, skip, framesInPacket;
     unsigned char segmentCount, segmentVal;
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
@@ -210,6 +210,34 @@ int main(int argc, char **argv)
         // Account for VAD
         if (vadLevel)
             skip++;
+
+        // Figure out how many frames are in this packet
+        if (!flacRate) {
+            framesInPacket = buf[skip] & 0x3;
+            switch (framesInPacket) {
+                case 0:
+                    framesInPacket = 1;
+                    break;
+
+                case 1:
+                case 2:
+                    framesInPacket = 2;
+                    break;
+
+                case 3: // Signaled
+                    framesInPacket = buf[skip+1] & 0x3F;
+                    break;
+
+                default:
+                    framesInPacket = 1;
+            }
+
+            fprintf(stderr, "%X\n", framesInPacket);
+
+        } else {
+            framesInPacket = 1;
+
+        }
 
         // Account for gaps
         if (oggHeader.granulePos > trueGranulePos + packetTime * (lastWasSilence ? 1 : 5)) {
@@ -303,7 +331,7 @@ int main(int argc, char **argv)
 
         // Now fix up our own granule positions
         oggHeader.granulePos = trueGranulePos;
-        trueGranulePos += packetTime;
+        trueGranulePos += packetTime * framesInPacket;
 
         // Then insert the current packet
         oggHeader.sequenceNo = lastSequenceNo++;
