@@ -1577,14 +1577,18 @@ if (!cc.master) {
         var size = 1;
         try {
             size = rec.connection.channel.members.size;
+            client.shard.send({t:"startRecording", g:rec.gid, c:rec.cid, id: rec.id, accessKey: rec.accessKey, size: size});
         } catch (ex) {
             logex(ex);
         }
-        client.shard.send({t:"startRecording", g:rec.gid, c:rec.cid, id: rec.id, accessKey: rec.accessKey, size: size});
     });
 
     cc.recordingEvents.on("stop", (rec) => {
-        client.shard.send({t:"stopRecording", g:rec.gid, c:rec.cid});
+        try {
+            client.shard.send({t:"stopRecording", g:rec.gid, c:rec.cid});
+        } catch (ex) {
+            logex(ex);
+        }
     });
 
 } else if (cc.sm) {

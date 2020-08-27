@@ -119,7 +119,11 @@ function reply(msg, dm, prefix, pubtext, privtext) {
                     reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
             }
             try {
-                msg.author.send(privtext).catch(rereply);
+                msg.author.send(privtext).then(() => {
+                    log("reply-sent",
+                        "To " + nameId(msg.author) + ": " + JSON.stringify(privtext),
+                        {u: msg.author});
+                }).catch(rereply);
             } catch (ex) {
                 rereply();
             }
