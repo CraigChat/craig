@@ -54,7 +54,8 @@ function mkClient(token) {
         ret = new Eris.Client(token, {
             firstShardID: +process.env["SHARD_ID"],
             lastShardID: +process.env["SHARD_ID"],
-            maxShards: +process.env["SHARD_COUNT"]
+            maxShards: +process.env["SHARD_COUNT"],
+            ratelimiterOffset: 500
         });
     } else {
         ret = new Eris.Client(token);
