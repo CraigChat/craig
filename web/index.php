@@ -262,7 +262,7 @@ if (isset($_REQUEST["delete"])) {
     ob_flush();
     flush();
     set_time_limit(300);
-    passthru("/usr/bin/timeout 14400 /home/yahweasel/craig/cook.sh $id $format $container$exflags");
+    passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook.sh $id $format $container$exflags");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "avatars") {
     $format = "png";
