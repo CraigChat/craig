@@ -26,6 +26,7 @@ var Ennuizel = (function(ez) {
     if (navigator.hardwareConcurrency) {
         LibAV.threads = Math.ceil(navigator.hardwareConcurrency/2);
         if (LibAV.threads > 8) LibAV.threads = 8;
+        LibAV.threads = 1;
     }
 
     if (!ez.plugins) ez.plugins = [];
