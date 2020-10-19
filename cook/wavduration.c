@@ -124,8 +124,8 @@ int main(int argc, char **argv)
         uint32_t dataSize;
         if (argc > 1)
             duration = atof(argv[1]);
-        bytes = duration * fmtHeader.sampleRate * fmtHeader.channels *
-            (fmtHeader.bitsPerSample/8);
+        bytes = duration * fmtHeader.sampleRate;
+        bytes *= fmtHeader.channels * (fmtHeader.bitsPerSample/8);
         if (bytes >= (((uint64_t) 1)<<32) - 36) {
             needDS64Header = 1;
             memcpy(wavHeader.magic, "RF64", 4);

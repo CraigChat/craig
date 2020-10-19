@@ -232,8 +232,6 @@ int main(int argc, char **argv)
                     framesInPacket = 1;
             }
 
-            fprintf(stderr, "%X\n", framesInPacket);
-
         } else {
             framesInPacket = 1;
 
