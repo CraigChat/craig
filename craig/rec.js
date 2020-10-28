@@ -1018,7 +1018,7 @@ const argPart = /^-([A-Za-z0-9]+) *(.*)$/;
 const recIndicator = / *\!?\[RECORDING\] */g;
 
 // Start recording
-function cmdJoin(lang) { return function(msg, cmd) {
+function cmdJoin(lang) { return async function(msg, cmd) {
     var guild = msg.guild;
     if (!guild)
         return;
@@ -1072,7 +1072,7 @@ function cmdJoin(lang) { return function(msg, cmd) {
         }
 
         // Figure out the recording features for this user
-        var f = cf.features(userId, guildId);
+        var f = await cf.features(userId, guildId);
 
         // Choose the right client
         var takenClients = {};

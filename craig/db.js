@@ -42,22 +42,40 @@ schema.split(";").forEach((x) => {
 logdb.exec(lschema);
 
 // A runner for DB transactions with retry
-function dbRun(stmt, vals) {
+async function dbRun(stmt, vals) {
     if (typeof vals === "undefined") vals = {};
-    var retries = 30;
-    function retry() {
+    for (var i = 30; i >= 1; i--) {
         try {
             stmt.run(vals);
+            break;
         } catch (ex) {
-            if (--retries <= 0) {
+            if (i === 1) {
                 // :(
                 console.error(ex);
             } else {
-                setTimeout(retry, 1000);
+                await new Promise(res => setTimeout(res, 100));
             }
         }
     }
-    retry();
+}
+
+// Similarly, a fetcher (FIXME: So much repetition...)
+async function dbGet(stmt, vals) {
+    if (typeof vals === "undefined") vals = {};
+    var ret = null;
+    for (var i = 30; i >= 1; i--) {
+        try {
+            ret = stmt.get(vals);
+            break;
+        } catch (ex) {
+            if (i === 1) {
+                console.error(ex);
+            } else {
+                await new Promise(res => setTimeout(res, 100));
+            }
+        }
+    }
+    return ret;
 }
 
 // A runner for log transactions with retry
@@ -167,4 +185,4 @@ function log(type, details, extra) {
     logRun(logStmt, vals);
 }
 
-module.exports = {db, logdb, dbRun, deleteGuild, dbDump, loadDB, log};
+module.exports = {db, logdb, dbRun, dbGet, deleteGuild, dbDump, loadDB, log};

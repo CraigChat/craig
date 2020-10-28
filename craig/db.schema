@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS blessings (
     gid TEXT
 );
 
+CREATE INDEX IF NOT EXISTS blessings_gid ON blessings(gid);
+
 CREATE TABLE IF NOT EXISTS prefixes (
     id TEXT PRIMARY KEY,
     prefix TEXT
@@ -36,4 +38,9 @@ CREATE TABLE IF NOT EXISTS drive (
     data TEXT,
     format TEXT,
     container TEXT
+);
+
+CREATE TABLE IF NOT EXISTS rewards (
+    uid TEXT PRIMARY KEY,
+    rewards TEXT
 );

@@ -40,39 +40,42 @@ const l = cl.l;
 
 const gms = require("./gms.js");
 
-/* SHARDING NOTE:
- * Every shard will have identical copies of all of these data structures.
- */
+// DB commands
+const getRewards = db.prepare("SELECT * FROM rewards WHERE uid=@uid;");
+const putRewards = db.prepare("INSERT OR REPLACE INTO rewards (uid, rewards) VALUES (@uid, @rewards);");
+const delRewards = db.prepare("DELETE FROM rewards WHERE uid=@uid;");
+const delAllRewards = db.prepare("DELETE FROM rewards;");
+const getBlessUID = db.prepare("SELECT * FROM blessings WHERE uid=@uid;");
+const getBlessGID = db.prepare("SELECT * FROM blessings WHERE gid=@gid;");
+const putBless = db.prepare("INSERT OR REPLACE INTO blessings (uid, gid) VALUES (@uid, @gid);");
+const delBlessUID = db.prepare("DELETE FROM blessings WHERE uid=@uid;");
+const delBlessGID = db.prepare("DELETE FROM blessings WHERE gid=@gid;");
 
-// An event emitter for when we've loaded our rewards
-class RewardsEvent extends EventEmitter {}
-const rewardsEvents = new RewardsEvent();
-
-// A map user ID -> rewards
-var rewards = {}; // NOTE: Ref can change!
+// Default features
 var defaultFeatures = {"limits": config.limits};
 
-// A map user ID -> other features (right now, just EnnuiCastr)
+// Non-reward-based features
 var otherFeatures = {};
 
-// A map of users with rewards -> blessed guilds. Vice-versa is in gms.
-var blessU2G = {};
-const blessG2U = gms.blessG2U;
-
 // Get the features for a given user
-function features(id, gid) {
+async function features(id, gid) {
     // Do they have their own rewards?
-    var r = rewards[id];
+    var r = await fetchRewards(id);
     if (r && r.limits) return r;
 
     // Are they in a blessed guild?
-    if (gid && gid in blessG2U) {
-        r = rewards[blessG2U[gid]];
-        if (r && r.limits) return r;
+    if (gid) {
+        var bu = await cdb.dbGet(getBlessGID, {gid});
+        if (bu) {
+            r = await fetchRewards(bu.uid);
+            if (r && r.limits) return r;
+        }
     }
 
     return defaultFeatures;
 }
+
+var fetchRewards = async function() { return null; }
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
@@ -80,43 +83,78 @@ if (config.rewards) (function() {
     const blessStmt = db.prepare("INSERT OR REPLACE INTO blessings (uid, gid) VALUES (@uid, @gid)");
     const unblessStmt = db.prepare("DELETE FROM blessings WHERE uid=@uid AND gid=@gid");
 
-    // Add a reward to a user
-    function addRewards(uid, rew) {
-        rewards[uid] = rew;
-        if (client.shard)
-            client.shard.send({t:"addRewards", from:client.shard.id, u:uid, r:rew});
+    // Fetch rewards for this user from the appropriate shard
+    var fetchRewardsWait = {};
+    fetchRewards = async function(uid) {
+        // 1: Try to just get it
+        var ret = await cdb.dbGet(getRewards, {uid});
+        if (ret) return JSON.parse(ret.rewards);
+
+        // 2: Check if we're the right client
+        var guild = client.guilds.get(config.rewards.guild);
+        if (guild) {
+            // Look for this user
+            await guild.fetchMembers({userIDs: [uid]});
+            var member = guild.members.get(uid);
+            if (!member) {
+                // No member, no rewards!
+                addRewards(uid, null);
+                return null;
+            }
+
+            // Resolve the rewards
+            var r = resolveRewards(member);
+            if (Object.keys(r).length === 0)
+                r = null;
+
+            // And add it to the DB and notify
+            addRewards(uid, r);
+            return r;
+        }
+
+        // 3: We're not the right client, so ask around
+        if (client.shard) {
+            var p = new Promise(res => {
+                fetchRewardsWait[uid] = res;
+            });
+            client.shard.send({t:"fetchRewards", from:client.shard.id, u:uid});
+            await p;
+
+            ret = await cdb.dbGet(getRewards, {uid});
+            if (ret)
+                return JSON.parse(ret.rewards);
+            return null;
+        }
+
+        return null;
     }
 
-    cc.shardCommands["addRewards"] = function(shard, msg) {
-        rewards[msg.u] = msg.r;
+    cc.shardCommands["fetchRewards"] = function(shard, msg) {
         cc.sm.broadcast(msg);
     }
 
-    cc.processCommands["addRewards"] = function(msg) {
-        rewards[msg.u] = msg.r;
+    cc.processCommands["fetchRewards"] = function(msg) {
+        if (client.guilds.has(config.rewards.guild))
+            fetchRewards(msg.u);
     }
 
-    // Delete a reward from a user
-    function deleteRewards(uid) {
-        delete rewards[uid];
+    // Add a reward to a user and tell everyone else we did so
+    async function addRewards(uid, rew) {
+        await cdb.dbRun(putRewards, {uid, rewards: JSON.stringify(rew)});
         if (client.shard)
-            client.shard.send({t:"deleteRewards", from:client.shard.id, u:uid});
+            client.shard.send({t:"fetchedRewards", from:client.shard.id, u:uid});
     }
 
-    cc.shardCommands["deleteRewards"] = function(shard, msg) {
-        delete rewards[msg.u];
+    cc.shardCommands["fetchedRewards"] = function(shard, msg) {
         cc.sm.broadcast(msg);
     }
 
-    cc.processCommands["deleteRewards"] = function(msg) {
-        delete rewards[msg.u];
-    }
-
-    if (cc.sm) {
-        cc.sm.on("launch", (shard) => {
-            for (var uid in rewards)
-                shard.send({t:"addRewards", u:uid, r:rewards[uid]});
-        });
+    cc.processCommands["fetchedRewards"] = function(msg) {
+        if (msg.u in fetchRewardsWait) {
+            var res = fetchRewardsWait[msg.u];
+            delete fetchRewardsWait[msg.u];
+            res();
+        }
     }
 
     // Resolve a user's rewards by their role
@@ -144,122 +182,31 @@ if (config.rewards) (function() {
                 }
             }
         });
-
-        if (Object.keys(mrewards).length)
-            addRewards(member.id, mrewards);
-        else
-            deleteRewards(member.id);
         return mrewards;
     }
 
     // Remove a bless
-    function removeBlessLocal(uid) {
-        if (uid in blessU2G) {
-            var gid = blessU2G[uid];
-            delete blessU2G[uid];
-            delete blessG2U[gid];
-            if (!cc.dead && cc.master)
-                cdb.dbRun(unblessStmt, {uid:uid, gid:gid});
-        }
-    }
-
     function removeBless(uid) {
-        removeBlessLocal(uid);
-        if (client.shard)
-            client.shard.send({t:"removeBless", from:config.shard.id, u:uid});
-    }
-
-    cc.shardCommands["removeBless"] = function(shard, msg) {
-        removeBlessLocal(msg.u);
-        cc.sm.broadcast(msg);
-    }
-
-    cc.processCommands["removeBless"] = function(msg) {
-        removeBlessLocal(msg.u);
+        cdb.dbRun(delBlessUID, {uid});
     }
 
     // Add a bless
-    function addBlessLocal(uid, gid) {
-        if (uid in blessU2G)
-            removeBlessLocal(uid);
-
-        blessU2G[uid] = gid;
-        blessG2U[gid] = uid;
-        if (!cc.dead && cc.master)
-            cdb.dbRun(blessStmt, {uid,gid});
+    async function addBless(uid, gid) {
+        await cdb.dbRun(delBlessUID, {uid});
+        await cdb.dbRun(delBlessGID, {gid});
+        await cdb.dbRun(putBless, {uid, gid});
     }
 
-    function addBless(uid, gid) {
-        addBlessLocal(uid, gid);
-        if (client.shard)
-            client.shard.send({t:"addBless", from:client.shard.id, u:uid, g:gid});
-    }
-
-
-    cc.shardCommands["addBless"] = function(shard, msg) {
-        addBlessLocal(msg.u, msg.g);
-        cc.sm.broadcast(msg);
-    }
-
-    cc.processCommands["addBless"] = function(msg) {
-        addBlessLocal(msg.u, msg.g);
-    }
-
-    if (cc.sm) {
-        cc.sm.on("launch", (shard) => {
-            // Add all the blesses to the new shard
-            for (var uid in blessU2G)
-                shard.send({t:"addBless", u:uid, g:blessU2G[uid]});
-        });
-    }
-
-    // Resolve blesses from U2G into G2U, asserting that the relevant uids actually have bless powers
-    function resolveBlesses() {
-        Object.keys(blessU2G).forEach((uid) => {
-            var f = features(uid);
-            if (f.bless)
-                blessG2U[blessU2G[uid]] = uid;
-            else
-                delete blessU2G[uid];
-        });
-    }
-
-    // Get our initial rewards on connection
+    /* Initialize by deleting rewards once the corrent client is connected, so
+     * we use real information */
     var rewardsInited = false;
     function initRewards() {
         if (rewardsInited) return;
         rewardsInited = true;
 
-        var rr = config.rewards.roles;
-        var guild = client.guilds.get(config.rewards.guild);
-        if (!guild) return;
-        guild.fetchAllMembers().then(() => {
-            /*
-            role.members no longer exists
-            guild.roles.forEach((role) => {
-                if (typeof role === "string")
-                    role = guild.roles.get(role);
-                var rn = role.name.toLowerCase();
-                if (rn in rr)
-                    role.members.forEach(resolveRewards);
-            });
-            */
-            guild.members.map(resolveRewards);
-
-            // Get our bless status
-            db.prepare("SELECT * FROM blessings").all().forEach((row) => {
-                blessU2G[row.uid] = row.gid;
-            });
-            resolveBlesses();
-
-            // Send our blesses along
-            if (client.shard) {
-                for (var uid in blessU2G)
-                    client.shard.send({t:"addBless", from:client.shard.id, u:uid, g:blessU2G[uid]});
-            }
-
-            rewardsEvents.emit("ready");
-        });
+        if (!client.guilds.get(config.rewards.guild))
+            return;
+        cdb.dbRun(delAllRewards);
     }
     if (client) {
         client.on("ready", initRewards);
@@ -270,18 +217,21 @@ if (config.rewards) (function() {
     if (client) client.on("guildMemberUpdate", (guild, to, from) => {
         if (guild.id !== config.rewards.guild) return;
         var r = resolveRewards(to);
-        if (!r.bless && to.id in blessU2G)
-            removeBless(to.id);
+        if (Object.keys(r).length === 0)
+            r = null;
+
+        // And add it to the DB and notify
+        addRewards(uid, r);
     });
 
     // And a command to bless a guild
-    commands["bless"] = function(msg, cmd) {
+    commands["bless"] = async function(msg, cmd) {
         if (cc.dead) return;
 
         // Only makes sense in a guild
         if (!msg.guild) return;
 
-        var f = features(msg.author.id);
+        var f = await features(msg.author.id);
         if (!f.bless) {
             reply(msg, false, cmd[1], "You do not have permission to bless servers.");
             return;
@@ -428,11 +378,11 @@ function featuresToStr(f, guild, prefix) {
 }
 
 // Tell the user their features
-commands["features"] = function(msg, cmd) {
+commands["features"] = async function(msg, cmd) {
     if (cc.dead) return;
 
-    var f = features(msg.author.id);
-    var gf = features(msg.author.id, msg.guild ? msg.guild.id : undefined);
+    var f = await features(msg.author.id);
+    var gf = await features(msg.author.id, msg.guild ? msg.guild.id : undefined);
 
     var ret = featuresToStr(f, false, "For you");
     if (gf !== f)
@@ -441,4 +391,4 @@ commands["features"] = function(msg, cmd) {
     reply(msg, false, false, ret);
 }
 
-module.exports = {rewardsEvents, defaultFeatures, features, otherFeatures};
+module.exports = {defaultFeatures, features, otherFeatures};

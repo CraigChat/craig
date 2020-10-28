@@ -180,8 +180,8 @@ if (config.rewards) (function() {
     // Resolve autorecords from U2GC into G2C2U, asserting that the relevant uids actually have auto powers
     function resolveAutos() {
         autoG2C2U = {};
-        Object.keys(autoU2GC).forEach((uid) => {
-            var f = cf.features(uid);
+        Object.keys(autoU2GC).forEach(async function(uid) {
+            var f = await cf.features(uid);
             if (f.auto) {
                 var gcs = autoU2GC[uid];
                 for (var gci = 0; gci < gcs.length; gci++) {
@@ -196,8 +196,10 @@ if (config.rewards) (function() {
         });
     }
 
-    // Load autorecords when we're ready (only fires on the shard with the rewards guild)
-    cf.rewardsEvents.on("ready", () => {
+    // Load autorecords when we're ready (only on the shard with the rewards guild, so we can resolve rewards)
+    if (client) client.on("ready", () => {
+        if (!config.rewards || !client.guilds.get(config.rewards.guild)) return;
+
         // Get our auto status
         db.prepare("SELECT * FROM auto").all().forEach((row) => {
             var tidList = row.tids.split(",");
@@ -234,7 +236,7 @@ if (config.rewards) (function() {
     const value = /^([^ \t,]*)[ \t,]*(.*)$/;
 
     // And a command to set up autorecording
-    commands["autorecord"] = function(msg, cmd) {
+    commands["autorecord"] = async function(msg, cmd) {
         if (cc.dead) return;
         if (!msg.guild) return;
         var subcmd = cmd[3].match(subcmdRE);
@@ -242,7 +244,7 @@ if (config.rewards) (function() {
         var cname = subcmd[2].toLowerCase();
         subcmd = subcmd[1].toLowerCase();
 
-        var f = cf.features(msg.author.id);
+        var f = await cf.features(msg.author.id);
         if (!f.auto) {
             reply(msg, false, cmd[1], "You do not have permission to set up automatic recordings.");
             return;
