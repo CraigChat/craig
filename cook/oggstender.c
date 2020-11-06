@@ -101,11 +101,11 @@ void writeOgg(struct OggHeader *header, const unsigned char *data, uint32_t size
         exit(1);
 
     // Write out the sequence info
-    sequencePart = (size+254)/255;
+    sequencePart = (size+255)/255;
     if (writeAll(1, &sequencePart, 1) != 1) exit(1);
     sequencePart = 255;
     sizeMod = size;
-    while (sizeMod > 255) {
+    while (sizeMod >= 255) {
         if (writeAll(1, &sequencePart, 1) != 1) exit(1);
         sizeMod -= 255;
     }

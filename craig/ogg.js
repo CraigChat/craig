@@ -38,7 +38,7 @@ exports.OggEncoder = OggEncoder;
 
 OggEncoder.prototype.write = function(granulePos, streamNo, packetNo, chunk, flags) {
     // How many bytes will be required to explain this chunk?
-    var lengthBytes = Math.ceil(chunk.length / 255) + 1;
+    var lengthBytes = Math.ceil((chunk.length+1) / 255) + 1;
 
     // The total header length
     var headerBytes = 26 + lengthBytes;
@@ -72,7 +72,7 @@ OggEncoder.prototype.write = function(granulePos, streamNo, packetNo, chunk, fla
     var i = 27;
     if (chunk.length) {
         var r = chunk.length;
-        while (r > 255) {
+        while (r >= 255) {
             header.writeUInt8(255, i++);
             r -= 255;
         }
