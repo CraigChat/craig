@@ -137,9 +137,69 @@ var Ennuizel = (function(ez) {
     }
     ez.plugins.push(start);
 
-    // In our "main" mode, we ask whether to use the wizard or not, or just bail out entirely
+    /* In our "main" mode, we clear things out, ask whether to use the wizard
+     * or not, or just bail out entirely */
     function mainMode() {
-        return ez.modalWait().then(function(unlock) {
+        var projects;
+
+        return ez.startup(false).then(function() {
+            return ez.dbGlobal.getItem("projects");
+
+        }).then(function(sprojects) {
+            projects = sprojects;
+
+            if (projects && projects.length) {
+                /* There are existing projects. Give the user the opportunity
+                 * to delete them. */
+                return ez.modalWait().then(function(unlock) {
+                    ez.modalDialog.innerHTML = "";
+
+                    ez.mke(ez.modalDialog, "div", {text: l("projectsexist") + "\n\n"});
+                    var no = ez.mke(ez.modalDialog, "button", {text: l("cancel")});
+                    ez.mke(ez.modalDialog, "span", {text: "  "});
+                    var yes = ez.mke(ez.modalDialog, "button", {text: l("ok")});
+
+                    ez.modalToggle(true);
+                    yes.focus();
+
+                    return new Promise(function(res) {
+                        no.onclick = function() {
+                            res(false);
+                        };
+                        yes.onclick = function() {
+                            res(true);
+                        };
+                    }).then(function(del) {
+                        unlock();
+                        return del;
+                    });
+
+                });
+            }
+
+            return false;
+
+        }).then(function(del) {
+            if (del) {
+                // They requested a delete
+                ez.modal(l("deletinge"));
+                var p = Promise.all([]);
+                projects.forEach(function(projName) {
+                    p = p.then(function() {
+                        localforage.dropInstance({name: "ennuizel-project-" + projName});
+                    });
+                });
+
+                return p.then(function() {
+                    return ez.dbGlobal.setItem("projects", []);
+                }).then(function() {
+                    return ez.modalWait();
+                });
+            }
+
+            return ez.modalWait();
+
+        }).then(function(unlock) {
             ez.modalDialog.innerHTML = "";
 
             ez.mke(ez.modalDialog, "div", {text: l("betawarning") + "\n\n" + l("wizarddesc") + "\n\n"});
