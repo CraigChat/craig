@@ -61,7 +61,10 @@ Ennuizel as well as the server component, only required when combining Ennuizel
 with Craig.
 
 
-No documentation is provided for running your own instances of Craig.
+No documentation is provided for running your own instances of Craig. A user
+has kindly added an installation guide to the wiki on github at
+https://github.com/Yahweasel/craig/wiki , but note that this is not maintained
+by the author of Craig.
 
 RUNNING CRAIG IS NOT LIKE RUNNING ANY OTHER BOT. MOST OF THE COMPLEXITY OF
 CRAIG IS NOT IN THE BOT ITSELF, BUT IN THE AUDIO PROCESSING.
