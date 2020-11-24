@@ -60,6 +60,14 @@ function mkClient(token) {
     } else {
         ret = new Eris.Client(token);
     }
+
+    if ("url" in config) ret.on("ready", () => {
+        // Do this frequently to make sure we stay online
+        setInterval(() => {
+            ret.editStatus("online", {name: config.url, type: 0});
+        }, 3600000);
+    });
+
     return ret;
 }
 
@@ -88,6 +96,12 @@ if (shard)
     vshardMsg = " (shard " + (+process.env["SHARD_ID"]) + "/" + (+process.env["SHARD_COUNT"]) + ", pid " + process.pid + ")";
 const shardMsg = vshardMsg;
 
+if (!sm) {
+    // If there are secondary Craigs, spawn them
+    for (var si = 0; si < config.secondary.length; si++) {
+        clients.push(mkClient(config.secondary[si].token));
+    }
+}
 
 // Announce our connection
 if (client) client.on("ready", () => {
@@ -95,17 +109,23 @@ if (client) client.on("ready", () => {
 });
 
 // Announce problems
-if (client) client.on("disconnect", (err) => {
-    log("disconnected", "" + err + shardMsg);
-});
+if (client) {
+    for (var si = 0; si < clients.length; si++) (function(si) {
+        var client = clients[si];
 
-if (client) client.on("shardDisconnect", (err) => {
-    log("shard-disconnected", "" + err + shardMsg);
-});
+        client.on("disconnect", (err) => {
+            log("disconnected", "(" + si + ") " + err + shardMsg);
+        });
 
-if (client) client.on("error", (err) => {
-    log("client-error", shardMsg + " " + err + " " + JSON.stringify(err.stack+""));
-});
+        client.on("shardDisconnect", (err) => {
+            log("shard-disconnected", "(" + si + ") " + err + shardMsg);
+        });
+
+        client.on("error", (err) => {
+            log("client-error", "(" + si + ") " + shardMsg + " " + err + " " + JSON.stringify(err.stack+""));
+        });
+    })(si);
+}
 
 // Handle shard commands
 if (sm) sm.on("message", (shard, msg) => {
@@ -157,7 +177,6 @@ if (client) {
 if (!sm) {
     // If there are secondary Craigs, log them in
     for (var si = 0; si < config.secondary.length; si++) {
-        clients.push(mkClient(config.secondary[si].token));
         clients[si+1].login(config.secondary[si].token);
     }
 }

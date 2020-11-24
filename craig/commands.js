@@ -117,8 +117,6 @@ var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/i;
 const genericCommand = /^()[, ]*([^ ]*) ?(.*)$/i;
 if (client) client.on("ready", () => {
     craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$", "i");
-    if ("url" in config)
-        client.editStatus("online", {name: config.url, type: 0});
 });
 
 // Only admins and those with the Craig role are authorized to use Craig
