@@ -51,11 +51,23 @@ const shard = ("SHARD_ID" in process.env);
 function mkClient(token) {
     var ret;
     if (shard) {
+        var shardId = +process.env["SHARD_ID"];
+        var localAddressOptions = {};
+        var udpBindOptions = null;
+        if (config.localAddress) {
+            localAddressOptions.localAddress =
+                config.localAddress[shardId % config.localAddress.length];
+            udpBindOptions = {address: localAddressOptions.localAddress};
+            console.error("Choosing local address " + JSON.stringify(localAddressOptions));
+        }
+
         ret = new Eris.Client(token, {
             firstShardID: +process.env["SHARD_ID"],
             lastShardID: +process.env["SHARD_ID"],
             maxShards: +process.env["SHARD_COUNT"],
-            ratelimiterOffset: 500
+            ratelimiterOffset: 500,
+            ws: localAddressOptions,
+            httpRequestOptions: localAddressOptions
         });
     } else {
         ret = new Eris.Client(token);
