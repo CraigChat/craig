@@ -221,7 +221,7 @@ if (config.rewards) (function() {
             r = null;
 
         // And add it to the DB and notify
-        addRewards(uid, r);
+        addRewards(to.id, r);
     });
 
     // And a command to bless a guild
