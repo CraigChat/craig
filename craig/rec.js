@@ -1073,6 +1073,10 @@ function cmdJoin(lang) { return async function(msg, cmd) {
 
         // Figure out the recording features for this user
         var f = await cf.features(userId, guildId);
+        if (f.limits.record === 0) {
+            reply(msg, false, cmd[1], "Sorry, but this bot is only for patrons. Please use Craig ( https://craig.chat/ )");
+            return;
+        }
 
         // Choose the right client
         var takenClients = {};
