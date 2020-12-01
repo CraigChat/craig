@@ -58,7 +58,6 @@ function mkClient(token) {
             localAddressOptions.localAddress =
                 config.localAddress[shardId % config.localAddress.length];
             udpBindOptions = {address: localAddressOptions.localAddress};
-            console.error("Choosing local address " + JSON.stringify(localAddressOptions));
         }
 
         ret = new Eris.Client(token, {

@@ -321,7 +321,9 @@ function session(msg, prefix, rec) {
                 connection.disconnect();
             }
         } else {
-            stream.write(granulePos, streamNo, packetNo, chunk, flags);
+            try {
+                stream.write(granulePos, streamNo, packetNo, chunk, flags);
+            } catch (ex) {}
         }
     }
     var recOggHStream = [ new ogg.OggEncoder(recFHStream[0]), new ogg.OggEncoder(recFHStream[1]) ];
