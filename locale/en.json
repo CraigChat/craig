@@ -10,6 +10,7 @@
     "ennuicastrlink":   "EnnuiCastr client link: %1",
     "ennuicastrmenu":   "EnnuiCastr menu: %1",
     "ennuicastrmon":    "Recording monitor: %1",
+    "ratelimit":        "Please wait. I will attempt to join in %1 seconds.",
 
     "cantsee":          "I can't see any channel with that name.",
     "whatchannel":      "What channel?",

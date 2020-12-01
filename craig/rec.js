@@ -80,6 +80,19 @@ const silentOggOpus = Buffer.from([0x4f, 0x67, 0x67, 0x53, 0x00, 0x02, 0x00,
  */
 const activeRecordings = {};
 
+/* Rate limits by guild. To prevent abuse or bugs, when recordings unexpectedly
+ * disconnect, the next recording cannot start until some timeout expires. This
+ * timeout increases exponentially until a recording is successful or the bot
+ * resets normally.
+ *
+ * rateLimit[guild] = {
+ *   lastDelay: (delay in seconds after last recording ended)
+ *   nextAllowed: (next time in ms when a recording will be allowed)
+ *   pending: (true if that next recording is pending)
+ * }
+ */
+const rateLimit = {};
+
 /* Active recordings by ID */
 const arID = {};
 
@@ -91,6 +104,37 @@ const emptyBuf = Buffer.alloc(0);
 
 // Our query to decide whether to run a Drive upload
 const driveStmt = db.prepare("SELECT * FROM drive WHERE id=@id");
+
+// Fetch a rate limit
+function getRateLimit(gid) {
+    if (!(gid in rateLimit))
+        return null;
+    return rateLimit[gid];
+}
+
+// Update or reset a rate limit
+function updateRateLimit(gid, reset) {
+    if (reset) {
+        if (gid in rateLimit)
+            delete rateLimit[gid];
+
+    } else {
+        if (!(gid in rateLimit)) {
+            rateLimit[gid] = {
+                lastDelay: 5,
+                nextAllowed: 0,
+                pending: false
+            };
+        }
+        var rl = rateLimit[gid];
+        rl.lastDelay *= 2;
+        if (rl.lastDelay > 120)
+            rl.lastDelay = 120;
+        rl.nextAllowed = Date.now() + rl.lastDelay * 1000;
+
+    }
+}
+
 
 // Our recording session proper
 function session(msg, prefix, rec) {
@@ -920,6 +964,11 @@ function session(msg, prefix, rec) {
                 logex(ex);
             }
             rec.disconnected = true;
+            updateRateLimit(rec.gid, false);
+
+        } else {
+            updateRateLimit(rec.gid, true);
+
         }
 
         // Log it
@@ -1044,6 +1093,26 @@ function cmdJoin(lang) { return async function(msg, cmd) {
             auto = true;
         } else break;
         cname = parts[2];
+    }
+
+    // Check for rate limits
+    var rl = getRateLimit(guild.id);
+    if (rl) {
+        if (rl.pending) {
+            // Spam. Ignore.
+            return;
+        }
+
+        var now = Date.now();
+        if (rl.nextAllowed > now) {
+            // Being rate limited. Pause.
+            var wait = rl.nextAllowed - now;
+            if (!auto)
+                reply(msg, false, cmd[1], l("ratelimit", lang, ""+Math.ceil(wait / 1000)));
+            rl.pending = true;
+            await new Promise(res => setTimeout(res, wait));
+            rl.pending = false;
+        }
     }
 
     // Since errors are optional, we have a general error responder
@@ -1248,6 +1317,7 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                 }
 
                 // Try to reset our voice connection nonsense by joining a different channel
+                /*
                 var diffChannel = channel;
                 guild.channels.some((maybeChannel) => {
                     if (maybeChannel === channel)
@@ -1271,6 +1341,10 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                     }, 1000);
                 }
                 safeJoin(diffChannel, leave).then(leave).catch(leave);
+                */
+                try {
+                    channel.leave();
+                } catch (ex) {}
             }
 
             var rec = {
