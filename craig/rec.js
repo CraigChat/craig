@@ -175,7 +175,11 @@ function session(msg, prefix, rec) {
             /* Periodically play silence to make sure the voice connection
              * stays alive */
             var oggStream = new stream.Readable();
-            connection.play(oggStream, {format: "ogg"});
+            try {
+                connection.play(oggStream, {format: "ogg"});
+            } catch (ex) {
+                logex(ex);
+            }
             oggStream.push(silentOggOpus);
             oggStream.push(null);
         }
@@ -208,7 +212,9 @@ function session(msg, prefix, rec) {
             try {
                 if (!err)
                     connection.play("data/nowrecording.opus", {format: "ogg"});
-            } catch (ex) {}
+            } catch (ex) {
+                logex(ex);
+            }
         });
     }, 200);
 
@@ -1344,9 +1350,14 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                 }
                 safeJoin(diffChannel, leave).then(leave).catch(leave);
                 */
-                try {
-                    channel.leave();
-                } catch (ex) {}
+                function leave() {
+                    setTimeout(()=>{
+                        try {
+                            channel.leave();
+                        } catch (ex) {}
+                    }, 1000);
+                }
+                safeJoin(channel, leave).then(leave).catch(leave);
             }
 
             var rec = {
@@ -1576,7 +1587,7 @@ clients.forEach((client) => {
                 if (guildId in activeRecordings &&
                     channelId in activeRecordings[guildId] &&
                     activeRecordings[guildId][channelId].connection &&
-                    toChannel !== fromChannel) {
+                    toChannel.id !== channelId) {
                     // We do not tolerate being moved
                     log("rec-term",
                         "Moved to a different channel",
