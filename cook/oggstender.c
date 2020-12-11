@@ -23,6 +23,8 @@
 #include <sys/select.h>
 #include <unistd.h>
 
+#include "crc32.h"
+
 /* NOTE: We don't use libogg here because the behavior of this program is so
  * trivial, the added memory bandwidth of using it is just a waste of energy */
 
@@ -93,24 +95,35 @@ ssize_t writeAll(int fd, const void *vbuf, size_t count)
 
 void writeOgg(struct OggHeader *header, const unsigned char *data, uint32_t size)
 {
-    unsigned char sequencePart;
+    static unsigned char seqBuf[256];
+    uint32_t seqCt = 0;
     uint32_t sizeMod;
+    uint32_t crc;
 
+    // Calculate the sequence info
+    seqBuf[seqCt++] = (size+255)/255;
+    sizeMod = size;
+    while (sizeMod >= 255) {
+        seqBuf[seqCt++] = 255;
+        sizeMod -= 255;
+    }
+    seqBuf[seqCt++] = sizeMod;
+
+    // Calculate the CRC
+    header->crc = 0;
+    crc = 0xf07159ba; // crc32("OggS\0", 5, &crc);
+    crc32(header, sizeof(*header), &crc);
+    crc32(seqBuf, seqCt, &crc);
+    crc32(data, size, &crc);
+    header->crc = crc;
+
+    // Write the header
     if (writeAll(1, "OggS\0", 5) != 5 ||
         writeAll(1, header, sizeof(*header)) != sizeof(*header))
         exit(1);
 
-    // Write out the sequence info
-    sequencePart = (size+255)/255;
-    if (writeAll(1, &sequencePart, 1) != 1) exit(1);
-    sequencePart = 255;
-    sizeMod = size;
-    while (sizeMod >= 255) {
-        if (writeAll(1, &sequencePart, 1) != 1) exit(1);
-        sizeMod -= 255;
-    }
-    sequencePart = sizeMod;
-    if (writeAll(1, &sequencePart, 1) != 1) exit(1);
+    // Write the sequence info
+    if (writeAll(1, seqBuf, seqCt) != seqCt) exit(1);
 
     // Then write the data
     if (writeAll(1, data, size) != size) exit(1);
