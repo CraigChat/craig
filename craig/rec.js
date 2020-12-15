@@ -701,11 +701,11 @@ function session(msg, prefix, rec) {
         msg.writeUInt32LE(ecp.mode.rec, p.value);
         ws.send(msg);
 
-        // And send them the start time (which is always 0)
+        // And send them the start time (which is always near 0)
         var msg = Buffer.alloc(p.length + 4);
         msg.writeUInt32LE(ecp.ids.info, 0);
         msg.writeUInt32LE(ecp.info.startTime, p.key);
-        msg.writeDoubleLE(0, p.value);
+        msg.writeDoubleLE(1, p.value);
         ws.send(msg);
 
         // Announce them
