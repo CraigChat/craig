@@ -686,12 +686,26 @@ function session(msg, prefix, rec) {
 
         }
 
-        // Send them the "mode" (Craig is always recording)
+        // Send them their own ID
         var p = ecp.parts.info;
+        var msg = Buffer.alloc(p.length);
+        msg.writeUInt32LE(ecp.ids.info, 0);
+        msg.writeUInt32LE(ecp.info.id, p.key);
+        msg.writeUInt32LE(userTrackNo, p.value);
+        ws.send(msg);
+
+        // Send them the "mode" (Craig is always recording)
         var msg = Buffer.alloc(p.length);
         msg.writeUInt32LE(ecp.ids.info, 0);
         msg.writeUInt32LE(ecp.info.mode, p.key);
         msg.writeUInt32LE(ecp.mode.rec, p.value);
+        ws.send(msg);
+
+        // And send them the start time (which is always 0)
+        var msg = Buffer.alloc(p.length + 4);
+        msg.writeUInt32LE(ecp.ids.info, 0);
+        msg.writeUInt32LE(ecp.info.startTime, p.key);
+        msg.writeDoubleLE(0, p.value);
         ws.send(msg);
 
         // Announce them

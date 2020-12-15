@@ -23,7 +23,9 @@
 (function() {
     var EnnuiCastrProtocol = {
         "ids": {
+            // Good and evil
             "ack": 0x00,
+            "nack": 0x01,
 
             // Basic
             "login": 0x10,
@@ -40,21 +42,33 @@
             // Text chat
             "text": 0x31,
 
+            // Soundboard request or response
+            "sound": 0x32,
+
             // Monitoring
             "user": 0x40,
             "speech": 0x41,
 
-            // WebRTC signaling info
+            // WebRTC signaling info and inter-client RTC messages
             "rtc": 0x50,
+            "videoRec": 0x51,
 
             // Master
             "mode": 0x60,
+            "admin": 0x61,
         },
 
         "parts": {
             "ack": {
                 "length": 8,
                 "ackd": 4
+            },
+
+            "nack": {
+                "length": 12,
+                "ackd": 4,
+                "code": 8,
+                "msg": 12
             },
 
             "login": {
@@ -95,6 +109,20 @@
                 "text": 8
             },
 
+            "sound": {
+                "cs": { // C->S: Sound request
+                    "length": 5, // really, + length of sound ID
+                    "status": 4, // 1 to play, 0 to stop
+                    "id": 5 // ID of sound to play
+                },
+                "sc": { // S->C: Play this sound
+                    "length": 13, // really, + length of URL
+                    "time": 4, // Server time when this event should have occurred
+                    "status": 12,
+                    "url": 13
+                }
+            },
+
             "user": {
                 "length": 12,
                 "index": 4,
@@ -110,13 +138,24 @@
             "rtc": {
                 "length": 12,
                 "peer": 4,
-                "type": 8,
+                "type": 8, // High bit is outgoing
                 "value": 12
+            },
+
+            "videoRec": {
+                "length": 8, // More for added arguments
+                "cmd": 4
             },
 
             "mode": {
                 "length": 8,
                 "mode": 4
+            },
+
+            "admin": {
+                "length": 12,
+                "target": 4,
+                "action": 8
             }
         },
 
@@ -153,6 +192,14 @@
             "features": {
                 "continuous": 0x100,
                 "rtc": 0x200
+            },
+
+            "admin": {
+                "actions": {
+                    "kick": 0,
+                    "mute": 1,
+                    "echoCancel": 2
+                }
             }
         },
 
@@ -177,6 +224,13 @@
             // S->C, uint32: Inform the user of the current mode
             "mode": 0x14,
 
+            /* S->C, double: Inform the user of the timestamp at which
+             * recording formally began */
+            "startTime": 0x15,
+
+            /* S->C, string: Inform the client of the name of this recording */
+            "recName": 0x16,
+
             /* S->C, 2xuint32: Inform the client of the current cost of the
              * recording in credits, and their rate of credit consumption per
              * minute. */
@@ -186,6 +240,11 @@
              * First int is units of currency (typically cents), second int is
              * units of credits, so they form a ratio. */
             "creditCost": 0x21,
+
+            /* S->C: Inform the master of what soundboard audio is available.
+             * JSON array of objects with i (ID), u (playback URL), and n
+             * (name) fields. */
+            "sounds": 0x22,
 
             // S->C, JSON: Give an eligible ICE server for RTC
             "ice": 0x50
@@ -203,6 +262,24 @@
             // C->S: Give RTC answer to another peer {id, answer JSON}
             // S->C: Relay, id replaced by source
             "answer": 0x2
+        },
+
+        "videoRec": {
+            /* uint32: Inform of our willingness (1) or otherwise (0) to host
+             * video recordings */
+            "videoRecHost": 0x60,
+
+            /* JSON: Request to start sending video recording data. JSON
+             * argument is an optional object with optional arguments, in
+             * particular "ext", for the format/extension for the created file */
+            "startVideoRecReq": 0x61,
+
+            /* uint32: Accept or reject (1 or 0) a video recording send
+             * request. Actual file data is sent in data packets. */
+            "startVideoRecRes": 0x62,
+
+            // C->C: End video data
+            "endVideoRec": 0x63
         },
 
         "mode": {
