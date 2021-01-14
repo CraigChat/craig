@@ -1,0 +1,7 @@
+{ 
+    "token": "DISCORD BOT TOKEN", 
+    "nick": "BOTS NICKNAME",
+    "url": "https://your_url",
+    "longUrl": "https://your_url/home",
+    "dlUrl": "https://your_url"
+    }

@@ -9,6 +9,6 @@ services:
       - host
     ports:
       - "80:80"
-    command: bash -c "chmod a+x init.sh; init.sh"
+    command: bash -c "chmod a+x ./init.sh; ./init.sh"
 networks:
   host:
