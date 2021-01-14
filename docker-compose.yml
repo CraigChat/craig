@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  bot:
+    image: bitl_craig
+    working_dir: /craig
+    volumes: 
+      - ./data/rec:/craig/rec
+    networks:
+      - host
+    ports:
+      - "80:80"
+    command: bash -c "node craig.js; /usr/sbin/apachectl -D FOREGROUND"
+networks:
+  host:
