@@ -113,10 +113,10 @@ cc.processCommands["unban"] = function(msg) {
 }
 
 // Our command regex changes to match our user ID
-var craigCommand = /^(:craig:|<:craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/i;
+var craigCommand = /^(:bitl_craig:|<:bitl_craig:[0-9]*>)[, ]*([^ ]*) ?(.*)$/i;
 const genericCommand = /^()[, ]*([^ ]*) ?(.*)$/i;
 if (client) client.on("ready", () => {
-    craigCommand = new RegExp("^(:craig:|<:craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$", "i");
+    craigCommand = new RegExp("^(:bitl_craig:|<:bitl_craig:[0-9]*>|<@!?" + client.user.id + ">)[, ]*([^ ]*) ?(.*)$", "i");
 });
 
 // Only admins and those with the Craig role are authorized to use Craig
