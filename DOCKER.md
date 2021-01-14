@@ -12,7 +12,7 @@ Edit config.json as appropriate.
 
 ## Build Docker image
 
-`docker build --no-cache -t <your_tag_name> .`
+`docker build --no-cache -t bitl_craig .`
 
 ## Docker Compose
 
