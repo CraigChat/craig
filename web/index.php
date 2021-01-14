@@ -15,7 +15,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-$base = "/home/yahweasel/craig/rec";
+$base = "/craig/rec";
 $ennuizel = "https://c.ennuicastr.com/ennuizel/";
 
 // No ID => Send them to homepage
@@ -172,7 +172,7 @@ if (isset($_REQUEST["delete"])) {
 } else if (isset($_REQUEST["duration"])) {
     header("Content-type: application/json");
     print "{\"duration\":";
-    passthru("/home/yahweasel/craig/cook/duration.sh $id");
+    passthru("/craig/cook/duration.sh $id");
     print "}";
 
 } else if (isset($_REQUEST["users"])) {
@@ -262,7 +262,7 @@ if (isset($_REQUEST["delete"])) {
     ob_flush();
     flush();
     set_time_limit(300);
-    passthru("/usr/bin/timeout 7200 /home/yahweasel/craig/cook.sh $id $format $container$exflags");
+    passthru("/usr/bin/timeout 7200 /craig/cook.sh $id $format $container$exflags");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] === "avatars") {
     $format = "png";
@@ -300,16 +300,16 @@ if (isset($_REQUEST["delete"])) {
     header("Content-type: $mime");
     ob_flush();
     flush();
-    passthru("/usr/bin/timeout 14400 /home/yahweasel/craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
+    passthru("/usr/bin/timeout 14400 /craig/cook/avatars.sh $id $format $container $transparent $bg $fg");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] == "info") {
     header("Content-type: application/json");
-    passthru("/home/yahweasel/craig/cook/info.sh $id");
+    passthru("/craig/cook/info.sh $id");
 
 } else if (isset($_REQUEST["fetch"]) && $_REQUEST["fetch"] == "infotxt") {
     header("Content-disposition: attachment; filename=$id-info.txt");
     header("Content-type: text/plain");
-    passthru("/home/yahweasel/craig/cook/infotxt.sh $id");
+    passthru("/craig/cook/infotxt.sh $id");
 
 } else if (isset($_REQUEST["fetch"])) {
     header("Content-disposition: attachment; filename=$id.ogg");
