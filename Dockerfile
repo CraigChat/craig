@@ -44,8 +44,8 @@ RUN apt-get update \
         g++ \
         gnupg
 # Clone the craig bot repo
-RUN git clone https://github.com/ericrigsb/craig.git
-WORKDIR /craig/
+RUN git clone https://github.com/ericrigsb/bitl_craig.git
+WORKDIR /bitl_craig/
 # Build up node
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && apt-get update \
@@ -55,13 +55,12 @@ RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && npm install \
     && npm install @discordjs/uws@^10.149.0
 # Let's cook
-WORKDIR /craig/cook/
+WORKDIR /bitl_craig/cook/
 RUN for i in *.c; do gcc -O3 -o ${i%.c} $i; done \
     && for i in *.svg; do inkscape -e ${i%.svg}.png $i; done
-WORKDIR /craig/
+WORKDIR /bitl_craig/
 # Create recording directory
 RUN mkdir rec/
-# Bot Config
-COPY config.json .
+# Apache Config
 COPY apacheconf/apache2.conf /etc/apache2/apache2.conf
 COPY apacheconf/000-default.conf /etc/apache2/sites-enabled/000-default.conf

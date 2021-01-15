@@ -2,9 +2,10 @@ version: "3.8"
 services:
   bot:
     image: bitl_craig
-    working_dir: /craig
+    working_dir: /bitl_craig
     volumes: 
-      - ./data/rec:/craig/rec
+      - ./data/rec:/bitl_craig/rec
+      - ./config.json:/bitl_craig/config.json:ro
     networks:
       - host
     ports:
