@@ -137,7 +137,7 @@ function userIsAuthorized(member) {
             role = member.guild.roles.get(role);
         if (!role.name)
             return;
-        if (role.name.toLowerCase() === "craig")
+        if (role.name.toLowerCase() === "podcasters")
             haveRole = true;
     });
     if (haveRole)
