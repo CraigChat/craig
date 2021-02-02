@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   bot:
-    image: bitl_craig
+    image: ericrigsb/bitl_craig
     working_dir: /bitl_craig
     volumes: 
       - ./data/rec:/bitl_craig/rec
