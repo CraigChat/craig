@@ -52,7 +52,7 @@ const delBlessUID = db.prepare("DELETE FROM blessings WHERE uid=@uid;");
 const delBlessGID = db.prepare("DELETE FROM blessings WHERE gid=@gid;");
 
 // Default features
-var defaultFeatures = config.defaultFeatures ? config.defaultFeatures :  {"limits": config.limits};
+var defaultFeatures = config.defaultFeatures || {"limits": config.limits};
 
 // Non-reward-based features
 var otherFeatures = {};
