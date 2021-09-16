@@ -25,6 +25,7 @@
 
     "timelimit":        "Sorry, but you've hit the recording time limit. Recording stopped.",
     "sizelimit":        "Sorry, but you've hit the recording size limit. Recording stopped.",
+    "nickslow":         "Due to recent changes to Discord's rate limiting, it's taking a while for me to change my nick to indicate that I'm recording. I cannot start recording until I've changed my nick. Please be patient.",
     "cannotnick":       "I do not have permission to change my nickname on this server. I will not record without this permission.",
     "disconnecting":    "Disconnecting.",
     "silence1":         "I'm not receiving any audio!",
