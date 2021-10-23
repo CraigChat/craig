@@ -11,6 +11,7 @@ $l["x-tokipona"] = array(
 
     "mtd" =>        "lipu pi kalama mute:",
     "mtld" =>       "lipu pi kalama mute, taso mi lukin sama e suli kalama lon lipu ale:",
+    "lp" =>         "sina wile pali e lipu lon ilo sina la:",
     "stm" =>        "lipu pi kalama wan:",
 
     "audacity" =>   "lipu pi ilo Audacity",
