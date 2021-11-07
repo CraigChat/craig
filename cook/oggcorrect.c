@@ -344,10 +344,6 @@ int main(int argc, char **argv)
             tail->framesInPacket = 1;
 
         }
-        if (tail->framesInPacket > 1)
-            fprintf(stderr, "Frames in packet: %d\n", tail->framesInPacket);
-        if (skip)
-            fprintf(stderr, "Skip: %d\n", skip);
 
         // Check if it's silent
         if (vadLevel) {
