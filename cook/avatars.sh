@@ -220,8 +220,9 @@ else
         fi
 
         # Now perform the conversion
-        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
-            timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/oggstender" $c |
+        timeout $DEF_TIMEOUT cat $1.ogg.header1 $1.ogg.header2 $1.ogg.data \
+            $1.ogg.header1 $1.ogg.header2 $1.ogg.data |
+            timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/oggcorrect" $c |
             timeout $DEF_TIMEOUT $NICE ffmpeg \
                 -framerate 30 -i "$SCRIPTBASE/cook/glower-avatar.png" \
                 -framerate 30 -i "$SCRIPTBASE/cook/glower-glow.png" \
