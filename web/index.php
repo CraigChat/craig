@@ -16,7 +16,7 @@
  */
 
 $base = "/home/yahweasel/craig/rec";
-$ennuizel = "https://c.ennuicastr.com/ennuizel/";
+$ennuizel = "https://ez.craig.horse/";
 
 // No ID => Send them to homepage
 if (!isset($_REQUEST["id"])) {
