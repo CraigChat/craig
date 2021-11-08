@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 
     // Now get the actual packet info
     do {
-        if (oggHeader.granulePos == 0) {
+        if (oggHeader.granulePos == 0 && packetSize > 1) {
             // We've come back to the header, so break out
             break;
         }
