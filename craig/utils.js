@@ -115,7 +115,7 @@ function reply(msg, dm, prefix, pubtext, privtext) {
                 {u: msg.author});
 
             function rereply() {
-                if (pubtext !== "")
+                if (dm && pubtext !== "")
                     reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
             }
             try {

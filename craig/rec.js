@@ -1305,13 +1305,6 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                 logex(ex);
             }
 
-            // If the local nick just accidentally has "RECORDING" on it, get rid of it
-            if (localNick) {
-                localNick = localNick.replace(recIndicator, "");
-                if (localNick === configNick)
-                    localNick = undefined;
-            }
-
             var closed = false;
             function close() {
                 if (closed)
@@ -1326,6 +1319,8 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                 delete arID[id];
 
                 // Rename the bot in this guild
+                /*
+                NOTE: For the time being, just keep ![RECORDING] in the name, to avoid being rate limited
                 var fixNick = undefined;
                 try {
                     fixNick = guild.members.get(chosenClient.user.id).nick;
@@ -1337,6 +1332,7 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                 } catch (ex) {
                     logex(ex);
                 }
+                */
 
                 // Try to reset our voice connection nonsense by joining a different channel
                 /*
@@ -1412,11 +1408,32 @@ function cmdJoin(lang) { return async function(msg, cmd) {
             var recNick;
             try {
                 // Using '!' to sort early
-                if (localNick)
-                    recNick = ("![RECORDING] " + localNick).substr(0, 32);
-                else
+                if (localNick) {
+                    if (localNick.indexOf("[RECORDING]") !== -1)
+                        recNick = localNick;
+                    else
+                        recNick = ("![RECORDING] " + localNick).substr(0, 32);
+                } else {
                     recNick = "![RECORDING] " + configNick;
-                guild.editNickname(recNick).then(join).catch((err) => {
+                }
+                let p = Promise.all([]);
+                let nickTimeout = null;
+                p.then(() => {
+                    if (recNick !== localNick) {
+                        nickTimeout = setTimeout(function() {
+                            error(false, l("nickslow", lang));
+                            nickTimeout = null;
+                        }, 30000);
+                        return guild.editNickname(recNick);
+                    }
+
+                }).then(() => {
+                    if (nickTimeout)
+                        clearTimeout(nickTimeout);
+
+                    join();
+
+                }).catch((err) => {
                     log("rec-term",
                         "Lack nick change permission: " + JSON.stringify(err+""),
                         {uid: userId, vc: channel, rid: id});
@@ -1430,6 +1447,11 @@ function cmdJoin(lang) { return async function(msg, cmd) {
 
             // Join the channel
             function join() {
+                // If we don't have a connection in 30 seconds, assume something went wrong
+                setTimeout(()=>{
+                    if (!rec.connection) onJoinError(new Error("Timed out"));
+                }, 30000);
+
                 if (guild.voiceConnection) {
                     // Disconnect the old (broken?) one first
                     try {
@@ -1484,11 +1506,6 @@ function cmdJoin(lang) { return async function(msg, cmd) {
                     session(msg, cmd[1], rec);
                 }).catch(onJoinError);
             }
-
-            // If we don't have a connection in 30 seconds, assume something went wrong
-            setTimeout(()=>{
-                if (!rec.connection) onJoinError(new Error("Timed out"));
-            }, 30000);
         }
 
     } else if (!cc.dead) {

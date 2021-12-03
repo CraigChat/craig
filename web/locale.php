@@ -17,7 +17,7 @@
 
 // Figure out the locale
 $locale = "en";
-$locales = array("en", "pt", "de", "es", "fr", "it", "ja", "ko", "nl");
+$locales = array("en", "pt", "de", "es", "fr", "it", "ja", "ko", "nl", "x-tokipona");
 $l = array();
 
 $flags = array(
@@ -29,7 +29,8 @@ $flags = array(
     "it" => ["it"],
     "ja" => ["ja"],
     "ko" => ["ko"],
-    "nl" => ["nl"]
+    "nl" => ["nl"],
+    "x-tokipona" => ["x-tokipona"]
 );
 
 $notrust = "/[^A-Za-z0-9_-]/";

@@ -15,8 +15,8 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-$base = "/craig/rec";
-$ennuizel = "https://c.ennuicastr.com/ennuizel/";
+$base = "/bitl_craig/rec";
+$ennuizel = "https://ez.craig.horse/";
 
 // No ID => Send them to homepage
 if (!isset($_REQUEST["id"])) {
