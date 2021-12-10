@@ -415,7 +415,10 @@ int main(int argc, char **argv)
                 if (begin->preSkip) {
                     begin->preSkip--;
                     expected -= packetTime;
-                    granulePos -= packetTime;
+                    if (granulePos > packetTime)
+                        granulePos -= packetTime;
+                    else
+                        granulePos = 0;
                 } else if (begin != end) {
                     begin->flags |= FLAG_DROP;
                     expected -= begin->framesInPacket * packetTime;
@@ -426,8 +429,8 @@ int main(int argc, char **argv)
 
         // Set the output granule positions
         for (mid = begin; mid != end->next; mid = mid->next) {
-            if (granulePos <
-                mid->inputGranulePos - packetTime * 25) {
+            if (granulePos + packetTime * 25 <
+                mid->inputGranulePos) {
                 // Too little data, add a gap
                 int64_t diff = mid->inputGranulePos - granulePos;
                 mid->preSkip = diff / packetTime;
