@@ -1,0 +1,15 @@
+.vscode/
+.idea/
+node_modules/
+rec/
+config.json
+cook/extnotes
+cook/oggcorrect
+cook/oggduration
+cook/oggmultiplexer
+cook/oggstender
+cook/oggtracks
+cook/wavduration
+cool/*.png
+craig/craig.db
+*.db
