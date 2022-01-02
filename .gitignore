@@ -3,6 +3,7 @@
 node_modules/
 rec/
 config.json
+.config.json.swp
 cook/extnotes
 cook/oggcorrect
 cook/oggduration
@@ -10,6 +11,7 @@ cook/oggmultiplexer
 cook/oggstender
 cook/oggtracks
 cook/wavduration
-cool/*.png
-craig/craig.db
+cook/*.png
 *.db
+*.db-shm
+*.db-wal
