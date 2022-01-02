@@ -20,13 +20,9 @@
  * Support for per-user/per-guild features.
  */
 
-const fs = require("fs");
-const EventEmitter = require("events");
-
 const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;
-const logex = cc.logex;
 
 const cdb = require("./db.js");
 const db = cdb.db;
@@ -37,8 +33,6 @@ const reply = cu.reply;
 
 const cl = require("./locale.js");
 const l = cl.l;
-
-const gms = require("./gms.js");
 
 // DB commands
 const getRewards = db.prepare("SELECT * FROM rewards WHERE uid=@uid;");
@@ -79,10 +73,6 @@ var fetchRewards = async function() { return null; }
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
-    // Bless statements
-    const blessStmt = db.prepare("INSERT OR REPLACE INTO blessings (uid, gid) VALUES (@uid, @gid)");
-    const unblessStmt = db.prepare("DELETE FROM blessings WHERE uid=@uid AND gid=@gid");
-
     // Fetch rewards for this user from the appropriate shard
     var fetchRewardsWait = {};
     fetchRewards = async function(uid) {

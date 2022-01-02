@@ -20,8 +20,6 @@
  * Support for auto-recording.
  */
 
-const fs = require("fs");
-
 const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;

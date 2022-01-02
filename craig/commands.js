@@ -20,8 +20,6 @@
  * Support for command handling, from arbitrary users, the owner, and via IPC.
  */
 
-const fs = require("fs");
-
 const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
@@ -182,7 +180,7 @@ function onMessage(msg) {
         } catch (ex) {
             logex(ex);
         }
-        var fun = ownerCommands[cmd[2].toLowerCase()];
+        let fun = ownerCommands[cmd[2].toLowerCase()];
         if (fun) fun(msg, cmd);
         return;
     }

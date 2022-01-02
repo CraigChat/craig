@@ -29,8 +29,6 @@ require("./eris-flavor.js");
 const cdb = require("./db.js");
 const log = cdb.log;
 
-const clientOptions = {fetchAllMembers: false, apiRequestMethod: "sequential"};
-
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const defaultConfig = require("./default-config.js");
 
@@ -53,11 +51,9 @@ function mkClient(token) {
     if (shard) {
         var shardId = +process.env["SHARD_ID"];
         var localAddressOptions = {};
-        var udpBindOptions = null;
         if (config.localAddress) {
             localAddressOptions.localAddress =
                 config.localAddress[shardId % config.localAddress.length];
-            udpBindOptions = {address: localAddressOptions.localAddress};
         }
 
         ret = new Eris.Client(token, {
