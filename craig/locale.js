@@ -50,7 +50,7 @@ langs.forEach((lang) => {
 function localize(string, lang) {
     var ret;
     var ll = locale[lang];
-    if (string in ll)
+    if (ll && string in ll)
         ret = ll[string];
     else
         ret = locale.en[string];

@@ -51,6 +51,7 @@ const log = cdb.log;
 
 const ccmds = require("./commands.js");
 const commands = ccmds.commands;
+const slashCommands = ccmds.slashCommands;
 
 const cf = require("./features.js");
 
@@ -137,7 +138,7 @@ function updateRateLimit(gid, reset) {
 
 
 // Our recording session proper
-function session(msg, prefix, rec) {
+function session(msgOrInteraction, prefix, rec) {
     var connection = rec.connection;
     var limits = rec.limits;
     var id = rec.id;
@@ -147,7 +148,7 @@ function session(msg, prefix, rec) {
     var monWs = null;
 
     function sReply(dm, pubtext, privtext) {
-        reply(msg, dm, prefix, pubtext, privtext);
+        reply(msgOrInteraction, dm, prefix, pubtext, privtext);
     }
 
     var receiver;
@@ -542,7 +543,7 @@ function session(msg, prefix, rec) {
     });
 
     // Support for receiving notes
-    rec.note = function(msg, prefix, note) {
+    rec.note = function(note) {
         try {
             var chunk;
             if (notePacketNo === 0) {
@@ -554,9 +555,10 @@ function session(msg, prefix, rec) {
             var chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
             chunk = Buffer.from("NOTE" + note);
             write(recOggStream, chunkGranule, noteStreamNo, notePacketNo++, chunk);
-            reply(msg, false, prefix, l("noted", lang));
+            return true;
         } catch (ex) {
             console.error(ex);
+            return false;
         }
     }
 
@@ -1089,6 +1091,377 @@ const argPart = /^-([A-Za-z0-9]+) *(.*)$/;
 const recIndicator = / *\!?\[RECORDING\] */g;
 
 // Start recording
+async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, interaction, lang, auto, cmd } = {}) {
+    if (interaction) await interaction.defer();
+
+    // Since errors are optional, we have a general error responder
+    function error(dm, text) {
+        if (!auto) reply(interaction || msg, dm, cmd ? cmd[1] : null, text);
+    }
+
+    var userId = user.id;
+    var guildId = guild.id;
+    var channelId = channel.id;
+    if (!(guildId in activeRecordings))
+        activeRecordings[guildId] = {};
+
+    // If the user is a bot, features and such come from the server owner
+    if (user.bot) {
+        var owner = client.users.get(guild.ownerID);
+        if (owner) {
+            user = owner;
+            userId = owner.id;
+        }
+    }
+
+    // Figure out the recording features for this user
+    var f = await cf.features(userId, guildId);
+    if (f.limits.record === 0) {
+        reply(interaction || msg, false, cmd[1], "Sorry, but this bot is only for patrons. Please use Craig ( https://craig.chat/ )");
+        return;
+    }
+
+    // Choose the right client
+    var takenClients = {};
+    var chosenClient = null;
+    var chosenClientNum = -1;
+    for (var oChannelId in activeRecordings[guildId]) {
+        var recording = activeRecordings[guildId][oChannelId];
+        takenClients[recording.clientNum] = true;
+    }
+    for (var ci = 0; ci < clients.length && ci <= f.limits.secondary; ci++) {
+        if (takenClients[ci]) continue;
+        chosenClient = clients[ci];
+        chosenClientNum = ci;
+        break;
+    }
+
+    // Translate the guild and channel to the secondary client
+    if (chosenClient && chosenClient !== client) {
+        guild = chosenClient.guilds.get(guildId);
+        if (guild)
+            channel = guild.channels.get(channelId);
+    }
+
+    // Joinable can crash if the voiceConnection is in a weird state
+    var joinable = true;
+    try {
+        if (channel)
+            joinable = channel.joinable;
+    } catch (ex) {
+        // Work around the most insane discord.js bug yet
+        try {
+            var fguild = chosenClient.guilds.get(guild.id);
+            if (fguild) {
+                guild = fguild;
+                var fchannel = guild.channels.get(channel.id);
+                if (fchannel)
+                    channel = fchannel;
+                channel.guild = guild; // Unbelievably, we can do this!
+            }
+            joinable = channel.joinable;
+        } catch (ex) {
+            logex(ex);
+        }
+    }
+
+    // Choose the right action
+    if (channelId in activeRecordings[guildId]) {
+        var rec = activeRecordings[guildId][channelId];
+        error(true, l("already", lang, config.dlUrl, rec.id, rec.accessKey));
+
+    } else if (!chosenClient) {
+        error(false, l("nomore", lang));
+
+    } else if (!guild) {
+        error(false, l("onemore", lang, config.secondary[chosenClientNum-1].invite));
+
+    } else if (!channel) {
+        error(false, l("broperms", lang));
+
+    } else if (!joinable) {
+        error(false, l("noperms", lang));
+
+    } else {
+        // Make a random ID for it
+        var id, infoWS, recFileBase;
+        while (true) {
+            id = ~~(Math.random() * 1000000000);
+            recFileBase = "rec/" + id + ".ogg";
+            try {
+                fs.accessSync(recFileBase + ".info");
+                // ID existed
+                continue;
+            } catch (ex) {
+                // ID did not exist
+            }
+            try {
+                infoWS = fs.createWriteStream(recFileBase + ".info", {flags:"wx"});
+                break;
+            } catch (ex) {
+                // ID existed
+            }
+        }
+
+        // Make the access keys for it
+        var accessKey = ~~(Math.random() * 1000000000);
+        var ennuiKey = ~~(Math.random() * 1000000000);
+        var deleteKey = ~~(Math.random() * 1000000000);
+
+        // Set up the info
+        var info = {
+            key: accessKey,
+            "delete": deleteKey,
+            guild: nameId(guild),
+            channel: nameId(channel),
+            requester: interaction ? (user.username + "#" + user.discriminator) : (msg.author.username + "#" + msg.author.discriminator),
+            requesterId: interaction ? userId : msg.author.id,
+            startTime: new Date().toISOString()
+        };
+        if (!interaction && user !== msg.author) {
+            info.user = user.username + "#" + user.discriminator;
+            info.userId = userId;
+        }
+
+        // If the user has features, mark them down
+        if (f !== cf.defaultFeatures)
+            info.features = f;
+
+        // Write out the info
+        infoWS.write(JSON.stringify(info));
+        infoWS.end();
+
+        // Make sure the files get destroyed
+        try {
+            var atcp = cp.spawn("at", ["now + " + f.limits.download + " hours"],
+                    {"stdio": ["pipe", 1, 2]});
+            atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
+                    recFileBase + ".header2 " + recFileBase + ".data " +
+                    recFileBase + ".data2 " +
+                    recFileBase + ".info " + recFileBase + ".users\n");
+            atcp.stdin.end();
+        } catch (ex) {
+            logex(ex);
+        }
+
+        // We have a nick per the specific client
+        var configNick = config.nick;
+        if (chosenClient !== client)
+            configNick = config.secondary[chosenClientNum-1].nick;
+
+        // Or we may have a local nick
+        var localNick = undefined;
+        try {
+            localNick = guild.members.get(chosenClient.user.id).nick;
+        } catch (ex) {
+            logex(ex);
+        }
+
+        var closed = false;
+        function close() {
+            if (closed)
+                return;
+            closed = true;
+
+            // Now get rid of it
+            delete activeRecordings[guildId][channelId];
+            if (Object.keys(activeRecordings[guildId]).length === 0) {
+                delete activeRecordings[guildId];
+            }
+            delete arID[id];
+
+            // Rename the bot in this guild
+            /*
+            NOTE: For the time being, just keep ![RECORDING] in the name, to avoid being rate limited
+            var fixNick = undefined;
+            try {
+                fixNick = guild.members.get(chosenClient.user.id).nick;
+                fixNick = fixNick.replace(recIndicator, "");
+            } catch (ex) {}
+            if (!fixNick) fixNick = configNick;
+            try {
+                guild.editNickname(fixNick).catch(logex);
+            } catch (ex) {
+                logex(ex);
+            }
+            */
+
+            // Try to reset our voice connection nonsense by joining a different channel
+            /*
+            var diffChannel = channel;
+            guild.channels.some((maybeChannel) => {
+                if (maybeChannel === channel)
+                    return false;
+
+                var joinable = false;
+                try {
+                    joinable = maybeChannel.joinable;
+                } catch (ex) {}
+                if (!joinable)
+                    return false;
+
+                diffChannel = maybeChannel;
+                return true;
+            });
+            function leave() {
+                setTimeout(()=>{
+                    try {
+                        diffChannel.leave();
+                    } catch (ex) {}
+                }, 1000);
+            }
+            safeJoin(diffChannel, leave).then(leave).catch(leave);
+            */
+            function leave() {
+                setTimeout(()=>{
+                    try {
+                        channel.leave();
+                    } catch (ex) {}
+                }, 1000);
+            }
+            safeJoin(channel, leave).then(leave).catch(leave);
+        }
+
+        var rec = {
+            uid: userId,
+            gid: guild.id,
+            cid: channel.id,
+            features: f,
+            info: info,
+            connection: null,
+            id: id,
+            accessKey: accessKey,
+            ennuiKey: ennuiKey,
+            lang: lang,
+            client: chosenClient,
+            clientNum: chosenClientNum,
+            limits: f.limits,
+            disconnected: false,
+            close: close
+        };
+        activeRecordings[guildId][channelId] = rec;
+        arID[id] = rec;
+
+        if (noSilenceDisconnect)
+            rec.noSilenceDisconnect = true;
+
+        // If we have voice channel issue, do our best to rectify them
+        var hadJoinError = false;
+        function onJoinError(ex) {
+            if (!hadJoinError) {
+                error(false, l("joinfail", lang) + " " + ex);
+                logex(ex);
+                hadJoinError = true;
+            }
+            close();
+        }
+
+        // Rename ourself to indicate that we're recording
+        var recNick;
+        try {
+            // Using '!' to sort early
+            if (localNick) {
+                if (localNick.indexOf("[RECORDING]") !== -1)
+                    recNick = localNick;
+                else
+                    recNick = ("![RECORDING] " + localNick).substr(0, 32);
+            } else {
+                recNick = "![RECORDING] " + configNick;
+            }
+            let p = Promise.all([]);
+            let nickTimeout = null;
+            p.then(() => {
+                if (recNick !== localNick) {
+                    nickTimeout = setTimeout(function() {
+                        error(false, l("nickslow", lang));
+                        nickTimeout = null;
+                    }, 30000);
+                    return guild.editNickname(recNick);
+                }
+
+            }).then(() => {
+                if (nickTimeout)
+                    clearTimeout(nickTimeout);
+
+                join();
+
+            }).catch((err) => {
+                log("rec-term",
+                    "Lack nick change permission: " + JSON.stringify(err+""),
+                    {uid: userId, vc: channel, rid: id});
+                error(false, l("cannotnick", lang));
+                rec.disconnected = true;
+                close();
+            });
+        } catch (ex) {
+            logex(ex);
+        }
+
+        // Join the channel
+        function join() {
+            // If we don't have a connection in 30 seconds, assume something went wrong
+            setTimeout(()=>{
+                if (!rec.connection) onJoinError(new Error("Timed out"));
+            }, 30000);
+
+            if (guild.voiceConnection) {
+                // Disconnect the old (broken?) one first
+                try {
+                    guild.voiceConnection.disconnect();
+                } catch (ex) {
+                    logex(ex);
+                }
+                chosenClient.voiceConnections.delete(guild.id);
+                setTimeout(join, 1000);
+                return;
+            }
+
+            safeJoin(channel, onJoinError).then((connection) => {
+                // Get a language hint
+                var hint = cl.hint(channel, lang);
+
+                // Tell them
+                var rmsg = 
+                    l("recording", lang,
+                        f.limits.record+"",
+                        f.limits.download+"",
+                        channel.name+"",
+                        ~~(f.limits.download/24)+"",
+                        info.startTime) +
+                    (hint?("\n\n"+hint):"") +
+                    "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
+
+                if (hs && cf.otherFeatures[userId] && cf.otherFeatures[userId].ennuicastr) {
+                    var url = config.ennuicastr + "?i=" + id.toString(36) +
+                        "&k=" + ennuiKey.toString(36) +
+                        "&p=" + hs.address().port.toString(36);
+                    var mon = config.ennuicastr + "?i=" + id.toString(36) +
+                        "&k=" + accessKey.toString(36) +
+                        "&p=" + hs.address().port.toString(36) +
+                        "&mon=1";
+                    rmsg += "\n\n" + l("ennuicastrmon", lang, mon);
+                    if (!f.eccontinuous && !f.ecflac) {
+                        rmsg += "\n\n" + l("ennuicastrlink", lang, url);
+                    } else {
+                        // Give them a menu
+                        var ecf = (f.eccontinuous?1:0) | (f.ecflac?ecp.flags.dataType.flac:0);
+                        url += "&f=" + ecf.toString(36) + "&s=1";
+                        rmsg += "\n\n" + l("ennuicastrmenu", lang, url);
+                    }
+                }
+
+                reply(interaction || msg, true, cmd ? cmd[1] : null, rmsg,
+                    l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
+                // TODO localize
+                if (interaction) interaction.createMessage('Started recording.');
+
+                rec.connection = connection;
+
+                session(msg, cmd ? cmd[1] : null, rec);
+            }).catch(onJoinError);
+        }
+    }
+}
 function cmdJoin(lang) { return async function(msg, cmd) {
     var guild = msg.guild;
     if (!guild)
@@ -1096,14 +1469,11 @@ function cmdJoin(lang) { return async function(msg, cmd) {
     var cname = cmd[3].toLowerCase();
     var channel = null;
 
-    if (cc.dead) {
-        // Not our job
-        return;
-    }
+    // Not our job
+    if (cc.dead) return;
 
     // Check for flags
     var noSilenceDisconnect = false;
-    var errors = true;
     var auto = false;
     var parts;
     while (parts = argPart.exec(cname)) {
@@ -1111,7 +1481,6 @@ function cmdJoin(lang) { return async function(msg, cmd) {
         if (arg === "silence") {
             noSilenceDisconnect = true;
         } else if (arg === "auto") {
-            errors = false;
             auto = true;
         } else break;
         cname = parts[2];
@@ -1137,384 +1506,44 @@ function cmdJoin(lang) { return async function(msg, cmd) {
         }
     }
 
-    // Since errors are optional, we have a general error responder
-    function error(dm, text) {
-        if (errors)
-            reply(msg, dm, cmd[1], text);
-    }
-
     channel = cu.findChannel(msg, guild, cname);
 
     if (channel !== null) {
-        var user = msg.author;
-        var userId = user.id;
-        var guildId = guild.id;
-        var channelId = channel.id;
-        if (!(guildId in activeRecordings))
-            activeRecordings[guildId] = {};
-
-        // If the user is a bot, features and such come from the server owner
-        if (user.bot) {
-            var owner = client.users.get(guild.ownerID);
-            if (owner) {
-                user = owner;
-                userId = owner.id;
-            }
-        }
-
-        // Figure out the recording features for this user
-        var f = await cf.features(userId, guildId);
-        if (f.limits.record === 0) {
-            reply(msg, false, cmd[1], "Sorry, but this bot is only for patrons. Please use Craig ( https://craig.chat/ )");
-            return;
-        }
-
-        // Choose the right client
-        var takenClients = {};
-        var chosenClient = null;
-        var chosenClientNum = -1;
-        for (var oChannelId in activeRecordings[guildId]) {
-            var recording = activeRecordings[guildId][oChannelId];
-            takenClients[recording.clientNum] = true;
-        }
-        for (var ci = 0; ci < clients.length && ci <= f.limits.secondary; ci++) {
-            if (takenClients[ci]) continue;
-            chosenClient = clients[ci];
-            chosenClientNum = ci;
-            break;
-        }
-
-        // Translate the guild and channel to the secondary client
-        if (chosenClient && chosenClient !== client) {
-            guild = chosenClient.guilds.get(guildId);
-            if (guild)
-                channel = guild.channels.get(channelId);
-        }
-
-        // Joinable can crash if the voiceConnection is in a weird state
-        var joinable = true;
-        try {
-            if (channel)
-                joinable = channel.joinable;
-        } catch (ex) {
-            // Work around the most insane discord.js bug yet
-            try {
-                var fguild = chosenClient.guilds.get(guild.id);
-                if (fguild) {
-                    guild = fguild;
-                    var fchannel = guild.channels.get(channel.id);
-                    if (fchannel)
-                        channel = fchannel;
-                    channel.guild = guild; // Unbelievably, we can do this!
-                }
-                joinable = channel.joinable;
-            } catch (ex) {
-                logex(ex);
-            }
-        }
-
-        // Choose the right action
-        if (channelId in activeRecordings[guildId]) {
-            var rec = activeRecordings[guildId][channelId];
-            error(true, l("already", lang, config.dlUrl, rec.id, rec.accessKey));
-
-        } else if (!chosenClient) {
-            error(false, l("nomore", lang));
-
-        } else if (!guild) {
-            error(false, l("onemore", lang, config.secondary[chosenClientNum-1].invite));
-
-        } else if (!channel) {
-            error(false, l("broperms", lang));
-
-        } else if (!joinable) {
-            error(false, l("noperms", lang));
-
-        } else {
-            // Make a random ID for it
-            var id, infoWS, recFileBase;
-            while (true) {
-                id = ~~(Math.random() * 1000000000);
-                recFileBase = "rec/" + id + ".ogg";
-                try {
-                    fs.accessSync(recFileBase + ".info");
-                    // ID existed
-                    continue;
-                } catch (ex) {
-                    // ID did not exist
-                }
-                try {
-                    infoWS = fs.createWriteStream(recFileBase + ".info", {flags:"wx"});
-                    break;
-                } catch (ex) {
-                    // ID existed
-                }
-            }
-
-            // Make the access keys for it
-            var accessKey = ~~(Math.random() * 1000000000);
-            var ennuiKey = ~~(Math.random() * 1000000000);
-            var deleteKey = ~~(Math.random() * 1000000000);
-
-            // Set up the info
-            var info = {
-                key: accessKey,
-                "delete": deleteKey,
-                guild: nameId(guild),
-                channel: nameId(channel),
-                requester: msg.author.username + "#" + msg.author.discriminator,
-                requesterId: msg.author.id,
-                startTime: new Date().toISOString()
-            };
-            if (user !== msg.author) {
-                info.user = user.username + "#" + user.discriminator;
-                info.userId = userId;
-            }
-
-            // If the user has features, mark them down
-            if (f !== cf.defaultFeatures)
-                info.features = f;
-
-            // Write out the info
-            infoWS.write(JSON.stringify(info));
-            infoWS.end();
-
-            // Make sure the files get destroyed
-            try {
-                var atcp = cp.spawn("at", ["now + " + f.limits.download + " hours"],
-                        {"stdio": ["pipe", 1, 2]});
-                atcp.stdin.write("rm -f " + recFileBase + ".header1 " +
-                        recFileBase + ".header2 " + recFileBase + ".data " +
-                        recFileBase + ".data2 " +
-                        recFileBase + ".info " + recFileBase + ".users\n");
-                atcp.stdin.end();
-            } catch (ex) {
-                logex(ex);
-            }
-
-            // We have a nick per the specific client
-            var configNick = config.nick;
-            if (chosenClient !== client)
-                configNick = config.secondary[chosenClientNum-1].nick;
-
-            // Or we may have a local nick
-            var localNick = undefined;
-            try {
-                localNick = guild.members.get(chosenClient.user.id).nick;
-            } catch (ex) {
-                logex(ex);
-            }
-
-            var closed = false;
-            function close() {
-                if (closed)
-                    return;
-                closed = true;
-
-                // Now get rid of it
-                delete activeRecordings[guildId][channelId];
-                if (Object.keys(activeRecordings[guildId]).length === 0) {
-                    delete activeRecordings[guildId];
-                }
-                delete arID[id];
-
-                // Rename the bot in this guild
-                /*
-                NOTE: For the time being, just keep ![RECORDING] in the name, to avoid being rate limited
-                var fixNick = undefined;
-                try {
-                    fixNick = guild.members.get(chosenClient.user.id).nick;
-                    fixNick = fixNick.replace(recIndicator, "");
-                } catch (ex) {}
-                if (!fixNick) fixNick = configNick;
-                try {
-                    guild.editNickname(fixNick).catch(logex);
-                } catch (ex) {
-                    logex(ex);
-                }
-                */
-
-                // Try to reset our voice connection nonsense by joining a different channel
-                /*
-                var diffChannel = channel;
-                guild.channels.some((maybeChannel) => {
-                    if (maybeChannel === channel)
-                        return false;
-
-                    var joinable = false;
-                    try {
-                        joinable = maybeChannel.joinable;
-                    } catch (ex) {}
-                    if (!joinable)
-                        return false;
-
-                    diffChannel = maybeChannel;
-                    return true;
-                });
-                function leave() {
-                    setTimeout(()=>{
-                        try {
-                            diffChannel.leave();
-                        } catch (ex) {}
-                    }, 1000);
-                }
-                safeJoin(diffChannel, leave).then(leave).catch(leave);
-                */
-                function leave() {
-                    setTimeout(()=>{
-                        try {
-                            channel.leave();
-                        } catch (ex) {}
-                    }, 1000);
-                }
-                safeJoin(channel, leave).then(leave).catch(leave);
-            }
-
-            var rec = {
-                uid: userId,
-                gid: guild.id,
-                cid: channel.id,
-                features: f,
-                info: info,
-                connection: null,
-                id: id,
-                accessKey: accessKey,
-                ennuiKey: ennuiKey,
-                lang: lang,
-                client: chosenClient,
-                clientNum: chosenClientNum,
-                limits: f.limits,
-                disconnected: false,
-                close: close
-            };
-            activeRecordings[guildId][channelId] = rec;
-            arID[id] = rec;
-
-            if (noSilenceDisconnect)
-                rec.noSilenceDisconnect = true;
-
-            // If we have voice channel issue, do our best to rectify them
-            var hadJoinError = false;
-            function onJoinError(ex) {
-                if (!hadJoinError) {
-                    error(false, l("joinfail", lang) + " " + ex);
-                    logex(ex);
-                    hadJoinError = true;
-                }
-                close();
-            }
-
-            // Rename ourself to indicate that we're recording
-            var recNick;
-            try {
-                // Using '!' to sort early
-                if (localNick) {
-                    if (localNick.indexOf("[RECORDING]") !== -1)
-                        recNick = localNick;
-                    else
-                        recNick = ("![RECORDING] " + localNick).substr(0, 32);
-                } else {
-                    recNick = "![RECORDING] " + configNick;
-                }
-                let p = Promise.all([]);
-                let nickTimeout = null;
-                p.then(() => {
-                    if (recNick !== localNick) {
-                        nickTimeout = setTimeout(function() {
-                            error(false, l("nickslow", lang));
-                            nickTimeout = null;
-                        }, 30000);
-                        return guild.editNickname(recNick);
-                    }
-
-                }).then(() => {
-                    if (nickTimeout)
-                        clearTimeout(nickTimeout);
-
-                    join();
-
-                }).catch((err) => {
-                    log("rec-term",
-                        "Lack nick change permission: " + JSON.stringify(err+""),
-                        {uid: userId, vc: channel, rid: id});
-                    error(false, l("cannotnick", lang));
-                    rec.disconnected = true;
-                    close();
-                });
-            } catch (ex) {
-                logex(ex);
-            }
-
-            // Join the channel
-            function join() {
-                // If we don't have a connection in 30 seconds, assume something went wrong
-                setTimeout(()=>{
-                    if (!rec.connection) onJoinError(new Error("Timed out"));
-                }, 30000);
-
-                if (guild.voiceConnection) {
-                    // Disconnect the old (broken?) one first
-                    try {
-                        guild.voiceConnection.disconnect();
-                    } catch (ex) {
-                        logex(ex);
-                    }
-                    chosenClient.voiceConnections.delete(guild.id);
-                    setTimeout(join, 1000);
-                    return;
-                }
-
-                safeJoin(channel, onJoinError).then((connection) => {
-                    // Get a language hint
-                    var hint = cl.hint(channel, lang);
-
-                    // Tell them
-                    var rmsg = 
-                        l("recording", lang,
-                            f.limits.record+"",
-                            f.limits.download+"",
-                            channel.name+"",
-                            ~~(f.limits.download/24)+"",
-                            info.startTime) +
-                        (hint?("\n\n"+hint):"") +
-                        "\n\n" + l("downloadlink", lang, config.dlUrl, id+"", accessKey+"");
-
-                    if (hs && cf.otherFeatures[userId] && cf.otherFeatures[userId].ennuicastr) {
-                        var url = config.ennuicastr + "?i=" + id.toString(36) +
-                            "&k=" + ennuiKey.toString(36) +
-                            "&p=" + hs.address().port.toString(36);
-                        var mon = config.ennuicastr + "?i=" + id.toString(36) +
-                            "&k=" + accessKey.toString(36) +
-                            "&p=" + hs.address().port.toString(36) +
-                            "&mon=1";
-                        rmsg += "\n\n" + l("ennuicastrmon", lang, mon);
-                        if (!f.eccontinuous && !f.ecflac) {
-                            rmsg += "\n\n" + l("ennuicastrlink", lang, url);
-                        } else {
-                            // Give them a menu
-                            var ecf = (f.eccontinuous?1:0) | (f.ecflac?ecp.flags.dataType.flac:0);
-                            url += "&f=" + ecf.toString(36) + "&s=1";
-                            rmsg += "\n\n" + l("ennuicastrmenu", lang, url);
-                        }
-                    }
-
-                    reply(msg, true, cmd[1], rmsg,
-                        l("deletelink", lang, config.dlUrl, id+"", accessKey+"", deleteKey+"") + "\n.");
-
-                    rec.connection = connection;
-
-                    session(msg, cmd[1], rec);
-                }).catch(onJoinError);
-            }
-        }
-
+        await joinChannel(msg.author, msg.channel.guild, channel, noSilenceDisconnect, { msg, lang, auto, cmd });
     } else if (!cc.dead) {
-        error(false, (cname==="") ? l("whatchannel", lang) : l("cantsee", lang));
-
+        if (!auto)
+            reply(msg, false, cmd[1], (cname==="") ? l("whatchannel", lang) : l("cantsee", lang));
     }
 
 } }
 cl.register(commands, "join", cmdJoin);
+slashCommands['join'] = async function(interaction) {
+    // fail intentionally I guess?
+    if (cc.dead) return;
+    const channelId = interaction.data.resolved.channels.values().next().value.id;
+    const channel = interaction.channel.guild.channels.get(channelId);
+
+    // Check for rate limits
+    var rl = getRateLimit(interaction.channel.guild.id);
+    if (rl) {
+        if (rl.pending) {
+            interaction.createMessage("You are recording too often!")
+            return;
+        }
+
+        var now = Date.now();
+        if (rl.nextAllowed > now) {
+            // Being rate limited. Pause.
+            var wait = rl.nextAllowed - now;
+            reply(interaction, false, null, l("ratelimit", 'en', ""+Math.ceil(wait / 1000)));
+            rl.pending = true;
+            await new Promise(res => setTimeout(res, wait));
+            rl.pending = false;
+        }
+    }
+
+    return joinChannel(interaction.member.user, interaction.channel.guild, channel, false, { interaction });
+}
 
 // Stop recording
 function cmdLeave(lang) { return function(msg, cmd) {
@@ -1564,6 +1593,47 @@ function cmdLeave(lang) { return function(msg, cmd) {
 
 } }
 cl.register(commands, "leave", cmdLeave);
+slashCommands['leave'] = function(interaction) {
+    const guild = interaction.channel.guild;
+    const guildId = guild.id;
+    let channel = interaction.data.resolved ? interaction.data.resolved.channels.values().next().value : null;
+    if (channel === null) {
+        if (interaction.member.voiceChannel) channel = interaction.member.voiceChannel;
+        else return interaction.createMessage(l("whatchannel", 'en'));
+    }
+    let channelId = channel.id;
+
+    // Use the first active recording if no channel was selected
+    if (!(guildId in activeRecordings) || !(channelId in activeRecordings[guildId])) {
+        if (!interaction.data.resolved && (guildId in activeRecordings)) {
+            var rid = Object.keys(activeRecordings[guildId])[0];
+            if (rid) {
+                channel = guild.channels.get(rid);
+                channelId = rid;
+            }
+        }
+    }
+
+    // Actually leave
+    if (guildId in activeRecordings &&
+        channelId in activeRecordings[guildId]) {
+        try {
+            var rec = activeRecordings[guildId][channelId];
+            if (rec.connection) {
+                rec.disconnected = true;
+                rec.connection.disconnect();
+            }
+
+            // TODO localize
+            interaction.createMessage(`Stopped recording in ${channel.name}.`)
+        } catch (ex) {
+            logex(ex);
+        }
+
+    } else if (!cc.dead) {
+        interaction.createMessage(l("notrecording", 'en'));
+    }
+}
 
 // Stop all recordings
 commands["stop"] = function(msg, cmd) {
@@ -1588,6 +1658,25 @@ commands["stop"] = function(msg, cmd) {
     }
 
 }
+slashCommands["stop"] = function(interaction) {
+    const guildId = interaction.channel.guild.id;
+    if (guildId in activeRecordings) {
+        for (var channelId in activeRecordings[guildId]) {
+            try {
+                var rec = activeRecordings[guildId][channelId];
+                if (rec.connection) {
+                    rec.disconnected = true;
+                    rec.connection.disconnect();
+                }
+            } catch (ex) {
+                logex(ex);
+            }
+        }
+        interaction.createMessage('Stopped all active recordings.');
+    } else if (!cc.dead) {
+        interaction.createMessage("But I haven't started!");
+    }
+}
 
 // Take notes
 function cmdNote(lang) { return function(msg, cmd) {
@@ -1599,12 +1688,28 @@ function cmdNote(lang) { return function(msg, cmd) {
         for (var channelId in activeRecordings[guildId]) {
             try {
                 var rec = activeRecordings[guildId][channelId];
-                rec.note(msg, cmd[1], cmd[3]);
+                let noted = rec.note(cmd[3]);
+                if (noted) reply(msg, false, cmd[1], l("noted", lang));
             } catch (ex) {}
         }
     }
 } }
 cl.register(commands, "note", cmdNote);
+slashCommands["note"] = function(interaction) {
+    const note = interaction.data.options[0].value;
+    const guildId = interaction.channel.guild.id;
+    if (guildId in activeRecordings) {
+        for (var channelId in activeRecordings[guildId]) {
+            try {
+                var rec = activeRecordings[guildId][channelId];
+                let noted = rec.note(note);
+                interaction.createMessage(noted ? l("noted", 'en') : 'Failed to note that!');
+            } catch (ex) {
+                interaction.createMessage('Failed to note that!');
+            }
+        }
+    }
+}
 
 // Checks for catastrophic recording errors
 clients.forEach((client) => {
