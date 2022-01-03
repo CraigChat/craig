@@ -43,5 +43,20 @@
         "required": true
       }
     ]
+  },
+  {
+    "type": 1,
+    "name": "bless",
+    "description": "Bless this server, giving it your features."
+  },
+  {
+    "type": 1,
+    "name": "unbless",
+    "description": "Remove your blessing from this server."
+  },
+  {
+    "type": 1,
+    "name": "features",
+    "description": "List enabled features."
   }
 ]

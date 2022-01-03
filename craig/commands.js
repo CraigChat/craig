@@ -233,7 +233,7 @@ async function onInteraction(interaction) {
     // Ignore it if it's from an unauthorized user
     if (!userIsAuthorized(interaction.member))
         return interaction.createMessage({
-            content: "You don't have the permission to use Craig commands!",
+            content: "You don't have the permission to use Craig!",
             flags: 64
         });
 

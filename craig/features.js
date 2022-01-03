@@ -26,7 +26,9 @@ const config = cc.config;
 
 const cdb = require("./db.js");
 const db = cdb.db;
-const commands = require("./commands.js").commands;
+const ccmds = require("./commands.js");
+const commands = ccmds.commands;
+const slashCommands = ccmds.slashCommands;
 
 const cu = require("./utils.js");
 const reply = cu.reply;
@@ -70,6 +72,22 @@ async function features(id, gid) {
 }
 
 var fetchRewards = async function() { return null; }
+
+// Set slash command responses for when these commands aren't set later
+slashCommands["bless"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance has no rewards to handle blessings.",
+        flags: 64
+    });
+}
+slashCommands["unbless"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance has no rewards to handle blessings.",
+        flags: 64
+    });
+}
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
@@ -231,6 +249,25 @@ if (config.rewards) (function() {
         reply(msg, false, cmd[1], "This server is now blessed. All recordings in this server have your added features.");
     }
 
+    slashCommands["bless"] = async function(interaction) {
+        if (cc.dead) return;
+
+        var f = await features(interaction.member.user.id);
+        if (!f.bless) {
+            interaction.createMessage({
+                content: "You do not have permission to bless servers.",
+                flags: 64
+            });
+            return;
+        }
+
+        addBless(interaction.member.user.id, interaction.channel.guild.id);
+        interaction.createMessage({
+            content: "This server is now blessed. All recordings in this server have your added features.",
+            flags: 64
+        });
+    }
+
     commands["unbless"] = function(msg, cmd) {
         if (cc.dead) return;
 
@@ -239,6 +276,23 @@ if (config.rewards) (function() {
         } else {
             removeBless(msg.author.id);
             reply(msg, false, cmd[1], "Server unblessed.");
+        }
+    }
+
+    slashCommands["unbless"] = async function(interaction) {
+        if (cc.dead) return;
+
+        if (!(interaction.member.user.id in blessU2G)) {
+            interaction.createMessage({
+                content: "But you haven't blessed a server!",
+                flags: 64
+            });
+        } else {
+            removeBless(interaction.member.user.id);
+            interaction.createMessage({
+                content: "Server unblessed.",
+                flags: 64
+            });
         }
     }
 })();
@@ -380,5 +434,22 @@ commands["features"] = async function(msg, cmd) {
 
     reply(msg, false, false, ret);
 }
+
+slashCommands["features"] = async function(interaction) {
+    if (cc.dead) return;
+
+    var f = await features(interaction.member.user.id);
+    var gf = await features(interaction.member.user.id, interaction.channel.guild ? interaction.channel.guild.id : undefined);
+
+    var ret = featuresToStr(f, false, "For you");
+    if (gf !== f)
+        ret += "\n" + featuresToStr(gf, true, "For this server");
+
+    interaction.createMessage({
+        content: ret,
+        flags: 64
+    });
+}
+
 
 module.exports = {defaultFeatures, features, otherFeatures};
