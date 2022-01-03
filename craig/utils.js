@@ -100,10 +100,17 @@ const flacTags =
 const isMention = /^\s*<?@/;
 
 // Function to respond to a message by any means necessary
-function reply(msg, dm, prefix, pubtext, privtext) {
+function reply(msgOrInteraction, dm, prefix, pubtext, privtext) {
     if (prefix === "") prefix = null;
+    const isMsg = msgOrInteraction.constructor.name !== 'CommandInteraction';
 
     function doReply() {
+        const author = isMsg ? msgOrInteraction.author : msgOrInteraction.member.user;
+        const shouldRegularSend = isMsg || Date.now() - msgOrInteraction._time > 1000 * 60;
+        const sendMessage = shouldRegularSend
+            ? msgOrInteraction.channel.createMessage.bind(msgOrInteraction.channel)
+            : msgOrInteraction.createMessage.bind(msgOrInteraction);
+
         if (dm) {
             // Try to send the message privately
             if (typeof privtext === "undefined")
@@ -111,18 +118,18 @@ function reply(msg, dm, prefix, pubtext, privtext) {
             else if (pubtext !== "")
                 privtext = pubtext + "\n\n" + privtext;
             log("reply",
-                "To " + nameId(msg.author) + ": " + JSON.stringify(privtext),
-                {u: msg.author});
+                "To " + nameId(author) + ": " + JSON.stringify(privtext),
+                {u: author});
 
             function rereply() {
                 if (dm && pubtext !== "")
-                    reply(msg, false, prefix, "I can't send you direct messages. " + pubtext);
+                    reply(msgOrInteraction, false, prefix, "I can't send you direct messages. " + pubtext);
             }
             try {
-                msg.author.send(privtext).then(() => {
+                author.send(privtext).then(() => {
                     log("reply-sent",
-                        "To " + nameId(msg.author) + ": " + JSON.stringify(privtext),
-                        {u: msg.author});
+                        "To " + nameId(author) + ": " + JSON.stringify(privtext),
+                        {u: author});
                 }).catch(rereply);
             } catch (ex) {
                 rereply();
@@ -132,61 +139,58 @@ function reply(msg, dm, prefix, pubtext, privtext) {
 
         // Try to send it by conventional means
         log("reply",
-            "Public to " + nameId(msg.author) + ": " + JSON.stringify(pubtext),
-            {u: msg.author, tc: msg.channel});
-        msg.reply((prefix ? (prefix + " <(") : "") +
-                  pubtext +
-                  (prefix ? ")" : "")).catch((err) => {
+            "Public to " + nameId(author) + ": " + JSON.stringify(pubtext),
+            {u: author, tc: msgOrInteraction.channel});
+        sendMessage(
+            (shouldRegularSend ? author.mention + ", " : "") +
+            (prefix ? (prefix + " <(") : "") +
+            pubtext +
+            (prefix ? ")" : "")
+        ).catch((err) => {
+            log("reply-fail", nameId(author), {u: author});
 
-        log("reply-fail",
-            nameId(msg.author),
-            {u: msg.author});
+            // If this wasn't a guild message, nothing to be done
+            var guild = msgOrInteraction.channel.guild;
+            if (!guild) return;
 
-        // If this wasn't a guild message, nothing to be done
-        var guild = msg.guild;
-        if (!guild)
-            return;
-
-        // We can't get a message to them properly, so kill any active recording
-        try {
-            guild.voiceConnection.disconnect();
-        } catch (ex) {}
-
-        // And give ourself a name indicating error
-        setTimeout(() => {
+            // We can't get a message to them properly, so kill any active recording
             try {
-                guild.editNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
-            } catch (ex) {
-                logex(ex);
-            }
-        }, 2000);
+                guild.voiceConnection.disconnect();
+            } catch (ex) {}
 
+            // And give ourself a name indicating error
+            setTimeout(() => {
+                try {
+                    guild.editNickname("ERROR CANNOT SEND MESSAGES").catch(() => {});
+                } catch (ex) {
+                    logex(ex);
+                }
+            }, 2000);
         });
     }
 
     // Normal reply
-    if (!cb) {
+    if (!cb || !isMsg) {
         doReply();
         return;
     }
 
     /* The backup bot should only respond to public commands if they were
      * directed specifically at the backup bot */
-    if (isMention.test(msg.content)) {
+    if (isMention.test(msgOrInteraction.content)) {
         doReply();
         return;
     }
-    if (!dm)
-        return;
+    if (!dm) return;
 
     var text = privtext ? (pubtext + "\n\n" + privtext) : pubtext;
     log("reply-proxy",
-        "To " + nameId(msg.author) + ": " + JSON.stringify(text),
-        {u:msg.author});
+        "To " + nameId(msgOrInteraction.author) + ": " + JSON.stringify(text),
+        {u:author});
 
     // Reply after a short delay to make sure the main message comes first
     setTimeout(() => {
-        cb.reply(msg.author.id, text, doReply);
+        cb.reply(msgOrInteraction.author.id, text, doReply);
     }, 1000);
 }
 
