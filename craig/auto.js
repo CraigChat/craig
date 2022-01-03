@@ -344,8 +344,8 @@ if (config.rewards) (function() {
         if (!(guildId in autoG2C2U)) return;
         var c2u = autoG2C2U[guildId];
         var voiceChannel = from.voiceChannel || to.voiceChannel;
+        if (!voiceChannel || !(voiceChannel.id in c2u)) return;
         var channelId = voiceChannel.id;
-        if (!voiceChannel || !(channelId in c2u)) return;
         var us = c2u[channelId];
 
         if (guildId in autoCur && channelId in autoCur[guildId]) {
@@ -435,16 +435,8 @@ if (config.rewards) (function() {
                 var msg = {
                     author: member.user,
                     member: member,
-                    channel: member,
-                    guild: guild,
-                    reply: (msg) => {
-                        try {
-                            return member.send(msg);
-                        } catch (ex) {
-                            logex(ex);
-                            return new Promise(()=>{});
-                        }
-                    }
+                    channel: member.user,
+                    guild: guild
                 };
 
                 log("autorecord-" + (shouldRecord?"start":"stop"),
@@ -465,7 +457,8 @@ if (config.rewards) (function() {
                 }
 
                 if (shouldRecord) {
-                    commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
+                    cr.joinChannel(member.user, guild, voiceChannel, true, { msg, auto: true, cmd: [], lang: 'en' });
+                    // commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
                 } else {
                     commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
                 }

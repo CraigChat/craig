@@ -1457,7 +1457,7 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
 
                 rec.connection = connection;
 
-                session(msg, cmd ? cmd[1] : null, rec);
+                session(interaction || msg, cmd ? cmd[1] : null, rec);
             }).catch(onJoinError);
         }
     }
@@ -2051,4 +2051,4 @@ if (config.ennuicastr)
 if(cc.master)
     var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 4*24*60*60*1000);
 
-module.exports = {activeRecordings, gracefulRestart, uptimeTimeout};
+module.exports = {activeRecordings, joinChannel, gracefulRestart, uptimeTimeout};
