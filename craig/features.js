@@ -88,6 +88,13 @@ slashCommands["unbless"] = async function(interaction) {
         flags: 64
     });
 }
+slashCommands["webapp"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance has no rewards to handle the webapp.",
+        flags: 64
+    });
+}
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
@@ -388,8 +395,40 @@ if (config.rewards) (function() {
                     reply(msg, false, cmd[1], l("ecdisabled", lang));
         }
     } }
-    if (config.ennuicastr)
+    if (config.ennuicastr) {
         cl.register(commands, "ennuicastr", cmdEnnuicastr);
+        slashCommands["webapp"] = function(interaction) {
+            if (cc.dead) return;
+            var uid = interaction.member.user.id;
+
+            const subcommand = interaction.data.options[0];
+            switch (subcommand.name) {
+                case "on":
+                    cdb.dbRun(ennuicastrOnStmt, {uid});
+                    ecEnable(uid);
+                    interaction.createMessage({
+                        content: l("ecenable", 'en'),
+                        flags: 64
+                    });
+                    break;
+    
+                case "off":
+                    cdb.dbRun(ennuicastrOffStmt, {uid});
+                    ecDisable(uid);
+                    interaction.createMessage({
+                        content: l("ecdisable", 'en'),
+                        flags: 64
+                    });
+                    break;
+
+                default:
+                    interaction.createMessage({
+                        content: l(otherFeatures[uid] && otherFeatures[uid].ennuicastr ? "ecenabled" : "ecdisabled", 'en'),
+                        flags: 64
+                    });
+            }
+        }
+    }
 })();
 
 // Turn features into a string

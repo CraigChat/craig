@@ -56,6 +56,11 @@
   },
   {
     "type": 1,
+    "name": "info",
+    "description": "Get help on Craig."
+  },
+  {
+    "type": 1,
     "name": "features",
     "description": "List enabled features."
   },
@@ -108,6 +113,28 @@
             "required": true
           }
         ]
+      }
+    ]
+  },
+  {
+    "type": 1,
+    "name": "webapp",
+    "description": "Manage the Craig Webapp.",
+    "options": [
+      {
+        "type": 1,
+        "name": "status",
+        "description": "Shows whether the webapp is enabled or not."
+      },
+      {
+        "type": 1,
+        "name": "on",
+        "description": "Enables the Craig Webapp."
+      },
+      {
+        "type": 1,
+        "name": "off",
+        "description": "Disables the Craig Webapp."
       }
     ]
   }

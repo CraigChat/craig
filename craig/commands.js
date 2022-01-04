@@ -356,5 +356,12 @@ function cmdHelp(lang) { return function(msg, cmd) {
     reply(msg, false, cmd[1], l("help", lang, config.longUrl));
 } }
 cl.register(commands, "help", cmdHelp);
+slashCommands["info"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: l("help", 'en', config.longUrl),
+        flags: 64
+    });
+}
 
 module.exports = {commands, slashCommands, ownerCommands, banned};
