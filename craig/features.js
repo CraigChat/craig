@@ -91,7 +91,7 @@ slashCommands["unbless"] = async function(interaction) {
 slashCommands["webapp"] = async function(interaction) {
     if (cc.dead) return;
     interaction.createMessage({
-        content: "This instance has no rewards to handle the webapp.",
+        content: "This instance does not have a webapp.",
         flags: 64
     });
 }
