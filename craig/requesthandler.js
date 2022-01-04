@@ -21,10 +21,9 @@ function dbGet(stmt, args) {
 }
 
 class ShardedRequestHandler extends RequestHandler {
-    constructor(client, options) {
+    constructor(client, options, la) {
         super(client, options);
 
-        let la = client.options.httpRequestOptions.localAddress;
         let db = this.db = new SQLite("rate-limits" + (la?"-"+la:"") + ".db");
         db.exec("PRAGMA journal_mode=WAL;");
         db.exec(`

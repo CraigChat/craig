@@ -51,24 +51,20 @@ function mkClient(token) {
     var ret;
     if (shard) {
         var shardId = +process.env["SHARD_ID"];
-        var localAddressOptions = {};
-        if (config.localAddress) {
-            localAddressOptions.localAddress =
-                config.localAddress[shardId % config.localAddress.length];
-        }
 
         ret = new Eris.Client(token, {
             firstShardID: +process.env["SHARD_ID"],
             lastShardID: +process.env["SHARD_ID"],
             maxShards: +process.env["SHARD_COUNT"],
-            ratelimiterOffset: 500,
-            ws: localAddressOptions,
-            httpRequestOptions: localAddressOptions
+            ratelimiterOffset: 500
         });
     } else {
         ret = new Eris.Client(token);
     }
-    ret.requestHandler = new ShardedRequestHandler(ret, ret.requestHandler.options);
+    ret.requestHandler = new ShardedRequestHandler(
+        ret, ret.requestHandler.options,
+        shard && config.localAddress ? config.localAddress[shardId % config.localAddress.length] : null
+    );
 
     if ("url" in config) ret.on("ready", () => {
         // Do this frequently to make sure we stay online
