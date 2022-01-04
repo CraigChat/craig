@@ -1210,17 +1210,38 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
 
         // Set up the info
         var info = {
+            format: 1,
             key: accessKey,
             "delete": deleteKey,
             guild: nameId(guild),
+            guildExtra: {
+                name: guild.name,
+                id: guild.id,
+                icon: guild.dynamicIconURL('png', 256)
+            },
             channel: nameId(channel),
+            channelExtra: {
+                name: channel.name,
+                id: channel.id,
+                type: channel.type
+            },
             requester: interaction ? (user.username + "#" + user.discriminator) : (msg.author.username + "#" + msg.author.discriminator),
+            requesterExtra: {
+                username: (interaction ? user : msg.author).username,
+                discriminator: (interaction ? user : msg.author).discriminator,
+                avatar: (interaction ? user : msg.author).dynamicAvatarURL('png', 256)
+            },
             requesterId: interaction ? userId : msg.author.id,
             startTime: new Date().toISOString()
         };
         if (!interaction && user !== msg.author) {
             info.user = user.username + "#" + user.discriminator;
             info.userId = userId;
+            info.userExtra = {
+                username: user.username,
+                discriminator: user.discriminator,
+                avatar: user.dynamicAvatarURL('png', 256)
+            };
         }
 
         // If the user has features, mark them down
