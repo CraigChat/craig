@@ -108,7 +108,7 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-better-sqlite3@^7.1.1, better-sqlite3@^7.1.2:
+better-sqlite3@^7.1.2:
   version "7.4.6"
   resolved "https://registry.yarnpkg.com/better-sqlite3/-/better-sqlite3-7.4.6.tgz#c5dc35c71bb9c9ef5d9e16019686371ff6a5f25e"
   integrity sha512-LB/UxnMhcJY12bRCDXl2jTk0lsbXHCHOLn3cPjGhy3GCcVPGq45sCGJPUdfBZnfXGN14tYTJyq0ztUI3lGng8A==
@@ -346,11 +346,11 @@ end-of-stream@^1.1.0, end-of-stream@^1.4.1:
   dependencies:
     once "^1.4.0"
 
-"eris@github:Yahweasel/eris":
-  version "0.16.2-dev"
-  resolved "https://codeload.github.com/Yahweasel/eris/tar.gz/0db1e5c23a979d4c1609d7d092bcc6fdd779cf4b"
+eris@^0.16.1:
+  version "0.16.1"
+  resolved "https://registry.yarnpkg.com/eris/-/eris-0.16.1.tgz#44b0a9220944fc73dd74538cd614826bfbfcde61"
+  integrity sha512-fqjgaddSvUlUjA7s85OvZimLrgCwX58Z6FXOIxdNFJdT6XReJ/LOWZKdew2CaalM8BvN2JKzn98HmKYb3zMhKg==
   dependencies:
-    better-sqlite3 "^7.1.1"
     ws "^8.2.3"
   optionalDependencies:
     opusscript "^0.0.8"

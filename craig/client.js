@@ -24,6 +24,7 @@ const EventEmitter = require("events");
 const fs = require("fs");
 const Discord = require("discord.js");
 const Eris = require("eris");
+const ShardedRequestHandler = require("./requesthandler.js");
 require("./eris-flavor.js");
 
 const cdb = require("./db.js");
@@ -67,6 +68,7 @@ function mkClient(token) {
     } else {
         ret = new Eris.Client(token);
     }
+    ret.requestHandler = new ShardedRequestHandler(ret, ret.requestHandler.options);
 
     if ("url" in config) ret.on("ready", () => {
         // Do this frequently to make sure we stay online
