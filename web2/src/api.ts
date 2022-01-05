@@ -16,10 +16,17 @@ export async function start(): Promise<void> {
   await server.register(helmet);
 
   server.get('/', async (request, reply) => {
+    const { id, key, delete: deleteKey } = request.query as Record<string, string>;
+    if (id) return reply.redirect(`/rec/${id}?${new URLSearchParams({ key, delete: deleteKey }).toString()}`);
     return reply.redirect(process.env.API_HOMEPAGE || '/chat/');
   });
 
   server.get('/health', async (request, reply) => {
+    return reply.status(200).send({ ok: true });
+  });
+
+  server.get('/rec/:id', async (request, reply) => {
+    // TODO recording page
     return reply.status(200).send({ ok: true });
   });
 
