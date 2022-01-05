@@ -1059,29 +1059,20 @@ function session(msgOrInteraction, prefix, rec) {
     });
 }
 
-// Join a voice channel, working around discord.js' knot of insane bugs
-function safeJoin(channel, err) {
-    var guild = channel.guild;
-    var insaneInterval;
-
-    function catchConnection() {
-        if (guild.voiceConnection) {
-            guild.voiceConnection.on("error", (ex) => {
-                // Work around the hellscape of discord.js bugs
-                try {
-                    guild.client.voice.connections.delete(guild.id);
-                } catch (noex) {}
-                if (err)
-                    err(ex);
-            });
-            clearInterval(insaneInterval);
-        }
+// Join a voice channel
+async function safeJoin(channel, err) {
+    try {
+        const reciever = await channel.join({ opusOnly:true });
+        reciever.on("error", (ex) => {
+            try {
+                guild.client.voice.connections.delete(guild.id);
+            } catch (noex) {}
+            if (err) err(ex);
+        });
+        return reciever;
+    } catch (e) {
+        err(e)
     }
-
-    var ret = channel.join({opusOnly:true});
-    var insaneInterval = setInterval(catchConnection, 200);
-
-    return ret;
 }
 
 // Join is the only command in Craig with arguments, and to avoid clash, they're janky
