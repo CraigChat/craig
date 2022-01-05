@@ -295,13 +295,16 @@ function session(msgOrInteraction, prefix, rec) {
 
     // And show by glowing whether we're used or not
     var lastTime = [0, 0];
+    let shouldSpeak = false;
     const feedbackInterval = setInterval(() => {
         var curTime = process.hrtime(startTime);
         var diff = ((curTime[0]-lastTime[0])*10+(curTime[1]-lastTime[1])/100000000);
         if (diff > 10) {
             // It's been at least a second since we heard anything
-            if (!connection.playing)
-                connection.setSpeaking(false);
+            if (shouldSpeak) {
+                connection.setSpeaking(0);
+                shouldSpeak = false;
+            }
         }
     }, 1000);
 
@@ -399,8 +402,12 @@ function session(msgOrInteraction, prefix, rec) {
         chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
 
         // Show that we're receiving
+        // FIXME discord now only sets speaking when you actually send something, this may never work anymore
         lastTime = chunkTime;
-        connection.setSpeaking(true);
+        if (!shouldSpeak) {
+            connection.setSpeaking(1);
+            shouldSpeak = true;
+        }
 
         // Make sure we're prepared for this user
         var userTrackNo, userRecents;
@@ -1059,29 +1066,20 @@ function session(msgOrInteraction, prefix, rec) {
     });
 }
 
-// Join a voice channel, working around discord.js' knot of insane bugs
-function safeJoin(channel, err) {
-    var guild = channel.guild;
-    var insaneInterval;
-
-    function catchConnection() {
-        if (guild.voiceConnection) {
-            guild.voiceConnection.on("error", (ex) => {
-                // Work around the hellscape of discord.js bugs
-                try {
-                    guild.client.voice.connections.delete(guild.id);
-                } catch (noex) {}
-                if (err)
-                    err(ex);
-            });
-            clearInterval(insaneInterval);
-        }
+// Join a voice channel
+async function safeJoin(channel, err) {
+    try {
+        const reciever = await channel.join({ opusOnly:true });
+        reciever.on("error", (ex) => {
+            try {
+                guild.client.voice.connections.delete(guild.id);
+            } catch (noex) {}
+            if (err) err(ex);
+        });
+        return reciever;
+    } catch (e) {
+        err(e)
     }
-
-    var ret = channel.join({opusOnly:true});
-    var insaneInterval = setInterval(catchConnection, 200);
-
-    return ret;
 }
 
 // Join is the only command in Craig with arguments, and to avoid clash, they're janky
@@ -1333,14 +1331,17 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
             }
             safeJoin(diffChannel, leave).then(leave).catch(leave);
             */
-            function leave() {
-                setTimeout(()=>{
-                    try {
-                        channel.leave();
-                    } catch (ex) {}
-                }, 1000);
-            }
-            safeJoin(channel, leave).then(leave).catch(leave);
+
+            // FIXME it rejoins to leave?
+            // function leave() {
+            //     setTimeout(()=>{
+            //         try {
+            //             channel.leave();
+            //         } catch (ex) {}
+            //     }, 1000);
+            // }
+            // safeJoin(channel, leave).then(leave).catch(leave);
+            channel.leave().catch(() => {});
         }
 
         var rec = {
