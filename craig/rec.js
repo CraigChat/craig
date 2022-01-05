@@ -295,13 +295,16 @@ function session(msgOrInteraction, prefix, rec) {
 
     // And show by glowing whether we're used or not
     var lastTime = [0, 0];
+    let shouldSpeak = false;
     const feedbackInterval = setInterval(() => {
         var curTime = process.hrtime(startTime);
         var diff = ((curTime[0]-lastTime[0])*10+(curTime[1]-lastTime[1])/100000000);
         if (diff > 10) {
             // It's been at least a second since we heard anything
-            if (!connection.playing)
-                connection.setSpeaking(false);
+            if (shouldSpeak) {
+                connection.setSpeaking(0);
+                shouldSpeak = false;
+            }
         }
     }, 1000);
 
@@ -399,8 +402,12 @@ function session(msgOrInteraction, prefix, rec) {
         chunk.time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
 
         // Show that we're receiving
+        // FIXME discord now only sets speaking when you actually send something, this may never work anymore
         lastTime = chunkTime;
-        connection.setSpeaking(true);
+        if (!shouldSpeak) {
+            connection.setSpeaking(1);
+            shouldSpeak = true;
+        }
 
         // Make sure we're prepared for this user
         var userTrackNo, userRecents;
