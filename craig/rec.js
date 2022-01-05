@@ -1310,14 +1310,17 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
             }
             safeJoin(diffChannel, leave).then(leave).catch(leave);
             */
-            function leave() {
-                setTimeout(()=>{
-                    try {
-                        channel.leave();
-                    } catch (ex) {}
-                }, 1000);
-            }
-            safeJoin(channel, leave).then(leave).catch(leave);
+
+            // FIXME it rejoins to leave?
+            // function leave() {
+            //     setTimeout(()=>{
+            //         try {
+            //             channel.leave();
+            //         } catch (ex) {}
+            //     }, 1000);
+            // }
+            // safeJoin(channel, leave).then(leave).catch(leave);
+            channel.leave().catch(() => {});
         }
 
         var rec = {
