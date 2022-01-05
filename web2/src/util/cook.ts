@@ -20,5 +20,5 @@ export async function isReady(id: string): Promise<boolean> {
 export async function getDuration(id: string): Promise<number> {
   const durationPath = path.join(cookPath, 'duration.sh');
   const { stdout: duration } = await execa(durationPath, [id]);
-  return parseInt(duration);
+  return parseFloat(duration);
 }
