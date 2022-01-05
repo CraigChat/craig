@@ -67,7 +67,7 @@ export async function cook(id: string, format = 'flac', container = 'zip', dynau
   try {
     cooking.set(id, true);
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
-    const args = [id, format, container, dynaudnorm ? 'dynaudnorm' : ''];
+    const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
     const { stdout: cooked } = await execa(cookingPath, args);
     cooking.delete(id);
     return Buffer.from(cooked);
