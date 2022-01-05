@@ -16,3 +16,4 @@ cook/*.png
 *.db-shm
 *.db-wal
 *.log
+.env
