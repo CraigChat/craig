@@ -1320,7 +1320,7 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
             //     }, 1000);
             // }
             // safeJoin(channel, leave).then(leave).catch(leave);
-            channel.leave().catch(() => {});
+            channel.leave();
         }
 
         var rec = {
@@ -1624,13 +1624,11 @@ slashCommands['leave'] = function(interaction) {
                 rec.disconnected = true;
                 rec.connection.disconnect();
             }
-
-            // TODO localize
-            interaction.createMessage(`Stopped recording in ${channel.name}.`)
         } catch (ex) {
             logex(ex);
         }
-
+        // TODO localize
+        interaction.createMessage(`Stopped recording in ${channel.name}.`)
     } else if (!cc.dead) {
         interaction.createMessage(l("notrecording", 'en'));
     }
