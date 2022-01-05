@@ -512,10 +512,7 @@ if (config.rewards) (function() {
                 shouldRecord = recording;
 
             }
-
         }
-
-        console.log({recording, shouldRecord})
 
         // Should we start or stop a recording?
         if (recording !== shouldRecord) {
@@ -551,12 +548,15 @@ if (config.rewards) (function() {
                     }, 30000);
                 }
 
-                if (shouldRecord) {
-                    cr.joinChannel(member.user, guild, voiceChannel, true, { msg, auto: true, cmd: [], lang: 'en' });
-                    // commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
-                } else {
-                    commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
-                }
+                // Avoid a race condition
+                setTimeout(() => {
+                    if (shouldRecord) {
+                        cr.joinChannel(member.user, guild, voiceChannel, true, { msg, auto: true, cmd: [], lang: 'en' });
+                        // commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
+                    } else {
+                        commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
+                    }
+                }, 100);
             });
         }
     }
