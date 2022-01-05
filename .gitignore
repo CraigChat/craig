@@ -2,6 +2,7 @@
 .idea/
 node_modules/
 rec/
+data/
 config.json
 cook/extnotes
 cook/oggcorrect
@@ -18,3 +19,5 @@ cook/*.png
 *.log
 .env
 dist/
+node-log.txt
+nohup.out
