@@ -56,7 +56,7 @@ export async function fileExists(file: string) {
 export async function getRecording(id: string): Promise<RecordingInfo | false> {
   if (!config) await loadConfig();
 
-  const dataExists = (
+  const dataExists = !(
     await Promise.all(['data', 'header1', 'header2'].map((ext) => fileExists(path.join(recPath, `${id}.ogg.${ext}`))))
   ).some((exists) => exists === false);
   const infoExists = await fileExists(path.join(recPath, `${id}.ogg.info`));
