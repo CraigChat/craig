@@ -38,6 +38,13 @@ export interface RecordingInfo {
   features: { [features: string]: boolean };
 }
 
+export interface RecordingUser {
+  id: string;
+  username: string;
+  discrim: string;
+  avatar: string | null;
+}
+
 export async function loadConfig(): Promise<void> {
   const configText = await fs.readFile(configPath, 'utf8');
   if (!configText) throw new Error('Config file not found');
@@ -93,6 +100,12 @@ export async function deleteRecording(id: string): Promise<void> {
       fs.unlink(path.join(recPath, `${id}.ogg.${ext}`))
     )
   );
+}
+
+export async function getUsers(id: string): Promise<RecordingUser[]> {
+  const userText = await fs.readFile(path.join(recPath, `${id}.ogg.users`), 'utf8');
+  const users: { [index: string]: RecordingUser } = JSON.parse(`{${userText}}`);
+  return Object.values(users).filter((user) => Object.keys(user).length !== 0);
 }
 
 export function keyMatches(rec: RecordingInfo, key: string) {

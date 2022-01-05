@@ -1,5 +1,5 @@
 import { RouteOptions } from 'fastify';
-import { getRecording, deleteRecording, keyMatches } from '../util/recording';
+import { getRecording, deleteRecording, keyMatches, getUsers } from '../util/recording';
 
 export const headRoute: RouteOptions = {
   method: 'HEAD',
@@ -30,6 +30,25 @@ export const getRoute: RouteOptions = {
     delete info.delete;
 
     return reply.status(200).send({ ok: true, info });
+  }
+};
+
+export const usersRoute: RouteOptions = {
+  method: 'GET',
+  url: '/api/recording/:id/users',
+  handler: async (request, reply) => {
+    const { id } = request.params as Record<string, string>;
+    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID' });
+    const { key } = request.query as Record<string, string>;
+    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key' });
+
+    const info = await getRecording(id);
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted' });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found' });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key' });
+
+    const users = await getUsers(id);
+    return reply.status(200).send({ ok: true, users });
   }
 };
 
