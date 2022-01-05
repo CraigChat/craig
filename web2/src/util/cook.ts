@@ -10,8 +10,8 @@ export const cookPath = path.join(__dirname, '..', '..', '..', 'cook');
 export async function isReady(id: string): Promise<boolean> {
   // check to see if a file is share locked
   const locked = await fs.access(path.join(recPath, `${id}.ogg.data`), FS.W_OK | FS.R_OK).then(
-    () => true,
-    () => false
+    () => false,
+    () => true
   );
   if (locked) return false;
   return !cooking.has(id);
