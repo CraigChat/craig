@@ -28,7 +28,8 @@ const https = require("https");
 const ws = require("ws");
 
 const ogg = require("./ogg.js");
-const opus = new (require("node-opus")).OpusEncoder(48000);
+const djsopus = require("@discordjs/opus");
+const opus = new djsopus.OpusEncoder(48000);
 
 const request = require("request");
 
