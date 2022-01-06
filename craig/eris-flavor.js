@@ -142,6 +142,7 @@ odf(Eris.User.prototype, "send", function () {
         }).catch(rej);
     });
 });
+Eris.User.prototype.createMessage = Eris.User.prototype.send;
 
 odg(Eris.VoiceChannel.prototype, "joinable", function(){return this.permissionsOf(this.guild.shard.client.user.id).has("voiceConnect");});
 odg(Eris.VoiceChannel.prototype, "members", function(){return this.voiceMembers;});

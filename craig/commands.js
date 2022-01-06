@@ -20,8 +20,6 @@
  * Support for command handling, from arbitrary users, the owner, and via IPC.
  */
 
-const fs = require("fs");
-
 const cc = require("./client.js");
 const config = cc.config;
 const client = cc.client;
@@ -42,6 +40,7 @@ const gms = require("./gms.js");
 
 // Our list of command handlers
 const commands = {};
+const slashCommands = {};
 
 // Special command handlers for owner commands
 const ownerCommands = {};
@@ -182,7 +181,7 @@ function onMessage(msg) {
         } catch (ex) {
             logex(ex);
         }
-        var fun = ownerCommands[cmd[2].toLowerCase()];
+        let fun = ownerCommands[cmd[2].toLowerCase()];
         if (fun) fun(msg, cmd);
         return;
     }
@@ -219,6 +218,57 @@ function onMessage(msg) {
     fun(msg, cmd);
 }
 if (client) client.on("messageCreate", onMessage);
+
+// The interaction handler
+async function onInteraction(interaction) {
+    if (interaction.type === 1) return interaction.pong();
+
+    // Tell off users if used in DMs
+    if (!interaction.member || !interaction.guildID)
+        return interaction.createMessage({
+            content: "You can't use Craig slash commands in direct messages!",
+            flags: 64
+        });
+
+    // Ignore it if it's from an unauthorized user
+    if (!userIsAuthorized(interaction.member))
+        return interaction.createMessage({
+            content: "You don't have the permission to use Craig!",
+            flags: 64
+        });
+
+    // Log it
+    try {
+        log("slashcommand",
+            nameId(interaction.member) + "@" + nameId(interaction.channel) + "@" + nameId(interaction.channel.guild) + ": ",
+            {
+                uid: interaction.member.id,
+                gid: interaction.channel.guild.id,
+                tcid: interaction.channel.id
+            });
+    } catch (ex) {
+        logex(ex);
+    }
+
+    // Keep this guild alive
+    try {
+        gms.guildRefresh(interaction.channel.guild);
+    } catch (ex) {
+        logex(ex);
+    }
+
+    // Add a timestamp to the interaction to know when to defer/send or not
+    interaction._time = Date.now();
+
+    if (slashCommands[interaction.data.name])
+        return slashCommands[interaction.data.name](interaction);
+
+    interaction.createMessage({
+        content: "This command has no handler.",
+        flags: 64
+    });
+}
+if (client) client.on("interactionCreate", onInteraction);
 
 // Ban command interface
 function cmdBanUnban(isBan, msg, cmd) {
@@ -306,5 +356,12 @@ function cmdHelp(lang) { return function(msg, cmd) {
     reply(msg, false, cmd[1], l("help", lang, config.longUrl));
 } }
 cl.register(commands, "help", cmdHelp);
+slashCommands["info"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: l("help", 'en', config.longUrl),
+        flags: 64
+    });
+}
 
-module.exports = {commands, ownerCommands, banned};
+module.exports = {commands, slashCommands, ownerCommands, banned};

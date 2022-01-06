@@ -20,8 +20,6 @@
  * Support for auto-recording.
  */
 
-const fs = require("fs");
-
 const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;
@@ -35,7 +33,9 @@ const cdb = require("./db.js");
 const db = cdb.db;
 const log = cdb.log;
 
-const commands = require("./commands.js").commands;
+const ccmds = require("./commands.js");
+const commands = ccmds.commands;
+const slashCommands = ccmds.slashCommands;
 
 const cf = require("./features.js");
 const cr = require("./rec.js");
@@ -56,6 +56,15 @@ var autoG2C2U = {};
    }
 */
 var autoCur = {};
+
+// Set slash command responses for when these commands aren't set later
+slashCommands["autorecord"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance has no rewards to handle autorecording.",
+        flags: 64
+    });
+}
 
 // Use server roles to give rewards
 if (config.rewards) (function() {
@@ -336,6 +345,88 @@ if (config.rewards) (function() {
                 break;
         }
     }
+    slashCommands["autorecord"] = async function(interaction) {
+        if (cc.dead) return;
+        const userId = interaction.member.user.id;
+        const guildId = interaction.channel.guild.id;
+
+        var f = await cf.features(userId);
+        if (!f.auto) {
+            interaction.createMessage({
+                content: "You do not have permission to set up automatic recordings.",
+                flags: 64
+            });
+            return;
+        }
+
+        const subcommand = interaction.data.options[0];
+        switch (subcommand.name) {
+            case "info": {
+                var info = "";
+                if (userId in autoU2GC) {
+                    var gcs = autoU2GC[userId];
+                    for (var gci = 0; gci < gcs.length; gci++) {
+                        let gc = gcs[gci];
+                        if (gc.g !== guildId) continue;
+                        let channel = interaction.channel.guild.channels.get(gc.c);
+                        if (!channel) channel = {name:gc.c};
+                        info += "\n" + channel.name;
+                        if (gc.min && gc.min > 1)
+                            info += " (min: " + gc.min + ")";
+                        if (gc.t)
+                            info += " (specific triggers)";
+                    }
+                }
+                if (info === "")
+                    return interaction.createMessage({
+                        content: "You have no autorecords enabled.",
+                        flags: 64
+                    });
+                else
+                    return interaction.createMessage({
+                        content: "I am autorecording the following channels:" + info,
+                        flags: 64
+                    });
+            }
+            case "on": {
+                const channelId = interaction.data.resolved.channels.values().next().value.id;
+                const channel = interaction.channel.guild.channels.get(channelId);
+                const minOpt = subcommand.options.find(o => o.name === "min");
+                const min = minOpt ? minOpt.value : 1;
+                const triggerIds = interaction.data.resolved.members ? Array.from(interaction.data.resolved.members.keys()) : [];
+
+                // Convert triggers
+                const triggers = triggerIds.length ? {} : undefined;
+                if (triggers) triggerIds.forEach(tid => triggers[tid] = true);
+
+                addAutorecord(userId, guildId, channelId, triggers, min);
+                return interaction.createMessage({
+                    content: "I will now automatically record " + channel.name + ". Please make sure you can receive DMs from me; I will NOT send autorecord links publicly!",
+                    flags: 64
+                });
+            }
+            case "off": {
+                const channelId = interaction.data.resolved.channels.values().next().value.id;
+                removeAutorecord(interaction.member.user.id, interaction.channel.guild.id, channelId);
+                return interaction.createMessage({
+                    content: "Autorecord disabled.",
+                    flags: 64
+                });
+            }
+            case "help":
+            default:
+                return interaction.createMessage({
+                    content: "\nUse:\n\n" +
+                        "> `:craig:, autorecord on [-min (minimum # of members)] [triggers] [channel name]`\n" +
+                        "To activate autorecording on a given channel. Triggers must be @mentions.\n\n" +
+                        "> `:craig:, autorecord off [channel name]`\n" +
+                        "To deactivate autorecording. Give no channel name to deactivate all autorecordings on this server.\n\n" +
+                        "> `:craig:, autorecord info`\n" +
+                        "To list your current autorecordings on this server.\n",
+                    flags: 64
+                });
+        }
+    }
 
     // Watch for autorecord opportunities
     function voiceStateUpdate(to, from) {
@@ -346,8 +437,8 @@ if (config.rewards) (function() {
         if (!(guildId in autoG2C2U)) return;
         var c2u = autoG2C2U[guildId];
         var voiceChannel = from.voiceChannel || to.voiceChannel;
+        if (!voiceChannel || !(voiceChannel.id in c2u)) return;
         var channelId = voiceChannel.id;
-        if (!voiceChannel || !(channelId in c2u)) return;
         var us = c2u[channelId];
 
         if (guildId in autoCur && channelId in autoCur[guildId]) {
@@ -421,7 +512,6 @@ if (config.rewards) (function() {
                 shouldRecord = recording;
 
             }
-
         }
 
         // Should we start or stop a recording?
@@ -437,16 +527,8 @@ if (config.rewards) (function() {
                 var msg = {
                     author: member.user,
                     member: member,
-                    channel: member,
-                    guild: guild,
-                    reply: (msg) => {
-                        try {
-                            return member.send(msg);
-                        } catch (ex) {
-                            logex(ex);
-                            return new Promise(()=>{});
-                        }
-                    }
+                    channel: member.user,
+                    guild: guild
                 };
 
                 log("autorecord-" + (shouldRecord?"start":"stop"),
@@ -466,11 +548,15 @@ if (config.rewards) (function() {
                     }, 30000);
                 }
 
-                if (shouldRecord) {
-                    commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
-                } else {
-                    commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
-                }
+                // Avoid a race condition
+                setTimeout(() => {
+                    if (shouldRecord) {
+                        cr.joinChannel(member.user, guild, voiceChannel, true, { msg, auto: true, cmd: [], lang: 'en' });
+                        // commands["join"](msg, ["", null, "join", "-silence -auto " + voiceChannel.name]);
+                    } else {
+                        commands["leave"](msg, ["", null, "leave", voiceChannel.name]);
+                    }
+                }, 100);
             });
         }
     }

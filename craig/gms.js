@@ -20,7 +20,6 @@
  * Guild membership status and automatic guild leaving when not in use.
  */
 
-const fs = require("fs");
 const https = require("https");
 
 const cc = require("./client.js");
@@ -29,8 +28,6 @@ const sm = cc.sm;
 const client = cc.client;
 const clients = cc.clients;
 const logex = cc.logex;
-
-const cu = require("./utils.js");
 
 const cdb = require("./db.js");
 const db = cdb.db;

@@ -20,25 +20,21 @@
  * Support for per-user/per-guild features.
  */
 
-const fs = require("fs");
-const EventEmitter = require("events");
-
 const cc = require("./client.js");
 const client = cc.client;
 const config = cc.config;
-const logex = cc.logex;
 
 const cdb = require("./db.js");
 const db = cdb.db;
-const commands = require("./commands.js").commands;
+const ccmds = require("./commands.js");
+const commands = ccmds.commands;
+const slashCommands = ccmds.slashCommands;
 
 const cu = require("./utils.js");
 const reply = cu.reply;
 
 const cl = require("./locale.js");
 const l = cl.l;
-
-const gms = require("./gms.js");
 
 // DB commands
 const getRewards = db.prepare("SELECT * FROM rewards WHERE uid=@uid;");
@@ -77,12 +73,31 @@ async function features(id, gid) {
 
 var fetchRewards = async function() { return null; }
 
+// Set slash command responses for when these commands aren't set later
+slashCommands["bless"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance has no rewards to handle blessings.",
+        flags: 64
+    });
+}
+slashCommands["unbless"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance has no rewards to handle blessings.",
+        flags: 64
+    });
+}
+slashCommands["webapp"] = async function(interaction) {
+    if (cc.dead) return;
+    interaction.createMessage({
+        content: "This instance does not have a webapp.",
+        flags: 64
+    });
+}
+
 // Use server roles to give rewards
 if (config.rewards) (function() {
-    // Bless statements
-    const blessStmt = db.prepare("INSERT OR REPLACE INTO blessings (uid, gid) VALUES (@uid, @gid)");
-    const unblessStmt = db.prepare("DELETE FROM blessings WHERE uid=@uid AND gid=@gid");
-
     // Fetch rewards for this user from the appropriate shard
     var fetchRewardsWait = {};
     fetchRewards = async function(uid) {
@@ -241,6 +256,25 @@ if (config.rewards) (function() {
         reply(msg, false, cmd[1], "This server is now blessed. All recordings in this server have your added features.");
     }
 
+    slashCommands["bless"] = async function(interaction) {
+        if (cc.dead) return;
+
+        var f = await features(interaction.member.user.id);
+        if (!f.bless) {
+            interaction.createMessage({
+                content: "You do not have permission to bless servers.",
+                flags: 64
+            });
+            return;
+        }
+
+        addBless(interaction.member.user.id, interaction.channel.guild.id);
+        interaction.createMessage({
+            content: "This server is now blessed. All recordings in this server have your added features.",
+            flags: 64
+        });
+    }
+
     commands["unbless"] = function(msg, cmd) {
         if (cc.dead) return;
 
@@ -249,6 +283,23 @@ if (config.rewards) (function() {
         } else {
             removeBless(msg.author.id);
             reply(msg, false, cmd[1], "Server unblessed.");
+        }
+    }
+
+    slashCommands["unbless"] = async function(interaction) {
+        if (cc.dead) return;
+
+        if (!(interaction.member.user.id in blessU2G)) {
+            interaction.createMessage({
+                content: "But you haven't blessed a server!",
+                flags: 64
+            });
+        } else {
+            removeBless(interaction.member.user.id);
+            interaction.createMessage({
+                content: "Server unblessed.",
+                flags: 64
+            });
         }
     }
 })();
@@ -344,8 +395,40 @@ if (config.rewards) (function() {
                     reply(msg, false, cmd[1], l("ecdisabled", lang));
         }
     } }
-    if (config.ennuicastr)
+    if (config.ennuicastr) {
         cl.register(commands, "ennuicastr", cmdEnnuicastr);
+        slashCommands["webapp"] = function(interaction) {
+            if (cc.dead) return;
+            var uid = interaction.member.user.id;
+
+            const subcommand = interaction.data.options[0];
+            switch (subcommand.name) {
+                case "on":
+                    cdb.dbRun(ennuicastrOnStmt, {uid});
+                    ecEnable(uid);
+                    interaction.createMessage({
+                        content: l("ecenable", 'en'),
+                        flags: 64
+                    });
+                    break;
+    
+                case "off":
+                    cdb.dbRun(ennuicastrOffStmt, {uid});
+                    ecDisable(uid);
+                    interaction.createMessage({
+                        content: l("ecdisable", 'en'),
+                        flags: 64
+                    });
+                    break;
+
+                default:
+                    interaction.createMessage({
+                        content: l(otherFeatures[uid] && otherFeatures[uid].ennuicastr ? "ecenabled" : "ecdisabled", 'en'),
+                        flags: 64
+                    });
+            }
+        }
+    }
 })();
 
 // Turn features into a string
@@ -390,5 +473,22 @@ commands["features"] = async function(msg, cmd) {
 
     reply(msg, false, false, ret);
 }
+
+slashCommands["features"] = async function(interaction) {
+    if (cc.dead) return;
+
+    var f = await features(interaction.member.user.id);
+    var gf = await features(interaction.member.user.id, interaction.channel.guild ? interaction.channel.guild.id : undefined);
+
+    var ret = featuresToStr(f, false, "For you");
+    if (gf !== f)
+        ret += "\n" + featuresToStr(gf, true, "For this server");
+
+    interaction.createMessage({
+        content: ret,
+        flags: 64
+    });
+}
+
 
 module.exports = {defaultFeatures, features, otherFeatures};
