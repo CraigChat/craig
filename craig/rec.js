@@ -1522,14 +1522,23 @@ cl.register(commands, "join", cmdJoin);
 slashCommands['join'] = async function(interaction) {
     // fail intentionally I guess?
     if (cc.dead) return;
-    const channelId = interaction.data.resolved.channels.values().next().value.id;
-    const channel = interaction.channel.guild.channels.get(channelId);
+    let channel = interaction.data.resolved ? interaction.data.resolved.channels.values().next().value : null;
+    if (channel === null) {
+        if (interaction.member.voiceChannel) channel = interaction.member.voiceChannel;
+        else return interaction.createMessage({
+            content: l("whatchannel", 'en'),
+            flags: 64
+        });
+    } else channel = interaction.channel.guild.channels.get(channel.id);
 
     // Check for rate limits
     var rl = getRateLimit(interaction.channel.guild.id);
     if (rl) {
         if (rl.pending) {
-            interaction.createMessage("You are recording too often!")
+            interaction.createMessage({
+                content: "You are recording too often!",
+                flags: 64
+            });
             return;
         }
 
@@ -1537,7 +1546,10 @@ slashCommands['join'] = async function(interaction) {
         if (rl.nextAllowed > now) {
             // Being rate limited. Pause.
             var wait = rl.nextAllowed - now;
-            reply(interaction, false, null, l("ratelimit", 'en', ""+Math.ceil(wait / 1000)));
+            interaction.createMessage({
+                content: l("ratelimit", 'en', ""+Math.ceil(wait / 1000)),
+                flags: 64
+            });
             rl.pending = true;
             await new Promise(res => setTimeout(res, wait));
             rl.pending = false;
@@ -1601,7 +1613,10 @@ slashCommands['leave'] = function(interaction) {
     let channel = interaction.data.resolved ? interaction.data.resolved.channels.values().next().value : null;
     if (channel === null) {
         if (interaction.member.voiceChannel) channel = interaction.member.voiceChannel;
-        else return interaction.createMessage(l("whatchannel", 'en'));
+        else return interaction.createMessage({
+            content: l("whatchannel", 'en'),
+            flags: 64
+        });
     }
     let channelId = channel.id;
 
