@@ -78,14 +78,14 @@ export const postRoute: RouteOptions = {
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
 
-      const buffer = await cook(id, format, container, dynaudnorm);
+      const stream = cook(id, format, container, dynaudnorm);
       return reply
         .status(200)
         .headers({
           'content-disposition': `attachment; filename=${id}.${ext}`,
           'content-type': mime
         })
-        .send(buffer);
+        .send(stream);
     } catch (err) {
       return reply.status(500).send({ ok: false, error: err.message });
     }

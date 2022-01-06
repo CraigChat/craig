@@ -3,9 +3,11 @@ import { constants as FS } from 'fs';
 import { recPath } from './recording';
 import path from 'path';
 import execa from 'execa';
+import { spawn } from 'child_process';
 
-const cooking = new Map<string, boolean>();
+const cooking = new Map<string, string>();
 export const cookPath = path.join(__dirname, '..', '..', '..', 'cook');
+export const tmpPath = path.join(__dirname, '..', '..', 'tmp');
 
 export async function isReady(id: string): Promise<boolean> {
   // check to see if a file is share locked
@@ -64,16 +66,21 @@ export const allowedContainers: { [container: string]: { mime?: string; ext?: st
   }
 };
 
-export async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false): Promise<Buffer> {
+export function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
+  const cookId = Date.now().toString(36);
+  const deleteState = () => {
+    if (cooking.get(id) === cookId) cooking.delete(id);
+  };
   try {
-    cooking.set(id, true);
+    cooking.set(id, cookId);
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
-    const { stdout: cooked } = await execa(cookingPath, args);
-    cooking.delete(id);
-    return Buffer.from(cooked);
+    const child = spawn(cookingPath, args);
+    child.stdout.once('end', deleteState);
+    child.stdout.once('error', deleteState);
+    return child.stdout;
   } catch (e) {
-    cooking.delete(id);
+    deleteState();
     throw e;
   }
 }
