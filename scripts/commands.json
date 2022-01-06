@@ -109,8 +109,7 @@
             "type": 7,
             "name": "channel",
             "description": "The channel to turn off auto-recording in.",
-            "channel_types": [2, 13],
-            "required": true
+            "channel_types": [2, 13]
           }
         ]
       }
