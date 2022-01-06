@@ -24,6 +24,7 @@ export async function getDuration(id: string): Promise<number> {
 }
 
 export const allowedFormats = [
+  'flac',
   'copy',
   'oggflac',
   'vorbis',
