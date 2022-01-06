@@ -37,6 +37,7 @@ export async function start(): Promise<void> {
   server.route(cookRoute.durationRoute);
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
+  server.route(cookRoute.avatarRoute);
 
   server.addHook('onRequest', async (req, reply) => {
     reply.headers({

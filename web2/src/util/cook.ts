@@ -84,3 +84,42 @@ export function cook(id: string, format = 'flac', container = 'zip', dynaudnorm 
     throw e;
   }
 }
+
+export const allowedAvatarFormats = [
+  'png',
+  'mkvh264',
+  'webmvp8',
+  'movsfx',
+  'movsfxm',
+  'movsfxu',
+  'movpngsfx',
+  'movpngsfxm',
+  'movpngsfxu',
+  'exe'
+];
+
+export function cookAvatars(
+  id: string,
+  format = 'png',
+  container = 'zip',
+  transparent = false,
+  bg = '000000',
+  fg = '008000'
+) {
+  const cookId = Date.now().toString(36);
+  const deleteState = () => {
+    if (cooking.get(id) === cookId) cooking.delete(id);
+  };
+  try {
+    cooking.set(id, cookId);
+    const cookingPath = path.join(cookPath, 'avatars.sh');
+    const args = [id, format, container, transparent ? '1' : '0', bg, fg];
+    const child = spawn(cookingPath, args);
+    child.stdout.once('end', deleteState);
+    child.stdout.once('error', deleteState);
+    return child.stdout;
+  } catch (e) {
+    deleteState();
+    throw e;
+  }
+}
