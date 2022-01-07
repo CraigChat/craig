@@ -1,7 +1,9 @@
 import fastify, { FastifyInstance } from 'fastify';
 import helmet from 'fastify-helmet';
+import staticPlugin from 'fastify-static';
 import * as recordingRoute from './routes/recording';
 import * as cookRoute from './routes/cook';
+import * as pageRoute from './routes/page';
 
 export let server: FastifyInstance;
 
@@ -14,6 +16,10 @@ export async function start(): Promise<void> {
   });
 
   await server.register(helmet);
+  await server.register(staticPlugin, {
+    root: `${__dirname}/../../public`,
+    prefix: '/rec/'
+  });
 
   server.get('/', async (request, reply) => {
     const { id, key, delete: deleteKey } = request.query as Record<string, string>;
@@ -25,11 +31,6 @@ export async function start(): Promise<void> {
     return reply.status(200).send({ ok: true });
   });
 
-  server.get('/rec/:id', async (request, reply) => {
-    // TODO recording page
-    return reply.status(200).send({ ok: true });
-  });
-
   server.route(recordingRoute.headRoute);
   server.route(recordingRoute.getRoute);
   server.route(recordingRoute.deleteRoute);
@@ -38,6 +39,9 @@ export async function start(): Promise<void> {
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
   server.route(cookRoute.avatarRoute);
+  server.route(pageRoute.pageRoute);
+  server.route(pageRoute.scriptRoute);
+  server.route(pageRoute.cssRoute);
 
   server.addHook('onRequest', async (req, reply) => {
     reply.headers({

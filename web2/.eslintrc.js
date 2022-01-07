@@ -5,7 +5,7 @@ module.exports = {
     es6: true,
     node: true
   },
-  extends: ['eslint:recommended', 'plugin:prettier/recommended'],
+  extends: ['deprecation', 'eslint:recommended', 'plugin:prettier/recommended'],
   globals: {},
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -14,6 +14,7 @@ module.exports = {
   },
   plugins: ['@typescript-eslint'],
   rules: {
+    'deprecation/deprecation': 'warn',
     'prettier/prettier': 'warn',
     'no-cond-assign': [2, 'except-parens'],
     'no-unused-vars': 0,
@@ -31,5 +32,14 @@ module.exports = {
       }
     ],
     'spaced-comment': 'warn'
-  }
+  },
+  overrides: [
+    {
+      files: ['page/**/*'],
+      extends: ['preact', 'deprecation', 'eslint:recommended', 'plugin:prettier/recommended'],
+      env: {
+        browser: true
+      }
+    }
+  ]
 };
