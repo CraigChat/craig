@@ -14,7 +14,7 @@ export const pageRoute: RouteOptions = {
 
 export const scriptRoute: RouteOptions = {
   method: 'GET',
-  url: '/rec/index.js',
+  url: '/rec.js',
   handler: async (request, reply) => {
     return reply.type('text/javascript').sendFile('index.js', pageDistPath);
   }
@@ -22,7 +22,7 @@ export const scriptRoute: RouteOptions = {
 
 export const cssRoute: RouteOptions = {
   method: 'GET',
-  url: '/rec/index.css',
+  url: '/rec.css',
   handler: async (request, reply) => {
     return reply.type('text/css; charset=utf-8').sendFile('index.css', pageDistPath);
   }
