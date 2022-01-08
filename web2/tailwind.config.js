@@ -2,7 +2,7 @@ const defaults = require('tailwindcss/defaultConfig');
 const sans = defaults.theme.fontFamily.sans;
 
 module.exports = {
-  purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
+  purge: ['./page/src/**/*.{js,jsx,ts,tsx}'],
   darkMode: 'class',
   theme: {
     extend: {

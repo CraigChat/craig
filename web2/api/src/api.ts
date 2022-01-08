@@ -18,7 +18,7 @@ export async function start(): Promise<void> {
   await server.register(helmet);
   await server.register(staticPlugin, {
     root: `${__dirname}/../../public`,
-    prefix: '/rec/'
+    prefix: '/assets/'
   });
 
   server.get('/', async (request, reply) => {
@@ -46,6 +46,7 @@ export async function start(): Promise<void> {
   server.route(pageRoute.scriptRoute);
   server.route(pageRoute.sourceMapRoute);
   server.route(pageRoute.cssRoute);
+  server.route(pageRoute.filesRoute);
 
   server.addHook('onRequest', async (req, reply) => {
     reply.headers({
