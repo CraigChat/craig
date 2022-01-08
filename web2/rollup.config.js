@@ -15,9 +15,10 @@ export default ({ watch }) => [
     // Page Build
     input: 'page/src/index.tsx',
     output: {
-      file: 'dist/page/index.js',
+      file: 'dist/page/rec.js',
       format: 'iife',
-      compact: !watch
+      compact: !watch,
+      sourcemap: true
     },
     plugins: [
       postcss({
@@ -45,6 +46,8 @@ export default ({ watch }) => [
         outDir: 'dist/page',
         module: 'esnext',
         jsx: 'preserve',
+        jsxFactory: 'h',
+        jsxFragmentFactory: 'Fragment',
         moduleResolution: 'node',
         resolveJsonModule: true,
         paths: {

@@ -16,7 +16,15 @@ export const scriptRoute: RouteOptions = {
   method: 'GET',
   url: '/rec.js',
   handler: async (request, reply) => {
-    return reply.type('text/javascript').sendFile('index.js', pageDistPath);
+    return reply.type('text/javascript').sendFile('rec.js', pageDistPath);
+  }
+};
+
+export const sourceMapRoute: RouteOptions = {
+  method: 'GET',
+  url: '/rec.js',
+  handler: async (request, reply) => {
+    return reply.type('text/javascript').sendFile('rec.js.map', pageDistPath);
   }
 };
 
@@ -24,6 +32,6 @@ export const cssRoute: RouteOptions = {
   method: 'GET',
   url: '/rec.css',
   handler: async (request, reply) => {
-    return reply.type('text/css; charset=utf-8').sendFile('index.css', pageDistPath);
+    return reply.type('text/css; charset=utf-8').sendFile('rec.css', pageDistPath);
   }
 };
