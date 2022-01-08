@@ -18,7 +18,7 @@ export default ({ watch }) => [
       file: 'dist/page/rec.js',
       format: 'iife',
       compact: !watch,
-      sourcemap: true
+      sourcemap: !watch
     },
     plugins: [
       postcss({
@@ -27,7 +27,7 @@ export default ({ watch }) => [
           !watch && autoprefixer(),
           !watch &&
             purgecss({
-              content: ['./page/src/**/*.tsx', './page/src/**/*.ts'],
+              content: ['./page/src/**/*.tsx', './page/src/**/*.ts', './page/src/**/*.sass'],
               safelist: {
                 standard: ['dark-theme', 'enter', 'leave'],
                 deep: [],
