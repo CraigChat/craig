@@ -242,6 +242,11 @@
   dependencies:
     ajv "^6.12.6"
 
+"@fontsource/lexend@^4.5.2":
+  version "4.5.2"
+  resolved "https://registry.yarnpkg.com/@fontsource/lexend/-/lexend-4.5.2.tgz#eb2949e46831b9a89ece254145d053ad52a3a637"
+  integrity sha512-8wcqpW5ohWGptW8T9HYT20MDrfBmaAkmI/eE/ytwaqRT7WmxZjido72WjSZmKf5F872HHoaIOQWmZbYMdgMdcg==
+
 "@fontsource/red-hat-text@^4.5.1":
   version "4.5.1"
   resolved "https://registry.yarnpkg.com/@fontsource/red-hat-text/-/red-hat-text-4.5.1.tgz#af587d40ae0b5fe75ddbe6733b87468f56295dea"
