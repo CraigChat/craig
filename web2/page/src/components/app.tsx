@@ -1,6 +1,7 @@
 import { Component, h } from 'preact';
 import ReactModal from 'react-modal';
 import clsx from 'clsx';
+import { getRecording, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -11,6 +12,10 @@ export type OpenModalFunction = (content: any, opts?: ModalOptions) => void;
 
 interface AppState {
   loading: boolean;
+  recording: RecordingInfo | null;
+  users: RecordingUser[] | null;
+  duration: number | null;
+  error: string | null;
 
   modalOpen: boolean;
   allowModalClose: boolean;
@@ -27,7 +32,11 @@ export default class App extends Component<{}, AppState> {
       modalContentLabel: 'Modal',
       modalContent: null,
 
-      loading: true
+      loading: true,
+      recording: null,
+      users: null,
+      duration: null,
+      error: null
     };
 
     this.openModal = this.openModal.bind(this);
@@ -39,14 +48,19 @@ export default class App extends Component<{}, AppState> {
   }
 
   async loadRecording() {
-    // try {
-    //   const rewards = await getRewards();
-    //   logger.log('Got rewards', rewards);
-    //   this.setState({ rewards, rewardsError: null, loading: false });
-    // } catch (e) {
-    //   logger.error('Failed to get rewards:', e);
-    //   this.setState({ rewardsError: e, loading: false });
-    // }
+    try {
+      const recId = location.pathname.split('/')[2];
+      const query = new URLSearchParams(location.search);
+      const recording = await getRecording(recId, query.get('key'));
+      const users = await getRecordingUsers(recId, query.get('key'));
+      console.debug('Got recording', recording, users);
+      this.setState({ recording, users, loading: false });
+    } catch (e) {
+      const response = e as Response;
+      const body = response.body ? await response.json() : { error: `${response.status}: ${response.statusText}` };
+      console.error('Failed to get recording:', response, body);
+      this.setState({ error: body.error, loading: false });
+    }
   }
 
   openModal(content: any, opts: ModalOptions = {}) {
@@ -64,12 +78,8 @@ export default class App extends Component<{}, AppState> {
 
   render() {
     return (
-      <div class="min-h-screen font-body text-white bg-gray-900 flex flex-row justify-center items-stretch">
-        <div
-          class={`bg-black bg-opacity-25 md:shadow-2xl min-h-screen max-w-screen-md w-full p-8 flex flex-col space-y-8 ${
-            this.state.loading ? 'h-screen overflow-hidden' : ''
-          }`}
-        >
+      <div class="min-h-screen font-body text-white bg-zinc-900 flex flex-row justify-center items-stretch">
+        <div class="bg-black bg-opacity-25 md:shadow-2xl min-h-screen max-w-screen-md w-full p-8 flex flex-col space-y-8">
           <span>TODO</span>
         </div>
         <ReactModal
@@ -79,7 +89,7 @@ export default class App extends Component<{}, AppState> {
           contentLabel={this.state.modalContentLabel}
           portalClassName={clsx('fixed inset-0', { 'pointer-events-none': !this.state.modalOpen })}
           overlayClassName="h-screen flex justify-center items-center bg-black bg-opacity-25"
-          className="p-6 bg-gray-700 text-white outline-none rounded min-w-1/2 w-5/6 md:min-w-2/5"
+          className="p-6 bg-zinc-700 text-white outline-none rounded min-w-1/2 w-5/6 md:min-w-2/5"
         >
           {this.state.modalContent}
         </ReactModal>

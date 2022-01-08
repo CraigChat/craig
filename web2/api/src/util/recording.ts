@@ -33,7 +33,7 @@ export interface RecordingInfo {
   userExtra?: {
     username: string;
     discriminator: string;
-    avatar: string | null;
+    avatar?: string;
   };
   features: { [features: string]: boolean };
 }
@@ -42,7 +42,7 @@ export interface RecordingUser {
   id: string;
   username: string;
   discrim: string;
-  avatar: string | null;
+  avatar?: string;
 }
 
 export async function loadConfig(): Promise<void> {
