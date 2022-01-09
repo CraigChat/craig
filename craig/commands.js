@@ -171,8 +171,7 @@ function onMessage(msg) {
     if (cmd === null) return;
 
     // Is this from our glorious leader?
-    if ((msg.channel.type === "dm" || msg.channel.type === 1) &&
-        msg.author.id && msg.author.id === config.owner) {
+    if (msg.author.id && msg.author.id === config.owner) {
         if (cc.dead) return;
         try {
             log("owner-command",
@@ -181,9 +180,20 @@ function onMessage(msg) {
         } catch (ex) {
             logex(ex);
         }
+
+        // If there is no name, assume its a DM and set the createMessage function
+        if (!msg.channel.name) msg.channel.createMessage = function () {
+            const args = arguments;
+            const user = this;
+            return new Promise((res, rej) => {
+                user.getDMChannel().then((channel) => {
+                    channel.createMessage.apply(channel, args).then(res).catch(rej);
+                }).catch(rej);
+            });
+        }
+
         let fun = ownerCommands[cmd[2].toLowerCase()];
-        if (fun) fun(msg, cmd);
-        return;
+        if (fun) return fun(msg, cmd);
     }
 
     // Ignore it if it's from an unauthorized user
@@ -192,10 +202,10 @@ function onMessage(msg) {
     // Log it
     try {
         log("command",
-            nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content,
+            nameId(msg.member) + "@" + (msg.channel.name ? nameId(msg.channel) : msg.channel.id) + "@" + (msg.channel.guild ? nameId(msg.channel.guild) : msg.guildID || 'UNKNOWN') + ": " + msg.content,
             {
                 uid: msg.member.id,
-                gid: msg.channel.guild.id,
+                gid: msg.channel.guild ? msg.channel.guild.id : msg.guildID || 'UNKNOWN',
                 tcid: msg.channel.id
             });
     } catch (ex) {
