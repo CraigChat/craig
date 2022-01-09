@@ -180,6 +180,18 @@ function onMessage(msg) {
         } catch (ex) {
             logex(ex);
         }
+
+        // If there is no name, assume its a DM and set the createMessage function
+        if (!msg.channel.name) msg.channel.createMessage = function () {
+            const args = arguments;
+            const user = this;
+            return new Promise((res, rej) => {
+                user.getDMChannel().then((channel) => {
+                    channel.createMessage.apply(channel, args).then(res).catch(rej);
+                }).catch(rej);
+            });
+        }
+
         let fun = ownerCommands[cmd[2].toLowerCase()];
         if (fun) fun(msg, cmd);
         return;
