@@ -193,8 +193,7 @@ function onMessage(msg) {
         }
 
         let fun = ownerCommands[cmd[2].toLowerCase()];
-        if (fun) fun(msg, cmd);
-        return;
+        if (fun) return fun(msg, cmd);
     }
 
     // Ignore it if it's from an unauthorized user
