@@ -29,6 +29,7 @@
   "devDependencies": {
     "@fontsource/lexend": "^4.5.2",
     "@fontsource/red-hat-text": "^4.5.1",
+    "@fontsource/ubuntu-mono": "^4.5.0",
     "@fullhuman/postcss-purgecss": "^4.1.3",
     "@iconify-icons/cib": "^1.1.0",
     "@iconify-icons/file-icons": "^1.1.7",
