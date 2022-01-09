@@ -171,8 +171,7 @@ function onMessage(msg) {
     if (cmd === null) return;
 
     // Is this from our glorious leader?
-    if ((msg.channel.type === "dm" || msg.channel.type === 1) &&
-        msg.author.id && msg.author.id === config.owner) {
+    if (msg.author.id && msg.author.id === config.owner) {
         if (cc.dead) return;
         try {
             log("owner-command",
@@ -192,10 +191,10 @@ function onMessage(msg) {
     // Log it
     try {
         log("command",
-            nameId(msg.member) + "@" + nameId(msg.channel) + "@" + nameId(msg.channel.guild) + ": " + msg.content,
+            nameId(msg.member) + "@" + (msg.channel.name ? nameId(msg.channel) : msg.channel.id) + "@" + (msg.channel.guild ? nameId(msg.channel.guild) : msg.guildID || 'UNKNOWN') + ": " + msg.content,
             {
                 uid: msg.member.id,
-                gid: msg.channel.guild.id,
+                gid: msg.channel.guild ? msg.channel.guild.id : msg.guildID || 'UNKNOWN',
                 tcid: msg.channel.id
             });
     } catch (ex) {
