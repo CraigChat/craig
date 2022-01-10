@@ -3,19 +3,24 @@ import { RecordingInfo, RecordingUser } from '../api';
 import DiscordElement from './discordElement';
 
 interface RecordingProps {
-  recording: RecordingInfo;
-  recordingId: string | number;
-  users: RecordingUser[];
+  state: {
+    recording: RecordingInfo;
+    recordingId: string | number;
+    users: RecordingUser[];
+    durationLoading: boolean;
+    duration: number | null;
+  }
   onDurationClick?(e: MouseEvent): any;
 }
 
-export default function Recording({ recording, recordingId, users, onDurationClick }: RecordingProps) {
+export default function Recording({ state, onDurationClick }: RecordingProps) {
+  const recording = state.recording;
   return (
     <Fragment>
       <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-md text-zinc-200">
         <div>
           <span class="text-zinc-100 font-display">Recording ID:</span>{' '}
-          <span class="font-mono">{recordingId}</span>
+          <span class="font-mono">{state.recordingId}</span>
         </div>
 
         <div class="flex flex-col gap-1">
@@ -40,6 +45,21 @@ export default function Recording({ recording, recordingId, users, onDurationCli
           <div>
             <span class="text-zinc-100 font-display">Started At:</span>{' '}
             {new Date(recording.startTime).toLocaleString()}
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <div>
+            <span class="text-zinc-100 font-display">Duration:</span>
+            {state.durationLoading ? <span class="font-medium text-zinc-400">Loading...</span> : (
+              state.duration === null
+                ? <button onClick={onDurationClick} class="font-medium text-zinc-400 hover:underline" >Reveal</button>
+                : <span>{state.duration}</span>
+            )}
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-zinc-100 font-display">User(s):</span>
+            {state.users.map((user) => <DiscordElement {...user} key={user.id} />)}
           </div>
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { Component, h } from 'preact';
-import { Icon, IconifyIcon } from '@iconify/react';
+import { Icon } from '@iconify/react';
 import ReactModal from 'react-modal';
 import clsx from 'clsx';
-import { getRecording, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
+import { getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
 import * as icons from '../icons';
 import Recording from './recording';
 
@@ -18,6 +18,7 @@ interface AppState {
   recordingId: string;
   recording: RecordingInfo | null;
   users: RecordingUser[] | null;
+  durationLoading: boolean;
   duration: number | null;
   error: string | null;
 
@@ -40,6 +41,7 @@ export default class App extends Component<{}, AppState> {
       recordingId: location.pathname.split('/')[2],
       recording: null,
       users: null,
+      durationLoading: false,
       duration: null,
       error: null
     };
@@ -64,6 +66,20 @@ export default class App extends Component<{}, AppState> {
       const body = response.body ? await response.json() : { error: `${response.status}: ${response.statusText}` };
       console.error('Failed to get recording:', response, body);
       this.setState({ error: body.error, loading: false });
+    }
+  }
+
+  async loadDuration() {
+    try {
+      this.setState({ durationLoading: true });
+      const duration = await getRecordingDuration(this.state.recordingId, this.state.recording.key);
+      console.debug('Got duration', duration);
+      this.setState({ duration, durationLoading: false });
+    } catch (e) {
+      const response = e as Response;
+      const body = response.body ? await response.json() : { error: `${response.status}: ${response.statusText}` };
+      console.error('Failed to get duration:', response, body);
+      this.setState({ durationLoading: false });
     }
   }
 
@@ -98,14 +114,10 @@ export default class App extends Component<{}, AppState> {
           {this.state.loading ?
             <h2 class="text-2xl text-zinc-100 font-display text-center">Loading...</h2> : (
               this.state.error ?
-              <h2 class="flex items-center justify-center text-2xl text-zinc-100 font-display">
-                <Icon icon={icons.close} className="text-red-500" />
+              <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
+                <Icon icon={icons.close} className="text-red-500 text-3xl" />
                 <span>{this.state.error}</span>
-              </h2> : <Recording
-                recording={this.state.recording}
-                recordingId={this.state.recordingId}
-                users={this.state.users}
-              />
+              </h2> : <Recording state={this.state} />
             )}
         </div>
         <ReactModal

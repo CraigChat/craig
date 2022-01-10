@@ -16,7 +16,13 @@ export async function start(): Promise<void> {
     bodyLimit: 1024
   });
 
-  await server.register(helmet);
+  await server.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        "img-src": ["'self'", "data:", "https://cdn.discordapp.com"],
+      }
+    }
+  });
   await server.register(staticPlugin, {
     root: path.join(__dirname, '..', 'page', 'public'),
     prefix: '/assets/'
