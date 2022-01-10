@@ -117,7 +117,7 @@ export default class App extends Component<{}, AppState> {
               <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
                 <Icon icon={icons.close} className="text-red-500 text-3xl" />
                 <span>{this.state.error}</span>
-              </h2> : <Recording state={this.state} />
+              </h2> : <Recording state={this.state} onDurationClick={this.loadDuration} />
             )}
         </div>
         <ReactModal
