@@ -21,6 +21,7 @@ export async function start(): Promise<void> {
       directives: {
         "default-src": ["'self'"],
         "img-src": ["'self'", "data:", "https://cdn.discordapp.com"],
+        "style-src": ["'self'", "https:", "'unsafe-inline'"],
       }
     }
   });
