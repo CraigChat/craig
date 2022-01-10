@@ -50,6 +50,11 @@ let banned = {};
 const banStmt = db.prepare("INSERT OR REPLACE INTO bans (id, name) VALUES (@id, @name)");
 const unbanStmt = db.prepare("DELETE FROM bans WHERE id=@id");
 
+function isOwner(uid) {
+    if (Array.isArray(config.owner)) return config.owner.includes(uid);
+    return config.owner === uid;
+}
+
 if (cc.master) {
     // Get our bans
     db.prepare("SELECT * FROM bans").all().forEach((row) => {
@@ -171,7 +176,7 @@ function onMessage(msg) {
     if (cmd === null) return;
 
     // Is this from our glorious leader?
-    if (msg.author.id && msg.author.id === config.owner) {
+    if (msg.author.id && isOwner(msg.author.id)) {
         if (cc.dead) return;
         try {
             log("owner-command",
@@ -283,7 +288,7 @@ if (client) client.on("interactionCreate", onInteraction);
 // Ban command interface
 function cmdBanUnban(isBan, msg, cmd) {
     // Only the owner can ban
-    if (msg.member.id !== config.owner) return;
+    if (!isOwner(msg.member.id)) return;
 
     const mention = /^<@!?([0-9]*)> *(.*)/;
     var toban = cmd[3];
@@ -302,7 +307,7 @@ function cmdBanUnban(isBan, msg, cmd) {
         else
             buser = "UNKNOWN";
 
-        if (bui === config.owner) continue;
+        if (isOwner(bui)) continue;
 
         if (isBan) {
             ban(bid, buser);
