@@ -14,7 +14,7 @@ export default function Recording({ recording, recordingId, users, onDurationCli
     <Fragment>
       <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-md text-zinc-200">
         <div>
-          <span class="text-zinc-100 font-display">Recording ID:</span>
+          <span class="text-zinc-100 font-display">Recording ID:</span>{' '}
           <span class="font-mono">{recordingId}</span>
         </div>
 
@@ -37,9 +37,9 @@ export default function Recording({ recording, recordingId, users, onDurationCli
             <span class="text-zinc-100 font-display">Channel:</span>
             {recording.channelExtra ? <DiscordElement {...recording.channelExtra} elementType="channel" /> : recording.channel}
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-zinc-100 font-display">Started At:</span>
-            {recording.startTime}
+          <div>
+            <span class="text-zinc-100 font-display">Started At:</span>{' '}
+            {new Date(recording.startTime).toLocaleString()}
           </div>
         </div>
       </div>
