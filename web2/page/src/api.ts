@@ -40,16 +40,19 @@ export interface RecordingUser {
 
 export async function getRecording(id: string, key: string): Promise<RecordingInfo> {
   const response = await fetch(`/api/recording/${id}?key=${key}`);
-  return response.json();
+  if (response.status !== 200) throw response;
+  return response.json().then(data => data.info);
 }
 
 export async function getRecordingUsers(id: string, key: string): Promise<RecordingUser[]> {
   const response = await fetch(`/api/recording/${id}/users?key=${key}`);
-  return response.json();
+  if (response.status !== 200) throw response;
+  return response.json().then(data => data.users);
 }
 
 export async function getRecordingDuration(id: string, key: string): Promise<number> {
   const response = await fetch(`/api/recording/${id}/duration?key=${key}`);
+  if (response.status !== 200) throw response;
   const { duration } = await response.json();
   return duration;
 }

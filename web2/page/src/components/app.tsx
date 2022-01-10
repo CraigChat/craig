@@ -80,8 +80,8 @@ export default class App extends Component<{}, AppState> {
 
   render() {
     return (
-      <div class="min-h-screen font-body text-white bg-zinc-900 flex flex-row justify-center items-stretch">
-        <div class="bg-black bg-opacity-25 md:shadow-2xl min-h-screen max-w-screen-md w-full p-8 flex flex-col space-y-8">
+      <div class="min-h-screen bg-zinc-900 text-white font-body">
+        <div class="sm:max-w-4xl mx-auto p-12 space-y-10">
           {/* Header */}
           <div class="flex flex-row items-center justify-center gap-4">
             <img src="/assets/craig.png" class="w-16 h-16 rounded-full" />
