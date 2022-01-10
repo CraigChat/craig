@@ -1,6 +1,7 @@
 import fastify, { FastifyInstance } from 'fastify';
 import helmet from 'fastify-helmet';
 import staticPlugin from 'fastify-static';
+import path from 'path';
 import * as recordingRoute from './routes/recording';
 import * as cookRoute from './routes/cook';
 import * as pageRoute from './routes/page';
@@ -12,12 +13,12 @@ export async function start(): Promise<void> {
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
     ignoreTrailingSlash: true,
-    bodyLimit: 500
+    bodyLimit: 1024
   });
 
   await server.register(helmet);
   await server.register(staticPlugin, {
-    root: `${__dirname}/../../public`,
+    root: path.join(__dirname, '..', 'page', 'public'),
     prefix: '/assets/'
   });
 
