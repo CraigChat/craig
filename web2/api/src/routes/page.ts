@@ -43,7 +43,7 @@ export const filesRoute: RouteOptions = {
   handler: async (request, reply) => {
     const { file } = request.params as { file: string };
     const fontsPath = path.join(__dirname, '../../node_modules/@fontsource');
-    const fonts = ['red-hat-text', 'lexend'];
+    const fonts = ['red-hat-text', 'lexend', 'ubuntu-mono'];
     for (const font of fonts) {
       const mime = file.endsWith('woff2') ? 'font/woff2' : 'font/woff';
       if (file.startsWith(font)) return reply.type(mime).sendFile(file, path.join(fontsPath, font, 'files'));
