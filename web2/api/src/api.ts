@@ -19,6 +19,7 @@ export async function start(): Promise<void> {
   await server.register(helmet, {
     contentSecurityPolicy: {
       directives: {
+        "default-src": ["'self'"],
         "img-src": ["'self'", "data:", "https://cdn.discordapp.com"],
       }
     }
