@@ -7,6 +7,8 @@ module.exports = {
   theme: {
     extend: {
       minWidth: {
+        '1/2': '50%',
+        '2/5': '40%',
         button: '80px'
       }
     },

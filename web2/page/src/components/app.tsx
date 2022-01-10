@@ -4,6 +4,7 @@ import ReactModal from 'react-modal';
 import clsx from 'clsx';
 import { getRecording, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
 import * as icons from '../icons';
+import Recording from './recording';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -14,6 +15,7 @@ export type OpenModalFunction = (content: any, opts?: ModalOptions) => void;
 
 interface AppState {
   loading: boolean;
+  recordingId: string;
   recording: RecordingInfo | null;
   users: RecordingUser[] | null;
   duration: number | null;
@@ -35,6 +37,7 @@ export default class App extends Component<{}, AppState> {
       modalContent: null,
 
       loading: true,
+      recordingId: location.pathname.split('/')[2],
       recording: null,
       users: null,
       duration: null,
@@ -51,10 +54,9 @@ export default class App extends Component<{}, AppState> {
 
   async loadRecording() {
     try {
-      const recId = location.pathname.split('/')[2];
       const query = new URLSearchParams(location.search);
-      const recording = await getRecording(recId, query.get('key'));
-      const users = await getRecordingUsers(recId, query.get('key'));
+      const recording = await getRecording(this.state.recordingId, query.get('key'));
+      const users = await getRecordingUsers(this.state.recordingId, query.get('key'));
       console.debug('Got recording', recording, users);
       this.setState({ recording, users, loading: false });
     } catch (e) {
@@ -96,9 +98,14 @@ export default class App extends Component<{}, AppState> {
           {this.state.loading ?
             <h2 class="text-2xl text-zinc-100 font-display text-center">Loading...</h2> : (
               this.state.error ?
-              <div class="flex flex-col items-center justify-center">
-                <h2 class="text-2xl text-zinc-100 font-display"><Icon icon={icons.close} className="text-red-500" /> {this.state.error}</h2>
-              </div> : <span>TODO</span>
+              <h2 class="flex items-center justify-center text-2xl text-zinc-100 font-display">
+                <Icon icon={icons.close} className="text-red-500" />
+                <span>{this.state.error}</span>
+              </h2> : <Recording
+                recording={this.state.recording}
+                recordingId={this.state.recordingId}
+                users={this.state.users}
+              />
             )}
         </div>
         <ReactModal

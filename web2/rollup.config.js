@@ -29,13 +29,19 @@ export default ({ watch }) => [
             purgecss({
               content: ['./page/src/**/*.tsx', './page/src/**/*.ts', './page/src/**/*.sass'],
               safelist: {
-                standard: ['dark-theme', 'enter', 'leave'],
+                standard: ['enter', 'leave', 'min-w-1/2', 'w-5/6', 'md:min-w-2/5'],
                 deep: [],
                 greedy: [/^tippy-/],
                 keyframes: [],
                 variables: []
               },
-              blocklist: ['light-theme', 'transparent-theme']
+              blocklist: ['light-theme', 'transparent-theme'],
+              extractors: [
+                {
+                  extractor: (content) => content.match(/[A-Za-z0-9_-][A-Za-z0-9_:-]*/g) || [],
+                  extensions: ['tsx']
+                }
+              ]
             })
         ],
         extract: true,
