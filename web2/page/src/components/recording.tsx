@@ -31,7 +31,7 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
         </div>
 
         <div class="flex flex-col gap-1">
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">Requested By:</span>
             {recording.requesterExtra ? <DiscordElement {...recording.requesterExtra} /> : recording.requester}
             {recording.user ? (
@@ -41,11 +41,11 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
               </Fragment>
             ) : ''}
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">Server:</span>
             {recording.guildExtra ? <DiscordElement {...recording.guildExtra} /> : recording.guild}
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">Channel:</span>
             {recording.channelExtra ? <DiscordElement {...recording.channelExtra} elementType="channel" /> : recording.channel}
           </div>
