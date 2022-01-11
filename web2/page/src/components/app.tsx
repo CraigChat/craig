@@ -76,9 +76,14 @@ export default class App extends Component<{}, AppState> {
       this.setState({ duration, durationLoading: false });
     } catch (e) {
       const response = e as Response;
-      const body = response.body ? await response.json() : { error: `${response.status}: ${response.statusText}` };
+      const body = response.body ? await response.json().catch(() => {}) : { error: `${response.status}: ${response.statusText}` };
       console.error('Failed to get duration:', response, body);
-      this.setState({ durationLoading: false });
+      this.setState({
+        modalOpen: true,
+        modalContent: body.error,
+        modalContentLabel: 'Failed to get duration',
+        durationLoading: false
+      });
     }
   }
 
