@@ -1,6 +1,11 @@
 import { Fragment, h } from 'preact';
 import { RecordingInfo, RecordingUser } from '../api';
 import DiscordElement from './discordElement';
+import Section from './section';
+import downloadIcon from '@iconify-icons/ic/baseline-download';
+import multiTrackIcon from '@iconify-icons/ic/round-clear-all';
+import singleTrackIcon from '@iconify-icons/mdi/merge';
+import DownloadButton from './downloadButton';
 
 interface RecordingProps {
   state: {
@@ -17,6 +22,7 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
   const recording = state.recording;
   return (
     <Fragment>
+      {/* Info Box */}
       <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-md text-zinc-200">
         <div>
           <span class="text-zinc-100 font-display">Recording ID:</span>{' '}
@@ -50,6 +56,7 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
 
         <div class="flex flex-col gap-1">
           <div>
+            {/* TODO format duration */}
             <span class="text-zinc-100 font-display">Duration:</span>{' '}
             {state.durationLoading ? <span class="font-medium text-zinc-400">Loading...</span> : (
               state.duration === null
@@ -63,6 +70,21 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
           </div>
         </div>
       </div>
+
+      {/* Downloads */}
+      <Section title="Downloads" icon={downloadIcon}>
+        <Section title="Multi-track" icon={multiTrackIcon}>
+          <DownloadButton title="TODO" />
+        </Section>
+        <Section title="Single-track Mix" icon={singleTrackIcon}>
+          <DownloadButton title="TODO" />
+        </Section>
+      </Section>
+
+      {/* Avatars */}
+      <Section title="Avatars" icon={downloadIcon} collapsable collapsed>
+        <DownloadButton title="TODO" />
+      </Section>
     </Fragment>
   )
 }

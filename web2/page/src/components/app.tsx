@@ -1,10 +1,9 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
-import ReactModal from 'react-modal';
-import clsx from 'clsx';
 import { getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
-import * as icons from '../icons';
 import Recording from './recording';
+import Modal from './modal';
+import closeIcon from '@iconify-icons/ic/close';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -115,22 +114,14 @@ export default class App extends Component<{}, AppState> {
             <h2 class="text-2xl text-zinc-100 font-display text-center">Loading...</h2> : (
               this.state.error ?
               <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
-                <Icon icon={icons.close} className="text-red-500 text-3xl" />
+                <Icon icon={closeIcon} className="text-red-500 text-3xl" />
                 <span>{this.state.error}</span>
               </h2> : <Recording state={this.state} onDurationClick={this.loadDuration.bind(this)} />
             )}
         </div>
-        <ReactModal
-          isOpen={this.state.modalOpen}
-          onRequestClose={() => this.closeModal()}
-          ariaHideApp={false}
-          contentLabel={this.state.modalContentLabel}
-          portalClassName={clsx('fixed inset-0', { 'pointer-events-none': !this.state.modalOpen })}
-          overlayClassName="h-screen flex justify-center items-center bg-black bg-opacity-25"
-          className="p-6 bg-zinc-700 text-white outline-none rounded min-w-1/2 w-5/6 md:min-w-2/5"
-        >
+        <Modal open={this.state.modalOpen} label={this.state.modalContentLabel}>
           {this.state.modalContent}
-        </ReactModal>
+        </Modal>
       </div>
     );
   }
