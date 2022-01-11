@@ -4,6 +4,8 @@ import { getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, R
 import Recording from './recording';
 import Modal from './modal';
 import closeIcon from '@iconify-icons/ic/close';
+import ModalContent from './modalContent';
+import ModalButton from './modalButton';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -80,7 +82,12 @@ export default class App extends Component<{}, AppState> {
       console.error('Failed to get duration:', response, body);
       this.setState({
         modalOpen: true,
-        modalContent: body.error,
+        modalContent: (
+          <ModalContent title="Uh oh." buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
+            <p>Failed to get the duration of the recording!</p>
+            <p>{body.error}</p>
+          </ModalContent>
+        ),
         modalContentLabel: 'Failed to get duration',
         durationLoading: false
       });
@@ -124,7 +131,7 @@ export default class App extends Component<{}, AppState> {
               </h2> : <Recording state={this.state} onDurationClick={this.loadDuration.bind(this)} />
             )}
         </div>
-        <Modal open={this.state.modalOpen} label={this.state.modalContentLabel}>
+        <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
           {this.state.modalContent}
         </Modal>
       </div>
