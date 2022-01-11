@@ -23,7 +23,7 @@ export default function Section({ icon, title, small, collapsable, collapsed, ch
     <div class={clsx("flex flex-col", small ? "gap-2" : "gap-4")}>
       <Heading
         class={clsx(
-          "font-display flex flex-row gap-1 items-center",
+          "font-display flex flex-row gap-2 items-center",
           small ? "text-lg font-medium" : "text-2xl font-bold",
           {
             'text-zinc-400': isCollapsed && !small,
