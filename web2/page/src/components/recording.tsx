@@ -24,7 +24,7 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
   return (
     <Fragment>
       {/* Info Box */}
-      <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-md text-zinc-200">
+      <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-sm text-zinc-200">
         <div>
           <span class="text-zinc-100 font-display">Recording ID:</span>{' '}
           <span class="font-mono">{state.recordingId}</span>
