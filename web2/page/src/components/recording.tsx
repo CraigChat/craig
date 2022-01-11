@@ -61,7 +61,7 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
             <span class="text-zinc-100 font-display">Duration:</span>{' '}
             {state.durationLoading ? <span class="font-medium text-zinc-400">Loading...</span> : (
               state.duration === null
-                ? <button onClick={onDurationClick} class="font-medium text-zinc-400 hover:underline">Reveal</button>
+                ? <button onClick={onDurationClick} class="font-medium text-zinc-400 hover:underline focus:underline outline-none">Reveal</button>
                 : <span>{state.duration}</span>
             )}
           </div>

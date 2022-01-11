@@ -3,7 +3,7 @@ const sans = defaults.theme.fontFamily.sans;
 const mono = defaults.theme.fontFamily.mono;
 
 module.exports = {
-  purge: ['./page/src/**/*.{js,jsx,ts,tsx}'],
+  content: ['./page/src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       minWidth: {
