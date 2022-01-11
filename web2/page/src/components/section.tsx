@@ -17,7 +17,7 @@ interface SectionProps {
 export default function Section({ icon, title, small, collapsable, collapsed, children }: SectionProps) {
   const [isCollapsed, setCollapsed] = useState(collapsed || false);
   const Heading = small ? 'h4' : 'h2';
-  const iconClass = small ? 'w-6 w-6' : 'w-8 w-8';
+  const iconClass = small ? 'w-6 h-6' : 'w-8 h-8';
 
   return (
     <div class={clsx("flex flex-col", small ? "gap-2" : "gap-4")}>
