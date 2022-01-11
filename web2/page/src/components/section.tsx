@@ -17,13 +17,14 @@ interface SectionProps {
 export default function Section({ icon, title, small, collapsable, collapsed, children }: SectionProps) {
   const [isCollapsed, setCollapsed] = useState(collapsed || false);
   const Heading = small ? 'h4' : 'h2';
+  const iconClass = small ? 'w-6 w-6' : 'w-8 w-8';
 
   return (
     <div class={clsx("flex flex-col", small ? "gap-2" : "gap-4")}>
       <Heading
         class={clsx(
-          "font-display flex flex-row gap-2",
-          small ? "text-xl font-medium" : "text-2xl font-bold",
+          "font-display flex flex-row gap-2 items-center",
+          small ? "text-lg font-medium" : "text-2xl font-bold",
           {
             'text-zinc-400': isCollapsed && !small,
             'text-zinc-500': isCollapsed && small,
@@ -34,11 +35,11 @@ export default function Section({ icon, title, small, collapsable, collapsed, ch
         )}
         onClick={collapsable ? () => setCollapsed(!isCollapsed) : null}
       >
-        {collapsable ? <Icon icon={isCollapsed ? arrowDown : arrowUp} /> : ''}
-        {icon ? <Icon icon={icon} /> : ''}
+        {collapsable ? <Icon icon={isCollapsed ? arrowDown : arrowUp} className={iconClass} /> : ''}
+        {icon ? <Icon icon={icon} className={iconClass} /> : ''}
         <span>{title}</span>
       </Heading>
-      {isCollapsed ? children : ''}
+      {!isCollapsed ? children : ''}
     </div>
   )
 }
