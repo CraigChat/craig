@@ -9,6 +9,8 @@ import tailwindcss from 'tailwindcss';
 import commonjs from '@rollup/plugin-commonjs';
 import injectProcessEnv from 'rollup-plugin-inject-process-env';
 import alias from '@rollup/plugin-alias';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export default ({ watch }) => [
   {
@@ -62,7 +64,8 @@ export default ({ watch }) => [
         }
       }),
       injectProcessEnv({
-        NODE_ENV: !watch ? 'production' : 'development'
+        NODE_ENV: !watch ? 'production' : 'development',
+        ENNUIZEL_BASE: process.env.ENNUIZEL_BASE
       }),
       alias({
         entries: [
