@@ -5,8 +5,8 @@ import Section from './section';
 import DownloadButton from './downloadButton';
 import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
-import multiTrackIcon from '@iconify-icons/ic/round-clear-all';
-import singleTrackIcon from '@iconify-icons/mdi/merge';
+import { PlatformInfo } from '../util';
+import { getDownloadsSection, SectionButton } from '../sections';
 
 interface RecordingProps {
   state: {
@@ -15,12 +15,16 @@ interface RecordingProps {
     users: RecordingUser[];
     durationLoading: boolean;
     duration: number | null;
-  }
+    platform: PlatformInfo;
+  };
   onDurationClick?(e: MouseEvent): any;
+  onDownloadClick?(button: SectionButton, e: MouseEvent): any;
 }
 
-export default function Recording({ state, onDurationClick }: RecordingProps) {
+export default function Recording({ state, onDurationClick, onDownloadClick }: RecordingProps) {
   const recording = state.recording;
+  const downloadsSection = getDownloadsSection(recording, state.platform);
+
   return (
     <Fragment>
       {/* Info Box */}
@@ -74,17 +78,17 @@ export default function Recording({ state, onDurationClick }: RecordingProps) {
 
       {/* Downloads */}
       <Section title="Downloads" icon={downloadIcon}>
-        <Section title="Multi-track" icon={multiTrackIcon} small>
+        {downloadsSection.map((section, i) => (<Section title={section.title} icon={section.icon} small key={i}>
           <div class="flex flex-row flex-wrap gap-3">
-            <DownloadButton title="TODO" />
-            <DownloadButton title="TODO" ennuizel />
+            {section.buttons.map((button, ii) => <DownloadButton
+              title={button.text}
+              suffix={button.suffix}
+              ennuizel={!!button.ennuizel}
+              key={ii}
+              onClick={(e) => onDownloadClick(button, e)}
+            />)}
           </div>
-        </Section>
-        <Section title="Single-track Mix" icon={singleTrackIcon} small>
-          <div class="flex flex-row flex-wrap gap-3">
-            <DownloadButton title="TODO" />
-          </div>
-        </Section>
+        </Section>))}
       </Section>
 
       {/* Avatars */}

@@ -6,6 +6,8 @@ import Modal from './modal';
 import closeIcon from '@iconify-icons/ic/close';
 import ModalContent from './modalContent';
 import ModalButton from './modalButton';
+import { getPlatformInfo, PlatformInfo } from '../util';
+import { SectionButton } from '../sections';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -16,6 +18,7 @@ export type OpenModalFunction = (content: any, opts?: ModalOptions) => void;
 
 interface AppState {
   loading: boolean;
+  platform: PlatformInfo;
   recordingId: string;
   recording: RecordingInfo | null;
   users: RecordingUser[] | null;
@@ -32,6 +35,7 @@ interface AppState {
 export default class App extends Component<{}, AppState> {
   constructor() {
     super();
+
     this.state = {
       modalOpen: false,
       allowModalClose: true,
@@ -39,6 +43,7 @@ export default class App extends Component<{}, AppState> {
       modalContent: null,
 
       loading: true,
+      platform: getPlatformInfo(),
       recordingId: location.pathname.split('/')[2],
       recording: null,
       users: null,
@@ -47,8 +52,13 @@ export default class App extends Component<{}, AppState> {
       error: null
     };
 
+    // TODO show hidden platforms button
+    this.state.platform.showHidden = !!localStorage.getItem('showHiddenPlatforms');
+
     this.openModal = this.openModal.bind(this);
     this.closeModal = this.closeModal.bind(this);
+
+    console.log('Loaded', { platform: this.state.platform });
   }
 
   async componentDidMount() {
@@ -94,6 +104,11 @@ export default class App extends Component<{}, AppState> {
     }
   }
 
+  async startDownload(button: SectionButton) {
+    // TODO download dialog
+    console.log(button);
+  }
+
   openModal(content: any, opts: ModalOptions = {}) {
     this.setState({
       modalOpen: true,
@@ -128,7 +143,11 @@ export default class App extends Component<{}, AppState> {
               <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
                 <Icon icon={closeIcon} className="text-red-500 text-3xl" />
                 <span>{this.state.error}</span>
-              </h2> : <Recording state={this.state} onDurationClick={this.loadDuration.bind(this)} />
+              </h2> : <Recording
+                state={this.state}
+                onDurationClick={this.loadDuration.bind(this)}
+                onDownloadClick={this.startDownload.bind(this)}
+              />
             )}
         </div>
         <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
