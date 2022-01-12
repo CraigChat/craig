@@ -86,7 +86,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
               icon={button.icon}
               title={button.text}
               suffix={button.suffix}
-              ennuizel={!!button.ennuizel}
+              ennuizel={button.ennuizel !== undefined}
               key={ii}
               onClick={(e) => onDownloadClick(button, e)}
             />))}
@@ -109,7 +109,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
               icon={button.icon}
               title={button.text}
               suffix={button.suffix}
-              ennuizel={!!button.ennuizel}
+              ennuizel={button.ennuizel !== undefined}
               key={ii}
               onClick={(e) => onDownloadClick(button, e)}
             />))}
