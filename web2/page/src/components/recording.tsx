@@ -5,8 +5,9 @@ import Section from './section';
 import DownloadButton from './downloadButton';
 import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
+import audioIcon from '@iconify-icons/ic/round-audio-file';
 import { PlatformInfo } from '../util';
-import { getDownloadsSection, SectionButton } from '../sections';
+import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
 
 interface RecordingProps {
   state: {
@@ -24,6 +25,7 @@ interface RecordingProps {
 export default function Recording({ state, onDurationClick, onDownloadClick }: RecordingProps) {
   const recording = state.recording;
   const downloadsSection = getDownloadsSection(recording, state.platform);
+  const othersSection = getOtherFormatsSection(recording, state.platform);
 
   return (
     <Fragment>
@@ -96,6 +98,21 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
         <div class="flex flex-row flex-wrap gap-3">
           <DownloadButton title="TODO" />
         </div>
+      </Section>
+
+      {/* Other Formats */}
+      <Section title="Other formats" icon={audioIcon} collapsable collapsed>
+        {othersSection.map((section, i) => (<Section title={section.title} icon={section.icon} small key={i}>
+          <div class="flex flex-row flex-wrap gap-3">
+            {section.buttons.map((button, ii) => (button.hidden ? '' : <DownloadButton
+              title={button.text}
+              suffix={button.suffix}
+              ennuizel={!!button.ennuizel}
+              key={ii}
+              onClick={(e) => onDownloadClick(button, e)}
+            />))}
+          </div>
+        </Section>))}
       </Section>
     </Fragment>
   )
