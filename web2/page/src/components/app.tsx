@@ -1,6 +1,6 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
-import { getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
+import { cookRecording, getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
 import Recording from './recording';
 import Modal from './modal';
 import closeIcon from '@iconify-icons/ic/close';
@@ -104,9 +104,64 @@ export default class App extends Component<{}, AppState> {
     }
   }
 
-  async startDownload(button: SectionButton) {
-    // TODO download dialog
-    console.log(button);
+  async startDownload(button: SectionButton, e: MouseEvent) {
+    (e.target as HTMLButtonElement).blur();
+    console.log('Downloading...', button);
+
+    if (button.ennuizel !== undefined) {
+      // TODO ennuizel prompt & link
+      return;
+    }
+
+    this.openModal(
+      <ModalContent title="Downloading...">
+        Downloading in the {button.text} format...
+      </ModalContent>,
+      {
+        allowClose: false,
+        contentLabel: 'Downloading'
+      }
+    );
+
+    try {
+      const query = new URLSearchParams(location.search);
+      const response = await cookRecording(this.state.recordingId, query.get('key'), {
+        format: button.format || 'flac',
+        container: button.container || 'zip',
+        dynaudnorm: button.dynaudnorm || false
+      });
+
+      const filename = response.headers.get('content-disposition').slice(21);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      console.log('Opened download link', { blob, filename });
+      URL.revokeObjectURL(url);
+      this.closeModal(true);
+    } catch (err) {
+      let errText = err.toString();
+      if (err instanceof Response) {
+        if (err.status <= 499) {
+          const body = await err.json().catch(() => {});
+          errText = body.error || `${err.status}: ${err.statusText}`;
+        }
+      }
+
+      console.error('Failed to download:', button, err);
+      this.openModal(
+        <ModalContent title="Download failed!" buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
+          <p>Failed to download the {button.text} format.</p>
+          <p>{errText}</p>
+        </ModalContent>,
+        {
+          allowClose: true,
+          contentLabel: 'Download failed'
+        }
+      );
+    }
   }
 
   openModal(content: any, opts: ModalOptions = {}) {

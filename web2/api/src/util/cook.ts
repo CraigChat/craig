@@ -41,6 +41,7 @@ export const allowedFormats = [
   'powersfx',
   'powersfxm',
   'powersfxu',
+  'mp3',
   'ra'
 ];
 

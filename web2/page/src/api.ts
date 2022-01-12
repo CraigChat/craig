@@ -56,3 +56,26 @@ export async function getRecordingDuration(id: string, key: string | number): Pr
   const { duration } = await response.json();
   return duration;
 }
+
+export async function isReady(id: string, key: string | number): Promise<boolean> {
+  const response = await fetch(`/api/recording/${id}/cook?key=${key}`);
+  if (response.status !== 200) throw response;
+  const { ready } = await response.json();
+  return ready;
+}
+
+interface CookPayload {
+  format?: string;
+  container?: string;
+  dynaudnorm?: boolean;
+}
+
+export async function cookRecording(id: string, key: string | number, payload: CookPayload): Promise<Response> {
+  const response = await fetch(`/api/recording/${id}/cook?key=${key}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (response.status !== 200) throw response;
+  return response;
+}
