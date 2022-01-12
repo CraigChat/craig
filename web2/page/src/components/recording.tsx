@@ -83,6 +83,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
         {downloadsSection.map((section, i) => (<Section title={section.title} icon={section.icon} small key={i}>
           <div class="flex flex-row flex-wrap gap-3">
             {section.buttons.map((button, ii) => (button.hidden ? '' : <DownloadButton
+              icon={button.icon}
               title={button.text}
               suffix={button.suffix}
               ennuizel={!!button.ennuizel}
@@ -105,6 +106,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
         {othersSection.map((section, i) => (<Section title={section.title} icon={section.icon} small key={i}>
           <div class="flex flex-row flex-wrap gap-3">
             {section.buttons.map((button, ii) => (button.hidden ? '' : <DownloadButton
+              icon={button.icon}
               title={button.text}
               suffix={button.suffix}
               ennuizel={!!button.ennuizel}
