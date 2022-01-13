@@ -7,6 +7,7 @@ import computerIcon from '@iconify-icons/ic/baseline-computer';
 import windowsIcon from '@iconify-icons/cib/windows';
 import macIcon from '@iconify-icons/cib/apple';
 import unixIcon from '@iconify-icons/cib/linux';
+import rawIcon from '@iconify-icons/ic/round-insert-drive-file';
 import { RecordingInfo } from './api';
 import { PlatformInfo } from './util';
 
@@ -243,6 +244,7 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
       title: 'Miscellaneous (unsupported)',
       buttons: [
         {
+          icon: rawIcon,
           text: 'Raw',
           format: 'raw'
         }

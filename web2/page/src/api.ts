@@ -79,3 +79,9 @@ export async function cookRecording(id: string, key: string | number, payload: C
   if (response.status !== 200) throw response;
   return response;
 }
+
+export async function getRawRecording(id: string, key: string | number): Promise<Response> {
+  const response = await fetch(`/api/recording/${id}/raw?key=${key}`);
+  if (response.status !== 200) throw response;
+  return response;
+}

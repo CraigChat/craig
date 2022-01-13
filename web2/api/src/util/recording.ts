@@ -1,4 +1,6 @@
 import fs from 'fs/promises';
+import StreamConcat from './streamConcat';
+import { createReadStream } from 'fs';
 import path from 'path';
 
 export const recPath = path.join(__dirname, '..', '..', '..', 'rec');
@@ -58,6 +60,11 @@ export async function fileExists(file: string) {
   } catch (err) {
     return false;
   }
+}
+
+export function getRawRecordingStream(id: string) {
+  const stream = new StreamConcat(['header1', 'header2', 'data'].map((ext) => createReadStream(path.join(recPath, `${id}.ogg.${ext}`))));
+  return stream;
 }
 
 export async function getRecording(id: string): Promise<RecordingInfo | false> {

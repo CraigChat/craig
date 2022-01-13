@@ -1,6 +1,6 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
-import { cookRecording, getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
+import { cookRecording, getRawRecording, getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
 import Recording from './recording';
 import Modal from './modal';
 import closeIcon from '@iconify-icons/ic/close';
@@ -125,11 +125,13 @@ export default class App extends Component<{}, AppState> {
 
     try {
       const query = new URLSearchParams(location.search);
-      const response = await cookRecording(this.state.recordingId, query.get('key'), {
-        format: button.format || 'flac',
-        container: button.container || 'zip',
-        dynaudnorm: button.dynaudnorm || false
-      });
+      const response = button.format === 'raw'
+        ? await getRawRecording(this.state.recordingId, query.get('key'))
+        : await cookRecording(this.state.recordingId, query.get('key'), {
+          format: button.format || 'flac',
+          container: button.container || 'zip',
+          dynaudnorm: button.dynaudnorm || false
+        });
 
       const filename = response.headers.get('content-disposition').slice(21);
       const blob = await response.blob();
