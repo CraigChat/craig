@@ -341,7 +341,7 @@ case "$CONTAINER" in
             [ "$CODEC" = "opus" ] && CODEC=libopus
 
             INPUT="$INPUT -codec $CODEC -copyts -i $i"
-            FILTER="$FILTER[$ci:a]$ARESAMPLE,dynaudnorm[aud$co];"
+            FILTER="$FILTER[$ci:a]dynaudnorm[aud$co];"
             MIXFILTER="$MIXFILTER[aud$co]"
             ci=$((ci+1))
             co=$((co+1))
