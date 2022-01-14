@@ -1611,25 +1611,22 @@ slashCommands['leave'] = function(interaction) {
     const guild = interaction.channel.guild;
     const guildId = guild.id;
     let channel = interaction.data.resolved ? interaction.data.resolved.channels.values().next().value : null;
-    if (channel === null) {
-        if (interaction.member.voiceChannel) channel = interaction.member.voiceChannel;
-        else return interaction.createMessage({
+    if (channel === null && interaction.member.voiceChannel) channel = interaction.member.voiceChannel;
+    else if (channel !== null) channel = interaction.channel.guild.channels.get(channel.id);
+
+    // Use the first active recording if no channel was selected
+    if (!interaction.data.resolved && guildId in activeRecordings && (!channel || !(channel.id in activeRecordings[guildId]))) {
+        var rid = Object.keys(activeRecordings[guildId])[0];
+        if (rid) channel = guild.channels.get(rid);
+    }
+
+    
+    if (channel === null)
+        return interaction.createMessage({
             content: l("whatchannel", 'en'),
             flags: 64
         });
-    }
-    let channelId = channel.id;
-
-    // Use the first active recording if no channel was selected
-    if (!(guildId in activeRecordings) || !(channelId in activeRecordings[guildId])) {
-        if (!interaction.data.resolved && (guildId in activeRecordings)) {
-            var rid = Object.keys(activeRecordings[guildId])[0];
-            if (rid) {
-                channel = guild.channels.get(rid);
-                channelId = rid;
-            }
-        }
-    }
+    const channelId = channel.id;
 
     // Actually leave
     if (guildId in activeRecordings &&
