@@ -8,8 +8,7 @@
         "type": 7,
         "name": "channel",
         "description": "The channel to record in.",
-        "channel_types": [2, 13],
-        "required": true
+        "channel_types": [2, 13]
       }
     ]
   },
