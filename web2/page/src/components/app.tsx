@@ -182,12 +182,12 @@ export default class App extends Component<{}, AppState> {
   render() {
     return (
       <div class="min-h-screen bg-zinc-900 text-white font-body">
-        <div class="sm:max-w-4xl mx-auto p-12 space-y-10">
+        <div class="sm:max-w-4xl mx-auto py-12 sm:px-12 px-4 space-y-10">
           {/* Header */}
           <div class="flex flex-row items-center justify-center gap-4">
             <img src="/assets/craig.png" class="w-16 h-16 rounded-full" />
             <div class="flex flex-col">
-              <h1 class="text-4xl text-zinc-100 font-display">Craig Recording</h1>
+              <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">Craig Recording</h1>
               <a href="https://craig.chat/" class="text-zinc-400 font-medium hover:underline focus:underline outline-none">
                 craig.chat →
               </a>

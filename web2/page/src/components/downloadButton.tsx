@@ -14,7 +14,7 @@ export default function DownloadButton({ icon, title, suffix, ennuizel, onClick 
   return (
     <button
       class={clsx(
-        'inline-flex flex-row p-2 px-4 gap-2 items-center justify-center w-fit min-w-button font-medium border-2 bg-opacity-25 rounded-md',
+        'inline-flex flex-row text-sm sm:text-base p-2 sm:px-4 gap-2 items-center justify-center w-fit min-w-button font-medium border-2 bg-opacity-25 rounded-md',
         'hover:text-white hover:bg-opacity-100 transition-colors',
         'focus:text-white focus:bg-opacity-100 active:border-white outline-none',
         {
