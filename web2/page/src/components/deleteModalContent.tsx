@@ -62,7 +62,8 @@ export default function DeleteModalContent({ recordingId, deleteKey: defaultDele
           value={deleteKey}
           class={clsx('py-1 px-3 rounded bg-zinc-800 font-mono outline-none focus:ring-2', {
             'focus:ring-zinc-400': !error,
-            'focus:ring-red-300 text-red-500': !!error
+            'focus:ring-red-300 text-red-500': !!error,
+            'bg-opacity-50 cursor-not-allowed pointer-events-none': isLoading
           })}
           placeholder="123456789"
           onChange={(e) => setDeleteKey(e.currentTarget.value)}
