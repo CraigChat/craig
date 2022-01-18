@@ -1231,7 +1231,9 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
                 avatar: (interaction ? user : msg.author).dynamicAvatarURL('png', 256)
             },
             requesterId: interaction ? userId : msg.author.id,
-            startTime: new Date().toISOString()
+            startTime: new Date().toISOString(),
+            expiresAfter: f.limits.download,
+            features: f
         };
         if (!interaction && user !== msg.author) {
             info.user = user.username + "#" + user.discriminator;
@@ -1242,10 +1244,6 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
                 avatar: user.dynamicAvatarURL('png', 256)
             };
         }
-
-        // If the user has features, mark them down
-        if (f !== cf.defaultFeatures)
-            info.features = f;
 
         // Write out the info
         infoWS.write(JSON.stringify(info));

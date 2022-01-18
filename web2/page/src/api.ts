@@ -1,7 +1,6 @@
 export interface RecordingInfo {
   format: 1;
   key: number | string;
-  delete: number | string;
   guild: string;
   guildExtra: {
     name: string;
@@ -22,6 +21,7 @@ export interface RecordingInfo {
   };
   requesterId: string;
   startTime: string;
+  expiresAfter?: number;
   user?: string;
   userExtra?: {
     username: string;

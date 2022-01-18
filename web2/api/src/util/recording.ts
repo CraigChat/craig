@@ -31,6 +31,7 @@ export interface RecordingInfo {
   };
   requesterId: string;
   startTime: string;
+  expiresAfter?: number;
   user?: string;
   userExtra?: {
     username: string;
