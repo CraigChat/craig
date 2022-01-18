@@ -9,8 +9,14 @@ import tailwindcss from 'tailwindcss';
 import commonjs from '@rollup/plugin-commonjs';
 import injectProcessEnv from 'rollup-plugin-inject-process-env';
 import alias from '@rollup/plugin-alias';
+import { execSync } from 'child_process';
 import dotenv from 'dotenv';
 dotenv.config();
+
+let revision = '<unknown>';
+try {
+  revision = execSync('git rev-parse HEAD', { cwd: __dirname }).toString().trim();
+} catch (e) {}
 
 export default ({ watch }) => [
   {
@@ -65,6 +71,7 @@ export default ({ watch }) => [
       }),
       injectProcessEnv({
         NODE_ENV: !watch ? 'production' : 'development',
+        GIT_REVISION: revision,
         ENNUIZEL_BASE: process.env.ENNUIZEL_BASE
       }),
       alias({

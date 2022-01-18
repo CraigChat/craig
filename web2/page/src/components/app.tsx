@@ -206,6 +206,8 @@ export default class App extends Component<{}, AppState> {
                 onDownloadClick={this.startDownload.bind(this)}
               />
             )}
+
+          <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION}</span>
         </div>
         <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
           {this.state.modalContent}
