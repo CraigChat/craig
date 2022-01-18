@@ -211,14 +211,14 @@ export default class App extends Component<{}, AppState> {
 
           {/* Debug */}
           <div class="flex flex-col">
-            {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 6)}</span> : ''}
+            {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 7)}</span> : ''}
             <span class="opacity-50 text-xs">{[
               this.state.platform.windows ? 'Windows' : '',
               this.state.platform.macosx ? 'Mac OS X' : '',
               this.state.platform.android ? 'Android' : '',
               this.state.platform.iphone ? 'iPhone' : '',
               this.state.platform.unix ? 'Unix' : ''
-            ].filter((p) => !!p)}{this.state.platform.showHidden ? ' (showing hidden)' : ''}</span>
+            ].filter((p) => !!p).join(', ')}{this.state.platform.showHidden ? ' (showing hidden)' : ''}</span>
           </div>
 
         </div>
