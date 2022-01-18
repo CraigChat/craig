@@ -57,6 +57,12 @@ export async function getRecordingDuration(id: string, key: string | number): Pr
   return duration;
 }
 
+export async function deleteRecording(id: string, key: string | number, deleteKey: string | number): Promise<void> {
+  const response = await fetch(`/api/recording/${id}?key=${key}&delete=${deleteKey}`, { method: 'DELETE' });
+  if (response.status !== 200 && response.status !== 204) throw response;
+  return;
+}
+
 export async function isReady(id: string, key: string | number): Promise<boolean> {
   const response = await fetch(`/api/recording/${id}/cook?key=${key}`);
   if (response.status !== 200) throw response;

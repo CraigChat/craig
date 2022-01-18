@@ -26,9 +26,10 @@ interface RecordingProps {
   };
   onDurationClick?(e: MouseEvent): any;
   onDownloadClick?(button: SectionButton, e: MouseEvent): any;
+  onDeleteClick?(e: MouseEvent): any;
 }
 
-export default function Recording({ state, onDurationClick, onDownloadClick }: RecordingProps) {
+export default function Recording({ state, onDurationClick, onDownloadClick, onDeleteClick }: RecordingProps) {
   const recording = state.recording;
   const startDate = new Date(recording.startTime);
   const expiryDate = new Date(startDate.valueOf() + (1000 * 60 * 60 * (recording.expiresAfter || 24)));
@@ -94,8 +95,10 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
             'text-red-500': expiryTime <= EXPIRY_WARN_AT
           })}><Icon icon={expiryIcon}/> Recording expires in {prettyMs(expiryTime, { compact: true, verbose: true })}.</h2>
           : ''}
-        {/* TODO delete recording modal */}
-        <button class="text-zinc-400 font-medium hover:text-red-500 focus:text-red-500 outline-none active:underline">
+        <button
+          onClick={onDeleteClick}
+          class="text-zinc-400 font-medium hover:text-red-500 focus:text-red-500 outline-none active:underline"
+        >
           Delete Recording
         </button>
       </div>

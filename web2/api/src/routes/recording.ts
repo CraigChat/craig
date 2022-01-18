@@ -94,6 +94,6 @@ export const deleteRoute: RouteOptions = {
 
     await deleteRecording(id);
 
-    return reply.status(200).send({ ok: true });
+    return reply.status(204).send();
   }
 };

@@ -8,6 +8,7 @@ import ModalContent from './modalContent';
 import ModalButton from './modalButton';
 import { getPlatformInfo, PlatformInfo } from '../util';
 import { SectionButton } from '../sections';
+import DeleteModalContent from './deleteModalContent';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -63,6 +64,9 @@ export default class App extends Component<{}, AppState> {
 
   async componentDidMount() {
     await this.loadRecording();
+    const query = new URLSearchParams(location.search);
+    const deleteKey = query.get('delete');
+    if (this.state.recording) await this.showDeletePrompt(null, deleteKey);
   }
 
   async loadRecording() {
@@ -166,6 +170,18 @@ export default class App extends Component<{}, AppState> {
     }
   }
 
+  async showDeletePrompt(e?: MouseEvent, deleteKey?: string) {
+    if (e) (e.target as HTMLButtonElement).blur();
+
+    this.openModal(
+      <DeleteModalContent deleteKey={deleteKey} setModalClose={(allowModalClose) => this.setState({ allowModalClose })} />,
+      {
+        allowClose: true,
+        contentLabel: 'Delete recording'
+      }
+    );
+  }
+
   openModal(content: any, opts: ModalOptions = {}) {
     this.setState({
       modalOpen: true,
@@ -206,6 +222,7 @@ export default class App extends Component<{}, AppState> {
                 state={this.state}
                 onDurationClick={this.loadDuration.bind(this)}
                 onDownloadClick={this.startDownload.bind(this)}
+                onDeleteClick={this.showDeletePrompt.bind(this)}
               />
             )}
 
