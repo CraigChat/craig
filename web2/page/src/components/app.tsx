@@ -180,6 +180,8 @@ export default class App extends Component<{}, AppState> {
   }
 
   render() {
+    const hasRev = process.env.GIT_REVISION && !process.env.GIT_REVISION.startsWith('<');
+
     return (
       <div class="min-h-screen bg-zinc-900 text-white font-body">
         <div class="sm:max-w-4xl mx-auto py-12 sm:px-12 px-4 space-y-10">
@@ -207,7 +209,18 @@ export default class App extends Component<{}, AppState> {
               />
             )}
 
-          <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION}</span>
+          {/* Debug */}
+          <div class="flex flex-col">
+            {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 6)}</span> : ''}
+            <span class="opacity-50 text-xs">{[
+              this.state.platform.windows ? 'Windows' : '',
+              this.state.platform.macosx ? 'Mac OS X' : '',
+              this.state.platform.android ? 'Android' : '',
+              this.state.platform.iphone ? 'iPhone' : '',
+              this.state.platform.unix ? 'Unix' : ''
+            ].filter((p) => !!p)}{this.state.platform.showHidden ? ' (showing hidden)' : ''}</span>
+          </div>
+
         </div>
         <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
           {this.state.modalContent}
