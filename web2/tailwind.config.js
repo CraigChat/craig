@@ -9,7 +9,8 @@ module.exports = {
       minWidth: {
         '1/2': '50%',
         '2/5': '40%',
-        button: '80px'
+        button: '80px',
+        'button-sm': '60px'
       }
     },
     fontFamily: {
