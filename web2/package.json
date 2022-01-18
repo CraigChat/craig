@@ -56,6 +56,7 @@
     "node-sass": "^7.0.1",
     "preact": "^10.6.4",
     "prettier": "^2.5.1",
+    "pretty-ms": "^7.0.1",
     "react-modal": "^3.14.4",
     "rimraf": "^3.0.2",
     "rollup": "^2.63.0",

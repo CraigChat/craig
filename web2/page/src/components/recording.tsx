@@ -1,13 +1,19 @@
 import { Fragment, h } from 'preact';
-import { RecordingInfo, RecordingUser } from '../api';
+import { Icon } from '@iconify/react';
+import prettyMs from 'pretty-ms';
 import DiscordElement from './discordElement';
 import Section from './section';
 import DownloadButton from './downloadButton';
+import { RecordingInfo, RecordingUser } from '../api';
+import { PlatformInfo } from '../util';
+import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
 import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
 import audioIcon from '@iconify-icons/ic/round-audio-file';
-import { PlatformInfo } from '../util';
-import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
+import expiryIcon from '@iconify-icons/ic/outline-timer';
+import clsx from 'clsx';
+
+const EXPIRY_WARN_AT = 1000 * 60 * 60 * 3;
 
 interface RecordingProps {
   state: {
@@ -24,6 +30,9 @@ interface RecordingProps {
 
 export default function Recording({ state, onDurationClick, onDownloadClick }: RecordingProps) {
   const recording = state.recording;
+  const startDate = new Date(recording.startTime);
+  const expiryDate = new Date(startDate.valueOf() + (1000 * 60 * 60 * (recording.expiresAfter || 24)));
+  const expiryTime = expiryDate.valueOf() - startDate.valueOf();
   const downloadsSection = getDownloadsSection(recording, state.platform);
   const othersSection = getOtherFormatsSection(recording, state.platform);
 
@@ -57,25 +66,38 @@ export default function Recording({ state, onDurationClick, onDownloadClick }: R
           </div>
           <div>
             <span class="text-zinc-100 font-display">Started At:</span>{' '}
-            {new Date(recording.startTime).toLocaleString()}
+            {startDate.toLocaleString()}
           </div>
         </div>
 
         <div class="flex flex-col gap-1">
           <div>
-            {/* TODO format duration */}
             <span class="text-zinc-100 font-display">Duration:</span>{' '}
             {state.durationLoading ? <span class="font-medium text-zinc-400">Loading...</span> : (
               state.duration === null
                 ? <button onClick={onDurationClick} class="font-medium text-zinc-400 hover:underline focus:underline outline-none">Reveal</button>
-                : <span>{state.duration}</span>
+                : <span>{prettyMs(state.duration * 1000)}</span>
             )}
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">User(s):</span>
             {state.users.map((user) => <DiscordElement {...user} key={user.id} />)}
           </div>
         </div>
+      </div>
+
+      {/* Expiry Block */}
+      <div class="flex flex-col items-center justify-center">
+        {recording.expiresAfter
+          ? <h2 class={clsx('text-2xl font-display', {
+            'text-zinc-100': expiryTime > EXPIRY_WARN_AT,
+            'text-red-500': expiryTime <= EXPIRY_WARN_AT
+          })}><Icon icon={expiryIcon}/> Recording expires in {prettyMs(expiryTime, { compact: true, verbose: true })}.</h2>
+          : ''}
+        {/* TODO delete recording modal */}
+        <button class="text-zinc-400 font-medium hover:text-red-500 focus:text-red-500 outline-none active:underline">
+          Delete Recording
+        </button>
       </div>
 
       {/* Downloads */}
