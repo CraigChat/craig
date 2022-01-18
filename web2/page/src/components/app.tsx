@@ -66,7 +66,7 @@ export default class App extends Component<{}, AppState> {
     await this.loadRecording();
     const query = new URLSearchParams(location.search);
     const deleteKey = query.get('delete');
-    if (this.state.recording) await this.showDeletePrompt(null, deleteKey);
+    if (this.state.recording && deleteKey) await this.showDeletePrompt(null, deleteKey);
   }
 
   async loadRecording() {
@@ -174,7 +174,12 @@ export default class App extends Component<{}, AppState> {
     if (e) (e.target as HTMLButtonElement).blur();
 
     this.openModal(
-      <DeleteModalContent deleteKey={deleteKey} setModalClose={(allowModalClose) => this.setState({ allowModalClose })} />,
+      <DeleteModalContent
+        recordingId={this.state.recordingId}
+        onClose={() => this.closeModal(true)}
+        deleteKey={deleteKey}
+        setModalClose={(allowModalClose) => this.setState({ allowModalClose })}
+      />,
       {
         allowClose: true,
         contentLabel: 'Delete recording'

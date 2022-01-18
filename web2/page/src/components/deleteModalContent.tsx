@@ -6,11 +6,13 @@ import ModalButton from './modalButton';
 import ModalContent from './modalContent';
 
 interface DeleteModalContentProps {
+  recordingId: string;
+  onClose(): any;
   setModalClose(allowClose: boolean): any;
   deleteKey?: string;
 }
 
-export default function DeleteModalContent({ deleteKey: defaultDeleteKey, setModalClose }: DeleteModalContentProps) {
+export default function DeleteModalContent({ recordingId, deleteKey: defaultDeleteKey, setModalClose, onClose }: DeleteModalContentProps) {
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>(null);
   const [deleteKey, setDeleteKey] = useState(defaultDeleteKey || '');
@@ -28,7 +30,7 @@ export default function DeleteModalContent({ deleteKey: defaultDeleteKey, setMod
       setError(null);
       setLoading(true);
       const query = new URLSearchParams(location.search);
-      await deleteRecording(this.state.recordingId, query.get('key'), deleteKey);
+      await deleteRecording(recordingId, query.get('key'), deleteKey);
       location.reload();
     } catch (e) {
       console.error('Failed to delete recording:', e);
@@ -49,7 +51,7 @@ export default function DeleteModalContent({ deleteKey: defaultDeleteKey, setMod
       title="Delete recording?"
       buttons={[
         <ModalButton type="danger" onClick={deleteClick} disabled={isLoading}>Delete</ModalButton>,
-        <ModalButton onClick={() => this.closeModal()} disabled={isLoading}>Cancel</ModalButton>,
+        <ModalButton onClick={() => onClose()} disabled={isLoading}>Cancel</ModalButton>,
         error ? <span class="text-red-500">{error}</span> : ''
       ]}
     >
@@ -57,6 +59,7 @@ export default function DeleteModalContent({ deleteKey: defaultDeleteKey, setMod
       <div class="flex flex-col mt-6 gap-2">
         <span class="font-display">Enter the delete key here:</span>
         <input
+          value={deleteKey}
           class={clsx('py-1 px-3 rounded bg-zinc-800 font-mono outline-none focus:ring-2', {
             'focus:ring-zinc-400': !error,
             'focus:ring-red-300 text-red-500': !!error
