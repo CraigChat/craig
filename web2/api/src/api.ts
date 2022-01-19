@@ -27,7 +27,7 @@ export async function start(): Promise<void> {
   });
   await server.register(staticPlugin, {
     root: path.join(__dirname, '..', 'page', 'public'),
-    prefix: '/assets/'
+    prefix: '/'
   });
 
   server.get('/', async (request, reply) => {
@@ -55,6 +55,7 @@ export async function start(): Promise<void> {
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
   server.route(cookRoute.avatarRoute);
+  server.route(pageRoute.faviconRoute);
   server.route(pageRoute.pageRoute);
   server.route(pageRoute.scriptRoute);
   server.route(pageRoute.sourceMapRoute);

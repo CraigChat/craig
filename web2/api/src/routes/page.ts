@@ -3,18 +3,25 @@ import path from 'path';
 
 const pageDistPath = path.join(__dirname, '../page');
 
+export const faviconRoute: RouteOptions = {
+  method: 'GET',
+  url: '/favicon.ico',
+  handler: async (request, reply) => {
+    return reply.sendFile('favicon.ico', path.join(__dirname, '../../page/public'));
+  }
+};
+
 export const pageRoute: RouteOptions = {
   method: 'GET',
   url: '/rec/:id',
   handler: async (request, reply) => {
-    // TODO generate embed?
-    return reply.sendFile('index.html', path.join(__dirname, '../../page'));
+    return reply.sendFile('index.html', path.join(__dirname, '../../page/public'));
   }
 };
 
 export const scriptRoute: RouteOptions = {
   method: 'GET',
-  url: '/assets/rec.js',
+  url: '/rec.js',
   handler: async (request, reply) => {
     return reply.type('text/javascript').sendFile('rec.js', pageDistPath);
   }
@@ -22,7 +29,7 @@ export const scriptRoute: RouteOptions = {
 
 export const sourceMapRoute: RouteOptions = {
   method: 'GET',
-  url: '/assets/rec.js.map',
+  url: '/rec.js.map',
   handler: async (request, reply) => {
     return reply.type('application/json').sendFile('rec.js.map', pageDistPath);
   }
@@ -30,7 +37,7 @@ export const sourceMapRoute: RouteOptions = {
 
 export const cssRoute: RouteOptions = {
   method: 'GET',
-  url: '/assets/rec.css',
+  url: '/rec.css',
   handler: async (request, reply) => {
     return reply.type('text/css; charset=utf-8').sendFile('rec.css', pageDistPath);
   }
@@ -39,7 +46,7 @@ export const cssRoute: RouteOptions = {
 // This actually serves font files from fontsource
 export const filesRoute: RouteOptions = {
   method: 'GET',
-  url: '/assets/files/:file',
+  url: '/files/:file',
   handler: async (request, reply) => {
     const { file } = request.params as { file: string };
     const fontsPath = path.join(__dirname, '../../node_modules/@fontsource');
