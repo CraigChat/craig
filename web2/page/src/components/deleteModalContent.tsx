@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { deleteRecording } from '../api';
+import { parseError } from '../util';
 import ModalButton from './modalButton';
 import ModalContent from './modalContent';
 
@@ -39,12 +40,7 @@ export default function DeleteModalContent({
       location.reload();
     } catch (e) {
       console.error('Failed to delete recording:', e);
-      let errorText = e.toString();
-      if (e instanceof Response) {
-        const body = await e.json().catch(() => {});
-        if (body && body.error) errorText = body.error;
-        else errorText = `${e.status}: ${e.statusText}`;
-      }
+      const { errorText } = await parseError(e);
       setError(errorText);
       setLoading(false);
       setModalClose(true);

@@ -1,5 +1,7 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
+import closeIcon from '@iconify-icons/ic/close';
+import { Translation } from 'react-i18next';
 import {
   cookAvatars,
   CookAvatarsPayload,
@@ -13,10 +15,9 @@ import {
 } from '../api';
 import Recording from './recording';
 import Modal from './modal';
-import closeIcon from '@iconify-icons/ic/close';
 import ModalContent from './modalContent';
 import ModalButton from './modalButton';
-import { getPlatformInfo, PlatformInfo } from '../util';
+import { getPlatformInfo, parseError, PlatformInfo } from '../util';
 import { SectionButton } from '../sections';
 import DeleteModalContent from './deleteModalContent';
 
@@ -69,7 +70,11 @@ export default class App extends Component<{}, AppState> {
     this.openModal = this.openModal.bind(this);
     this.closeModal = this.closeModal.bind(this);
 
-    console.log('Loaded', { platform: this.state.platform });
+    console.log('Loaded', {
+      platform: this.state.platform,
+      revision: process.env.GIT_REVISION,
+      ennuizelHost: process.env.ENNUIZEL_BASE
+    });
   }
 
   async componentDidMount() {
@@ -163,14 +168,7 @@ export default class App extends Component<{}, AppState> {
       URL.revokeObjectURL(url);
       this.closeModal(true);
     } catch (err) {
-      let errText = err.toString();
-      if (err instanceof Response) {
-        if (err.status <= 499) {
-          const body = await err.json().catch(() => {});
-          errText = body.error || `${err.status}: ${err.statusText}`;
-        }
-      }
-
+      const { errorText } = await parseError(err);
       console.error('Failed to download:', button, err);
       this.openModal(
         <ModalContent
@@ -182,7 +180,7 @@ export default class App extends Component<{}, AppState> {
           ]}
         >
           <p>Failed to download the {button.text} format.</p>
-          <p>{errText}</p>
+          <p>{errorText}</p>
         </ModalContent>,
         {
           allowClose: true,
@@ -279,60 +277,65 @@ export default class App extends Component<{}, AppState> {
     const hasRev = process.env.GIT_REVISION && !process.env.GIT_REVISION.startsWith('<');
 
     return (
-      <div class="min-h-screen bg-zinc-900 text-white font-body">
-        <div class="sm:max-w-4xl mx-auto py-12 sm:px-12 px-4 space-y-10">
-          {/* Header */}
-          <div class="flex flex-row items-center justify-center gap-4">
-            <img src="/craig.png" class="w-16 h-16 rounded-full" />
-            <div class="flex flex-col">
-              <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">Craig Recording</h1>
-              <a
-                href="https://craig.chat/"
-                class="text-zinc-400 font-medium hover:underline focus:underline outline-none"
-              >
-                craig.chat →
-              </a>
+      <Translation>
+        {(t) => (
+          <div class="min-h-screen bg-zinc-900 text-white font-body">
+            <div class="sm:max-w-4xl mx-auto py-12 sm:px-12 px-4 space-y-10">
+              {/* Header */}
+              <div class="flex flex-row items-center justify-center gap-4">
+                <img src="/craig.png" class="w-16 h-16 rounded-full" />
+                <div class="flex flex-col">
+                  <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">{t('craig_red')}</h1>
+                  <a
+                    href="https://craig.chat/"
+                    class="text-zinc-400 font-medium hover:underline focus:underline outline-none"
+                  >
+                    craig.chat →
+                  </a>
+                </div>
+              </div>
+
+              {this.state.loading ? (
+                <h2 class="text-2xl text-zinc-100 font-display text-center">{t('loading')}</h2>
+              ) : this.state.error ? (
+                <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
+                  <Icon icon={closeIcon} className="text-red-500 text-3xl" />
+                  <span>{this.state.error}</span>
+                </h2>
+              ) : (
+                <Recording
+                  state={this.state}
+                  onDurationClick={this.loadDuration.bind(this)}
+                  onDownloadClick={this.startDownload.bind(this)}
+                  onAvatarsClick={this.startAvatarDownload.bind(this)}
+                  onDeleteClick={this.showDeletePrompt.bind(this)}
+                />
+              )}
+
+              {/* Debug */}
+              {/* TODO language switcher */}
+              <div class="flex flex-col">
+                {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 7)}</span> : ''}
+                <span class="opacity-50 text-xs">
+                  {[
+                    this.state.platform.windows ? 'Windows' : '',
+                    this.state.platform.macosx ? 'Mac OS X' : '',
+                    this.state.platform.android ? 'Android' : '',
+                    this.state.platform.iphone ? 'iPhone' : '',
+                    this.state.platform.unix ? 'Unix' : ''
+                  ]
+                    .filter((p) => !!p)
+                    .join(', ')}
+                  {this.state.platform.showHidden ? ' (showing hidden)' : ''}
+                </span>
+              </div>
             </div>
+            <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
+              {this.state.modalContent}
+            </Modal>
           </div>
-
-          {this.state.loading ? (
-            <h2 class="text-2xl text-zinc-100 font-display text-center">Loading...</h2>
-          ) : this.state.error ? (
-            <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
-              <Icon icon={closeIcon} className="text-red-500 text-3xl" />
-              <span>{this.state.error}</span>
-            </h2>
-          ) : (
-            <Recording
-              state={this.state}
-              onDurationClick={this.loadDuration.bind(this)}
-              onDownloadClick={this.startDownload.bind(this)}
-              onAvatarsClick={this.startAvatarDownload.bind(this)}
-              onDeleteClick={this.showDeletePrompt.bind(this)}
-            />
-          )}
-
-          {/* Debug */}
-          <div class="flex flex-col">
-            {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 7)}</span> : ''}
-            <span class="opacity-50 text-xs">
-              {[
-                this.state.platform.windows ? 'Windows' : '',
-                this.state.platform.macosx ? 'Mac OS X' : '',
-                this.state.platform.android ? 'Android' : '',
-                this.state.platform.iphone ? 'iPhone' : '',
-                this.state.platform.unix ? 'Unix' : ''
-              ]
-                .filter((p) => !!p)
-                .join(', ')}
-              {this.state.platform.showHidden ? ' (showing hidden)' : ''}
-            </span>
-          </div>
-        </div>
-        <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
-          {this.state.modalContent}
-        </Modal>
-      </div>
+        )}
+      </Translation>
     );
   }
 }
