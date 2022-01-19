@@ -4,11 +4,12 @@ import prettyMs from 'pretty-ms';
 import DiscordElement from './discordElement';
 import Section from './section';
 import DownloadButton from './downloadButton';
-import { RecordingInfo, RecordingUser } from '../api';
+import { CookAvatarsPayload, RecordingInfo, RecordingUser } from '../api';
 import { PlatformInfo } from '../util';
 import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
 import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
+import imageIcon from '@iconify-icons/ic/round-image';
 import audioIcon from '@iconify-icons/ic/round-audio-file';
 import expiryIcon from '@iconify-icons/ic/outline-timer';
 import clsx from 'clsx';
@@ -26,10 +27,11 @@ interface RecordingProps {
   };
   onDurationClick?(e: MouseEvent): any;
   onDownloadClick?(button: SectionButton, e: MouseEvent): any;
+  onAvatarsClick?(payload: CookAvatarsPayload, e: MouseEvent): any;
   onDeleteClick?(e: MouseEvent): any;
 }
 
-export default function Recording({ state, onDurationClick, onDownloadClick, onDeleteClick }: RecordingProps) {
+export default function Recording({ state, onDurationClick, onDownloadClick, onDeleteClick, onAvatarsClick }: RecordingProps) {
   const recording = state.recording;
   const startDate = new Date(recording.startTime);
   const expiryDate = new Date(startDate.valueOf() + (1000 * 60 * 60 * (recording.expiresAfter || 24)));
@@ -122,7 +124,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick, onD
       {/* Avatars */}
       <Section title="Avatars" icon={avatarsIcon} collapsable collapsed>
         <div class="flex flex-row flex-wrap gap-3">
-          <DownloadButton title="TODO" />
+          <DownloadButton icon={imageIcon} onClick={(e) => onAvatarsClick({}, e)} title="PNG" />
         </div>
       </Section>
 

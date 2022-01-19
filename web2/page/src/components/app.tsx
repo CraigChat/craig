@@ -1,6 +1,6 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
-import { cookRecording, getRawRecording, getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
+import { cookAvatars, CookAvatarsPayload, cookRecording, getRawRecording, getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
 import Recording from './recording';
 import Modal from './modal';
 import closeIcon from '@iconify-icons/ic/close';
@@ -160,6 +160,57 @@ export default class App extends Component<{}, AppState> {
       this.openModal(
         <ModalContent title="Download failed!" buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
           <p>Failed to download the {button.text} format.</p>
+          <p>{errText}</p>
+        </ModalContent>,
+        {
+          allowClose: true,
+          contentLabel: 'Download failed'
+        }
+      );
+    }
+  }
+
+  async startAvatarDownload(payload: CookAvatarsPayload, e: MouseEvent) {
+    (e.target as HTMLButtonElement).blur();
+    console.log('Downloading...', payload);
+
+    this.openModal(
+      <ModalContent title="Downloading...">
+        Downloading avatars...
+      </ModalContent>,
+      {
+        allowClose: false,
+        contentLabel: 'Downloading'
+      }
+    );
+
+    try {
+      const query = new URLSearchParams(location.search);
+      const response = await cookAvatars(this.state.recordingId, query.get('key'), payload);
+
+      const filename = response.headers.get('content-disposition').slice(21);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      console.log('Opened download link', { blob, filename });
+      URL.revokeObjectURL(url);
+      this.closeModal(true);
+    } catch (err) {
+      let errText = err.toString();
+      if (err instanceof Response) {
+        if (err.status <= 499) {
+          const body = await err.json().catch(() => {});
+          errText = body.error || `${err.status}: ${err.statusText}`;
+        }
+      }
+
+      console.error('Failed to download:', payload, err);
+      this.openModal(
+        <ModalContent title="Download failed!" buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
+          <p>Failed to download avatars.</p>
           <p>{errText}</p>
         </ModalContent>,
         {
