@@ -42,6 +42,7 @@ module.exports = {
       },
       rules: {
         'prettier/prettier': 'warn',
+        'react/jsx-no-bind': 0,
         'no-cond-assign': [2, 'except-parens'],
         'no-unused-vars': 0,
         '@typescript-eslint/no-unused-vars': 1,

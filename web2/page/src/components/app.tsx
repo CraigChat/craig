@@ -305,9 +305,9 @@ export default class App extends Component<{}, AppState> {
           ) : (
             <Recording
               state={this.state}
-              onDurationClick={this.loadDuration}
-              onDownloadClick={this.startDownload}
-              onDeleteClick={this.showDeletePrompt}
+              onDurationClick={this.loadDuration.bind(this)}
+              onDownloadClick={this.startDownload.bind(this)}
+              onDeleteClick={this.showDeletePrompt.bind(this)}
             />
           )}
 
