@@ -3,14 +3,6 @@ import path from 'path';
 
 const pageDistPath = path.join(__dirname, '../page');
 
-export const faviconRoute: RouteOptions = {
-  method: 'GET',
-  url: '/favicon.ico',
-  handler: async (request, reply) => {
-    return reply.sendFile('favicon.ico', path.join(__dirname, '../../page/public'));
-  }
-};
-
 export const pageRoute: RouteOptions = {
   method: 'GET',
   url: '/rec/:id',

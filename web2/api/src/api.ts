@@ -55,7 +55,6 @@ export async function start(): Promise<void> {
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
   server.route(cookRoute.avatarRoute);
-  server.route(pageRoute.faviconRoute);
   server.route(pageRoute.pageRoute);
   server.route(pageRoute.scriptRoute);
   server.route(pageRoute.sourceMapRoute);
