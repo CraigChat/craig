@@ -125,7 +125,7 @@ export const avatarRoute: RouteOptions = {
       fg?: string;
     };
 
-    if ((body.format || body.container === 'exe') && !info.features.glowers)
+    if (((body.format && body.format !== 'png') || body.container === 'exe') && !info.features.glowers)
       return reply.status(403).send({ ok: false, error: 'This recording is missing the glowers feature' });
     if (body.format && !allowedAvatarFormats.includes(body.format))
       return reply.status(400).send({ ok: false, error: 'Invalid format' });
