@@ -12,7 +12,12 @@ interface DeleteModalContentProps {
   deleteKey?: string;
 }
 
-export default function DeleteModalContent({ recordingId, deleteKey: defaultDeleteKey, setModalClose, onClose }: DeleteModalContentProps) {
+export default function DeleteModalContent({
+  recordingId,
+  deleteKey: defaultDeleteKey,
+  setModalClose,
+  onClose
+}: DeleteModalContentProps) {
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>(null);
   const [deleteKey, setDeleteKey] = useState(defaultDeleteKey || '');
@@ -50,12 +55,24 @@ export default function DeleteModalContent({ recordingId, deleteKey: defaultDele
     <ModalContent
       title="Delete recording?"
       buttons={[
-        <ModalButton type="danger" onClick={deleteClick} disabled={isLoading}>Delete</ModalButton>,
-        <ModalButton onClick={() => onClose()} disabled={isLoading}>Cancel</ModalButton>,
-        error ? <span class="text-red-500">{error}</span> : ''
+        <ModalButton key={1} type="danger" onClick={deleteClick} disabled={isLoading}>
+          Delete
+        </ModalButton>,
+        <ModalButton key={2} onClick={() => onClose()} disabled={isLoading}>
+          Cancel
+        </ModalButton>,
+        error ? (
+          <span key={3} class="text-red-500">
+            {error}
+          </span>
+        ) : (
+          ''
+        )
       ]}
     >
-      <p>Are you sure you want to delete this recording? This action is IRREVERSABLE and nobody can help you get it back.</p>
+      <p>
+        Are you sure you want to delete this recording? This action is IRREVERSABLE and nobody can help you get it back.
+      </p>
       <div class="flex flex-col mt-6 gap-2">
         <span class="font-display">Enter the delete key here:</span>
         <input
@@ -70,5 +87,5 @@ export default function DeleteModalContent({ recordingId, deleteKey: defaultDele
         />
       </div>
     </ModalContent>
-  )
+  );
 }

@@ -5,7 +5,7 @@ module.exports = {
     es6: true,
     node: true
   },
-  extends: ['deprecation', 'eslint:recommended', 'plugin:prettier/recommended'],
+  extends: ['eslint:recommended', 'plugin:prettier/recommended'],
   globals: {},
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -14,7 +14,6 @@ module.exports = {
   },
   plugins: ['@typescript-eslint'],
   rules: {
-    'deprecation/deprecation': 'warn',
     'prettier/prettier': 'warn',
     'no-cond-assign': [2, 'except-parens'],
     'no-unused-vars': 0,
@@ -36,9 +35,30 @@ module.exports = {
   overrides: [
     {
       files: ['page/**/*'],
-      extends: ['preact', 'deprecation', 'eslint:recommended', 'plugin:prettier/recommended'],
+      extends: ['preact', 'eslint:recommended', 'plugin:prettier/recommended'],
+      parser: '@typescript-eslint/parser',
       env: {
         browser: true
+      },
+      rules: {
+        'prettier/prettier': 'warn',
+        'no-cond-assign': [2, 'except-parens'],
+        'no-unused-vars': 0,
+        '@typescript-eslint/no-unused-vars': 1,
+        'no-empty': [
+          'error',
+          {
+            allowEmptyCatch: true
+          }
+        ],
+        'prefer-const': [
+          'warn',
+          {
+            destructuring: 'all'
+          }
+        ],
+        'spaced-comment': 'warn',
+        'jest/no-deprecated-functions': 0
       }
     }
   ]

@@ -22,5 +22,5 @@ export default function Modal({ open, label, children, onClose }: ModalProps) {
     >
       {children}
     </ReactModal>
-  )
+  );
 }

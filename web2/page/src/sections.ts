@@ -125,7 +125,7 @@ export const getDownloadsSection = (info: RecordingInfo, platform: PlatformInfo)
     }
   ];
 
-  return sections.filter(section => section.buttons.some(button => !button.hidden));
+  return sections.filter((section) => section.buttons.some((button) => !button.hidden));
 };
 
 export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformInfo) => {
@@ -146,7 +146,7 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
         {
           text: 'Other',
           ennuizel: 0x200
-        },
+        }
       ]
     },
     {
@@ -252,6 +252,5 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
     }
   ];
 
-  return sections.filter(section => section.buttons.some(button => !button.hidden));
+  return sections.filter((section) => section.buttons.some((button) => !button.hidden));
 };
-

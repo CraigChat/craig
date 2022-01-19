@@ -1,6 +1,6 @@
 {
-  "name": "craig-web2",
-  "description": "New version of craig.horse",
+  "name": "craig-horse",
+  "description": "API and page source of craig.horse",
   "version": "1.0.0",
   "private": true,
   "author": {
@@ -12,8 +12,8 @@
     "build": "npm run build:api && npm run build:page",
     "build:api": "cd api && tsc",
     "build:page": "rollup -c",
-    "lint": "npx eslint --ext .ts ./src",
-    "lint:fix": "npx eslint --ext .ts ./src --fix",
+    "lint": "npx eslint --ext .ts,.tsx .",
+    "lint:fix": "npx eslint --ext .ts,.tsx . --fix",
     "init": "yarn && rimraf dist && tsc && devScript --copyOnly",
     "dev:api": "devScript",
     "dev:page": "rollup -c -w"
@@ -51,7 +51,6 @@
     "eslint": "^8.6.0",
     "eslint-config-preact": "^1.3.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-deprecation": "^1.3.2",
     "eslint-plugin-prettier": "^4.0.0",
     "node-sass": "^7.0.1",
     "preact": "^10.6.4",

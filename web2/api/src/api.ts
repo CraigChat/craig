@@ -19,9 +19,9 @@ export async function start(): Promise<void> {
   await server.register(helmet, {
     contentSecurityPolicy: {
       directives: {
-        "default-src": ["'self'"],
-        "img-src": ["'self'", "data:", "https://cdn.discordapp.com"],
-        "style-src": ["'self'", "https:", "'unsafe-inline'"],
+        'default-src': ["'self'"],
+        'img-src': ["'self'", 'data:', 'https://cdn.discordapp.com'],
+        'style-src': ["'self'", 'https:', "'unsafe-inline'"]
       }
     }
   });
@@ -32,10 +32,13 @@ export async function start(): Promise<void> {
 
   server.get('/', async (request, reply) => {
     const { id, key, delete: deleteKey } = request.query as Record<string, string>;
-    if (id) return reply.redirect(`/rec/${id}?${new URLSearchParams({
-      ...(key ? { key } : {}),
-      ...(deleteKey ? { delete: deleteKey } : {})
-    }).toString()}`);
+    if (id)
+      return reply.redirect(
+        `/rec/${id}?${new URLSearchParams({
+          ...(key ? { key } : {}),
+          ...(deleteKey ? { delete: deleteKey } : {})
+        }).toString()}`
+      );
     return reply.redirect(process.env.API_HOMEPAGE || '/chat/');
   });
 

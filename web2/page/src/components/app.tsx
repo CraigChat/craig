@@ -1,6 +1,16 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
-import { cookAvatars, CookAvatarsPayload, cookRecording, getRawRecording, getRecording, getRecordingDuration, getRecordingUsers, RecordingInfo, RecordingUser } from '../api';
+import {
+  cookAvatars,
+  CookAvatarsPayload,
+  cookRecording,
+  getRawRecording,
+  getRecording,
+  getRecordingDuration,
+  getRecordingUsers,
+  RecordingInfo,
+  RecordingUser
+} from '../api';
 import Recording from './recording';
 import Modal from './modal';
 import closeIcon from '@iconify-icons/ic/close';
@@ -92,12 +102,21 @@ export default class App extends Component<{}, AppState> {
       this.setState({ duration, durationLoading: false });
     } catch (e) {
       const response = e as Response;
-      const body = response.body ? await response.json().catch(() => {}) : { error: `${response.status}: ${response.statusText}` };
+      const body = response.body
+        ? await response.json().catch(() => {})
+        : { error: `${response.status}: ${response.statusText}` };
       console.error('Failed to get duration:', response, body);
       this.setState({
         modalOpen: true,
         modalContent: (
-          <ModalContent title="Uh oh." buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
+          <ModalContent
+            title="Uh oh."
+            buttons={[
+              <ModalButton key={1} onClick={() => this.closeModal()}>
+                Close
+              </ModalButton>
+            ]}
+          >
             <p>Failed to get the duration of the recording!</p>
             <p>{body.error}</p>
           </ModalContent>
@@ -117,29 +136,25 @@ export default class App extends Component<{}, AppState> {
       return;
     }
 
-    this.openModal(
-      <ModalContent title="Downloading...">
-        Downloading in the {button.text} format...
-      </ModalContent>,
-      {
-        allowClose: false,
-        contentLabel: 'Downloading'
-      }
-    );
+    this.openModal(<ModalContent title="Downloading...">Downloading in the {button.text} format...</ModalContent>, {
+      allowClose: false,
+      contentLabel: 'Downloading'
+    });
 
     try {
       const query = new URLSearchParams(location.search);
-      const response = button.format === 'raw'
-        ? await getRawRecording(this.state.recordingId, query.get('key'))
-        : await cookRecording(this.state.recordingId, query.get('key'), {
-          format: button.format || 'flac',
-          container: button.container || 'zip',
-          dynaudnorm: button.dynaudnorm || false
-        });
+      const response =
+        button.format === 'raw'
+          ? await getRawRecording(this.state.recordingId, query.get('key'))
+          : await cookRecording(this.state.recordingId, query.get('key'), {
+              format: button.format || 'flac',
+              container: button.container || 'zip',
+              dynaudnorm: button.dynaudnorm || false
+            });
 
       const filename = response.headers.get('content-disposition').slice(21);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob)
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -158,7 +173,14 @@ export default class App extends Component<{}, AppState> {
 
       console.error('Failed to download:', button, err);
       this.openModal(
-        <ModalContent title="Download failed!" buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
+        <ModalContent
+          title="Download failed!"
+          buttons={[
+            <ModalButton key={1} onClick={() => this.closeModal()}>
+              Close
+            </ModalButton>
+          ]}
+        >
           <p>Failed to download the {button.text} format.</p>
           <p>{errText}</p>
         </ModalContent>,
@@ -174,15 +196,10 @@ export default class App extends Component<{}, AppState> {
     (e.target as HTMLButtonElement).blur();
     console.log('Downloading...', payload);
 
-    this.openModal(
-      <ModalContent title="Downloading...">
-        Downloading avatars...
-      </ModalContent>,
-      {
-        allowClose: false,
-        contentLabel: 'Downloading'
-      }
-    );
+    this.openModal(<ModalContent title="Downloading...">Downloading avatars...</ModalContent>, {
+      allowClose: false,
+      contentLabel: 'Downloading'
+    });
 
     try {
       const query = new URLSearchParams(location.search);
@@ -190,7 +207,7 @@ export default class App extends Component<{}, AppState> {
 
       const filename = response.headers.get('content-disposition').slice(21);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob)
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
@@ -209,7 +226,14 @@ export default class App extends Component<{}, AppState> {
 
       console.error('Failed to download:', payload, err);
       this.openModal(
-        <ModalContent title="Download failed!" buttons={[<ModalButton onClick={() => this.closeModal()}>Close</ModalButton>]}>
+        <ModalContent
+          title="Download failed!"
+          buttons={[
+            <ModalButton key={1} onClick={() => this.closeModal()}>
+              Close
+            </ModalButton>
+          ]}
+        >
           <p>Failed to download avatars.</p>
           <p>{errText}</p>
         </ModalContent>,
@@ -262,38 +286,47 @@ export default class App extends Component<{}, AppState> {
             <img src="/assets/craig.png" class="w-16 h-16 rounded-full" />
             <div class="flex flex-col">
               <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">Craig Recording</h1>
-              <a href="https://craig.chat/" class="text-zinc-400 font-medium hover:underline focus:underline outline-none">
+              <a
+                href="https://craig.chat/"
+                class="text-zinc-400 font-medium hover:underline focus:underline outline-none"
+              >
                 craig.chat →
               </a>
             </div>
           </div>
 
-          {this.state.loading ?
-            <h2 class="text-2xl text-zinc-100 font-display text-center">Loading...</h2> : (
-              this.state.error ?
-              <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
-                <Icon icon={closeIcon} className="text-red-500 text-3xl" />
-                <span>{this.state.error}</span>
-              </h2> : <Recording
-                state={this.state}
-                onDurationClick={this.loadDuration.bind(this)}
-                onDownloadClick={this.startDownload.bind(this)}
-                onDeleteClick={this.showDeletePrompt.bind(this)}
-              />
-            )}
+          {this.state.loading ? (
+            <h2 class="text-2xl text-zinc-100 font-display text-center">Loading...</h2>
+          ) : this.state.error ? (
+            <h2 class="flex items-center gap-2 justify-center text-2xl text-zinc-100 font-display">
+              <Icon icon={closeIcon} className="text-red-500 text-3xl" />
+              <span>{this.state.error}</span>
+            </h2>
+          ) : (
+            <Recording
+              state={this.state}
+              onDurationClick={this.loadDuration}
+              onDownloadClick={this.startDownload}
+              onDeleteClick={this.showDeletePrompt}
+            />
+          )}
 
           {/* Debug */}
           <div class="flex flex-col">
             {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 7)}</span> : ''}
-            <span class="opacity-50 text-xs">{[
-              this.state.platform.windows ? 'Windows' : '',
-              this.state.platform.macosx ? 'Mac OS X' : '',
-              this.state.platform.android ? 'Android' : '',
-              this.state.platform.iphone ? 'iPhone' : '',
-              this.state.platform.unix ? 'Unix' : ''
-            ].filter((p) => !!p).join(', ')}{this.state.platform.showHidden ? ' (showing hidden)' : ''}</span>
+            <span class="opacity-50 text-xs">
+              {[
+                this.state.platform.windows ? 'Windows' : '',
+                this.state.platform.macosx ? 'Mac OS X' : '',
+                this.state.platform.android ? 'Android' : '',
+                this.state.platform.iphone ? 'iPhone' : '',
+                this.state.platform.unix ? 'Unix' : ''
+              ]
+                .filter((p) => !!p)
+                .join(', ')}
+              {this.state.platform.showHidden ? ' (showing hidden)' : ''}
+            </span>
           </div>
-
         </div>
         <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
           {this.state.modalContent}

@@ -26,9 +26,10 @@ export default function DownloadButton({ icon, title, suffix, ennuizel, onClick 
       onClick={onClick}
     >
       {icon ? <Icon icon={icon} className="w-5 h-5 pointer-events-none" /> : ''}
-      <span class="pointer-events-none">{title}{suffix ? (
-        <span class="font-normal"> {suffix}</span>
-      ) : ''}</span>
+      <span class="pointer-events-none">
+        {title}
+        {suffix ? <span class="font-normal"> {suffix}</span> : ''}
+      </span>
     </button>
-  )
+  );
 }

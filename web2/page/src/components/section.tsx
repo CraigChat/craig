@@ -20,11 +20,11 @@ export default function Section({ icon, title, small, collapsable, collapsed, ch
   const iconClass = small ? 'w-6 h-6' : 'w-8 h-8';
 
   return (
-    <div class={clsx("flex flex-col", small ? "gap-2" : "gap-4")}>
+    <div class={clsx('flex flex-col', small ? 'gap-2' : 'gap-4')}>
       <Heading
         class={clsx(
-          "font-display flex flex-row gap-2 items-center",
-          small ? "text-lg font-medium" : "text-2xl font-bold",
+          'font-display flex flex-row gap-2 items-center',
+          small ? 'text-lg font-medium' : 'text-2xl font-bold',
           {
             'text-zinc-400': isCollapsed && !small,
             'text-zinc-500': isCollapsed && small,
@@ -41,5 +41,5 @@ export default function Section({ icon, title, small, collapsable, collapsed, ch
       </Heading>
       {!isCollapsed ? children : ''}
     </div>
-  )
+  );
 }

@@ -64,7 +64,9 @@ export async function fileExists(file: string) {
 }
 
 export function getRawRecordingStream(id: string) {
-  const stream = new StreamConcat(['header1', 'header2', 'data'].map((ext) => createReadStream(path.join(recPath, `${id}.ogg.${ext}`))));
+  const stream = new StreamConcat(
+    ['header1', 'header2', 'data'].map((ext) => createReadStream(path.join(recPath, `${id}.ogg.${ext}`)))
+  );
   return stream;
 }
 

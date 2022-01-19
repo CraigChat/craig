@@ -55,13 +55,13 @@ export interface CookAvatarsPayload {
 export async function getRecording(id: string, key: string | number): Promise<RecordingInfo> {
   const response = await fetch(`/api/recording/${id}?key=${key}`);
   if (response.status !== 200) throw response;
-  return response.json().then(data => data.info);
+  return response.json().then((data) => data.info);
 }
 
 export async function getRecordingUsers(id: string, key: string | number): Promise<RecordingUser[]> {
   const response = await fetch(`/api/recording/${id}/users?key=${key}`);
   if (response.status !== 200) throw response;
-  return response.json().then(data => data.users);
+  return response.json().then((data) => data.users);
 }
 
 export async function getRecordingDuration(id: string, key: string | number): Promise<number> {

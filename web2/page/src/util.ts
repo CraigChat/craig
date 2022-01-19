@@ -1,5 +1,3 @@
-
-
 export interface PlatformInfo {
   windows: boolean;
   macosx: boolean;
