@@ -307,6 +307,7 @@ export default class App extends Component<{}, AppState> {
               state={this.state}
               onDurationClick={this.loadDuration.bind(this)}
               onDownloadClick={this.startDownload.bind(this)}
+              onAvatarsClick={this.startAvatarDownload.bind(this)}
               onDeleteClick={this.showDeletePrompt.bind(this)}
             />
           )}
