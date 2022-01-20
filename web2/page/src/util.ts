@@ -1,5 +1,5 @@
 import { TFunction } from 'react-i18next';
-import streamSaver from 'streamsaver';
+import { CookPayload, isReady } from './api';
 import i18n from './i18n';
 
 export interface PlatformInfo {
@@ -36,28 +36,17 @@ export const parseError = async (error: any, t?: TFunction) => {
   return { errorText, errorCode, errorT: errorCode ? t([`error.${errorCode}`, 'error.unknown']) : errorText };
 };
 
-export const downloadResponse = async (response: Response) => {
-  const filename = response.headers.get('content-disposition').slice(21);
-  const fileStream = streamSaver.createWriteStream(filename);
-
-  if (window.WritableStream && response.body.pipeTo) return response.body.pipeTo(fileStream);
-
-  const writer = fileStream.getWriter();
-  const reader = response.body.getReader();
-
-  let done = false;
-  // deepscan-disable CONSTANT_CONDITION
-  while (!done) {
-    const res = await reader.read();
-    if (res.done) {
-      done = true;
-      return;
-    }
-    await writer.write(res.value);
-  }
+export const wait = (ms: number) => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
-export const downloadResponseBlob = async (response: Response) => {
+export const cookDownload = (id: string, key: string | number, payload: CookPayload) => {
+  location.href = `/api/recording/${id}/cook/run?key=${key}&${new URLSearchParams(
+    payload as Record<string, string>
+  ).toString()}`;
+};
+
+export const downloadResponse = async (response: Response) => {
   const filename = response.headers.get('content-disposition').slice(21);
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);

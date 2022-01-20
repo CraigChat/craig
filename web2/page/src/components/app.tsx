@@ -10,10 +10,11 @@ import {
   getRecording,
   getRecordingDuration,
   getRecordingUsers,
+  isReady,
   RecordingInfo,
   RecordingUser
 } from '../api';
-import { downloadResponse, getPlatformInfo, parseError, PlatformInfo } from '../util';
+import { cookDownload, downloadResponse, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
 import { SectionButton } from '../sections';
 import i18n from '../i18n';
 import Recording from './recording';
@@ -129,9 +130,27 @@ export default class App extends Component<{}, AppState> {
     }
   }
 
+  async waitTillReady(key: string) {
+    let ready = false;
+    let firstRun = true;
+
+    while (!ready) {
+      if (firstRun) firstRun = false;
+      else await wait(1000);
+
+      ready = await isReady(this.state.recordingId, key);
+    }
+  }
+
   async startDownload(button: SectionButton, e: MouseEvent) {
     (e.target as HTMLButtonElement).blur();
     console.log('Downloading...', button);
+
+    const query = new URLSearchParams(location.search);
+    if (button.format === 'raw') {
+      location.href = `/api/recording/${this.state.recordingId}/raw?key=${query.get('key')}`;
+      return;
+    }
 
     if (button.ennuizel !== undefined) {
       // TODO ennuizel prompt & link
@@ -149,17 +168,13 @@ export default class App extends Component<{}, AppState> {
     );
 
     try {
-      const query = new URLSearchParams(location.search);
-      const response =
-        button.format === 'raw'
-          ? await getRawRecording(this.state.recordingId, query.get('key'))
-          : await cookRecording(this.state.recordingId, query.get('key'), {
-              format: button.format || 'flac',
-              container: button.container || 'zip',
-              dynaudnorm: button.dynaudnorm || false
-            });
-
-      await downloadResponse(response);
+      await this.waitTillReady(query.get('key'));
+      cookDownload(this.state.recordingId, query.get('key'), {
+        format: button.format || 'flac',
+        container: button.container || 'zip',
+        dynaudnorm: button.dynaudnorm || false
+      });
+      await this.waitTillReady(query.get('key'));
       this.closeModal(true);
     } catch (err) {
       const { errorT } = await parseError(err);

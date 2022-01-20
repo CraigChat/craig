@@ -21,7 +21,6 @@ export async function start(): Promise<void> {
     contentSecurityPolicy: {
       directives: {
         'default-src': ["'self'"],
-        'frame-src': ["'self'", 'https://jimmywarting.github.io'],
         'img-src': ["'self'", 'data:', 'https://cdn.discordapp.com', 'https://media.discordapp.net'],
         'style-src': ["'self'", 'https:', "'unsafe-inline'"]
       }
@@ -72,6 +71,7 @@ export async function start(): Promise<void> {
   server.route(cookRoute.durationRoute);
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
+  server.route(cookRoute.runRoute);
   server.route(cookRoute.avatarRoute);
   server.route(pageRoute.pageRoute);
   server.route(pageRoute.scriptRoute);

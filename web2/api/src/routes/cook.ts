@@ -117,6 +117,66 @@ export const postRoute: RouteOptions = {
   }
 };
 
+export const runRoute: RouteOptions = {
+  method: 'GET',
+  url: '/api/recording/:id/cook/run',
+  handler: async (request, reply) => {
+    const { id } = request.params as Record<string, string>;
+    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    const query = request.query as Record<string, string>;
+    if (!query.key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const info = await getRecording(id);
+    if (info === false)
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info)
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, query.key))
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const ready = await isReady(id);
+    if (!ready)
+      return reply
+        .status(429)
+        .send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
+
+    if (query.format && !allowedFormats.includes(query.format))
+      return reply.status(400).send({ ok: false, error: 'Invalid format', code: ErrorCode.INVALID_FORMAT });
+    if (query.format === 'mp3' && !info.features.mp3)
+      return reply
+        .status(403)
+        .send({ ok: false, error: 'This recording is missing the MP3 feature', code: ErrorCode.MISSING_MP3 });
+    const format = query.format || 'flac';
+
+    if (query.container && !Object.keys(allowedContainers).includes(query.container))
+      return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
+    if (query.container === 'mix' && !info.features.mix)
+      return reply
+        .status(403)
+        .send({ ok: false, error: 'This recording is missing the mix feature', code: ErrorCode.MISSING_MIX });
+    const container = query.container || 'zip';
+
+    const dynaudnorm = Boolean(query.dynaudnorm);
+
+    try {
+      let ext = allowedContainers[container].ext || `${format}.zip`;
+      if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
+      const mime = allowedContainers[container].mime || 'application/zip';
+
+      const stream = cook(id, format, container, dynaudnorm);
+      return reply
+        .status(200)
+        .headers({
+          'content-disposition': `attachment; filename=${id}.${ext}`,
+          'content-type': mime
+        })
+        .send(stream);
+    } catch (err) {
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
+  }
+};
+
 export const avatarRoute: RouteOptions = {
   method: 'POST',
   url: '/api/recording/:id/cook/avatars',
