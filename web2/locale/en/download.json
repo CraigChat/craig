@@ -5,6 +5,18 @@
   "close": "Close",
   "cancel": "Cancel",
   "delete": "Delete",
+  "reveal": "Reveal",
+  "info": {
+    "users": "Users",
+    "rec_id": "Recording ID",
+    "req_by": "Requested by",
+    "started": "Started at",
+    "behalf": "on behalf of",
+    "expires": "Recording expires in {{expire}}",
+    "server": "Server",
+    "channel": "Channel",
+    "duration": "Duration"
+  },
   "footer": {
     "showing_hidden": "(showing hidden)",
     "build": "Build"
@@ -18,7 +30,7 @@
   },
   "modal_content": {
     "duration_fail": "Failed to get the duration of the recording!",
-    "downloading": "Downloading in the {{format}} format {{format}} format…",
+    "downloading": "Downloading in the {{format}} format…",
     "downloading_avatar": "Downloading avatars…",
     "download_fail": "Failed to download the {{format}} format.",
     "download_avatar_fail": "Failed to download avatars."

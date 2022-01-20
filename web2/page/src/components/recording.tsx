@@ -13,6 +13,7 @@ import imageIcon from '@iconify-icons/ic/round-image';
 import audioIcon from '@iconify-icons/ic/round-audio-file';
 import expiryIcon from '@iconify-icons/ic/outline-timer';
 import clsx from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 const EXPIRY_WARN_AT = 1000 * 60 * 60 * 3;
 
@@ -38,6 +39,7 @@ export default function Recording({
   onDeleteClick,
   onAvatarsClick
 }: RecordingProps) {
+  const { t } = useTranslation();
   const recording = state.recording;
   const startDate = new Date(recording.startTime);
   const expiryDate = new Date(startDate.valueOf() + 1000 * 60 * 60 * (recording.expiresAfter || 24));
@@ -50,17 +52,17 @@ export default function Recording({
       {/* Info Box */}
       <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-sm text-zinc-200">
         <div>
-          <span class="text-zinc-100 font-display">Recording ID:</span>{' '}
+          <span class="text-zinc-100 font-display">{t('info.rec_id')}:</span>{' '}
           <span class="font-mono">{state.recordingId}</span>
         </div>
 
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-1 flex-wrap">
-            <span class="text-zinc-100 font-display">Requested By:</span>
+            <span class="text-zinc-100 font-display">{t('info.req_by')}:</span>
             {recording.requesterExtra ? <DiscordElement {...recording.requesterExtra} /> : recording.requester}
             {recording.user ? (
               <Fragment>
-                <span class="text-zinc-400 font-medium">on behalf of</span>
+                <span class="text-zinc-400 font-medium">{t('info.behalf')}</span>
                 {recording.userExtra ? <DiscordElement {...recording.userExtra} /> : recording.user}
               </Fragment>
             ) : (
@@ -68,11 +70,11 @@ export default function Recording({
             )}
           </div>
           <div class="flex items-center gap-1 flex-wrap">
-            <span class="text-zinc-100 font-display">Server:</span>
+            <span class="text-zinc-100 font-display">{t('info.server')}:</span>
             {recording.guildExtra ? <DiscordElement {...recording.guildExtra} /> : recording.guild}
           </div>
           <div class="flex items-center gap-1 flex-wrap">
-            <span class="text-zinc-100 font-display">Channel:</span>
+            <span class="text-zinc-100 font-display">{t('info.channel')}:</span>
             {recording.channelExtra ? (
               <DiscordElement {...recording.channelExtra} elementType="channel" />
             ) : (
@@ -80,28 +82,28 @@ export default function Recording({
             )}
           </div>
           <div>
-            <span class="text-zinc-100 font-display">Started At:</span> {startDate.toLocaleString()}
+            <span class="text-zinc-100 font-display">{t('info.started')}:</span> {startDate.toLocaleString()}
           </div>
         </div>
 
         <div class="flex flex-col gap-1">
           <div>
-            <span class="text-zinc-100 font-display">Duration:</span>{' '}
+            <span class="text-zinc-100 font-display">{t('info.duration')}:</span>{' '}
             {state.durationLoading ? (
-              <span class="font-medium text-zinc-400">Loading...</span>
+              <span class="font-medium text-zinc-400">{t('loading')}</span>
             ) : state.duration === null ? (
               <button
                 onClick={onDurationClick}
                 class="font-medium text-zinc-400 hover:underline focus:underline outline-none"
               >
-                Reveal
+                {t('reveal')}
               </button>
             ) : (
               <span>{prettyMs(state.duration * 1000)}</span>
             )}
           </div>
           <div class="flex items-center gap-1 flex-wrap">
-            <span class="text-zinc-100 font-display">User(s):</span>
+            <span class="text-zinc-100 font-display">{t('info.user')}:</span>
             {state.users.map((user) => (
               <DiscordElement {...user} key={user.id} />
             ))}
@@ -118,7 +120,8 @@ export default function Recording({
               'text-red-500': expiryTime <= EXPIRY_WARN_AT
             })}
           >
-            <Icon icon={expiryIcon} /> Recording expires in {prettyMs(expiryTime, { compact: true, verbose: true })}.
+            <Icon icon={expiryIcon} /> {/* TODO localize pretty ms */}
+            {t('info.expires', { expire: prettyMs(expiryTime, { compact: true, verbose: true }) })}.
           </h2>
         ) : (
           ''
