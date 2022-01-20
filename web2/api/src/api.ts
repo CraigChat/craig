@@ -21,7 +21,8 @@ export async function start(): Promise<void> {
     contentSecurityPolicy: {
       directives: {
         'default-src': ["'self'"],
-        'img-src': ["'self'", 'data:', 'https://cdn.discordapp.com'],
+        'frame-src': ["'self'", 'https://jimmywarting.github.io'],
+        'img-src': ["'self'", 'data:', 'https://cdn.discordapp.com', 'https://media.discordapp.net'],
         'style-src': ["'self'", 'https:', "'unsafe-inline'"]
       }
     }
