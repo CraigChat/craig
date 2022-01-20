@@ -1,6 +1,28 @@
 {
   "craig_rec": "Craig Recording",
   "loading": "Loading…",
+  "downloading": "Downloading…",
+  "close": "Close",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "footer": {
+    "showing_hidden": "(showing hidden)",
+    "build": "Build"
+  },
+  "modal": {
+    "general": "Modal",
+    "error": "An error occurred.",
+    "delete_rec": "Delete recording?",
+    "duration_fail": "Failed to get the duration of the recording!",
+    "download_fail": "Download failed!"
+  },
+  "modal_content": {
+    "duration_fail": "Failed to get the duration of the recording!",
+    "downloading": "Downloading in the {{format}} format {{format}} format…",
+    "downloading_avatar": "Downloading avatars…",
+    "download_fail": "Failed to download the {{format}} format.",
+    "download_avatar_fail": "Failed to download avatars."
+  },
   "error": {
     "unknown": "An unknown error occurred.",
     "1001": "Invalid ID.",

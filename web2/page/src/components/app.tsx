@@ -13,12 +13,13 @@ import {
   RecordingInfo,
   RecordingUser
 } from '../api';
+import { getPlatformInfo, parseError, PlatformInfo } from '../util';
+import { SectionButton } from '../sections';
+import i18n from '../i18n';
 import Recording from './recording';
 import Modal from './modal';
 import ModalContent from './modalContent';
 import ModalButton from './modalButton';
-import { getPlatformInfo, parseError, PlatformInfo } from '../util';
-import { SectionButton } from '../sections';
 import DeleteModalContent from './deleteModalContent';
 
 export interface ModalOptions {
@@ -92,10 +93,9 @@ export default class App extends Component<{}, AppState> {
       console.debug('Got recording', recording, users);
       this.setState({ recording, users, loading: false });
     } catch (e) {
-      const response = e as Response;
-      const body = response.body ? await response.json() : { error: `${response.status}: ${response.statusText}` };
-      console.error('Failed to get recording:', response, body);
-      this.setState({ error: body.error, loading: false });
+      const { errorT } = await parseError(e);
+      console.error('Failed to get recording:', e);
+      this.setState({ error: errorT, loading: false });
     }
   }
 
@@ -106,27 +106,24 @@ export default class App extends Component<{}, AppState> {
       console.debug('Got duration', duration);
       this.setState({ duration, durationLoading: false });
     } catch (e) {
-      const response = e as Response;
-      const body = response.body
-        ? await response.json().catch(() => {})
-        : { error: `${response.status}: ${response.statusText}` };
-      console.error('Failed to get duration:', response, body);
+      const { errorT } = await parseError(e);
+      console.error('Failed to get duration:', e);
       this.setState({
         modalOpen: true,
         modalContent: (
           <ModalContent
-            title="Uh oh."
+            title={i18n.t('modal.error')}
             buttons={[
               <ModalButton key={1} onClick={() => this.closeModal()}>
-                Close
+                {i18n.t('close')}
               </ModalButton>
             ]}
           >
-            <p>Failed to get the duration of the recording!</p>
-            <p>{body.error}</p>
+            <p>{i18n.t('modal_content.duration_fail')}</p>
+            <p>{errorT}</p>
           </ModalContent>
         ),
-        modalContentLabel: 'Failed to get duration',
+        modalContentLabel: i18n.t('modal.general'),
         durationLoading: false
       });
     }
@@ -141,10 +138,15 @@ export default class App extends Component<{}, AppState> {
       return;
     }
 
-    this.openModal(<ModalContent title="Downloading...">Downloading in the {button.text} format...</ModalContent>, {
-      allowClose: false,
-      contentLabel: 'Downloading'
-    });
+    this.openModal(
+      <ModalContent title={i18n.t('downloading')}>
+        {i18n.t('modal_content.downloading', { format: button.text })}
+      </ModalContent>,
+      {
+        allowClose: false,
+        contentLabel: i18n.t('downloading')
+      }
+    );
 
     try {
       const query = new URLSearchParams(location.search);
@@ -168,23 +170,23 @@ export default class App extends Component<{}, AppState> {
       URL.revokeObjectURL(url);
       this.closeModal(true);
     } catch (err) {
-      const { errorText } = await parseError(err);
+      const { errorT } = await parseError(err);
       console.error('Failed to download:', button, err);
       this.openModal(
         <ModalContent
-          title="Download failed!"
+          title={i18n.t('modal.error')}
           buttons={[
             <ModalButton key={1} onClick={() => this.closeModal()}>
-              Close
+              {i18n.t('close')}
             </ModalButton>
           ]}
         >
-          <p>Failed to download the {button.text} format.</p>
-          <p>{errorText}</p>
+          <p>{i18n.t('modal_content.download_fail', { format: button.text })}</p>
+          <p>{errorT}</p>
         </ModalContent>,
         {
           allowClose: true,
-          contentLabel: 'Download failed'
+          contentLabel: i18n.t('modal.error')
         }
       );
     }
@@ -194,10 +196,13 @@ export default class App extends Component<{}, AppState> {
     (e.target as HTMLButtonElement).blur();
     console.log('Downloading...', payload);
 
-    this.openModal(<ModalContent title="Downloading...">Downloading avatars...</ModalContent>, {
-      allowClose: false,
-      contentLabel: 'Downloading'
-    });
+    this.openModal(
+      <ModalContent title={i18n.t('downloading')}>{i18n.t('modal_content_downloading_avatar')}</ModalContent>,
+      {
+        allowClose: false,
+        contentLabel: i18n.t('downloading')
+      }
+    );
 
     try {
       const query = new URLSearchParams(location.search);
@@ -214,30 +219,23 @@ export default class App extends Component<{}, AppState> {
       URL.revokeObjectURL(url);
       this.closeModal(true);
     } catch (err) {
-      let errText = err.toString();
-      if (err instanceof Response) {
-        if (err.status <= 499) {
-          const body = await err.json().catch(() => {});
-          errText = body.error || `${err.status}: ${err.statusText}`;
-        }
-      }
-
+      const { errorT } = await parseError(err);
       console.error('Failed to download:', payload, err);
       this.openModal(
         <ModalContent
-          title="Download failed!"
+          title={i18n.t('modal.error')}
           buttons={[
             <ModalButton key={1} onClick={() => this.closeModal()}>
-              Close
+              {i18n.t('close')}
             </ModalButton>
           ]}
         >
-          <p>Failed to download avatars.</p>
-          <p>{errText}</p>
+          <p>{i18n.t('modal_content.downloading_avatar_fail')}</p>
+          <p>{errorT}</p>
         </ModalContent>,
         {
           allowClose: true,
-          contentLabel: 'Download failed'
+          contentLabel: i18n.t('modal.error')
         }
       );
     }
@@ -285,7 +283,7 @@ export default class App extends Component<{}, AppState> {
               <div class="flex flex-row items-center justify-center gap-4">
                 <img src="/craig.png" class="w-16 h-16 rounded-full" />
                 <div class="flex flex-col">
-                  <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">{t('craig_red')}</h1>
+                  <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">{t('craig_rec')}</h1>
                   <a
                     href="https://craig.chat/"
                     class="text-zinc-400 font-medium hover:underline focus:underline outline-none"
@@ -315,7 +313,13 @@ export default class App extends Component<{}, AppState> {
               {/* Debug */}
               {/* TODO language switcher */}
               <div class="flex flex-col">
-                {hasRev ? <span class="opacity-50 text-xs">Build {process.env.GIT_REVISION.slice(0, 7)}</span> : ''}
+                {hasRev ? (
+                  <span class="opacity-50 text-xs">
+                    {t('footer.build')} {process.env.GIT_REVISION.slice(0, 7)}
+                  </span>
+                ) : (
+                  ''
+                )}
                 <span class="opacity-50 text-xs">
                   {[
                     this.state.platform.windows ? 'Windows' : '',
@@ -326,7 +330,7 @@ export default class App extends Component<{}, AppState> {
                   ]
                     .filter((p) => !!p)
                     .join(', ')}
-                  {this.state.platform.showHidden ? ' (showing hidden)' : ''}
+                  {this.state.platform.showHidden ? ` ${t('footer.showing_hidden')}` : ''}
                 </span>
               </div>
             </div>
