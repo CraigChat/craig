@@ -2063,4 +2063,4 @@ if (config.ennuicastr)
 //if(cc.master)
 //    var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 4*24*60*60*1000);
 
-module.exports = {activeRecordings, joinChannel, gracefulRestart, uptimeTimeout};
+module.exports = {activeRecordings, joinChannel, gracefulRestart};
