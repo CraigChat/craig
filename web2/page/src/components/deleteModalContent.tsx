@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
+import { useTranslation } from 'react-i18next';
 import { deleteRecording } from '../api';
 import { parseError } from '../util';
 import ModalButton from './modalButton';
@@ -22,12 +23,13 @@ export default function DeleteModalContent({
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>(null);
   const [deleteKey, setDeleteKey] = useState(defaultDeleteKey || '');
+  const { t } = useTranslation();
 
   async function deleteClick() {
     if (isLoading) return;
 
     if (!deleteKey) {
-      setError('Please provide a delete key.');
+      setError(t('error.no_del_key'));
       return;
     }
 
@@ -49,13 +51,13 @@ export default function DeleteModalContent({
 
   return (
     <ModalContent
-      title="Delete recording?"
+      title={t('modal.delete_rec')}
       buttons={[
         <ModalButton key={1} type="danger" onClick={deleteClick} disabled={isLoading}>
-          Delete
+          {t('delete')}
         </ModalButton>,
         <ModalButton key={2} onClick={() => onClose()} disabled={isLoading}>
-          Cancel
+          {t('cancel')}
         </ModalButton>,
         error ? (
           <span key={3} class="text-red-500">
@@ -66,11 +68,9 @@ export default function DeleteModalContent({
         )
       ]}
     >
-      <p>
-        Are you sure you want to delete this recording? This action is IRREVERSABLE and nobody can help you get it back.
-      </p>
+      <p>{t('modal_content.delete_rec')}</p>
       <div class="flex flex-col mt-6 gap-2">
-        <span class="font-display">Enter the delete key here:</span>
+        <span class="font-display">{t('modal_content.enter_del_key')}</span>
         <input
           value={deleteKey}
           class={clsx('py-1 px-3 rounded bg-zinc-800 font-mono outline-none focus:ring-2', {

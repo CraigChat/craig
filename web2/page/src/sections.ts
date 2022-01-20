@@ -10,16 +10,17 @@ import unixIcon from '@iconify-icons/cib/linux';
 import rawIcon from '@iconify-icons/ic/round-insert-drive-file';
 import { RecordingInfo } from './api';
 import { PlatformInfo } from './util';
+import { TFunction } from 'react-i18next';
 
 export interface Section {
-  title: string;
+  title: string | ((t: TFunction) => string);
   icon?: IconifyIcon;
   buttons: SectionButton[];
 }
 
 export interface SectionButton {
-  text: string;
-  suffix?: string;
+  text: string | ((t: TFunction) => string);
+  suffix?: string | ((t: TFunction) => string);
   hidden?: boolean;
   icon?: IconifyIcon;
   format?: string;
@@ -31,12 +32,12 @@ export interface SectionButton {
 export const getDownloadsSection = (info: RecordingInfo, platform: PlatformInfo) => {
   const sections: Section[] = [
     {
-      title: 'Multi-track',
+      title: (t) => t('sections.mt'),
       icon: multiTrackIcon,
       buttons: [
         {
           icon: audacityIcon,
-          text: 'Audacity Project',
+          text: (t) => t('download.audacity'),
           format: 'flac',
           container: 'aupzip',
           hidden: (platform.iphone || platform.android) && !platform.showHidden
@@ -56,7 +57,7 @@ export const getDownloadsSection = (info: RecordingInfo, platform: PlatformInfo)
         },
         {
           text: 'ALAC',
-          suffix: '(Apple Lossless)',
+          suffix: (t) => t('download.alac'),
           ennuizel: 6,
           hidden: !platform.macosx && !platform.showHidden
         },
@@ -69,7 +70,7 @@ export const getDownloadsSection = (info: RecordingInfo, platform: PlatformInfo)
       ]
     },
     {
-      title: 'Single-track Mixed',
+      title: (t) => t('sections.st'),
       icon: singleTrackIcon,
       buttons: [
         {
@@ -86,13 +87,13 @@ export const getDownloadsSection = (info: RecordingInfo, platform: PlatformInfo)
           ennuizel: 0x31
         },
         {
-          text: 'Other',
+          text: (t) => t('download.other'),
           ennuizel: 0x230
         }
       ]
     },
     {
-      title: 'Single-track Smart Mix',
+      title: (t) => t('sections.stsm'),
       icon: singleTrackIcon,
       buttons: [
         {
@@ -131,7 +132,7 @@ export const getDownloadsSection = (info: RecordingInfo, platform: PlatformInfo)
 export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformInfo) => {
   const sections: Section[] = [
     {
-      title: 'Multi-track',
+      title: (t) => t('sections.mt'),
       icon: multiTrackIcon,
       buttons: [
         {
@@ -150,7 +151,7 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
       ]
     },
     {
-      title: 'Multi-track (other formats)',
+      title: (t) => t('sections.mt_other'),
       icon: multiTrackIcon,
       buttons: [
         {
@@ -180,12 +181,12 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
       ]
     },
     {
-      title: 'Multi-track smart-leveled',
+      title: (t) => t('sections.mtsl'),
       icon: multiTrackIcon,
       buttons: [
         {
           icon: audacityIcon,
-          text: 'Audacity Project',
+          text: (t) => t('download.audacity'),
           format: 'flac',
           container: 'aupzip',
           dynaudnorm: true,
@@ -216,36 +217,37 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
       ]
     },
     {
-      title: 'Local processing',
+      title: (t) => t('sections.local'),
       icon: computerIcon,
       buttons: [
         {
           icon: windowsIcon,
-          text: 'Windows Application',
+          text: (t) => t('download.win'),
           format: 'powersfx',
           container: 'exe',
           hidden: !platform.windows && !platform.showHidden
         },
         {
           icon: macIcon,
-          text: 'Mac OS X Application',
+          text: (t) => t('download.mac'),
           format: 'powersfxm',
           hidden: (!platform.macosx || platform.iphone) && !platform.showHidden
         },
         {
           icon: unixIcon,
-          text: 'Unix Script',
+          text: (t) => t('download.unix'),
           format: 'powersfxu',
           hidden: (!platform.unix || platform.android) && !platform.showHidden
         }
       ]
     },
     {
-      title: 'Miscellaneous (unsupported)',
+      title: (t) => t('sections.misc'),
       buttons: [
         {
           icon: rawIcon,
-          text: 'Raw',
+          text: (t) => t('download.raw'),
+          suffix: (t) => t('download.unsup'),
           format: 'raw'
         }
       ]

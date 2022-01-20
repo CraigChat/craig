@@ -5,8 +5,6 @@ import { Translation } from 'react-i18next';
 import {
   cookAvatars,
   CookAvatarsPayload,
-  cookRecording,
-  getRawRecording,
   getRecording,
   getRecordingDuration,
   getRecordingUsers,
