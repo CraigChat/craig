@@ -317,6 +317,11 @@
   dependencies:
     cross-fetch "^3.1.4"
 
+"@mattiasbuelens/web-streams-adapter@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@mattiasbuelens/web-streams-adapter/-/web-streams-adapter-0.1.0.tgz#607b5a25682f4ae2741da7ba6df39302505336b3"
+  integrity sha512-oV4PyZfwJNtmFWhvlJLqYIX1Nn22ML8FZpS16ZUKv0hg7414xV1fjsGqxQzLT2dyK92TKxsJSwMOd7VNHAtPmA==
+
 "@mdn/browser-compat-data@^3.3.14":
   version "3.3.14"
   resolved "https://registry.yarnpkg.com/@mdn/browser-compat-data/-/browser-compat-data-3.3.14.tgz#b72a37c654e598f9ae6f8335faaee182bebc6b28"

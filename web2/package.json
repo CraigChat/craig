@@ -36,6 +36,7 @@
     "@iconify-icons/ic": "^1.1.17",
     "@iconify-icons/mdi": "^1.1.42",
     "@iconify/react": "^3.1.1",
+    "@mattiasbuelens/web-streams-adapter": "^0.1.0",
     "@rollup/plugin-alias": "^3.1.9",
     "@rollup/plugin-buble": "^0.21.3",
     "@rollup/plugin-commonjs": "^21.0.1",

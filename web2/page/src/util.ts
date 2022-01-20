@@ -36,10 +36,25 @@ export const parseError = async (error: any, t?: TFunction) => {
   return { errorText, errorCode, errorT: errorCode ? t([`error.${errorCode}`, 'error.unknown']) : errorText };
 };
 
-export const downloadResponse = (response: Response) => {
+export const downloadResponse = async (response: Response) => {
   const filename = response.headers.get('content-disposition').slice(21);
   const fileStream = streamSaver.createWriteStream(filename);
-  return response.body.pipeTo(fileStream);
+
+  if (window.WritableStream && response.body.pipeTo) return response.body.pipeTo(fileStream);
+
+  const writer = fileStream.getWriter();
+  const reader = response.body.getReader();
+
+  let done = false;
+  // deepscan-disable CONSTANT_CONDITION
+  while (!done) {
+    const res = await reader.read();
+    if (res.done) {
+      done = true;
+      return;
+    }
+    await writer.write(res.value);
+  }
 };
 
 export const downloadResponseBlob = async (response: Response) => {
