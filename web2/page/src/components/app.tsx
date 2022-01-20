@@ -13,7 +13,7 @@ import {
   RecordingInfo,
   RecordingUser
 } from '../api';
-import { getPlatformInfo, parseError, PlatformInfo } from '../util';
+import { downloadResponse, getPlatformInfo, parseError, PlatformInfo } from '../util';
 import { SectionButton } from '../sections';
 import i18n from '../i18n';
 import Recording from './recording';
@@ -159,15 +159,7 @@ export default class App extends Component<{}, AppState> {
               dynaudnorm: button.dynaudnorm || false
             });
 
-      const filename = response.headers.get('content-disposition').slice(21);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      console.log('Opened download link', { blob, filename });
-      URL.revokeObjectURL(url);
+      await downloadResponse(response);
       this.closeModal(true);
     } catch (err) {
       const { errorT } = await parseError(err);
@@ -208,15 +200,7 @@ export default class App extends Component<{}, AppState> {
       const query = new URLSearchParams(location.search);
       const response = await cookAvatars(this.state.recordingId, query.get('key'), payload);
 
-      const filename = response.headers.get('content-disposition').slice(21);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      console.log('Opened download link', { blob, filename });
-      URL.revokeObjectURL(url);
+      await downloadResponse(response);
       this.closeModal(true);
     } catch (err) {
       const { errorT } = await parseError(err);

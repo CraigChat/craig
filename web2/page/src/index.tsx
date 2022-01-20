@@ -10,6 +10,9 @@ import '@fontsource/lexend/500.css';
 import '@fontsource/lexend/700.css';
 import '@fontsource/ubuntu-mono/400.css';
 import './index.sass';
+
+import 'web-streams-polyfill';
+import 'streamsaver';
 import './i18n';
 import App from './components/app';
 
