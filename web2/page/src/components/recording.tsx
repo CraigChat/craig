@@ -48,8 +48,8 @@ export default function Recording({
   const othersSection = getOtherFormatsSection(recording, state.platform);
 
   function asT(text: string | ((t: TFunction) => string)) {
-    if (typeof text === 'string') return text;
-    return text(t);
+    if (typeof text === 'function') return text(t);
+    return text;
   }
 
   return (
