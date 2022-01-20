@@ -1,4 +1,22 @@
 {
   "craig_rec": "Craig Recording",
-  "loading": "Loading…"
+  "loading": "Loading…",
+  "error": {
+    "unknown": "An unknown error occurred.",
+    "1001": "Invalid ID.",
+    "1002": "Invalid key.",
+    "1003": "Recording not found.",
+    "1004": "Recording was deleted.",
+    "1005": "Invalid delete key.",
+    "1006": "This recording is already being processed! Please try again later.",
+    "1007": "This recording does not have the MP3 feature enabled.",
+    "1008": "This recording does not have the glowers feature enabled.",
+    "1009": "This recording does not have the smart mix feature enabled.",
+    "1010": "The PNG format cannot a different container other than ZIP.",
+    "1101": "Invalid format.",
+    "1102": "Invalid container.",
+    "1103": "Invalid background color.",
+    "1104": "Invalid foreground color.",
+    "2001": "You are sending too many requests. Please try again later."
+  }
 }

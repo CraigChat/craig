@@ -1,14 +1,15 @@
 import fastify, { FastifyInstance } from 'fastify';
 import helmet from 'fastify-helmet';
 import staticPlugin from 'fastify-static';
+import rateLimit from 'fastify-rate-limit';
 import path from 'path';
 import * as recordingRoute from './routes/recording';
 import * as cookRoute from './routes/cook';
 import * as pageRoute from './routes/page';
+import { ErrorCode } from './util';
 
 export let server: FastifyInstance;
 
-// TODO fastify rate limit
 export async function start(): Promise<void> {
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
@@ -25,9 +26,25 @@ export async function start(): Promise<void> {
       }
     }
   });
+
   await server.register(staticPlugin, {
     root: path.join(__dirname, '..', 'page', 'public'),
     prefix: '/'
+  });
+
+  await server.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+    keyGenerator(req) {
+      return (req.headers['cf-connecting-ip'] as string) || req.ip;
+    },
+    errorResponseBuilder() {
+      return {
+        ok: false,
+        code: ErrorCode.RATELIMITED,
+        error: 'Too many requests'
+      };
+    }
   });
 
   server.get('/', async (request, reply) => {
