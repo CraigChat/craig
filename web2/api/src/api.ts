@@ -69,6 +69,7 @@ export async function start(): Promise<void> {
   server.route(recordingRoute.usersRoute);
   server.route(recordingRoute.rawRoute);
   server.route(cookRoute.durationRoute);
+  server.route(cookRoute.notesRoute);
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
   server.route(cookRoute.runRoute);

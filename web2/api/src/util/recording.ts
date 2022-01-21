@@ -48,6 +48,11 @@ export interface RecordingUser {
   avatar?: string;
 }
 
+export interface RecordingNote {
+  time: string;
+  note: string;
+}
+
 export async function loadConfig(): Promise<void> {
   const configText = await fs.readFile(configPath, 'utf8');
   if (!configText) throw new Error('Config file not found');

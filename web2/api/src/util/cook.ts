@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import { constants as FS } from 'fs';
-import { recPath } from './recording';
+import { RecordingNote, recPath } from './recording';
 import path from 'path';
 import execa from 'execa';
 import { spawn } from 'child_process';
@@ -23,6 +23,12 @@ export async function getDuration(id: string): Promise<number> {
   const durationPath = path.join(cookPath, 'duration.sh');
   const { stdout: duration } = await execa(durationPath, [id]);
   return parseFloat(duration);
+}
+
+export async function getNotes(id: string): Promise<RecordingNote[]> {
+  const notesPath = path.join(cookPath, 'jsonnotes.sh');
+  const { stdout: notesStr } = await execa(notesPath, [id]);
+  return JSON.parse(notesStr);
 }
 
 export const allowedFormats = [
