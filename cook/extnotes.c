@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     unsigned char *buf = NULL;
     uint32_t bufSz = 0;
     struct OggPreHeader preHeader;
-    unsigned char outputAudacity = 0, outputHeader = 0;
+    unsigned char outputAudacity = 0, outputJSON = 0, outputHeader = 0;
     int ai;
 
     for (ai = 1; ai < argc; ai++) {
@@ -93,11 +93,16 @@ int main(int argc, char **argv)
             arg = argv[++ai];
             if (arg && !strcmp(arg, "audacity"))
                 outputAudacity = 1;
+            if (arg && !strcmp(arg, "json"))
+                outputJSON = 1;
         } else {
-            fprintf(stderr, "Use: extnotes [--format audacity|-f audacity]\n");
+            fprintf(stderr, "Use: extnotes [--format audacity|-f audacity|--format json|-f json]\n");
             exit(1);
         }
     }
+
+    if (outputJSON)
+        printf("[");
 
     while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
         struct OggHeader oggHeader;
@@ -158,6 +163,17 @@ int main(int argc, char **argv)
             printNote(buf, packetSize);
             printf("\"/>\n");
 
+        } else if (outputJSON) {
+            if (outputHeader) {
+                // Add comma before next note
+                printf(",");
+            } else {
+                outputHeader = 1;
+            }
+
+            printf("{\"time\":\"%f\",\"note\":\"", time, time);
+            printNote(buf, packetSize);
+            printf("\"}");
         } else {
             int h, m;
             if (!outputHeader) {
@@ -171,12 +187,13 @@ int main(int argc, char **argv)
             printf("\t%d:%02d:%02d: ", h, m, (int) time);
             printNote(buf, packetSize); 
             printf("\r\n");
-
         }
     }
 
     if (outputAudacity && outputHeader)
         printf("\t</labeltrack>\n");
+    if (outputJSON)
+        printf("]");
 
     return 0;
 }
