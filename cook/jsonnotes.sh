@@ -11,4 +11,4 @@ timeout() {
 }
 cd "$SCRIPTBASE/rec"
 timeout $DEF_TIMEOUT cat $ID.ogg.header1 $ID.ogg.header2 $ID.ogg.data |
-    timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/extnotes -f json"
+    timeout $DEF_TIMEOUT "$SCRIPTBASE/cook/extnotes" -f json
