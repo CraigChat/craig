@@ -42,8 +42,8 @@ export default function DeleteModalContent({
       location.reload();
     } catch (e) {
       console.error('Failed to delete recording:', e);
-      const { errorText } = await parseError(e);
-      setError(errorText);
+      const { errorT } = await parseError(e);
+      setError(errorT);
       setLoading(false);
       setModalClose(true);
     }
