@@ -14,12 +14,13 @@ import {
 } from '../api';
 import { cookDownload, downloadResponse, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
 import { SectionButton } from '../sections';
-import i18n from '../i18n';
+import i18n, { languages } from '../i18n';
 import Recording from './recording';
 import Modal from './modal';
 import ModalContent from './modalContent';
 import ModalButton from './modalButton';
 import DeleteModalContent from './deleteModalContent';
+import Dropdown from './dropdown';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -250,7 +251,7 @@ export default class App extends Component<{}, AppState> {
       />,
       {
         allowClose: true,
-        contentLabel: 'Delete recording'
+        contentLabel: i18n.t('modal.delete_rec')
       }
     );
   }
@@ -307,28 +308,42 @@ export default class App extends Component<{}, AppState> {
                 />
               )}
 
-              {/* Debug */}
-              {/* TODO language switcher */}
-              <div class="flex flex-col">
-                {hasRev ? (
+              {/* Footer */}
+              <div class="flex justify-between">
+                <div class="flex flex-col">
+                  {hasRev ? (
+                    <span class="opacity-50 text-xs">
+                      {t('footer.build')} {process.env.GIT_REVISION.slice(0, 7)}
+                    </span>
+                  ) : (
+                    ''
+                  )}
                   <span class="opacity-50 text-xs">
-                    {t('footer.build')} {process.env.GIT_REVISION.slice(0, 7)}
+                    {[
+                      this.state.platform.windows ? 'Windows' : '',
+                      this.state.platform.macosx ? 'Mac OS X' : '',
+                      this.state.platform.android ? 'Android' : '',
+                      this.state.platform.iphone ? 'iPhone' : '',
+                      this.state.platform.unix ? 'Unix' : ''
+                    ]
+                      .filter((p) => !!p)
+                      .join(', ')}
+                    {this.state.platform.showHidden ? ` ${t('footer.showing_hidden')}` : ''}
                   </span>
-                ) : (
-                  ''
-                )}
-                <span class="opacity-50 text-xs">
-                  {[
-                    this.state.platform.windows ? 'Windows' : '',
-                    this.state.platform.macosx ? 'Mac OS X' : '',
-                    this.state.platform.android ? 'Android' : '',
-                    this.state.platform.iphone ? 'iPhone' : '',
-                    this.state.platform.unix ? 'Unix' : ''
-                  ]
-                    .filter((p) => !!p)
-                    .join(', ')}
-                  {this.state.platform.showHidden ? ` ${t('footer.showing_hidden')}` : ''}
-                </span>
+                </div>
+                <div class="flex flex-col flex-none">
+                  {languages.length > 1 ? (
+                    <Dropdown
+                      right
+                      bottom
+                      items={languages}
+                      selected={languages.find((l) => l.code === i18n.language)}
+                      onSelect={(lang) => i18n.changeLanguage(lang.code)}
+                    />
+                  ) : (
+                    ''
+                  )}
+                </div>
               </div>
             </div>
             <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>

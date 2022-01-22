@@ -7,6 +7,16 @@ const resources = {
   en: { download: en }
 };
 
+export interface Language {
+  code: string;
+  title: string;
+  icon: IconifyIcon;
+}
+
+import { IconifyIcon } from '@iconify/react';
+import enFlag from '@iconify-icons/twemoji/flag-for-united-states';
+export const languages: Language[] = [{ code: 'en', title: 'English', icon: enFlag }];
+
 i18n
   .use(detector)
   .use(initReactI18next)
