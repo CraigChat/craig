@@ -372,7 +372,6 @@ function session(msgOrInteraction, prefix, rec) {
                     corruptWarn[user.id] = true;
                 }
             }
-            // FIXME: Eventually delete corruption warnings?
         }
 
         // Write out the chunk itself
@@ -1235,6 +1234,7 @@ async function joinChannel(user, guild, channel, noSilenceDisconnect, { msg, int
             expiresAfter: f.limits.download,
             features: f
         };
+        delete info.features.limits;
         if (!interaction && user !== msg.author) {
             info.user = user.username + "#" + user.discriminator;
             info.userId = userId;
