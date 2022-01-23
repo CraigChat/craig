@@ -242,6 +242,8 @@ export const avatarRoute: RouteOptions = {
 
     if (body.container && body.container !== 'exe' && body.container !== 'zip')
       return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
+    if (body.container === 'exe' && !['movsfx', 'movpngsfx'].includes(format))
+      return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
     const container = body.container || (format === 'movsfx' || format === 'movpngsfx' ? 'exe' : 'zip');
 
     const transparent = Boolean(body.transparent);
