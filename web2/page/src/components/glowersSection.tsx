@@ -59,13 +59,13 @@ const items: DropdownItem[] = [
     title: 'MOV',
     suffix: '(QuickTime Animation, Unix extractor)',
     value: 'movsfxu',
-    hidden: (p) => (!p.macosx || p.iphone) && !p.showHidden
+    hidden: (p) => (!p.unix || p.android) && !p.showHidden
   },
   {
     title: 'MOV',
     suffix: '(PNG, Unix extractor)',
     value: 'movpngsfxu',
-    hidden: (p) => (!p.macosx || p.iphone) && !p.showHidden
+    hidden: (p) => (!p.unix || p.android) && !p.showHidden
   },
   {
     title: 'MKV',
