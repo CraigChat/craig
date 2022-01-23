@@ -9,18 +9,17 @@ import macIcon from '@iconify-icons/cib/apple';
 import unixIcon from '@iconify-icons/cib/linux';
 import rawIcon from '@iconify-icons/ic/round-insert-drive-file';
 import { RecordingInfo } from './api';
-import { PlatformInfo } from './util';
-import { TFunction } from 'react-i18next';
+import { PlatformInfo, StringT } from './util';
 
 export interface Section {
-  title: string | ((t: TFunction) => string);
+  title: StringT;
   icon?: IconifyIcon;
   buttons: SectionButton[];
 }
 
 export interface SectionButton {
-  text: string | ((t: TFunction) => string);
-  suffix?: string | ((t: TFunction) => string);
+  text: StringT;
+  suffix?: StringT;
   hidden?: boolean;
   icon?: IconifyIcon;
   format?: string;

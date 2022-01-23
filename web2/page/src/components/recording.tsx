@@ -14,6 +14,7 @@ import audioIcon from '@iconify-icons/ic/round-audio-file';
 import expiryIcon from '@iconify-icons/ic/outline-timer';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
+import GlowersSection from './glowersSection';
 
 const EXPIRY_WARN_AT = 1000 * 60 * 60 * 3;
 
@@ -163,6 +164,11 @@ export default function Recording({
         <div class="flex flex-row flex-wrap gap-3">
           <DownloadButton icon={imageIcon} onClick={(e) => onAvatarsClick({}, e)} title="PNG" />
         </div>
+        {recording.features.glowers ? (
+          <GlowersSection platform={state.platform} users={state.users} onDownload={onAvatarsClick} />
+        ) : (
+          ''
+        )}
       </Section>
 
       {/* Other Formats */}

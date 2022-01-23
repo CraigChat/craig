@@ -73,8 +73,8 @@ export default function DeleteModalContent({
         <span class="font-display">{t('modal_content.enter_del_key')}</span>
         <input
           value={deleteKey}
-          class={clsx('py-1 px-3 rounded bg-zinc-800 font-mono outline-none focus:ring-2', {
-            'focus:ring-zinc-400': !error,
+          class={clsx('py-1 px-3 rounded bg-zinc-800 font-mono outline-none focus:ring-1', {
+            'focus:ring-teal-500': !error,
             'focus:ring-red-300 text-red-500': !!error,
             'bg-opacity-50 cursor-not-allowed': isLoading
           })}

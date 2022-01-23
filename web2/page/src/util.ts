@@ -1,3 +1,5 @@
+/* global WindowEventMap AddEventListenerOptions */
+import { useEffect, useRef } from 'preact/hooks';
 import { TFunction } from 'react-i18next';
 import { CookPayload } from './api';
 import i18n from './i18n';
@@ -20,6 +22,30 @@ export const getPlatformInfo = (): PlatformInfo => {
     android: navigator.userAgent.toLowerCase().includes('android')
   };
 };
+
+export function useWindowEvent<TType extends keyof WindowEventMap>(
+  type: TType,
+  listener: (this: Window, ev: WindowEventMap[TType]) => any,
+  options?: boolean | AddEventListenerOptions
+) {
+  const listenerRef = useRef(listener);
+  listenerRef.current = listener;
+  useEffect(
+    function () {
+      function handler(event) {
+        listenerRef.current.call(window, event);
+      }
+
+      window.addEventListener(type, handler, options);
+      return function () {
+        return window.removeEventListener(type, handler, options);
+      };
+    },
+    [type, options]
+  );
+}
+
+export type StringT = string | ((t: TFunction) => string);
 
 export function asT(t: TFunction, text: string | ((t: TFunction) => string)) {
   if (typeof text === 'function') return text(t);

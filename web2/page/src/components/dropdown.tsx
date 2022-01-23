@@ -10,9 +10,11 @@ interface DropdownItem extends Record<string, any> {
   icon?: IconifyIcon;
   title: string;
   suffix?: string;
+  value: string;
 }
 
 interface DropdownProps {
+  className?: string;
   label?: string;
   items: DropdownItem[];
   selected?: DropdownItem;
@@ -23,6 +25,7 @@ interface DropdownProps {
 }
 
 export default function Dropdown({
+  className,
   label,
   items,
   selected: defaultSelected,
@@ -41,9 +44,13 @@ export default function Dropdown({
   return (
     <Listbox value={selected} onChange={onSelectItem}>
       {({ open }) => (
-        <div className="flex flex-col gap-1">
-          {label ? <Listbox.Label className="block text-sm font-medium text-zinc-400">{label}</Listbox.Label> : ''}
-          <div className="mt-1 relative">
+        <div className={clsx('flex flex-col gap-1', className)}>
+          {label ? (
+            <Listbox.Label className="block text-sm font-medium font-display text-zinc-400">{label}</Listbox.Label>
+          ) : (
+            ''
+          )}
+          <div className={clsx(label ? 'mt-1' : '', 'mt-1 relative')}>
             <Listbox.Button className="relative text-sm sm:text-base w-full bg-zinc-600 rounded-md shadow-sm pl-3 pr-12 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500">
               <span className="flex items-center gap-1">
                 {selected.icon ? <Icon icon={selected.icon} className="w-5 h-5 pointer-events-none" /> : ''}
@@ -73,9 +80,9 @@ export default function Dropdown({
                   'absolute z-10 my-1 bg-zinc-700 shadow-lg max-h-56 rounded-md text-sm sm:text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none'
                 )}
               >
-                {items.map((item, i) => (
+                {items.map((item) => (
                   <Listbox.Option
-                    key={i}
+                    key={item.value}
                     className={({ active }) =>
                       clsx(
                         active ? 'text-white bg-teal-600' : '',

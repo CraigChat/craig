@@ -337,7 +337,7 @@ export default class App extends Component<{}, AppState> {
                       right
                       bottom
                       items={languages}
-                      selected={languages.find((l) => l.code === i18n.language)}
+                      selected={languages.find((l) => l.value === i18n.language)}
                       onSelect={(lang) => i18n.changeLanguage(lang.code)}
                     />
                   ) : (
