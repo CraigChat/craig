@@ -114,13 +114,17 @@ export default function GlowersSection({ users, platform, onDownload }: GlowersS
           )}
           style={!transparent ? { 'background-color': bgColor } : ''}
         >
-          {users.slice(0, 4).map((user) => (
-            <img
-              key={user.id}
-              class="w-20 h-20 rounded-full border-4 bg-black"
-              src={user.avatar || '/craig.png'}
-              style={{ 'border-color': fgColor }}
-            />
+          {users.slice(0, 4).map((user, i) => (
+            <div key={user.id} class="w-20 h-20 rounded-full overflow-hidden relative">
+              <i
+                class="absolute w-full h-full top-0 animate-pulse"
+                style={{
+                  backgroundColor: fgColor,
+                  animationDelay: `${i / 2}s`
+                }}
+              />
+              <img class="absolute w-18 h-18 top-1 left-1 rounded-full bg-black" src={user.avatar || '/craig.png'} />
+            </div>
           ))}
         </div>
         <div class="flex gap-2 flex-col sm:flex-row">

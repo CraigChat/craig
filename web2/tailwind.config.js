@@ -11,6 +11,12 @@ module.exports = {
         '2/5': '40%',
         button: '80px',
         'button-sm': '60px'
+      },
+      width: {
+        18: '4.5rem'
+      },
+      height: {
+        18: '4.5rem'
       }
     },
     fontFamily: {
