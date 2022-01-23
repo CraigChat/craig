@@ -38,7 +38,7 @@ export default ({ watch }) => [
             purgecss({
               content: ['./page/src/**/*.tsx', './page/src/**/*.ts', './page/src/**/*.sass'],
               safelist: {
-                standard: ['enter', 'leave', 'min-w-1/2', 'w-5/6', 'md:min-w-2/5'],
+                standard: ['enter', 'leave', 'ul'],
                 deep: [],
                 greedy: [/^tippy-/],
                 keyframes: [],
@@ -47,7 +47,7 @@ export default ({ watch }) => [
               blocklist: ['light-theme', 'transparent-theme'],
               extractors: [
                 {
-                  extractor: (content) => content.match(/[A-Za-z0-9_-][A-Za-z0-9_:-]*/g) || [],
+                  extractor: (content) => content.match(/[A-Za-z0-9_-][A-Za-z0-9_:/-]*/g) || [],
                   extensions: ['tsx']
                 }
               ]
