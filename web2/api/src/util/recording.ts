@@ -4,8 +4,6 @@ import { createReadStream } from 'fs';
 import path from 'path';
 
 export const recPath = path.join(__dirname, '..', '..', '..', 'rec');
-export const configPath = path.join(__dirname, '..', '..', '..', 'config.json');
-let config: Record<string, any> | null = null;
 
 export interface RecordingInfo {
   format: 1;
@@ -53,12 +51,6 @@ export interface RecordingNote {
   note: string;
 }
 
-export async function loadConfig(): Promise<void> {
-  const configText = await fs.readFile(configPath, 'utf8');
-  if (!configText) throw new Error('Config file not found');
-  config = JSON.parse(configText);
-}
-
 export async function fileExists(file: string) {
   try {
     await fs.access(file);
@@ -76,8 +68,6 @@ export function getRawRecordingStream(id: string) {
 }
 
 export async function getRecording(id: string): Promise<RecordingInfo | false> {
-  if (!config) await loadConfig();
-
   const dataExists = !(
     await Promise.all(['data', 'header1', 'header2'].map((ext) => fileExists(path.join(recPath, `${id}.ogg.${ext}`))))
   ).some((exists) => exists === false);
@@ -97,11 +87,7 @@ export async function getRecording(id: string): Promise<RecordingInfo | false> {
   if (!info.features) {
     const featsExists = await fileExists(path.join(recPath, `${id}.ogg.features`));
     if (featsExists) info.features = JSON.parse(await fs.readFile(path.join(recPath, `${id}.ogg.features`), 'utf8'));
-    else {
-      const defaultFeatures = Object.assign({}, config.defaultFeatures);
-      delete defaultFeatures.limits;
-      info.features = defaultFeatures;
-    }
+    else info.features = {};
   }
 
   return info as RecordingInfo;
