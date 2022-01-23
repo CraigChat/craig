@@ -150,7 +150,7 @@ export default function GlowersSection({ users, platform, onDownload }: GlowersS
         {formatOption && ( // Only render after useEffect goes off
           <Dropdown
             items={options}
-            label="Format"
+            label={t('glowers.format')}
             className="w-full sm:w-2/3"
             full
             selected={formatOption}

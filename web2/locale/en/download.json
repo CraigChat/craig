@@ -68,6 +68,7 @@
   },
   "glowers": {
     "title": "Glowers",
+    "format": "Format",
     "download": "Download",
     "transparent_bg": "Transparent Background",
     "bg_color": "Background Color",

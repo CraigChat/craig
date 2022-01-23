@@ -1,0 +1,46 @@
+{
+  "craig_rec": "Grabación de Craig",
+  "loading": "Cargando…",
+  "downloading": "Descargando…",
+  "close": "Cerrar",
+  "cancel": "Cancelar",
+  "delete": "Borrar",
+  "reveal": "Revelar",
+  "info": {
+    "users": "Usuarios",
+    "req_by": "Solicitado por",
+    "duration": "Duración",
+    "started": "Comenzó en",
+    "delete_rec": "Eliminar grabación"
+  },
+  "sections": {
+    "dl": "Descargas",
+    "avatars": "Avatares",
+    "other_formats": "Otros formatos",
+    "mt": "Multi-pista",
+    "st": "Mezcla en una pista",
+    "mt_other": "Multi-pista (otros formatos)",
+    "local": "Procesamiento local"
+  },
+  "download": {
+    "audacity": "Proyecto de Audacity",
+    "other": "Otros",
+    "win": "Aplicación de Windows",
+    "mac": "Aplicación de Mac OS X",
+    "raw": "Raw"
+  },
+  "footer": {
+    "build": "Revisión",
+    "showing_hidden": "(mostrando oculto)"
+  },
+  "glowers": {
+    "format": "Formato",
+    "download": "Descargar",
+    "transparent_bg": "Fondo transparente",
+    "bg_color": "Color de fondo",
+    "fg_color": "Color del resplandor",
+    "format_desc": {
+      "webmvp8": "WebM soporta transparencia, pero la mayoría de los editores de video no soportan WebM."
+    }
+  }
+}

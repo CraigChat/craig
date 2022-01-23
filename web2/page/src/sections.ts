@@ -144,7 +144,7 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
           ennuizel: 1
         },
         {
-          text: 'Other',
+          text: (t) => t('download.other'),
           ennuizel: 0x200
         }
       ]

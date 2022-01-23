@@ -274,7 +274,7 @@ export default class App extends Component<{}, AppState> {
 
     return (
       <Translation>
-        {(t) => (
+        {(t, { i18n }) => (
           <div class="min-h-screen bg-zinc-900 text-white font-body">
             <div class="sm:max-w-4xl mx-auto py-12 sm:px-12 px-4 space-y-10">
               {/* Header */}
@@ -338,7 +338,7 @@ export default class App extends Component<{}, AppState> {
                       bottom
                       items={languages}
                       selected={languages.find((l) => l.value === i18n.language)}
-                      onSelect={(lang) => i18n.changeLanguage(lang.code)}
+                      onSelect={(lang) => i18n.changeLanguage(lang.value)}
                     />
                   ) : (
                     ''
