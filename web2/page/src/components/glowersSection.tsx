@@ -1,6 +1,7 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import glowersIcon from '@iconify-icons/ic/round-adjust';
+import videoIcon from '@iconify-icons/ic/round-video-file';
 import { useTranslation } from 'react-i18next';
 import Section from './section';
 import { asT, PlatformInfo, StringT } from '../util';
@@ -33,37 +34,37 @@ interface DropdownItemString {
 const items: DropdownItem[] = [
   {
     title: 'MOV',
-    suffix: '(QuickTime Animation, Windows extractor)',
+    suffix: (t) => t('download.movsfx'),
     value: 'movsfx',
     hidden: (p) => !p.windows && !p.showHidden
   },
   {
     title: 'MOV',
-    suffix: '(PNG, Windows extractor)',
+    suffix: (t) => t('download.movpngsfx'),
     value: 'movpngsfx',
     hidden: (p) => !p.windows && !p.showHidden
   },
   {
     title: 'MOV',
-    suffix: '(QuickTime Animation, Mac OS X extractor)',
+    suffix: (t) => t('download.movsfxm'),
     value: 'movsfxm',
     hidden: (p) => (!p.macosx || p.iphone) && !p.showHidden
   },
   {
     title: 'MOV',
-    suffix: '(PNG, Mac OS X extractor)',
+    suffix: (t) => t('download.movpngsfxm'),
     value: 'movpngsfxm',
     hidden: (p) => (!p.macosx || p.iphone) && !p.showHidden
   },
   {
     title: 'MOV',
-    suffix: '(QuickTime Animation, Unix extractor)',
+    suffix: (t) => t('download.movsfxu'),
     value: 'movsfxu',
     hidden: (p) => (!p.unix || p.android) && !p.showHidden
   },
   {
     title: 'MOV',
-    suffix: '(PNG, Unix extractor)',
+    suffix: (t) => t('download.movpngsfxu'),
     value: 'movpngsfxu',
     hidden: (p) => (!p.unix || p.android) && !p.showHidden
   },
@@ -103,29 +104,45 @@ export default function GlowersSection({ users, platform, onDownload }: GlowersS
   }, [platform, t]);
 
   return (
-    <Section title="Glowers" icon={glowersIcon} small>
+    <Section title={t('glowers.title')} icon={glowersIcon} small>
       <div class="flex flex-col flex-wrap gap-5">
         <div
           class={clsx(
-            transparent ? 'border border-black border-opacity-50' : '',
-            'flex items-center justify-center rounded-lg p-6 gap-4'
+            'border-2 border-dashed',
+            transparent ? 'border-white border-opacity-50' : 'border-transparent',
+            'flex items-center justify-center rounded-lg p-6 gap-4 overflow-hidden'
           )}
           style={!transparent ? { 'background-color': bgColor } : ''}
         >
           {users.slice(0, 4).map((user) => (
             <img
               key={user.id}
-              class="w-20 h-20 rounded-full border-4"
+              class="w-20 h-20 rounded-full border-4 bg-black"
               src={user.avatar || '/craig.png'}
               style={{ 'border-color': fgColor }}
             />
           ))}
         </div>
-        <div class="flex gap-2">
-          <ColorPicker label="Background Color" color={bgColor} onChange={setBgColor} full className="flex-grow" />
-          <ColorPicker label="Foreground Color" color={fgColor} onChange={setFgColor} full className="flex-grow" />
+        <div class="flex gap-2 flex-col sm:flex-row">
+          <ColorPicker
+            label={t('glowers.bg_color')}
+            color={bgColor}
+            onChange={setBgColor}
+            full
+            className="flex-grow"
+            disabled={transparent}
+          />
+          <ColorPicker label={t('glowers.fg_color')} color={fgColor} onChange={setFgColor} full className="flex-grow" />
         </div>
-        <Toggle label="Transparent Background" description="TODO" checked={transparent} onToggle={setTransparent} />
+        <Toggle
+          label={t('glowers.transparent_bg')}
+          description={t([
+            `glowers.format_desc.${formatOption ? formatOption.value : 'mov'}`,
+            'glowers.format_desc.mov'
+          ])}
+          checked={transparent}
+          onToggle={setTransparent}
+        />
         {formatOption && ( // Only render after useEffect goes off
           <Dropdown
             items={options}
@@ -137,7 +154,9 @@ export default function GlowersSection({ users, platform, onDownload }: GlowersS
           />
         )}
         <DownloadButton
-          title="Download"
+          icon={videoIcon}
+          title={t('glowers.download')}
+          suffix={formatOption && ['movsfx', 'movpngsfx'].includes(formatOption.value) ? '(.exe)' : '(.zip)'}
           onClick={(e) =>
             onDownload &&
             onDownload(

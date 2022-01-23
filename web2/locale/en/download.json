@@ -58,7 +58,25 @@
     "mac": "Mac OS X Application",
     "unix": "Unix Script",
     "raw": "Raw",
-    "unsup": "(unsupported)"
+    "unsup": "(unsupported)",
+    "movsfx": "(QuickTime Animation, Windows extractor)",
+    "movpngsfx": "(PNG, Windows extractor)",
+    "movsfxm": "(QuickTime Animation, Mac OS X extractor)",
+    "movpngsfxm": "(PNG, Mac OS X extractor)",
+    "movsfxu": "(QuickTime Animation, Unix extractor)",
+    "movpngsfxu": "(PNG, Unix extractor)"
+  },
+  "glowers": {
+    "title": "Glowers",
+    "download": "Download",
+    "transparent_bg": "Transparent Background",
+    "bg_color": "Background Color",
+    "fg_color": "Glow Color",
+    "format_desc": {
+      "mov": "MOV supports transparency and is widely supported by video editors, but is far too large to generate and send directly. Instead, you will be sent compressed files and an extractor. MOV may contain QuickTime Animation or PNG; some video editors support one or the other, and some support both, but they are functionally equivalent.",
+      "mkvh264": "MPEG-4 does not support transparency, so both a static PNG image and an MKV representing the alpha (transparency) channel will be sent. Most video editors can be instructed to use one file for color and another file for alpha (transparency).",
+      "webmvp8": "WebM supports transparency, but most video editors do not support WebM."
+    }
   },
   "error": {
     "unknown": "An unknown error occurred.",

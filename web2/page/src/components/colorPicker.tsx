@@ -9,10 +9,18 @@ interface ColorPickerProps {
   color?: string;
   className?: string;
   full?: boolean;
+  disabled?: boolean;
   onChange?(color: string): any;
 }
 
-export default function ColorPicker({ label, color: defaultColor, onChange, className, full }: ColorPickerProps) {
+export default function ColorPicker({
+  label,
+  color: defaultColor,
+  onChange,
+  className,
+  full,
+  disabled
+}: ColorPickerProps) {
   const [color, setColor] = useState(defaultColor || '#000000');
   const [showPicker, setShowPicker] = useState(false);
   const buttonRef = createRef();
@@ -35,13 +43,14 @@ export default function ColorPicker({ label, color: defaultColor, onChange, clas
           ref={buttonRef}
           className={clsx(
             full ? 'w-full' : '',
-            'flex items-center bg-zinc-600 p-2 gap-2 border border-black border-opacity-20 rounded-md py-2 px-3',
+            disabled ? 'opacity-50 pointer-events-none' : '',
+            'flex items-center bg-zinc-600 p-2 gap-2 shadow-sm rounded-md py-2 px-3',
             'focus:outline-none focus:ring-1 focus:ring-teal-500'
           )}
           onClick={() => setShowPicker(!showPicker)}
         >
-          <i class="w-4 h-4 rounded-full shadow-sm" style={{ 'background-color': color }} />
-          <span class="font-mono">{color}</span>
+          <i class="w-4 h-4 rounded-full border border-black border-opacity-20" style={{ 'background-color': color }} />
+          <span class="font-mono">{color.toUpperCase()}</span>
         </button>
 
         {showPicker ? (

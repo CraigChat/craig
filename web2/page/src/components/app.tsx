@@ -203,7 +203,7 @@ export default class App extends Component<{}, AppState> {
     console.log('Downloading...', payload);
 
     this.openModal(
-      <ModalContent title={i18n.t('downloading')}>{i18n.t('modal_content_downloading_avatar')}</ModalContent>,
+      <ModalContent title={i18n.t('downloading')}>{i18n.t('modal_content.downloading_avatar')}</ModalContent>,
       {
         allowClose: false,
         contentLabel: i18n.t('downloading')
