@@ -45,6 +45,7 @@ export default function ColorPicker({ label, color: defaultColor, onChange, clas
         </button>
 
         {showPicker ? (
+          // @ts-ignore
           <FocusTrap as="div" className="absolute bottom-full mb-1 z-10">
             <div class="fixed left-0 right-0 top-0 bottom-0" onClick={onCoverClick} />
             <ChromePicker disableAlpha color={color} onChangeComplete={onSwitchChange} />
