@@ -5,7 +5,7 @@ import DiscordElement from './discordElement';
 import Section from './section';
 import DownloadButton from './downloadButton';
 import { CookAvatarsPayload, RecordingInfo, RecordingUser } from '../api';
-import { PlatformInfo } from '../util';
+import { PlatformInfo, asT } from '../util';
 import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
 import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
@@ -13,7 +13,7 @@ import imageIcon from '@iconify-icons/ic/round-image';
 import audioIcon from '@iconify-icons/ic/round-audio-file';
 import expiryIcon from '@iconify-icons/ic/outline-timer';
 import clsx from 'clsx';
-import { TFunction, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
 const EXPIRY_WARN_AT = 1000 * 60 * 60 * 3;
 
@@ -46,11 +46,6 @@ export default function Recording({
   const expiryTime = expiryDate.valueOf() - startDate.valueOf();
   const downloadsSection = getDownloadsSection(recording, state.platform);
   const othersSection = getOtherFormatsSection(recording, state.platform);
-
-  function asT(text: string | ((t: TFunction) => string)) {
-    if (typeof text === 'function') return text(t);
-    return text;
-  }
 
   return (
     <Fragment>
@@ -142,7 +137,7 @@ export default function Recording({
       {/* Downloads */}
       <Section title={t('sections.dl')} icon={downloadIcon}>
         {downloadsSection.map((section, i) => (
-          <Section title={asT(section.title)} icon={section.icon} small key={i}>
+          <Section title={asT(t, section.title)} icon={section.icon} small key={i}>
             <div class="flex flex-row flex-wrap gap-3">
               {section.buttons.map((button, ii) =>
                 button.hidden ? (
@@ -150,8 +145,8 @@ export default function Recording({
                 ) : (
                   <DownloadButton
                     icon={button.icon}
-                    title={asT(button.text)}
-                    suffix={asT(button.suffix)}
+                    title={asT(t, button.text)}
+                    suffix={asT(t, button.suffix)}
                     ennuizel={button.ennuizel !== undefined}
                     key={ii}
                     onClick={(e) => onDownloadClick(button, e)}
@@ -173,7 +168,7 @@ export default function Recording({
       {/* Other Formats */}
       <Section title={t('sections.other_formats')} icon={audioIcon} collapsable collapsed>
         {othersSection.map((section, i) => (
-          <Section title={asT(section.title)} icon={section.icon} small key={i}>
+          <Section title={asT(t, section.title)} icon={section.icon} small key={i}>
             <div class="flex flex-row flex-wrap gap-3">
               {section.buttons.map((button, ii) =>
                 button.hidden ? (
@@ -181,8 +176,8 @@ export default function Recording({
                 ) : (
                   <DownloadButton
                     icon={button.icon}
-                    title={asT(button.text)}
-                    suffix={asT(button.suffix)}
+                    title={asT(t, button.text)}
+                    suffix={asT(t, button.suffix)}
                     ennuizel={button.ennuizel !== undefined}
                     key={ii}
                     onClick={(e) => onDownloadClick(button, e)}

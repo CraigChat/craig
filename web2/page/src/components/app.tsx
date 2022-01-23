@@ -12,7 +12,7 @@ import {
   RecordingInfo,
   RecordingUser
 } from '../api';
-import { cookDownload, downloadResponse, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
+import { asT, cookDownload, downloadResponse, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
 import { SectionButton } from '../sections';
 import i18n, { languages } from '../i18n';
 import Recording from './recording';
@@ -158,7 +158,7 @@ export default class App extends Component<{}, AppState> {
 
     this.openModal(
       <ModalContent title={i18n.t('downloading')}>
-        {i18n.t('modal_content.downloading', { format: button.text })}
+        {i18n.t('modal_content.downloading', { format: asT(i18n.t, button.text) })}
       </ModalContent>,
       {
         allowClose: false,
@@ -187,7 +187,7 @@ export default class App extends Component<{}, AppState> {
             </ModalButton>
           ]}
         >
-          <p>{i18n.t('modal_content.download_fail', { format: button.text })}</p>
+          <p>{i18n.t('modal_content.download_fail', { format: asT(i18n.t, button.text) })}</p>
           <p>{errorT}</p>
         </ModalContent>,
         {

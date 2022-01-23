@@ -1,5 +1,5 @@
 import { TFunction } from 'react-i18next';
-import { CookPayload, isReady } from './api';
+import { CookPayload } from './api';
 import i18n from './i18n';
 
 export interface PlatformInfo {
@@ -20,6 +20,11 @@ export const getPlatformInfo = (): PlatformInfo => {
     android: navigator.userAgent.toLowerCase().includes('android')
   };
 };
+
+export function asT(t: TFunction, text: string | ((t: TFunction) => string)) {
+  if (typeof text === 'function') return text(t);
+  return text;
+}
 
 export const parseError = async (error: any, t?: TFunction) => {
   if (!t) t = i18n.t;
