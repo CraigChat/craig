@@ -60,11 +60,19 @@ export default function Recording({
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">{t('info.req_by')}:</span>
-            {recording.requesterExtra ? <DiscordElement {...recording.requesterExtra} /> : recording.requester}
+            {recording.requesterExtra ? (
+              <DiscordElement {...recording.requesterExtra} id={recording.requesterId} />
+            ) : (
+              recording.requester
+            )}
             {recording.user ? (
               <Fragment>
                 <span class="text-zinc-400 font-medium">{t('info.behalf')}</span>
-                {recording.userExtra ? <DiscordElement {...recording.userExtra} /> : recording.user}
+                {recording.userExtra ? (
+                  <DiscordElement {...recording.userExtra} id={recording.userId} />
+                ) : (
+                  recording.user
+                )}
               </Fragment>
             ) : (
               ''

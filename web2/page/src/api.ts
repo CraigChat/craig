@@ -23,6 +23,7 @@ export interface RecordingInfo {
   startTime: string;
   expiresAfter?: number;
   user?: string;
+  userId?: string;
   userExtra?: {
     username: string;
     discriminator: string;

@@ -1,6 +1,8 @@
 import { h } from 'preact';
+import { Tooltip } from 'react-tippy';
 
 interface DiscordElementProps {
+  id?: string;
   elementType?: 'channel';
   type?: number;
   avatar?: string;
@@ -12,6 +14,7 @@ interface DiscordElementProps {
 }
 
 export default function DiscordElement({
+  id,
   avatar,
   icon,
   name,
@@ -54,7 +57,13 @@ export default function DiscordElement({
 
   return (
     <div class="inline-flex flex-row items-center gap-1 justify-center">
-      {elementIcon || ''}
+      {elementIcon ? (
+        <Tooltip disabled={!id} title={id} interactive>
+          {elementIcon}
+        </Tooltip>
+      ) : (
+        ''
+      )}
       <span>
         {username || name}
         {elementDiscrim ? <span class="text-zinc-400">#{elementDiscrim}</span> : ''}
