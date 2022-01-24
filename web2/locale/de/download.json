@@ -1,0 +1,40 @@
+{
+  "craig_rec": "Craig-Aufnahme",
+  "loading": "Wird geladen…",
+  "downloading": "Wird heruntergeladen…",
+  "close": "Schließen",
+  "cancel": "Abbrechen",
+  "delete": "Löschen",
+  "reveal": "Einblenden",
+  "info": {
+    "users": "Benutzer",
+    "channel": "Kanal",
+    "duration": "Dauer",
+    "expires": "Die Aufzeichnung läuft in {{expire}} ab.",
+    "delete_rec": "Aufnahme löschen"
+  },
+  "footer": {
+    "build": "Version",
+    "showing_hidden": "(verborgenes zeigen)"
+  },
+  "sections": {
+    "avatars": "Avatare",
+    "mt": "Mehrspuriger",
+    "st": "Einspurig, abgemischt",
+    "stsm": "Einspuriger Smart Mix"
+  },
+  "ms": {
+    "ms_one": "{{count}} Millisekunde",
+    "ms_other": "{{count}} Millisekunden",
+    "s_one": "{{count}} Sekunde",
+    "s_other": "{{count}} Sekunden",
+    "m_one": "{{count}} Minute",
+    "m_other": "{{count}} Minuten",
+    "h_one": "{{count}} Stunde",
+    "h_other": "{{count}} Stundes",
+    "d_one": "{{count}} Tag",
+    "d_other": "{{count}} Tage",
+    "y_one": "{{count}} Jahr",
+    "y_other": "{{count}} Jahre"
+  }
+}
