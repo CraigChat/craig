@@ -12,7 +12,7 @@
     "req_by": "Requested by",
     "started": "Started at",
     "behalf": "on behalf of",
-    "expires": "Recording expires in {{expire}}",
+    "expires": "Recording expires in {{expire}}.",
     "server": "Server",
     "channel": "Channel",
     "duration": "Duration",
@@ -97,5 +97,19 @@
     "1103": "Invalid background color.",
     "1104": "Invalid foreground color.",
     "2001": "You are sending too many requests. Please try again later."
+  },
+  "ms": {
+    "ms_one": "{{count}} millisecond",
+    "ms_other": "{{count}} milliseconds",
+    "s_one": "{{count}} second",
+    "s_other": "{{count}} seconds",
+    "m_one": "{{count}} minute",
+    "m_other": "{{count}} minutes",
+    "h_one": "{{count}} hour",
+    "h_other": "{{count}} hour",
+    "d_one": "{{count}} day",
+    "d_other": "{{count}} days",
+    "y_one": "{{count}} year",
+    "y_other": "{{count}} years"
   }
 }

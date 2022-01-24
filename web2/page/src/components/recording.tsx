@@ -1,12 +1,12 @@
 import { Fragment, h } from 'preact';
 import { Icon } from '@iconify/react';
-import prettyMs from 'pretty-ms';
 import DiscordElement from './discordElement';
 import Section from './section';
 import DownloadButton from './downloadButton';
 import { CookAvatarsPayload, RecordingInfo, RecordingUser } from '../api';
 import { PlatformInfo, asT } from '../util';
 import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
+import prettyMs from '../prettyMs';
 import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
 import imageIcon from '@iconify-icons/ic/round-image';
@@ -121,8 +121,8 @@ export default function Recording({
               'text-red-500': expiryTime <= EXPIRY_WARN_AT
             })}
           >
-            <Icon icon={expiryIcon} className="text-3xl" /> {/* TODO localize pretty ms */}
-            <span>{t('info.expires', { expire: prettyMs(expiryTime, { compact: true, verbose: true }) })}.</span>
+            <Icon icon={expiryIcon} className="text-3xl" />
+            <span>{t('info.expires', { expire: prettyMs(expiryTime, { compact: true, verbose: true, t }) })}</span>
           </h2>
         ) : (
           ''
