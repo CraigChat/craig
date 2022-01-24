@@ -41,6 +41,7 @@
   "sections": {
     "dl": "Downloads",
     "avatars": "Avatars",
+    "glowers": "Glowers",
     "other_formats": "Other formats",
     "mt": "Multi-track",
     "st": "Single-track mixed",
@@ -67,7 +68,6 @@
     "movpngsfxu": "(PNG, Unix extractor)"
   },
   "glowers": {
-    "title": "Glowers",
     "format": "Format",
     "download": "Download",
     "transparent_bg": "Transparent Background",

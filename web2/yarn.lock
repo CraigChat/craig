@@ -295,6 +295,11 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
+"@iconify-icons/bi@^1.1.13":
+  version "1.1.13"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/bi/-/bi-1.1.13.tgz#88860e70b721464c3481ae836e74010a85e69207"
+  integrity sha512-kItDOe58kiWE5DcNjP6Cnpu4U27taENN/ho953HFqEUel3Oee81NnAe1E0eKSosDEe9RtCFAKALCPmigv4pTMQ==
+
 "@iconify-icons/cib@^1.1.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@iconify-icons/cib/-/cib-1.1.0.tgz#fa501d6b95905da3062769552bdb4ec3a6ebac5a"

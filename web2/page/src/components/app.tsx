@@ -1,6 +1,8 @@
 import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
 import closeIcon from '@iconify-icons/ic/close';
+import showIcon from '@iconify-icons/bi/eye-fill';
+import hideIcon from '@iconify-icons/bi/eye-slash-fill';
 import { Translation } from 'react-i18next';
 import {
   cookAvatars,
@@ -65,11 +67,16 @@ export default class App extends Component<{}, AppState> {
       error: null
     };
 
-    // TODO show hidden platforms button
-    this.state.platform.showHidden = !!localStorage.getItem('showHiddenPlatforms');
+    const localSHP = localStorage.getItem('showHiddenPlatforms');
+    this.state.platform.showHidden = localSHP ? JSON.parse(localSHP) : false;
 
     this.openModal = this.openModal.bind(this);
     this.closeModal = this.closeModal.bind(this);
+    this.loadDuration = this.loadDuration.bind(this);
+    this.startDownload = this.startDownload.bind(this);
+    this.startAvatarDownload = this.startAvatarDownload.bind(this);
+    this.showDeletePrompt = this.showDeletePrompt.bind(this);
+    this.toggleHiddenPlatform = this.toggleHiddenPlatform.bind(this);
 
     console.log('Loaded', {
       platform: this.state.platform,
@@ -256,6 +263,12 @@ export default class App extends Component<{}, AppState> {
     );
   }
 
+  toggleHiddenPlatform() {
+    const newPlatform = Object.assign({}, this.state.platform);
+    newPlatform.showHidden = !this.state.platform.showHidden;
+    this.setState({ platform: newPlatform });
+  }
+
   openModal(content: any, opts: ModalOptions = {}) {
     this.setState({
       modalOpen: true,
@@ -301,10 +314,10 @@ export default class App extends Component<{}, AppState> {
               ) : (
                 <Recording
                   state={this.state}
-                  onDurationClick={this.loadDuration.bind(this)}
-                  onDownloadClick={this.startDownload.bind(this)}
-                  onAvatarsClick={this.startAvatarDownload.bind(this)}
-                  onDeleteClick={this.showDeletePrompt.bind(this)}
+                  onDurationClick={this.loadDuration}
+                  onDownloadClick={this.startDownload}
+                  onAvatarsClick={this.startAvatarDownload}
+                  onDeleteClick={this.showDeletePrompt}
                 />
               )}
 
@@ -318,18 +331,26 @@ export default class App extends Component<{}, AppState> {
                   ) : (
                     ''
                   )}
-                  <span class="opacity-50 text-xs">
-                    {[
-                      this.state.platform.windows ? 'Windows' : '',
-                      this.state.platform.macosx ? 'Mac OS X' : '',
-                      this.state.platform.android ? 'Android' : '',
-                      this.state.platform.iphone ? 'iPhone' : '',
-                      this.state.platform.unix ? 'Unix' : ''
-                    ]
-                      .filter((p) => !!p)
-                      .join(', ')}
-                    {this.state.platform.showHidden ? ` ${t('footer.showing_hidden')}` : ''}
-                  </span>
+                  <div class="flex text-xs gap-1 items-center">
+                    <button
+                      class="cursor-pointer opacity-50 hover:opacity-75 focus:opacity-100 transition-opacity focus:outline-none"
+                      onClick={this.toggleHiddenPlatform}
+                    >
+                      <Icon icon={this.state.platform.showHidden ? hideIcon : showIcon} />
+                    </button>
+                    <span class="opacity-50">
+                      {[
+                        this.state.platform.windows ? 'Windows' : '',
+                        this.state.platform.macosx ? 'Mac OS X' : '',
+                        this.state.platform.android ? 'Android' : '',
+                        this.state.platform.iphone ? 'iPhone' : '',
+                        this.state.platform.unix ? 'Unix' : ''
+                      ]
+                        .filter((p) => !!p)
+                        .join(', ')}
+                      {this.state.platform.showHidden ? ` ${t('footer.showing_hidden')}` : ''}
+                    </span>
+                  </div>
                 </div>
                 <div class="flex flex-col flex-none">
                   {languages.length > 1 ? (
@@ -346,7 +367,7 @@ export default class App extends Component<{}, AppState> {
                 </div>
               </div>
             </div>
-            <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
+            <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={this.closeModal}>
               {this.state.modalContent}
             </Modal>
           </div>

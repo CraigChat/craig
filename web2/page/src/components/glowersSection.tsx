@@ -104,7 +104,7 @@ export default function GlowersSection({ users, platform, onDownload }: GlowersS
   }, [platform, t]);
 
   return (
-    <Section title={t('glowers.title')} icon={glowersIcon} small>
+    <Section title={t('sections.glowers')} icon={glowersIcon} small>
       <div class="flex flex-col flex-wrap gap-5">
         <div
           class={clsx(
