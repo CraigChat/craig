@@ -2058,9 +2058,9 @@ function startEnnuiCastr() {
 }
 if (config.ennuicastr)
     startEnnuiCastr();
-
+// TODO: Ensure a safer way to do this without breaking the shards.
 // Restart every so often so we can upgrade, reevaluate shards, etc
-if(cc.master)
-    var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 4*24*60*60*1000);
+//if(cc.master)
+//    var uptimeTimeout = setTimeout(() => { if (!cc.dead) gracefulRestart(); }, 4*24*60*60*1000);
 
-module.exports = {activeRecordings, joinChannel, gracefulRestart, uptimeTimeout};
+module.exports = {activeRecordings, joinChannel, gracefulRestart};
