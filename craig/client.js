@@ -91,8 +91,7 @@ client.on("ready", () => {
     if (process.send) process.send({
         managerEvent: "ready",
         status: client.shard.status,
-        guildCount: client.guilds.size,
-        error: err
+        guildCount: client.guilds.size
     });
 });
 

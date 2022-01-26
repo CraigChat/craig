@@ -140,8 +140,8 @@ class Shard extends EventEmitter {
             return;
           case 'error':
             this.ready = false;
-            this.emit('error', message.error);
-            this.manager.emit('error', this, message.error);
+            this.emit('shardError', message.error);
+            this.manager.emit('shardError', this, message.error);
             return;
           case 'ping':
             return;

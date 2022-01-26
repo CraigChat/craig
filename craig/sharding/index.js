@@ -13,7 +13,7 @@ manager.on('shardSpawn', (shard) => console.error(`[Shard ${shard.id}] Spawned p
 manager.on('disconnect', (shard, e) => console.error(`[Shard ${shard.id}] Disconnected.`, e));
 manager.on('reconnecting', (shard, m) => console.error(`[Shard ${shard.id}] Reconnecting...`, m));
 manager.on('ready', (shard) => console.log(`[Shard ${shard.id}] Ready.`));
-manager.on('error', (shard, e) => console.log(`[Shard ${shard.id}]`, e));
+manager.on('shardError', (shard, e) => console.error(`[Shard ${shard.id}]`, e));
 
 (async () => {
   console.log('Loading commands...');
