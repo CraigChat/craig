@@ -1847,7 +1847,7 @@ if (!cc.master) {
 }
 
 // Get our currect active recordings from the launcher
-if (process.channel && cc.master)
+if (process.channel)
     process.send({t:"requestActiveRecordings"});
 cc.processCommands["activeRecordings"] = function(msg) {
     for (var gid in msg.activeRecordings) {
@@ -1869,12 +1869,6 @@ cc.processCommands["activeRecordings"] = function(msg) {
                 }, 1000*60*60*6);
             })(gid, cid, nc);
         }
-    }
-
-    if (cc.sm) {
-        // Relay it to shards
-        cc.sm.broadcast(msg);
-        cc.sm.on("launch", (shard) => { shard.send(msg); });
     }
 }
 
@@ -1979,8 +1973,41 @@ cc.shardCommands["gracefulRestart"] = gracefulRestart;
 
 // Owner command for graceful restart
 ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
-    reply(msg, false, cmd[1], "Restarting!");
+    reply(msg, false, cmd[1], "Respawning all shards!");
     gracefulRestart();
+}
+
+ccmds.ownerCommands["restart-this"] = function(msg, cmd) {
+    if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
+    reply(msg, false, cmd[1], "Restarting this shard...");
+    process.send({ t: "restartThis" });
+}
+
+ccmds.ownerCommands["restart-one"] = function(msg, cmd) {
+    if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
+    if (!cmd[3]) return reply(msg, false, cmd[1], "Please provide a shard ID");
+    if (process.send) {
+        reply(msg, false, cmd[1], `Restarting shard ${cmd[3]}...`);
+        process.send({ t: "restartOne", id: parseInt(cmd[3]) });
+    } else {
+        reply(msg, false, cmd[1], "Process.send is undefined...");
+    }
+}
+
+ccmds.ownerCommands["shardinfo"] = function(msg, cmd) {
+    if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
+    client.shard.broadcastEval('{ g: this.guilds.size, s: this.shard.status, l: Number.isFinite(this.shard.latency) ? this.shard.latency : -1, i: this.shard.id }').then((res) => {
+        reply(msg, false, cmd[1], `This shard ID: ${process.env.SHARD_ID}\n\n${res.map((r) => `[${r.i}] ${r.s}, ${r.l} ms, ${r.g.toLocaleString()} guilds`).join('\n')}`);
+    }).catch((e) => {
+        reply(msg, false, cmd[1], `Failed to get values: ${e}`);
+    });
+    if (!cmd[3]) return reply(msg, false, cmd[1], "Please provide a shard ID");
+    if (process.send) {
+        reply(msg, false, cmd[1], `Restarting shard ${cmd[3]}...`);
+        process.send({ t: "restartOne", id: parseInt(cmd[3]) })
+    } else {
+        reply(msg, false, cmd[1], "Process.send is undefined...");
+    }
 }
 
 // Terminus command
