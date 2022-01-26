@@ -94,57 +94,97 @@ function safeEval(cmd) {
 
     return ret;
 }
+// "Safely" eval something, explicitly in this context
+function evalFmt(res, ex) {
+    function stringify(x) {
+        var r = "(unprintable)";
+        try {
+            r = JSON.stringify(x);
+            if (typeof r !== "string")
+                throw new Exception();
+        } catch (ex) {
+            try {
+                r = x+"";
+            } catch (ex) {}
+        }
+        return r;
+    }
+
+    function quote(x) {
+        return "\n```\n" + stringify(x).replace("```", "` ` `") + "\n```\n";
+    }
+
+    let ret = "";
+    if (ex) {
+        ex = ex+"";
+        ret += "Exception: " + quote(ex) + "\n";
+    }
+    ret += "Result: " + quote(res);
+
+    return ret;
+}
 if (client) client.safeEval = safeEval;
 
 const evalTarget = /^@([a-zA-Z0-9]*)[ \t]*(.*)/;
 
-// An eval command for the owner, explicitly in this context
-ccmds.ownerCommands["eval"] = function(msg, cmd) {
-    var ecmd = cmd[3];
-    var et;
+function managerEval(cmd) {
+    return new Promise((res, rej) => {
+        process.send({t: "managerEval", cmd});
 
-    if (cc.master) {
+        function receiver(msg) {
+            if (msg._mEval === cmd) {
+                if (msg._error) rej(msg._error);
+                else res(msg._result)
+            } else process.once("message", receiver);
+        }
+        process.once("message", receiver);
+    });
+}
+
+function onShardEval(cmd, id) {
+    return new Promise((res, rej) => {
+        process.send({t: "toShardEval", cmd, id});
+
+        function receiver(msg) {
+            if (msg.t === "toShardEvalRes" && msg.cmd === cmd) {
+                if (msg._error) rej(msg._error);
+                else res(msg._result)
+            } else process.once("message", receiver);
+        }
+        process.once("message", receiver);
+    });
+}
+
+// An eval command for the owner, explicitly in this context
+ccmds.ownerCommands["eval"] = async function(msg, cmd) {
+    let ecmd = cmd[3];
+    let sid = null;
+    if (/^shard:\d+\s/.test(cmd[3])) {
+        const match = /^shard:(\d+)\s/;
+        sid = match[1];
+        ecmd = ecmd.slice(match[0].length);
+    }
+    if (sid) {
+        try {
+            let res = await onShardEval(ecmd);
+            reply(msg, true, null, "", evalFmt(res));
+        } catch (ex) {
+            reply(msg, true, null, "", evalFmt(null, ex));
+        }
+    } else {
         var ret = safeEval(ecmd);
         reply(msg, true, null, "", ret);
+    }
+}
 
-    } else if (et = evalTarget.exec(ecmd)) {
-        // Targetted eval
-        var target = et[1].toLowerCase();
-        if (target === "self" || target === (client.shard.id+"")) {
-            // Just do it ourselves
-            var ret = safeEval(et[2]);
-            reply(msg, true, null, "", ret);
-
-        } else if (target === "master") {
-            // For the shard master
-            client.shard.send({t:"eval", from:client.shard.id, u:msg.author.id, c:et[2]});
-
-        } else {
-            reply(msg, true, null, "", "Directly targeted eval is not yet implemented.");
-
-        }
-
-    } else {
-        // For everyone
-        client.shard.broadcastEval("this.safeEval(" + JSON.stringify(cmd[3]) + ")").then((res) => {
-            var ret = [];
-            var last = "";
-            for (var ri = 0; ri < res.length; ri++) {
-                var part = "__**" + ri + "**__\n" + res[ri] + "\n";
-                var lastt = last + part;
-                if (lastt.length >= 2000) {
-                    ret.push(last);
-                    last = part;
-                } else {
-                    last = lastt;
-                }
-            }
-            ret.push(last);
-            ret.forEach((part) => {
-                reply(msg, true, null, "", part);
-            });
-        }).catch(logex);
-
+// An eval command for the owner, explicitly in this context
+ccmds.ownerCommands["meval"] = async function(msg, cmd) {
+    var ecmd = cmd[3];
+    try {
+        let res = await managerEval(ecmd);
+        reply(msg, true, null, "", evalFmt(res));
+    } catch (ex) {
+        reply(msg, true, null, "", evalFmt(null, ex));
     }
 }
 

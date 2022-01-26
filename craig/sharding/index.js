@@ -6,6 +6,17 @@ const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const manager = new ShardManager('./craig.js', config.sharding.count);
 manager.on("message", (shard, msg) => {
   if (typeof msg !== "object") return;
+
+  if (msg.t === "managerEval") {
+    try {
+      const r = eval(msg.cmd);
+      shard.send({_mEval: msg.cmd, _result: r})
+    } catch (e) {
+      shard.send({_mEval: msg.cmd, _result: null, _error: e})
+    }
+    return;
+  }
+
   let cmd = manager.commands.get(msg.t);
   if (cmd) cmd(shard, msg);
 });
@@ -27,6 +38,8 @@ manager.on('shardError', (shard, e) => console.error(`[Shard ${shard.id}]`, e));
   await manager.spawnAll();
   console.log(`Spawned ${manager.shards.size} shards.`);
 })();
+
+process.on('unhandledRejection', (r) => console.error('Unhandled exception:', r));
 
 // Guild count posting
 let lastServerCount = 0;
