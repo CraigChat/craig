@@ -120,8 +120,8 @@ class Shard extends EventEmitter {
         switch (message.managerEvent) {
           case 'ready':
             this.ready = true;
-            this.emit('ready');
-            this.manager.emit('ready', this);
+            this.emit('ready', message);
+            this.manager.emit('ready', this, message);
             return;
           case 'disconnect':
             this.ready = false;
