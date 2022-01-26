@@ -1,4 +1,5 @@
 const https = require("https");
+const fs = require("fs");
 const ShardManager = require('./manager');
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 
