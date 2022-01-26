@@ -187,14 +187,10 @@ function onMessage(msg) {
         }
 
         // If there is no name, assume its a DM and set the createMessage function
-        if (!msg.channel.name) msg.channel.createMessage = function () {
-            const args = arguments;
-            const user = this;
-            return new Promise((res, rej) => {
-                user.getDMChannel().then((channel) => {
-                    channel.createMessage.apply(channel, args).then(res).catch(rej);
-                }).catch(rej);
-            });
+        if (!msg.channel.name) {
+            let crtmsg = (content, file) => client.createMessage(msg.channel.id, content, file);
+            msg.channel.createMessage = crtmsg;
+            msg.channel.send = crtmsg;
         }
 
         let fun = ownerCommands[cmd[2].toLowerCase()];
