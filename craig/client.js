@@ -152,12 +152,12 @@ if (process.send && shard) setInterval(() => {
 }, 360000);
 
 // And process commands
-process.on("message", (msg) => {
+process.on("message", async (msg) => {
     if (typeof msg !== "object") return;
-    if (("from" in msg) && client && client.shard && client.shard.id === msg.from)
+    if (("from" in msg) && client.shard && client.shard.id === msg.from)
         return; // Ignore messages rebroadcast to ourselves
     var fun = processCommands[msg.t];
-    if (fun) fun(msg);
+    if (fun) await fun(msg);
 });
 
 // An event emitter for whenever we start or stop any recording

@@ -3,10 +3,11 @@ const EventEmitter = require('events');
 const Util = require('./util');
 
 class ShardManager extends EventEmitter {
-  constructor(filePath, shardCount, { respawn = true, args = [], execArgv = [] } = {}) {
+  constructor(filePath, shardCount, { respawn = true, args = [], execArgv = [], readyTimeout = 30000 } = {}) {
     super();
     this.file = filePath;
     this.shardCount = shardCount;
+    this.readyTimeout = readyTimeout;
     this.respawn = respawn;
     this.args = args || [];
     this.execArgv = execArgv || [];
@@ -63,7 +64,7 @@ class ShardManager extends EventEmitter {
 
   fetchClientValues(prop) {
     if (this.shards.size === 0) return Promise.reject(new Error('No shards have been spawned.'));
-    if (this.shards.size !== this.totalShards) return Promise.reject(new Error('Still spawning shards.'));
+    if (this.shards.size !== this.shardCount) return Promise.reject(new Error('Still spawning shards.'));
     const promises = [];
     for (const shard of this.shards.values()) promises.push(shard.fetchClientValue(prop));
     return Promise.all(promises);
