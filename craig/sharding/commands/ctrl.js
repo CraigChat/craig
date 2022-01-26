@@ -1,5 +1,4 @@
 module.exports = {
-  activeRecordings, recordingEvents,
   init: (manager) => {
     manager.commands.set("gracefulRestart", async function(shard, msg) {
       console.log(`[Shard ${shard.id}] Triggered graceful restart`);

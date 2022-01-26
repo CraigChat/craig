@@ -9,7 +9,7 @@ manager.on("message", (shard, msg) => {
   let cmd = manager.commands.get(msg.t);
   if (cmd) cmd(shard, msg);
 });
-manager.on('shardSpawn', (shard) => console.error(`[Shard ${shard.id}] Spawned process ${shard.process.id}`));
+manager.on('shardSpawn', (shard) => console.error(`[Shard ${shard.id}] Spawned process ${shard.process.pid}`));
 manager.on('disconnect', (shard, e) => console.error(`[Shard ${shard.id}] Disconnected.`, e));
 manager.on('reconnecting', (shard, m) => console.error(`[Shard ${shard.id}] Reconnecting...`, m));
 manager.on('ready', (shard) => console.log(`[Shard ${shard.id}] Ready.`));

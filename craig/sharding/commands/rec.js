@@ -1,3 +1,4 @@
+const EventEmitter = require("events");
 const activeRecordings = {};
 
 // An event emitter for whenever we start or stop any recording

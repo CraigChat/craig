@@ -8,6 +8,7 @@
 module.exports = {
   init: (manager) => {
     manager.commands.set("guildDelete", function(shard, msg) {
+      console.log(`[Shard ${shard.id}] Left guild ${msg.g}`)
       // guildDelete({id:msg.g});
     });
   }
