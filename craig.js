@@ -160,13 +160,13 @@ ccmds.ownerCommands["eval"] = async function(msg, cmd) {
     let ecmd = cmd[3];
     let sid = null;
     if (/^shard:\d+\s/.test(cmd[3])) {
-        const match = /^shard:(\d+)\s/;
-        sid = match[1];
+        const match = cmd[3].match(/^shard:(\d+)\s/);
+        sid = parseInt(match[1]);
         ecmd = ecmd.slice(match[0].length);
     }
     if (sid) {
         try {
-            let res = await onShardEval(ecmd);
+            let res = await onShardEval(ecmd, sid);
             reply(msg, true, null, "", evalFmt(res));
         } catch (ex) {
             reply(msg, true, null, "", evalFmt(null, ex));

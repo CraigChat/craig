@@ -1979,16 +1979,14 @@ ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
 
 ccmds.ownerCommands["restart-this"] = function(msg, cmd) {
     if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
-    reply(msg, false, cmd[1], "Restarting this shard...");
-    process.send({ t: "restartThis" });
+    msg.channel.send("Restarting this shard...").then(() => process.send({ t: "restartThis" }));
 }
 
 ccmds.ownerCommands["restart-one"] = function(msg, cmd) {
     if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
     if (!cmd[3]) return reply(msg, false, cmd[1], "Please provide a shard ID");
     if (process.send) {
-        reply(msg, false, cmd[1], `Restarting shard ${cmd[3]}...`);
-        process.send({ t: "restartOne", id: parseInt(cmd[3]) });
+        msg.channel.send(`Restarting shard ${cmd[3]}...`).then(() => process.send({ t: "restartOne", id: parseInt(cmd[3]) }));
     } else {
         reply(msg, false, cmd[1], "Process.send is undefined...");
     }
@@ -1996,10 +1994,20 @@ ccmds.ownerCommands["restart-one"] = function(msg, cmd) {
 
 ccmds.ownerCommands["shardinfo"] = function(msg, cmd) {
     if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
-    client.shard.broadcastEval('{ g: this.guilds.size, s: this.shard.status, l: Number.isFinite(this.shard.latency) ? this.shard.latency : -1, i: this.shard.id }').then((res) => {
-        reply(msg, false, cmd[1], `This shard ID: ${process.env.SHARD_ID}\n\n${res.map((r) => `[${r.i}] ${r.s}, ${r.l} ms, ${r.g} guilds`).join('\n')}`);
+    function format(seconds){
+        function pad(s){
+            return (s < 10 ? '0' : '') + s;
+        }
+        var hours = Math.floor(seconds / (60*60));
+        var minutes = Math.floor(seconds % (60*60) / 60);
+        var seconds = Math.floor(seconds % 60);
+        
+        return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    }
+    client.shard.broadcastEval('let sir = { i: client.shard.id, s: client.shard.status, g: client.guilds.size, l: Number.isFinite(client.shard.latency) ? client.shard.latency : -1, u: process.uptime(), r: Object.keys(require("./rec.js").activeRecordings).length };sir').then((res) => {
+        msg.channel.send(`\`\`\`fix\n${res.map((r) => `${String(r.i) === process.env.SHARD_ID ? '>' : ' '} [${r.i}] ${r.s}, ${r.l} ms, ${r.g} guilds, ${r.r} active recs, uptime: ${format(r.u)}`).join('\n')}\n\`\`\``);
     }).catch((e) => {
-        reply(msg, false, cmd[1], `Failed to get values: ${e}`);
+        msg.channel.send(`Failed to get values: ${e}`);
     });
 }
 
