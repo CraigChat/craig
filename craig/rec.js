@@ -1973,8 +1973,7 @@ cc.shardCommands["gracefulRestart"] = gracefulRestart;
 
 // Owner command for graceful restart
 ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
-    reply(msg, false, cmd[1], "Respawning all shards!");
-    gracefulRestart();
+    msg.channel.send("Respawning all shards!").then(() => gracefulRestart());
 }
 
 ccmds.ownerCommands["restart-this"] = function(msg, cmd) {
