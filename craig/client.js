@@ -22,7 +22,6 @@
 
 const EventEmitter = require("events");
 const fs = require("fs");
-const Discord = require("discord.js");
 const Eris = require("eris");
 const ShardedRequestHandler = require("./requesthandler.js");
 require("./eris-flavor.js");
@@ -76,24 +75,9 @@ function mkClient(token) {
     return ret;
 }
 
-var vclient, vsm, vmaster;
-
-if (!config.shard || shard) {
-    // Either we aren't using sharding, or we are a shard, so normal client connection
-    vclient = mkClient(config.token);
-    vsm = null;
-    vmaster = !shard;
-} else {
-    // We are the sharding manager
-    vclient = null;
-    vsm = new Discord.ShardingManager("./craig.js", {token: config.token, totalShards: 128});
-    vmaster = true;
-}
-
-const client = vclient;
-const sm = vsm;
-const master = vmaster;
-const clients = [client]; // For secondary connections
+const client = mkClient(config.token);
+const master = !shard;
+const clients = [client];
 
 // A message to distinguish us from other shards
 var vshardMsg = "";
@@ -101,51 +85,79 @@ if (shard)
     vshardMsg = " (shard " + (+process.env["SHARD_ID"]) + "/" + (+process.env["SHARD_COUNT"]) + ", pid " + process.pid + ")";
 const shardMsg = vshardMsg;
 
-if (!sm) {
-    // If there are secondary Craigs, spawn them
-    for (var si = 0; si < config.secondary.length; si++) {
-        clients.push(mkClient(config.secondary[si].token));
-    }
-}
-
 // Announce our connection
-if (client) client.on("ready", () => {
+client.on("ready", () => {
     log("login", "Logged in as " + client.user.username + shardMsg);
+    if (process.send) process.send({
+        managerEvent: "ready",
+        status: client.shard.status,
+        guildCount: client.guilds.size
+    });
 });
 
 // Announce problems
-if (client) {
-    for (var si = 0; si < clients.length; si++) (function(si) {
-        var client = clients[si];
-
-        client.on("disconnect", (err) => {
-            log("disconnected", "(" + si + ") " + err + shardMsg);
-        });
-
-        client.on("shardDisconnect", (err) => {
-            log("shard-disconnected", "(" + si + ") " + err + shardMsg);
-        });
-
-        client.on("error", (err) => {
-            log("client-error", "(" + si + ") " + shardMsg + " " + err + " " + JSON.stringify(err.stack+""));
-        });
-    })(si);
-}
-
-// Handle shard commands
-if (sm) sm.on("message", (shard, msg) => {
-    if (typeof msg !== "object") return;
-    var fun = shardCommands[msg.t];
-    if (fun) fun(shard, msg);
+client.on("disconnect", (err) => {
+    log("disconnected", err + shardMsg);
 });
 
+client.on("shardDisconnect", (err) => {
+    log("shard-disconnected", err + shardMsg);
+    if (process.send && shard) process.send({
+        managerEvent: "disconnect",
+        status: client.shard.status,
+        guildCount: client.guilds.size,
+        error: err
+    });
+});
+
+client.on("shardResume", () => {
+    log("shard-resume", shardMsg);
+    if (process.send && shard) process.send({
+        managerEvent: "resumed",
+        status: client.shard.status,
+        guildCount: client.guilds.size
+    });
+});
+
+client.on("debug", (m) => {
+    if (process.send && shard && [
+        'Immediately reconnecting for potential resume',
+        'Queueing reconnect in ',
+        'Automatically invalidating session due to excessive resume attempts'
+    ].some((st) => m.startsWith(st))) process.send({
+        managerEvent: "reconnecting",
+        status: client.shard.status,
+        guildCount: client.guilds.size,
+        message: m
+    });
+});
+
+client.on("error", (err) => {
+    log("client-error", shardMsg + " " + err + " " + JSON.stringify(err.stack+""));
+    if (process.send) process.send({
+        managerEvent: "error",
+        status: client.shard.status,
+        guildCount: client.guilds.size,
+        error: err
+    });
+});
+
+// Ping shard manager
+if (process.send && shard) setInterval(() => {
+    process.send({
+        managerEvent: "ping",
+        status: client.shard.status,
+        guildCount: client.guilds.size
+    });
+}, 360000);
+
 // And process commands
-process.on("message", (msg) => {
+process.on("message", async (msg) => {
     if (typeof msg !== "object") return;
-    if (("from" in msg) && client && client.shard && client.shard.id === msg.from)
+    if (("from" in msg) && client.shard && client.shard.id === msg.from)
         return; // Ignore messages rebroadcast to ourselves
     var fun = processCommands[msg.t];
-    if (fun) fun(msg);
+    if (fun) await fun(msg);
 });
 
 // An event emitter for whenever we start or stop any recording
@@ -171,23 +183,11 @@ function nameId(entity) {
     return nick + "#" + entity.id;
 }
 
-if (client) {
-    // Log in
-    client.login(config.token).catch(logex);
-} else {
-    // Spawn shards
-    sm.spawn();
-}
-
-if (!sm) {
-    // If there are secondary Craigs, log them in
-    for (var si = 0; si < config.secondary.length; si++) {
-        clients[si+1].login(config.secondary[si].token);
-    }
-}
+// Log in
+client.login(config.token).catch(logex);
 
 module.exports = {
-    client, sm, master, clients,
+    client, sm: null, master, clients,
     config,
     recordingEvents,
     logex,

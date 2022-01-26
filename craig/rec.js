@@ -1788,35 +1788,24 @@ clients.forEach((client) => {
     });
 });
 
-// Make a pseudo-recording sufficient for stats and keeping track but little else
-function pseudoRecording(gid, cid, id, accessKey, size) {
-    var rec = {
-        id: id,
-        accessKey: accessKey,
-        connection: {
-            channel: {
-                members: {
-                    size: size
-                }
-            },
-            disconnect: function() {
-                cc.recordingEvents.emit("stop", rec);
-                delete activeRecordings[gid][cid];
-                if (Object.keys(activeRecordings[gid]).length === 0)
-                    delete activeRecordings[gid];
-            }
-        }
-    };
-    return rec;
-}
-
 // Inform the shard manager when recordings start or end
 if (!cc.master) {
     cc.recordingEvents.on("start", (rec) => {
         var size = 1;
         try {
             size = rec.connection.channel.members.size;
-            client.shard.send({t:"startRecording", g:rec.gid, c:rec.cid, id: rec.id, accessKey: rec.accessKey, size: size});
+            client.shard.send({
+                t:"startRecording",
+                g:rec.gid, c:rec.cid,
+                r: {
+                    id: rec.id,
+                    accessKey: rec.accessKey,
+                    guild: rec.gid,
+                    channel: rec.cid,
+                    size: size,
+                    user: rec.info.userId || rec.info.requesterId
+                }
+            });
         } catch (ex) {
             logex(ex);
         }
@@ -1829,52 +1818,31 @@ if (!cc.master) {
             logex(ex);
         }
     });
-
-} else if (cc.sm) {
-    // Handle recordings from shards
-    cc.shardCommands["startRecording"] = function(shard, msg) {
-        if (!(msg.g in activeRecordings)) activeRecordings[msg.g] = {};
-        var rec = activeRecordings[msg.g][msg.c] = pseudoRecording(msg.g, msg.c, msg.id, msg.accessKey, msg.size);
-        cc.recordingEvents.emit("start", rec);
-    }
-
-    cc.shardCommands["stopRecording"] = function(shard, msg) {
-        try {
-            activeRecordings[msg.g][msg.c].connection.disconnect();
-        } catch (ex) {}
-    }
-
 }
 
 // Get our currect active recordings from the launcher
-if (process.channel && cc.master)
-    process.send({t:"requestActiveRecordings"});
-cc.processCommands["activeRecordings"] = function(msg) {
-    for (var gid in msg.activeRecordings) {
-        var ng = msg.activeRecordings[gid];
-        if (!(gid in activeRecordings))
-            activeRecordings[gid] = {};
-        var g = activeRecordings[gid];
-        for (var cid in ng) {
-            if (cid in g)
-                continue;
-            var nc = ng[cid];
-            (function(gid, cid, nc) {
-                var rec = g[cid] = pseudoRecording(gid, cid, nc.id, nc.accessKey, nc.size?nc.size:1);
-                setTimeout(() => {
-                    try {
-                        if (activeRecordings[gid][cid] === rec)
-                            rec.connection.disconnect();
-                    } catch (ex) {}
-                }, 1000*60*60*6);
-            })(gid, cid, nc);
+if (process.channel)
+    client.once('ready', () => process.send({ t:"requestActiveRecordings", guilds: Array.from(client.guilds.keys()) }));
+cc.processCommands["activeRecordings"] = async function(msg) {
+    let dcedGuilds = {};
+    let erroredDMs = {};
+    for (let ar of msg.activeRecordings) {
+        if (!client.guilds.get(ar.guild)) return;
+        if (!dcedGuilds[ar.guild]) {
+            client.closeVoiceConnection(ar.guild);
+            dcedGuilds[ar.guild] = true;
         }
-    }
 
-    if (cc.sm) {
-        // Relay it to shards
-        cc.sm.broadcast(msg);
-        cc.sm.on("launch", (shard) => { shard.send(msg); });
+        process.send({ t: "stopRecording", g: ar.guild, c: ar.channel });
+        if (ar.user && !erroredDMs[ar.user]) {
+            try {
+                const dm = await client.getDMChannel(ar.user);
+                await dm.createMessage(`:warning: The recording (\`${ar.id}\`) in <#${ar.channel}> has abruptly stopped, possibly due to the bot being briefly disconnected or a restart has occurred.\n**Please create a new recording using \`/join\`**, your previous recording will still be accessible.`)
+            } catch (e) {
+                erroredDMs[ar.user] = true;
+                logex('gr-dm-fail', e);
+            }
+        }
     }
 }
 
@@ -1979,8 +1947,41 @@ cc.shardCommands["gracefulRestart"] = gracefulRestart;
 
 // Owner command for graceful restart
 ccmds.ownerCommands["graceful-restart"] = function(msg, cmd) {
-    reply(msg, false, cmd[1], "Restarting!");
-    gracefulRestart();
+    msg.channel.send("Respawning all shards!").then(() => gracefulRestart());
+}
+
+ccmds.ownerCommands["restart-this"] = function(msg, cmd) {
+    if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
+    msg.channel.send("Restarting this shard...").then(() => process.send({ t: "restartThis" }));
+}
+
+ccmds.ownerCommands["restart-one"] = function(msg, cmd) {
+    if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
+    if (!cmd[3]) return reply(msg, false, cmd[1], "Please provide a shard ID");
+    if (process.send) {
+        msg.channel.send(`Restarting shard ${cmd[3]}...`).then(() => process.send({ t: "restartOne", id: parseInt(cmd[3]) }));
+    } else {
+        reply(msg, false, cmd[1], "Process.send is undefined...");
+    }
+}
+
+ccmds.ownerCommands["shardinfo"] = function(msg, cmd) {
+    if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
+    function format(seconds){
+        function pad(s){
+            return (s < 10 ? '0' : '') + s;
+        }
+        var hours = Math.floor(seconds / (60*60));
+        var minutes = Math.floor(seconds % (60*60) / 60);
+        var seconds = Math.floor(seconds % 60);
+        
+        return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    }
+    client.shard.broadcastEval('let sir = { i: client.shard.id, s: client.shard.status, g: client.guilds.size, l: Number.isFinite(client.shard.latency) ? client.shard.latency : -1, u: process.uptime(), r: Object.keys(require("./rec.js").activeRecordings).length };sir').then((res) => {
+        msg.channel.send(`\`\`\`fix\n${res.map((r) => `${String(r.i) === process.env.SHARD_ID ? '>' : ' '} [${r.i}] ${r.s}, ${r.l} ms, ${r.g} guilds, ${r.r} active recs, uptime: ${format(r.u)}`).join('\n')}\n\`\`\``);
+    }).catch((e) => {
+        msg.channel.send(`Failed to get values: ${e}`);
+    });
 }
 
 // Terminus command
