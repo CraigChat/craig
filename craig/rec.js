@@ -1997,17 +1997,10 @@ ccmds.ownerCommands["restart-one"] = function(msg, cmd) {
 ccmds.ownerCommands["shardinfo"] = function(msg, cmd) {
     if (!process.env.SHARD_ID) return reply(msg, false, cmd[1], "This wasn't spawned with a shard manager...");
     client.shard.broadcastEval('{ g: this.guilds.size, s: this.shard.status, l: Number.isFinite(this.shard.latency) ? this.shard.latency : -1, i: this.shard.id }').then((res) => {
-        reply(msg, false, cmd[1], `This shard ID: ${process.env.SHARD_ID}\n\n${res.map((r) => `[${r.i}] ${r.s}, ${r.l} ms, ${r.g.toLocaleString()} guilds`).join('\n')}`);
+        reply(msg, false, cmd[1], `This shard ID: ${process.env.SHARD_ID}\n\n${res.map((r) => `[${r.i}] ${r.s}, ${r.l} ms, ${r.g} guilds`).join('\n')}`);
     }).catch((e) => {
         reply(msg, false, cmd[1], `Failed to get values: ${e}`);
     });
-    if (!cmd[3]) return reply(msg, false, cmd[1], "Please provide a shard ID");
-    if (process.send) {
-        reply(msg, false, cmd[1], `Restarting shard ${cmd[3]}...`);
-        process.send({ t: "restartOne", id: parseInt(cmd[3]) })
-    } else {
-        reply(msg, false, cmd[1], "Process.send is undefined...");
-    }
 }
 
 // Terminus command
