@@ -2,8 +2,11 @@ const https = require("https");
 const fs = require("fs");
 const ShardManager = require('./manager');
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const rec = require('./commands/rec');
 
-const manager = new ShardManager('./craig.js', config.sharding.count);
+const manager = new ShardManager('./craig.js', config.sharding.count, {
+  readyTimeout: config.sharding.readyTimeout || 30000
+});
 manager.on("message", (shard, msg) => {
   if (typeof msg !== "object") return;
 
@@ -33,13 +36,33 @@ manager.on('shardError', (shard, e) => console.error(`[Shard ${shard.id}]`, e));
   require('./commands/ctrl').init(manager);
   require('./commands/features').init(manager);
   require('./commands/gms').init(manager);
-  require('./commands/rec').init(manager);
+  rec.init(manager);
   console.log('Starting to spawn...');
   await manager.spawnAll();
   console.log(`Spawned ${manager.shards.size} shards.`);
 })();
 
 process.on('unhandledRejection', (r) => console.error('Unhandled exception:', r));
+
+// Stats updating
+async function onStatsUpdate() {
+  try {
+    const shard = await manager.findGuild(config.stats.guild);
+    if (!shard) return;
+    let totalSize = 0;
+    for (const ar of rec.activeRecordings.values()) {
+      totalSize += ar.size - 1;
+    }
+    
+    let topic = config.stats.topic + " Currently recording " + totalSize.toLocaleString() + " users in " + rec.activeRecordings.size.toLocaleString() + " voice channels.";
+    shard.send({ t: "setTopic", v: topic });
+  } catch (ex) {
+    console.error('Failed to update stats!', ex);
+  }
+}
+
+let statsInterval;
+if (config.stats) statsInterval = setInterval(onInterval, 3600000);
 
 // Guild count posting
 let lastServerCount = 0;
@@ -87,4 +110,4 @@ function postCount(count) {
   }
 }
 
-setInterval(onInterval, 3600000);
+let postInterval = setInterval(onInterval, 3600000);

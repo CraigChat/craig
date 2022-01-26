@@ -27,6 +27,15 @@ class ShardManager extends EventEmitter {
     return shard.spawn();
   }
 
+  async findGuild(guildID) {
+    for (const shard of this.shards.values()) {
+      try {
+        let res = await shard.eval(`this.guilds.has('${guildID}')`);
+        if (res) return shard;
+      } catch (e) {}
+    }
+  }
+
   async spawnAll(delay = 500) {
     while (this.shards.size < this.shardCount) {
       const currentId = this.shards.size;

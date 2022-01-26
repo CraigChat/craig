@@ -42,10 +42,9 @@ var blessG2U = {};
 
 // Leave this guild on all clients
 function guildLeave(guild) {
-    // retire this for now
-    // var g = client.guilds.get(guild.id);
-    // if (g)
-    //     g.leave().catch(logex);
+    var g = client.guilds.get(guild.id);
+    if (g)
+        g.leave().catch(logex);
 }
 
 const guildRefreshStmt = db.prepare("INSERT OR REPLACE INTO guildMembershipStatus (id, refreshed) VALUES (@id, @refreshed);");
@@ -108,66 +107,6 @@ function checkGMS() {
         }
     });
 }
-setInterval(checkGMS, 3600000);
-
-// Update our guild count every hour
-// var lastServerCount = 0;
-// function updateGuildCt() {
-//     if (cc.dead)
-//         return;
-
-//     if (config.discordbotstoken || config.botsdiscordpwtoken) {
-//         if (client) {
-//             report(client.user.id, client.guilds.size);
-//         } else {
-//             // Need to get the id and combined size of all shards
-//             sm.fetchClientValues("user.id").then((results) => {
-//                 var id = results[0];
-//                 sm.fetchClientValues("guilds.size").then((results) => {
-//                     var size = 0;
-//                     results.forEach((r) => { size += r; });
-//                     report(id, size);
-//                 }).catch(logex);
-//             }).catch(logex);
-//         }
-
-//         function report(id, size) {
-//             // Report to bot lists
-//             var curServerCount = size;
-//             if (lastServerCount === curServerCount)
-//                 return;
-//             lastServerCount = curServerCount;
-//             var postData = JSON.stringify({
-//                 server_count: curServerCount
-//             });
-
-//             var domains = {discordbotstoken: "top.gg", botsdiscordpwtoken: "bots.discord.pw"};
-//             for (var tname in domains) {
-//                 var domain = domains[tname];
-//                 var dtoken = config[tname];
-//                 if (!dtoken) continue;
-
-//                 try {
-//                     var req = https.request({
-//                         hostname: domain,
-//                         path: "/api/bots/" + id + "/stats",
-//                         method: "POST",
-//                         headers: {
-//                             "Content-Type": "application/json",
-//                             "Content-Length": postData.length,
-//                             "Authorization": dtoken
-//                         }
-//                     }, () => {});
-//                     req.write(postData);
-//                     req.end();
-//                 } catch(ex) {
-//                     logex(ex);
-//                 }
-//             }
-//         }
-//     }
-// }
-// if (cc.master && (config.discordbotstoken || config.botsdiscordpwtoken))
-//     setInterval(updateGuildCt, 3600000);
+if (config.guildMembershipTimeout) setInterval(checkGMS, 3600000);
 
 module.exports = {blessG2U, guildRefresh, guildDelete, importantServers};
