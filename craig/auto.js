@@ -253,7 +253,7 @@ if (config.rewards) (function() {
         var cname = subcmd[2].toLowerCase();
         subcmd = subcmd[1].toLowerCase();
 
-        var f = await cf.features(msg.author.id);
+        var f = await cf.features(msg.author.id, msg.guild.id);
         if (!f.auto) {
             reply(msg, false, cmd[1], "You do not have permission to set up automatic recordings.");
             return;
@@ -350,7 +350,7 @@ if (config.rewards) (function() {
         const userId = interaction.member.user.id;
         const guildId = interaction.channel.guild.id;
 
-        var f = await cf.features(userId);
+        var f = await cf.features(userId, guildId);
         if (!f.auto) {
             interaction.createMessage({
                 content: "You do not have permission to set up automatic recordings.",
