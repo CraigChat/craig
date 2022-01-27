@@ -46,7 +46,7 @@ class ShardManager extends EventEmitter {
           retries++;
           if (this.shards.has(currentId)) {
             const shard = this.shards.get(currentId);
-            await shard.respawn();
+            await shard.respawn(0);
           } else await this.spawn(currentId);
           break;
         } catch (e) {
@@ -79,14 +79,14 @@ class ShardManager extends EventEmitter {
     return Promise.all(promises);
   }
 
-  async respawnAll(delay = 500) {
+  async respawnAll(delay = 500, respawnDelay = 5000) {
     for (const shard of this.shards.values()) {
       let retries = 0;
       while (retries < 5) {
         console.log('[master]', `Respawning shard ${shard.id}... (attempt ${retries + 1})`);
         try {
           retries++;
-          await shard.respawn();
+          await shard.respawn(respawnDelay);
           break;
         } catch (e) {
           console.error('[master]', `Failed to respawn shard ${shard.id}`, e)
