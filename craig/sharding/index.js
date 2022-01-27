@@ -7,7 +7,7 @@ const rec = require('./commands/rec');
 const manager = new ShardManager('./craig.js', config.sharding.count, {
   readyTimeout: config.sharding.readyTimeout || 30000
 });
-manager.on("message", (shard, msg) => {
+manager.on("message", async (shard, msg) => {
   if (typeof msg !== "object") return;
 
   if (msg.t === "managerEval") {
@@ -21,7 +21,11 @@ manager.on("message", (shard, msg) => {
   }
 
   let cmd = manager.commands.get(msg.t);
-  if (cmd) cmd(shard, msg);
+  try {
+    if (cmd) await cmd(shard, msg);
+  } catch (e) {
+    console.log(`[master] Error from shard ${shard.id} command`, e)
+  }
 });
 manager.on('shardSpawn', (shard) => console.error(`[Shard ${shard.id}] Spawned process ${shard.process.pid}`));
 manager.on('disconnect', (shard, e) => console.error(`[Shard ${shard.id}] Disconnected.`, e));
