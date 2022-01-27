@@ -94,7 +94,7 @@ function postCount(count) {
       try {
           var req = https.request({
               hostname: domain,
-              path: "/api/bots/" + config.applicationID + "/stats",
+              path: `/api${tname === 'botsdiscordpwtoken' ? '/v1' : ''}/bots/` + config.applicationID + "/stats",
               method: "POST",
               headers: {
                   "Content-Type": "application/json",

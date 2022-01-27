@@ -155,11 +155,6 @@ function onShardEval(cmd, id) {
     });
 }
 
-function splitEval(msg, text) {
-    const msgs = cu.splitMessage(text);
-    msgs.map((m) => reply(msg, true, null, "", m))
-}
-
 // An eval command for the owner, explicitly in this context
 ccmds.ownerCommands["eval"] = async function(msg, cmd) {
     let ecmd = cmd[3];
@@ -172,13 +167,13 @@ ccmds.ownerCommands["eval"] = async function(msg, cmd) {
     if (sid) {
         try {
             let res = await onShardEval(ecmd, sid);
-            splitEval(msg, evalFmt(res));
+            reply(msg, true, null, "", evalFmt(res));
         } catch (ex) {
-            splitEval(msg, evalFmt(null, ex));
+            reply(msg, true, null, "", evalFmt(null, ex));
         }
     } else {
         var ret = safeEval(ecmd);
-        splitEval(msg, ret);
+        reply(msg, true, null, "", ret);
     }
 }
 
@@ -187,9 +182,9 @@ ccmds.ownerCommands["meval"] = async function(msg, cmd) {
     var ecmd = cmd[3];
     try {
         let res = await managerEval(ecmd);
-        splitEval(msg, evalFmt(res));
+        reply(msg, true, null, "", evalFmt(res));
     } catch (ex) {
-        splitEval(msg, evalFmt(null, ex));
+        reply(msg, true, null, "", evalFmt(null, ex));
     }
 }
 
