@@ -67,7 +67,7 @@ if (config.stats) statsInterval = setInterval(onInterval, 3600000);
 // Guild count posting
 let lastServerCount = 0;
 async function onInterval() {
-  if (config.discordbotstoken || config.botsdiscordpwtoken) return;
+  if (!config.discordbotstoken && !config.botsdiscordpwtoken) return;
   try {
     const results = await manager.fetchClientValues("guilds.size");
     let size = 0;
@@ -80,11 +80,11 @@ async function onInterval() {
 
 function postCount(count) {
   console.log(`Posting to botlists with ${count} servers (prev. ${lastServerCount})`);
-  if (lastServerCount === size) return;
-  lastServerCount = size;
+  if (lastServerCount === count) return;
+  lastServerCount = count;
 
   var domains = {discordbotstoken: "top.gg", botsdiscordpwtoken: "discord.bots.gg"};
-  var payloads = {discordbotstoken: JSON.stringify({server_count: size}), botsdiscordpwtoken: JSON.stringify({guildCount: size})};
+  var payloads = {discordbotstoken: JSON.stringify({server_count: count}), botsdiscordpwtoken: JSON.stringify({guildCount: count})};
   for (var tname in domains) {
       var domain = domains[tname];
       var dtoken = config[tname];
