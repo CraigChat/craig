@@ -83,13 +83,13 @@ class ShardManager extends EventEmitter {
     for (const shard of this.shards.values()) {
       let retries = 0;
       while (retries < 5) {
-        console.log('[master]', `Respawning shard ${currentId}... (attempt ${retries + 1})`);
+        console.log('[master]', `Respawning shard ${shard.id}... (attempt ${retries + 1})`);
         try {
           retries++;
           await shard.respawn();
           break;
         } catch (e) {
-          console.error('[master]', `Failed to respawn shard ${currentId}`, e)
+          console.error('[master]', `Failed to respawn shard ${shard.id}`, e)
         }
         await Util.delayFor(delay);
       }
