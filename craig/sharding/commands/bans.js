@@ -24,7 +24,7 @@ module.exports = {
       unbanLocal(msg.i);
       manager.broadcast(msg, shard.id);
     });
-    manager.on("shardSpawn", (shard) => {
+    manager.on("ready", (shard) => {
       for (var id in banned)
           shard.send({t:"ban",i:id,u:banned[id]});
     });

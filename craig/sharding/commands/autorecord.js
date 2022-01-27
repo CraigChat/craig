@@ -75,7 +75,7 @@ module.exports = {
       removeAutorecordLocal(msg.u, msg.g, msg.c);
       manager.broadcast(msg, shard.id);
     });
-    manager.on("shardSpawn", (shard) => {
+    manager.on("ready", (shard) => {
       for (var uid in autoU2GC) {
         var gcs = autoU2GC[uid];
         gcs.forEach((gc) => {

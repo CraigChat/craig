@@ -18,7 +18,7 @@ module.exports = {
       delete otherFeatures[msg.u];
       manager.broadcast(msg, shard.id);
     });
-    manager.on("shardSpawn", (shard) => {
+    manager.on("ready", (shard) => {
       for (var uid in otherFeatures) {
           if (otherFeatures[uid].ennuicastr)
               shard.send({t:"ecEnable", u:uid});
