@@ -60,7 +60,8 @@ class ShardManager extends EventEmitter {
   broadcast(message, excludedShard = null) {
     const promises = [];
     for (const shard of this.shards.values()) {
-      if (shard.id !== excludedShard) promises.push(shard.send(message));
+      if (!shard.process) console.error('[master]', `Shard ${shard.id} does not have a process, it may be restarting.`);
+      else if (shard.id !== excludedShard) promises.push(shard.send(message));
     }
     return Promise.all(promises);
   }
