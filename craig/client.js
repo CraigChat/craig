@@ -128,7 +128,7 @@ client.on("debug", (m) => {
         managerEvent: "reconnecting",
         status: client.shard.status,
         guildCount: client.guilds.size,
-        message: m
+        msg: m
     });
 });
 
