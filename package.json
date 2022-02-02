@@ -2,6 +2,8 @@
     "name": "craig",
     "homepage": "http://craig.chat/home/",
     "license": "ISC",
+    "private": true,
+    "workspaces": ["web2"],
     "repository": {
         "type": "git",
         "url": "https://github.com/Yahweasel/craig"

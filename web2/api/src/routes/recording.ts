@@ -1,5 +1,6 @@
 import { RouteOptions } from 'fastify';
-import { ErrorCode } from '../util';
+import { ErrorCode, formatTime } from '../util';
+import { getNotes } from '../util/cook';
 import { getRecording, deleteRecording, keyMatches, getUsers, getRawRecordingStream } from '../util/recording';
 
 export const headRoute: RouteOptions = {
@@ -34,6 +35,57 @@ export const getRoute: RouteOptions = {
     delete info.delete;
 
     return reply.status(200).send({ ok: true, info });
+  }
+};
+
+export const textRoute: RouteOptions = {
+  method: 'GET',
+  url: '/api/recording/:id/.txt',
+  handler: async (request, reply) => {
+    const { id } = request.params as Record<string, string>;
+    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    const { key } = request.query as Record<string, string>;
+    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const info = await getRecording(id);
+    if (info === false)
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info)
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key))
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const users = await getUsers(id);
+    const notes = await getNotes(id);
+
+    return reply
+      .status(200)
+      .headers({
+        'content-disposition': `attachment; filename=${id}-info.txt`,
+        'content-type': 'text/plain'
+      })
+      .send(
+        [
+          `Recording ${id}`,
+          '',
+          `Guild:\t\t${info.guildExtra ? `${info.guildExtra.name} (${info.guildExtra.id})` : info.guild}`,
+          `Channel:\t${info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel}`,
+          `Requester:\t${
+            info.requesterExtra
+              ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})`
+              : info.requester
+          }`,
+          `Start time:\t${info.startTime}`,
+          '',
+          'Tracks:',
+          ...users.map((track) => `\t${track.name}#${track.discrim} (${track.id})`),
+          ...(notes.length > 0
+            ? ['', 'Notes:', ...notes.map((n) => `\t${formatTime(parseInt(n.time))}: ${n.note}`)]
+            : [])
+        ]
+          .filter((x) => x !== null)
+          .join('\n')
+      );
   }
 };
 

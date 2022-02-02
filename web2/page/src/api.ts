@@ -34,7 +34,7 @@ export interface RecordingInfo {
 
 export interface RecordingUser {
   id: string;
-  username: string;
+  name: string;
   discrim: string;
   avatar?: string;
 }
