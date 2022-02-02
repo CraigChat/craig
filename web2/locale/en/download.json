@@ -59,6 +59,7 @@
     "mac": "Mac OS X Application",
     "unix": "Unix Script",
     "raw": "Raw",
+    "info": "Info",
     "unsup": "(unsupported)",
     "movsfx": "(QuickTime Animation, Windows extractor)",
     "movpngsfx": "(PNG, Windows extractor)",

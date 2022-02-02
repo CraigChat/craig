@@ -8,6 +8,7 @@ import windowsIcon from '@iconify-icons/cib/windows';
 import macIcon from '@iconify-icons/cib/apple';
 import unixIcon from '@iconify-icons/cib/linux';
 import rawIcon from '@iconify-icons/ic/round-insert-drive-file';
+import txtIcon from '@iconify-icons/bi/file-earmark-text-fill';
 import { RecordingInfo } from './api';
 import { PlatformInfo, StringT } from './util';
 
@@ -248,6 +249,12 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
           text: (t) => t('download.raw'),
           suffix: (t) => t('download.unsup'),
           format: 'raw'
+        },
+        {
+          icon: txtIcon,
+          text: (t) => t('download.info'),
+          suffix: '.txt',
+          format: 'txt'
         }
       ]
     }

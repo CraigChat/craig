@@ -157,6 +157,10 @@ export default class App extends Component<{}, AppState> {
       location.href = `/api/recording/${this.state.recordingId}/raw?key=${query.get('key')}`;
       return;
     }
+    if (button.format === 'txt') {
+      location.href = `/api/recording/${this.state.recordingId}/.txt?key=${query.get('key')}`;
+      return;
+    }
 
     if (button.ennuizel !== undefined) {
       // TODO ennuizel prompt & link
