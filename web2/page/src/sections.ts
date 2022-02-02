@@ -253,7 +253,7 @@ export const getOtherFormatsSection = (info: RecordingInfo, platform: PlatformIn
         {
           icon: txtIcon,
           text: (t) => t('download.info'),
-          suffix: '.txt',
+          suffix: '(.txt)',
           format: 'txt'
         }
       ]
