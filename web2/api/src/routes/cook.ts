@@ -8,9 +8,10 @@ import {
   cookAvatars,
   getDuration,
   getNotes,
-  isReady
+  isReady,
+  rawPartwise
 } from '../util/cook';
-import { getRecording, keyMatches } from '../util/recording';
+import { getRecording, getUsers, keyMatches } from '../util/recording';
 
 export const durationRoute: RouteOptions = {
   method: 'GET',
@@ -55,6 +56,41 @@ export const notesRoute: RouteOptions = {
     const notes = await getNotes(id);
 
     return reply.status(200).send({ ok: true, notes });
+  }
+};
+
+export const ennuizelRoute: RouteOptions = {
+  method: 'GET',
+  url: '/api/recording/:id/ennuizel',
+  handler: async (request, reply) => {
+    const { id } = request.params as Record<string, string>;
+    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    const { key, track } = request.query as Record<string, string>;
+    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (!track) return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
+
+    const info = await getRecording(id);
+    if (info === false)
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info)
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key))
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const trackNum = parseInt(track, 10);
+    if (isNaN(trackNum) || trackNum <= 0)
+      return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
+
+    const users = await getUsers(id);
+    if (!users[trackNum - 1])
+      return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
+
+    try {
+      const stream = rawPartwise(id, trackNum);
+      return reply.status(200).send(stream);
+    } catch (err) {
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
   }
 };
 

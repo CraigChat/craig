@@ -130,3 +130,10 @@ export function cookAvatars(
     throw e;
   }
 }
+
+export function rawPartwise(id: string, track?: number) {
+  const cookingPath = path.join(cookPath, 'raw-partwise.sh');
+  const args = [id, ...(track ? [String(track)] : [])];
+  const child = spawn(cookingPath, args);
+  return child.stdout;
+}
