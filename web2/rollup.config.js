@@ -11,6 +11,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import injectProcessEnv from 'rollup-plugin-inject-process-env';
 import alias from '@rollup/plugin-alias';
 import { execSync } from 'child_process';
+import pkg from './package.json';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -27,7 +28,7 @@ export default ({ watch }) => [
       file: 'dist/page/rec.js',
       format: 'iife',
       compact: !watch,
-      sourcemap: !watch
+      sourcemap: true
     },
     plugins: [
       postcss({
@@ -74,7 +75,11 @@ export default ({ watch }) => [
       injectProcessEnv({
         NODE_ENV: !watch ? 'production' : 'development',
         GIT_REVISION: revision,
-        ENNUIZEL_BASE: process.env.ENNUIZEL_BASE
+        VERSION: pkg.version,
+        ENNUIZEL_BASE: process.env.ENNUIZEL_BASE,
+        SENTRY_DSN: process.env.SENTRY_DSN,
+        SENTRY_ENV: process.env.SENTRY_ENV,
+        SENTRY_SAMPLE_RATE: process.env.SENTRY_SAMPLE_RATE
       }),
       alias({
         entries: [
