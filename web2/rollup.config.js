@@ -78,7 +78,6 @@ export default ({ watch }) => [
         VERSION: pkg.version,
         ENNUIZEL_BASE: process.env.ENNUIZEL_BASE,
         SENTRY_DSN: process.env.SENTRY_DSN,
-        SENTRY_ENV: process.env.SENTRY_ENV,
         SENTRY_SAMPLE_RATE: process.env.SENTRY_SAMPLE_RATE
       }),
       alias({

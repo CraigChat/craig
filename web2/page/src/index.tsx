@@ -19,6 +19,7 @@ if (process.env.SENTRY_DSN)
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     integrations: [new Integrations.BrowserTracing()],
+    environment: process.env.NODE_ENV,
     release: process.env.VERSION,
     tracesSampleRate: process.env.SENTRY_SAMPLE_RATE ? parseFloat(process.env.SENTRY_SAMPLE_RATE) : 1.0
   });
