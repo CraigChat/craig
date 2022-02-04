@@ -1,0 +1,3 @@
+[submodule "web2/locale"]
+	path = web2/locale
+	url = https://github.com/CraigChat/translations
