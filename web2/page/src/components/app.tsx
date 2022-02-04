@@ -23,6 +23,7 @@ import ModalContent from './modalContent';
 import ModalButton from './modalButton';
 import DeleteModalContent from './deleteModalContent';
 import Dropdown from './dropdown';
+import EnnuizelModalContent from './ennuizelModalContent';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -81,7 +82,8 @@ export default class App extends Component<{}, AppState> {
     console.log('Loaded', {
       platform: this.state.platform,
       revision: process.env.GIT_REVISION,
-      ennuizelHost: process.env.ENNUIZEL_BASE
+      ennuizelHost: process.env.ENNUIZEL_BASE,
+      version: process.env.VERSION
     });
   }
 
@@ -163,7 +165,27 @@ export default class App extends Component<{}, AppState> {
     }
 
     if (button.ennuizel !== undefined) {
-      // TODO ennuizel prompt & link
+      if (localStorage.getItem('disableEnnuizelWarn') !== 'true') {
+        this.openModal(
+          <EnnuizelModalContent
+            platform={this.state.platform}
+            onClose={() => this.closeModal()}
+            onConfirm={() =>
+              (location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get('key')}&w=${
+                button.ennuizel
+              }&a=${location.host}`)
+            }
+          />,
+          {
+            allowClose: true,
+            contentLabel: i18n.t('modal.ennuizel')
+          }
+        );
+      } else {
+        location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get('key')}&w=${
+          button.ennuizel
+        }&a=${location.host}`;
+      }
       return;
     }
 
@@ -298,7 +320,7 @@ export default class App extends Component<{}, AppState> {
               <div class="flex flex-row items-center justify-center gap-4">
                 <img src="/craig.png" class="w-16 h-16 rounded-full" />
                 <div class="flex flex-col">
-                  <h1 class="sm:text-4xl text-3xl text-zinc-100 font-display">{t('craig_rec')}</h1>
+                  <h1 class="sm:text-4xl text-2xl text-zinc-100 font-display">{t('craig_rec')}</h1>
                   <a
                     href="https://craig.chat/"
                     class="text-zinc-400 font-medium hover:underline focus:underline outline-none"

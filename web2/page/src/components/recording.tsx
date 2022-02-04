@@ -124,12 +124,12 @@ export default function Recording({
       <div class="flex flex-col items-center justify-center">
         {recording.expiresAfter ? (
           <h2
-            class={clsx('text-2xl font-display flex items-center justify-center gap-2', {
+            class={clsx('sm:text-2xl text-lg font-display flex items-center justify-center gap-2', {
               'text-zinc-100': expiryTime > EXPIRY_WARN_AT,
               'text-red-500': expiryTime <= EXPIRY_WARN_AT
             })}
           >
-            <Icon icon={expiryIcon} className="text-3xl" />
+            <Icon icon={expiryIcon} className="sm:text-3xl text-xl" />
             <span>{t('info.expires', { expire: prettyMs(expiryTime, { compact: true, verbose: true, t }) })}</span>
           </h2>
         ) : (

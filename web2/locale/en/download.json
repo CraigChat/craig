@@ -26,6 +26,7 @@
     "general": "Modal",
     "error": "An error occurred.",
     "delete_rec": "Delete recording?",
+    "ennuizel": "Beware of the red buttons!",
     "duration_fail": "Failed to get the duration of the recording!",
     "download_fail": "Download failed!"
   },
@@ -35,6 +36,10 @@
     "downloading_avatar": "Downloading avatars…",
     "download_fail": "Failed to download the {{format}} format.",
     "download_avatar_fail": "Failed to download avatars.",
+    "ennuizel": "Buttons that have a red border require audio processing in your browser using Ennuizel. Depending on your browser, it may be unsupported or take up a good amount of RAM to process your recording. If you have any problems, choose a different format.",
+    "ennuizel_mobile": "It seems like you are on a mobile device! It's HIGHLY recommended to do this on a PC. Don't complain to us if you run into problems!",
+    "ennuizel_confirm": "I understand.",
+    "ennuizel_dont_show": "Don't show this again",
     "delete_rec": "Are you sure you want to delete this recording? This action is IRREVERSABLE and nobody can help you get it back.",
     "enter_del_key": "Enter the delete key here:"
   },
