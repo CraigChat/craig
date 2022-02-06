@@ -19,7 +19,7 @@ module.exports = {
     "hardLimitWeb": 4294967296,
 
     // Max time to spend unused in a guild before leaving it, in milliseconds
-    "guildMembershipTimeout": 604800000,
+    // "guildMembershipTimeout": 604800000,
 
     // Secondary connections (each must have a token, nick and invite URL)
     "secondary": [],
