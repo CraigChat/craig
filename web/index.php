@@ -23,7 +23,7 @@ if (!isset($_REQUEST["id"])) {
     header("Location: /home/");
     die();
 }
-$id = intval($_REQUEST["id"]);
+$id = $_REQUEST["id"];
 
 // Make sure the recording exists
 if (!file_exists("$base/$id.ogg.header1") ||
@@ -39,11 +39,11 @@ if (file_exists("$base/$id.ogg.info"))
 // Check the key
 if (!isset($_REQUEST["key"]))
     die("Invalid ID.");
-$key = intval($_REQUEST["key"]);
+$key = $_REQUEST["key"];
 if ($info !== false)
-    $corrKey = $info["key"];
+    $corrKey = strval($info["key"]);
 else if (file_exists("$base/$id.ogg.key"))
-    $corrKey = intval(file_get_contents("$base/$id.ogg.key"));
+    $corrKey = file_get_contents("$base/$id.ogg.key");
 else
     $corrKey = false;
 if ($key !== $corrKey)
@@ -127,11 +127,11 @@ function ezel($title, $w) {
 
 // Perform an action based on the request
 if (isset($_REQUEST["delete"])) {
-    $deleteKey = intval($_REQUEST["delete"]);
+    $deleteKey = $_REQUEST["delete"];
     if ($info !== false)
-        $corrDeleteKey = $info["delete"];
+        $corrDeleteKey = strval($info["delete"]);
     else if (file_exists("$base/$id.ogg.delete"))
-        $corrDeleteKey = intval(file_get_contents("$base/$id.ogg.delete"));
+        $corrDeleteKey = file_get_contents("$base/$id.ogg.delete");
     else
         $corrDeleteKey = false;
     if ($deleteKey !== $corrDeleteKey) {

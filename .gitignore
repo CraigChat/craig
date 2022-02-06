@@ -17,5 +17,7 @@ cook/*.png
 *.db-shm
 *.db-wal
 *.log
+.env
+dist/
 node-log.txt
 nohup.out

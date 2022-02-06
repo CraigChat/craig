@@ -22,10 +22,15 @@ delete info["delete"];
 delete info.features;
 if (process.argv[3] === "text") {
     process.stdout.write(
-        "Guild:\t\t" + info.guild + "\r\n" +
-        "Channel:\t" + info.channel + "\r\n" +
-        "Requester:\t" + info.requester + "\r\n" +
+        "Recording " + process.argv[2] + "\r\n" +
+        "\r\n" +
+        "Guild:\t\t" + (info.guildExtra ? `${info.guildExtra.name} (${info.guildExtra.id})` : info.guild) + "\r\n" +
+        "Channel:\t" + (info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel) + "\r\n" +
+        "Requester:\t" + (info.requesterExtra
+            ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})`
+            : info.requester) + "\r\n" +
         "Start time:\t" + info.startTime + "\r\n" +
+        "\r\n" +
         "Tracks:\r\n");
     for (var ui = 1; users[ui]; ui++)
         process.stdout.write("\t" + users[ui].name + "#" + users[ui].discrim + "\r\n");
