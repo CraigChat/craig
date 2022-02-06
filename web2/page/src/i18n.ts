@@ -1,5 +1,4 @@
 import i18n from 'i18next';
-import detector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import en from '../../locale/en/download.json';
@@ -35,15 +34,24 @@ export const languages: Language[] = [
   }
 ];
 
-i18n
-  .use(detector)
-  .use(initReactI18next)
-  .init({
-    resources,
-    fallbackLng: 'en',
-    ns: ['download'],
-    defaultNS: 'download',
-    interpolation: { escapeValue: false }
-  });
+function detectLang() {
+  if (localStorage.getItem('lang')) return localStorage.getItem('lang');
+  if (navigator.language in resources) return navigator.language;
+  if (navigator.languages && navigator.languages.length) {
+    for (const lang of navigator.languages) {
+      if (lang in resources) return lang;
+    }
+  }
+  return 'en';
+}
+
+i18n.use(initReactI18next).init({
+  resources,
+  lng: detectLang(),
+  fallbackLng: 'en',
+  ns: ['download'],
+  defaultNS: 'download',
+  interpolation: { escapeValue: false }
+});
 
 export default i18n;
