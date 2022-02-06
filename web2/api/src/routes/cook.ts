@@ -97,6 +97,12 @@ export const ennuizelRoute: RouteOptions = {
 export const getRoute: RouteOptions = {
   method: 'GET',
   url: '/api/recording/:id/cook',
+  config: {
+    rateLimit: {
+      max: 100,
+      timeWindow: '1 minute'
+    }
+  },
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
     if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
