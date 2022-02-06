@@ -38,7 +38,7 @@ function detectLang() {
   if (localStorage.getItem('i18nextLng')) return localStorage.getItem('i18nextLng');
   if (navigator.language in resources) return navigator.language;
   if (navigator.languages && navigator.languages.length) {
-    const foundLang = navigator.languages.find(lang => lang in resources);
+    const foundLang = navigator.languages.find((lang) => lang in resources);
     if (foundLang) return foundLang;
   }
   return 'en';
