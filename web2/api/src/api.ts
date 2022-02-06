@@ -22,7 +22,8 @@ export async function start(): Promise<void> {
       directives: {
         'default-src': ["'self'"],
         'img-src': ["'self'", 'data:', 'https://cdn.discordapp.com', 'https://media.discordapp.net'],
-        'style-src': ["'self'", 'https:', "'unsafe-inline'"]
+        'style-src': ["'self'", 'https:', "'unsafe-inline'"],
+        'script-src': ["'self'", process.env.SENTRY_HOST]
       }
     }
   });
