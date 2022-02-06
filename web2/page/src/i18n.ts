@@ -35,12 +35,11 @@ export const languages: Language[] = [
 ];
 
 function detectLang() {
-  if (localStorage.getItem('lang')) return localStorage.getItem('lang');
+  if (localStorage.getItem('i18nextLng')) return localStorage.getItem('i18nextLng');
   if (navigator.language in resources) return navigator.language;
   if (navigator.languages && navigator.languages.length) {
-    for (const lang of navigator.languages) {
-      if (lang in resources) return lang;
-    }
+    const foundLang = navigator.languages.find(lang => lang in resources);
+    if (foundLang) return foundLang;
   }
   return 'en';
 }
