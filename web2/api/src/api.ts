@@ -7,10 +7,13 @@ import * as recordingRoute from './routes/recording';
 import * as cookRoute from './routes/cook';
 import * as pageRoute from './routes/page';
 import { ErrorCode } from './util';
+import { client } from './cache';
 
 export let server: FastifyInstance;
 
 export async function start(): Promise<void> {
+  await client.connect();
+
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
     ignoreTrailingSlash: true,

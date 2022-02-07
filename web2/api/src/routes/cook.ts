@@ -8,7 +8,7 @@ import {
   cookAvatars,
   getDuration,
   getNotes,
-  isReady,
+  getReady,
   rawPartwise
 } from '../util/cook';
 import { getRecording, getUsers, keyMatches } from '../util/recording';
@@ -117,8 +117,8 @@ export const getRoute: RouteOptions = {
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
-    const ready = await isReady(id);
-    return reply.status(200).send({ ok: true, ready });
+    const ready = await getReady(id);
+    return reply.status(200).send({ ok: true, ready: ready === true, ...(ready !== true ? ready : {}) });
   }
 };
 
@@ -139,8 +139,8 @@ export const postRoute: RouteOptions = {
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
-    const ready = await isReady(id);
-    if (!ready)
+    const ready = await getReady(id);
+    if (ready !== true)
       return reply
         .status(429)
         .send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
@@ -200,7 +200,7 @@ export const runRoute: RouteOptions = {
     if (!keyMatches(info, query.key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
-    const ready = await isReady(id);
+    const ready = await getReady(id);
     if (!ready)
       return reply
         .status(429)
@@ -260,7 +260,7 @@ export const avatarRoute: RouteOptions = {
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
-    const ready = await isReady(id);
+    const ready = await getReady(id);
     if (!ready)
       return reply
         .status(429)

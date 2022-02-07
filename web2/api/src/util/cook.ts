@@ -1,22 +1,31 @@
-import * as fs from 'fs/promises';
-import { constants as FS } from 'fs';
 import { RecordingNote, recPath } from './recording';
 import path from 'path';
 import execa from 'execa';
 import { spawn } from 'child_process';
+import { clearReadyState, getReadyState, setReadyState } from '../cache';
 
-const cooking = new Map<string, string>();
 export const cookPath = path.join(__dirname, '..', '..', '..', 'cook');
 export const tmpPath = path.join(__dirname, '..', '..', 'tmp');
 
-export async function isReady(id: string): Promise<boolean> {
-  // check to see if a file is share locked
-  const locked = await fs.access(path.join(recPath, `${id}.ogg.data`), FS.W_OK | FS.R_OK).then(
-    () => false,
-    () => true
-  );
-  if (locked) return false;
-  return !cooking.has(id);
+export interface ReadyState {
+  message?: string;
+  file?: string;
+  time?: string;
+  progress?: number;
+}
+
+export async function getReady(id: string): Promise<true | ReadyState> {
+  const state: ReadyState = await getReadyState(id);
+  if (state) return state;
+
+  // Check if the data file is share locked
+  const lock = await execa(`exec 9< "${path.join(recPath, `${id}.ogg.data`)}" && flock -n 9 || exit 1`, {
+    shell: true,
+    reject: false
+  });
+  if (lock.exitCode === 1) return { message: 'Locked by another process...' };
+
+  return true;
 }
 
 export async function getDuration(id: string): Promise<number> {
@@ -73,13 +82,56 @@ export const allowedContainers: { [container: string]: { mime?: string; ext?: st
   }
 };
 
-export function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
-  const cookId = Date.now().toString(36);
-  const deleteState = () => {
-    if (cooking.get(id) === cookId) cooking.delete(id);
+function stateManager(id: string): [ReadyState, (newState: ReadyState) => Promise<void>, () => Promise<void>] {
+  const state: ReadyState = {};
+  let stateDeleted = false;
+  let lastStateUpdate = 0;
+
+  const deleteState = async () => {
+    stateDeleted = true;
+    await clearReadyState(id).catch(() => {});
   };
+
+  const writeState = async (newState: ReadyState) => {
+    if (stateDeleted) return;
+    const isNew = !(state.file === newState.file && state.progress === newState.progress);
+    if (isNew && Date.now() - lastStateUpdate > 200) {
+      state.file = newState.file;
+      state.progress = newState.progress;
+      state.time = newState.time;
+      lastStateUpdate = Date.now();
+      await setReadyState(id, newState).catch(() => {});
+    }
+  };
+
+  return [state, writeState, deleteState];
+}
+
+function getStderrReader(state: ReadyState, writeState: (newState: ReadyState) => Promise<void>) {
+  return (buf: Buffer) => {
+    const log = buf.toString();
+
+    if (log.includes('adding:')) {
+      // Watch when a new file is being put in the zip
+      const match = log.match(/ {2}adding: ([\w./-]+)(?: \(deflated \d+%\))?(?=$)/);
+      if (match) writeState({ file: match[1] });
+    } else if (log.includes('complete,')) {
+      // Watch when FFMpeg updates on progress
+      const match = log.match(/(\d+)% complete, ratio=[\d.]+(?=$)/);
+      if (match) writeState({ file: state.file, progress: parseInt(match[1], 10), time: state.time });
+    } else if (log.includes('time=')) {
+      // Watch when FFMpeg updates on total time
+      const match = log.match(/time=(\d{2}:\d{2}:\d{2}\.\d{2})/);
+      if (match) writeState({ file: state.file, progress: state.progress, time: match[1] });
+    }
+  };
+}
+
+export async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
+  const [state, writeState, deleteState] = stateManager(id);
+
   try {
-    cooking.set(id, cookId);
+    await writeState({});
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
     const child = spawn(cookingPath, args);
@@ -87,8 +139,7 @@ export function cook(id: string, format = 'flac', container = 'zip', dynaudnorm 
     child.stdout.once('error', deleteState);
 
     // Prevent the stream from ending prematurely (for some reason)
-    // TODO: set a message while cooking through the err stream?
-    child.stderr.on('data', () => {});
+    child.stderr.on('data', getStderrReader(state, writeState));
 
     return child.stdout;
   } catch (e) {
@@ -110,7 +161,7 @@ export const allowedAvatarFormats = [
   'exe'
 ];
 
-export function cookAvatars(
+export async function cookAvatars(
   id: string,
   format = 'png',
   container = 'zip',
@@ -118,12 +169,10 @@ export function cookAvatars(
   bg = '000000',
   fg = '008000'
 ) {
-  const cookId = Date.now().toString(36);
-  const deleteState = () => {
-    if (cooking.get(id) === cookId) cooking.delete(id);
-  };
+  const [state, writeState, deleteState] = stateManager(id);
+
   try {
-    cooking.set(id, cookId);
+    await writeState({});
     const cookingPath = path.join(cookPath, 'avatars.sh');
     const args = [id, format, container, transparent ? '1' : '0', bg, fg];
     const child = spawn(cookingPath, args);
@@ -131,7 +180,7 @@ export function cookAvatars(
     child.stdout.once('error', deleteState);
 
     // Prevent the stream from ending prematurely (for some reason)
-    child.stderr.on('data', () => {});
+    child.stderr.on('data', getStderrReader(state, writeState));
 
     return child.stdout;
   } catch (e) {
