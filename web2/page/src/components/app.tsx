@@ -144,9 +144,10 @@ export default class App extends Component<{}, AppState> {
 
     while (!ready) {
       if (firstRun) firstRun = false;
-      else await wait(1000);
+      else await wait(2000);
 
-      ready = await isReady(this.state.recordingId, key);
+      const readyState = await isReady(this.state.recordingId, key);
+      ready = readyState.ready;
     }
   }
 
@@ -189,6 +190,26 @@ export default class App extends Component<{}, AppState> {
       return;
     }
 
+    // Check ready state before cooking
+    const readyState = await isReady(this.state.recordingId, query.get('key'));
+    if (!readyState.ready)
+      return this.openModal(
+        <ModalContent
+          title={i18n.t('modal.error')}
+          buttons={[
+            <ModalButton key={1} onClick={() => this.closeModal()}>
+              {i18n.t('close')}
+            </ModalButton>
+          ]}
+        >
+          {i18n.t('error.1006')}
+        </ModalContent>,
+        {
+          allowClose: true,
+          contentLabel: i18n.t('modal.error')
+        }
+      );
+
     this.openModal(
       <ModalContent title={i18n.t('downloading')}>
         {i18n.t('modal_content.downloading', { format: asT(i18n.t, button.text) })}
@@ -200,7 +221,6 @@ export default class App extends Component<{}, AppState> {
     );
 
     try {
-      await this.waitTillReady(query.get('key'));
       cookDownload(this.state.recordingId, query.get('key'), {
         format: button.format || 'flac',
         container: button.container || 'zip',

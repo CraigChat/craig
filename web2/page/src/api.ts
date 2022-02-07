@@ -53,6 +53,10 @@ export interface CookAvatarsPayload {
   fg?: string;
 }
 
+export interface ReadyState {
+  ready: boolean;
+}
+
 export async function getRecording(id: string, key: string | number): Promise<RecordingInfo> {
   const response = await fetch(`/api/recording/${id}?key=${key}`);
   if (response.status !== 200) throw response;
@@ -78,11 +82,11 @@ export async function deleteRecording(id: string, key: string | number, deleteKe
   return;
 }
 
-export async function isReady(id: string, key: string | number): Promise<boolean> {
+export async function isReady(id: string, key: string | number): Promise<ReadyState> {
   const response = await fetch(`/api/recording/${id}/cook?key=${key}`);
   if (response.status !== 200) throw response;
-  const { ready } = await response.json();
-  return ready;
+  const readyState = await response.json();
+  return readyState;
 }
 
 export async function cookRecording(id: string, key: string | number, payload: CookPayload): Promise<Response> {
