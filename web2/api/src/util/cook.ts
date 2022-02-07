@@ -85,7 +85,6 @@ export const allowedContainers: { [container: string]: { mime?: string; ext?: st
 function stateManager(id: string): [ReadyState, (newState: ReadyState) => Promise<void>, () => Promise<void>] {
   const state: ReadyState = {};
   let stateDeleted = false;
-  let lastStateUpdate = 0;
 
   const deleteState = async () => {
     stateDeleted = true;
@@ -94,12 +93,15 @@ function stateManager(id: string): [ReadyState, (newState: ReadyState) => Promis
 
   const writeState = async (newState: ReadyState) => {
     if (stateDeleted) return;
-    const isNew = !(state.file === newState.file && state.progress === newState.progress);
-    if (isNew && Date.now() - lastStateUpdate > 200) {
+    const isNew = !(
+      state.file === newState.file &&
+      state.progress === newState.progress &&
+      state.time === newState.time
+    );
+    if (isNew) {
       state.file = newState.file;
       state.progress = newState.progress;
       state.time = newState.time;
-      lastStateUpdate = Date.now();
       await setReadyState(id, newState).catch(() => {});
     }
   };
@@ -111,18 +113,22 @@ function getStderrReader(state: ReadyState, writeState: (newState: ReadyState) =
   return (buf: Buffer) => {
     const log = buf.toString();
 
+    // Watch when a new file is being put in the zip
     if (log.includes('adding:')) {
-      // Watch when a new file is being put in the zip
-      const match = log.match(/ {2}adding: ([\w./-]+)(?: \(deflated \d+%\))?(?=$)/);
-      if (match) writeState({ file: match[1] });
-    } else if (log.includes('complete,')) {
-      // Watch when FFMpeg updates on progress
+      const match = log.match(/ {2}adding: (?:[\w.-]+\/)([\w.-]+)(?: \(deflated \d+%\))?(?=$)/);
+      if (match) return void writeState({ file: match[1], progress: 0, time: '00:00:00.00' });
+    }
+
+    // Watch when FFMpeg updates on progress
+    if (log.includes('complete,')) {
       const match = log.match(/(\d+)% complete, ratio=[\d.]+(?=$)/);
-      if (match) writeState({ file: state.file, progress: parseInt(match[1], 10), time: state.time });
-    } else if (log.includes('time=')) {
-      // Watch when FFMpeg updates on total time
+      if (match) return void writeState({ file: state.file, progress: parseInt(match[1], 10), time: state.time });
+    }
+
+    // Watch when FFMpeg updates on total time
+    if (log.includes('time=')) {
       const match = log.match(/time=(\d{2}:\d{2}:\d{2}\.\d{2})/);
-      if (match) writeState({ file: state.file, progress: state.progress, time: match[1] });
+      if (match) return void writeState({ file: state.file, progress: state.progress, time: match[1] });
     }
   };
 }
