@@ -55,6 +55,10 @@ export interface CookAvatarsPayload {
 
 export interface ReadyState {
   ready: boolean;
+  message?: string;
+  file?: string;
+  time?: string;
+  progress?: number;
 }
 
 export async function getRecording(id: string, key: string | number): Promise<RecordingInfo> {

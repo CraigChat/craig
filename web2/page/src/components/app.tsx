@@ -11,6 +11,7 @@ import {
   getRecordingDuration,
   getRecordingUsers,
   isReady,
+  ReadyState,
   RecordingInfo,
   RecordingUser
 } from '../api';
@@ -24,6 +25,7 @@ import ModalButton from './modalButton';
 import DeleteModalContent from './deleteModalContent';
 import Dropdown from './dropdown';
 import EnnuizelModalContent from './ennuizelModalContent';
+import DownloadingModalContent from './downloadingModalContent';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -41,6 +43,11 @@ interface AppState {
   durationLoading: boolean;
   duration: number | null;
   error: string | null;
+
+  downloading: boolean;
+  readyState: ReadyState | null;
+  downloadingAvatars: boolean;
+  dlButton: SectionButton | null;
 
   modalOpen: boolean;
   allowModalClose: boolean;
@@ -65,7 +72,12 @@ export default class App extends Component<{}, AppState> {
       users: null,
       durationLoading: false,
       duration: null,
-      error: null
+      error: null,
+
+      downloading: false,
+      readyState: null,
+      downloadingAvatars: false,
+      dlButton: null
     };
 
     const localSHP = localStorage.getItem('showHiddenPlatforms');
@@ -75,6 +87,7 @@ export default class App extends Component<{}, AppState> {
     this.closeModal = this.closeModal.bind(this);
     this.loadDuration = this.loadDuration.bind(this);
     this.startDownload = this.startDownload.bind(this);
+    this.waitTillReady = this.waitTillReady.bind(this);
     this.startAvatarDownload = this.startAvatarDownload.bind(this);
     this.showDeletePrompt = this.showDeletePrompt.bind(this);
     this.toggleHiddenPlatform = this.toggleHiddenPlatform.bind(this);
@@ -142,10 +155,13 @@ export default class App extends Component<{}, AppState> {
     let ready = false;
 
     while (!ready) {
-      await wait(500);
+      await wait(1000);
       const readyState = await isReady(this.state.recordingId, key);
       ready = readyState.ready;
+      this.setState({ readyState });
     }
+
+    this.setState({ readyState: null });
   }
 
   async startDownload(button: SectionButton, e: MouseEvent) {
@@ -207,15 +223,7 @@ export default class App extends Component<{}, AppState> {
         }
       );
 
-    this.openModal(
-      <ModalContent title={i18n.t('downloading')}>
-        {i18n.t('modal_content.downloading', { format: asT(i18n.t, button.text) })}
-      </ModalContent>,
-      {
-        allowClose: false,
-        contentLabel: i18n.t('downloading')
-      }
-    );
+    this.openDownloadingModal(false, button);
 
     try {
       cookDownload(this.state.recordingId, query.get('key'), {
@@ -252,13 +260,7 @@ export default class App extends Component<{}, AppState> {
     (e.target as HTMLButtonElement).blur();
     console.log('Downloading...', payload);
 
-    this.openModal(
-      <ModalContent title={i18n.t('downloading')}>{i18n.t('modal_content.downloading_avatar')}</ModalContent>,
-      {
-        allowClose: false,
-        contentLabel: i18n.t('downloading')
-      }
-    );
+    this.openDownloadingModal(true);
 
     try {
       const query = new URLSearchParams(location.search);
@@ -312,6 +314,18 @@ export default class App extends Component<{}, AppState> {
     this.setState({ platform: newPlatform });
   }
 
+  openDownloadingModal(avatars = false, button?: SectionButton) {
+    this.setState({
+      modalOpen: true,
+      allowModalClose: false,
+      modalContentLabel: i18n.t('downloading'),
+      modalContent: null,
+      downloading: true,
+      downloadingAvatars: avatars,
+      dlButton: button || null
+    });
+  }
+
   openModal(content: any, opts: ModalOptions = {}) {
     this.setState({
       modalOpen: true,
@@ -322,7 +336,8 @@ export default class App extends Component<{}, AppState> {
   }
 
   closeModal(force = false) {
-    if (this.state.allowModalClose || force) this.setState({ modalOpen: false, modalContent: null });
+    if (this.state.allowModalClose || force)
+      this.setState({ modalOpen: false, modalContent: null, downloading: false });
   }
 
   render() {
@@ -368,7 +383,7 @@ export default class App extends Component<{}, AppState> {
               <div class="flex justify-between">
                 <div class="flex flex-col">
                   {hasRev ? (
-                    <span class="opacity-50 text-xs">
+                    <span class="opacity-50 text-xs font-mono">
                       {t('footer.build')} {process.env.GIT_REVISION.slice(0, 7)}
                     </span>
                   ) : (
@@ -411,7 +426,16 @@ export default class App extends Component<{}, AppState> {
               </div>
             </div>
             <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={this.closeModal}>
-              {this.state.modalContent}
+              {this.state.downloading ? (
+                <DownloadingModalContent
+                  readyState={this.state.readyState}
+                  avatars={this.state.downloadingAvatars}
+                  button={this.state.dlButton}
+                  users={this.state.users}
+                />
+              ) : (
+                this.state.modalContent
+              )}
             </Modal>
           </div>
         )}
