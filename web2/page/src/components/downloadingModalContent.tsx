@@ -16,7 +16,9 @@ interface DownloadingModalContentProps {
 
 export default function DownloadingModalContent({ readyState, button, avatars, users }: DownloadingModalContentProps) {
   const { t } = useTranslation();
-  let fileElement: any = <span>{readyState && readyState.file ? `${readyState.file}:` : '...'}</span>;
+  let fileElement: any = (
+    <span>{readyState && readyState.file ? `${readyState.file}:` : t('modal_content.download_processing')}</span>
+  );
   let fileIndex = -1;
 
   if (readyState && readyState.file) {
