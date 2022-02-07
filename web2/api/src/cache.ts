@@ -4,7 +4,8 @@ import type { ReadyState } from './util/cook';
 export const client = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
   port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379,
-  keyPrefix: 'craig:'
+  keyPrefix: 'craig:',
+  lazyConnect: true
 });
 
 export async function getReadyState(recordingId: string) {
