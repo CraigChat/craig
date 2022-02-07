@@ -169,7 +169,7 @@ export const postRoute: RouteOptions = {
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
 
-      const stream = cook(id, format, container, dynaudnorm);
+      const stream = await cook(id, format, container, dynaudnorm);
       return reply
         .status(200)
         .headers({
@@ -229,7 +229,7 @@ export const runRoute: RouteOptions = {
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
 
-      const stream = cook(id, format, container, dynaudnorm);
+      const stream = await cook(id, format, container, dynaudnorm);
       return reply
         .status(200)
         .headers({
@@ -310,7 +310,7 @@ export const avatarRoute: RouteOptions = {
       const ext = container === 'exe' ? (format === 'movpngsfx' ? 'movpng.exe' : 'mov.exe') : `${format}.zip`;
       const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
 
-      const stream = cookAvatars(id, format, container, transparent, bg, fg);
+      const stream = await cookAvatars(id, format, container, transparent, bg, fg);
       return reply
         .status(200)
         .headers({
