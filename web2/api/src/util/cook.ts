@@ -85,6 +85,11 @@ export function cook(id: string, format = 'flac', container = 'zip', dynaudnorm 
     const child = spawn(cookingPath, args);
     child.stdout.once('end', deleteState);
     child.stdout.once('error', deleteState);
+
+    // Prevent the stream from ending prematurely (for some reason)
+    // TODO: set a message while cooking through the err stream?
+    child.stderr.on('data', () => {});
+
     return child.stdout;
   } catch (e) {
     deleteState();
@@ -124,6 +129,10 @@ export function cookAvatars(
     const child = spawn(cookingPath, args);
     child.stdout.once('end', deleteState);
     child.stdout.once('error', deleteState);
+
+    // Prevent the stream from ending prematurely (for some reason)
+    child.stderr.on('data', () => {});
+
     return child.stdout;
   } catch (e) {
     deleteState();
@@ -135,5 +144,9 @@ export function rawPartwise(id: string, track?: number) {
   const cookingPath = path.join(cookPath, 'raw-partwise.sh');
   const args = [id, ...(track ? [String(track)] : [])];
   const child = spawn(cookingPath, args);
+
+  // Prevent the stream from ending prematurely (for some reason)
+  child.stderr.on('data', () => {});
+
   return child.stdout;
 }
