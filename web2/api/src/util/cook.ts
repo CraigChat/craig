@@ -116,7 +116,7 @@ function getStderrReader(state: ReadyState, writeState: (newState: ReadyState) =
     // Watch when a new file is being put in the zip
     if (log.includes('adding:')) {
       const match = log.match(/ {2}adding: (?:[\w.-]+\/)([\w.-]+)(?: \(deflated \d+%\))?(?=$)/);
-      if (match) return void writeState({ file: match[1], progress: 0, time: '00:00:00.00' });
+      if (match) return void writeState({ file: match[1] });
     }
 
     // Watch when FFMpeg updates on progress

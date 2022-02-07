@@ -142,7 +142,7 @@ export default class App extends Component<{}, AppState> {
     let ready = false;
 
     while (!ready) {
-      await wait(1000);
+      await wait(500);
       const readyState = await isReady(this.state.recordingId, key);
       ready = readyState.ready;
     }
