@@ -30,8 +30,6 @@ export default function DownloadingModalContent({ readyState, button, avatars, u
     }
   }
 
-  console.log(fileElement);
-
   return (
     <ModalContent title={t('downloading')}>
       <div class="flex flex-col gap-4">
