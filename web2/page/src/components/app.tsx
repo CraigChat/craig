@@ -140,12 +140,9 @@ export default class App extends Component<{}, AppState> {
 
   async waitTillReady(key: string) {
     let ready = false;
-    let firstRun = true;
 
     while (!ready) {
-      if (firstRun) firstRun = false;
-      else await wait(2000);
-
+      await wait(2000);
       const readyState = await isReady(this.state.recordingId, key);
       ready = readyState.ready;
     }
