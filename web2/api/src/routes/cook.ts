@@ -1,3 +1,4 @@
+import { captureException, withScope } from '@sentry/node';
 import { RouteOptions } from 'fastify';
 import { onCookRun, onRequest } from '../influx';
 import { ErrorCode } from '../util';
@@ -171,7 +172,7 @@ export const postRoute: RouteOptions = {
     const dynaudnorm = Boolean(body.dynaudnorm);
 
     try {
-      onCookRun(id, `${format}.${container}`);
+      onCookRun(id, `${format}.${container}${dynaudnorm ? ':dynaudnorm' : ''}`);
       let ext = allowedContainers[container].ext || `${format}.zip`;
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
@@ -185,6 +186,11 @@ export const postRoute: RouteOptions = {
         })
         .send(stream);
     } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        scope.setTag('format', `${format}.${container}${dynaudnorm ? ':dynaudnorm' : ''}`);
+        captureException(err);
+      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -233,7 +239,7 @@ export const runRoute: RouteOptions = {
     const dynaudnorm = Boolean(query.dynaudnorm);
 
     try {
-      onCookRun(id, `${format}.${container}`);
+      onCookRun(id, `${format}.${container}${dynaudnorm ? ':dynaudnorm' : ''}`);
       let ext = allowedContainers[container].ext || `${format}.zip`;
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
@@ -247,6 +253,11 @@ export const runRoute: RouteOptions = {
         })
         .send(stream);
     } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        scope.setTag('format', `${format}.${container}${dynaudnorm ? ':dynaudnorm' : ''}`);
+        captureException(err);
+      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -330,6 +341,11 @@ export const avatarRoute: RouteOptions = {
         })
         .send(stream);
     } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        scope.setTag('format', `avatar:${format}.${container}`);
+        captureException(err);
+      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -412,6 +428,11 @@ export const avatarRunRoute: RouteOptions = {
         })
         .send(stream);
     } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        scope.setTag('format', `avatar:${format}.${container}`);
+        captureException(err);
+      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
