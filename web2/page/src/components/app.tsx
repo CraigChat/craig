@@ -82,6 +82,7 @@ export default class App extends Component<{}, AppState> {
     const localSHP = localStorage.getItem('showHiddenPlatforms');
     this.state.platform.showHidden = localSHP ? JSON.parse(localSHP) : false;
 
+    this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.openModal = this.openModal.bind(this);
     this.closeModal = this.closeModal.bind(this);
     this.loadDuration = this.loadDuration.bind(this);
@@ -99,11 +100,20 @@ export default class App extends Component<{}, AppState> {
     });
   }
 
+  onBeforeUnload(event: BeforeUnloadEvent) {
+    if (this.state.downloading) event.returnValue = i18n.t('still_downloading');
+  }
+
   async componentDidMount() {
+    window.addEventListener('beforeunload', this.onBeforeUnload);
     await this.loadRecording();
     const query = new URLSearchParams(location.search);
     const deleteKey = query.get('delete');
     if (this.state.recording && deleteKey) await this.showDeletePrompt(null, deleteKey);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('beforeunload', this.onBeforeUnload);
   }
 
   async loadRecording() {
@@ -423,7 +433,7 @@ export default class App extends Component<{}, AppState> {
                 </div>
               </div>
             </div>
-            <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={this.closeModal}>
+            <Modal open={this.state.modalOpen} label={this.state.modalContentLabel} onClose={() => this.closeModal()}>
               {this.state.downloading ? (
                 <DownloadingModalContent
                   readyState={this.state.readyState}
