@@ -1,4 +1,5 @@
 import { RouteOptions } from 'fastify';
+import { onRequest } from '../influx';
 import { ErrorCode, formatTime } from '../util';
 import { getNotes } from '../util/cook';
 import { getRecording, deleteRecording, keyMatches, getUsers, getRawRecordingStream } from '../util/recording';
@@ -31,6 +32,7 @@ export const getRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     delete info.delete;
 
@@ -54,6 +56,7 @@ export const textRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const users = await getUsers(id);
     const notes = await getNotes(id);
@@ -105,6 +108,7 @@ export const usersRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const users = await getUsers(id);
     return reply.status(200).send({ ok: true, users });
@@ -127,6 +131,7 @@ export const rawRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     return reply
       .status(200)
@@ -156,6 +161,7 @@ export const deleteRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
     if (String(info.delete) !== deleteKey)
       return reply.status(403).send({ ok: false, error: 'Invalid delete key', code: ErrorCode.INVALID_DELETE_KEY });
 

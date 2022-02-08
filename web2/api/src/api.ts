@@ -7,12 +7,15 @@ import * as recordingRoute from './routes/recording';
 import * as cookRoute from './routes/cook';
 import * as pageRoute from './routes/page';
 import { ErrorCode } from './util';
-import { client } from './cache';
+import { client as redisClient } from './cache';
+import { cron as influxCron } from './influx';
+import { close as closeSentry } from './sentry';
 
 export let server: FastifyInstance;
 
 export async function start(): Promise<void> {
-  await client.connect();
+  await redisClient.connect();
+  influxCron.start();
 
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
@@ -112,6 +115,9 @@ export async function start(): Promise<void> {
 export async function stop(): Promise<void> {
   console.info('Shutting down...');
   await server.close();
+  redisClient.disconnect();
+  influxCron.stop();
+  closeSentry();
   console.info('All things disconnected.');
   process.exit(0);
 }

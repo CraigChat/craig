@@ -1,4 +1,5 @@
 import { RouteOptions } from 'fastify';
+import { onCookRun, onRequest } from '../influx';
 import { ErrorCode } from '../util';
 import {
   allowedAvatarFormats,
@@ -29,6 +30,7 @@ export const durationRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const duration = await getDuration(id);
 
@@ -52,6 +54,7 @@ export const notesRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const notes = await getNotes(id);
 
@@ -68,6 +71,7 @@ export const ennuizelRoute: RouteOptions = {
     const { key, track } = request.query as Record<string, string>;
     if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     if (!track) return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
+    onRequest(id);
 
     const info = await getRecording(id);
     if (info === false)
@@ -116,6 +120,7 @@ export const getRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id, true);
 
     const ready = await getReady(id);
     return reply.status(200).send({ ok: true, ready: ready === true, ...(ready !== true ? ready : {}) });
@@ -138,6 +143,7 @@ export const postRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const ready = await getReady(id);
     if (ready !== true)
@@ -165,6 +171,7 @@ export const postRoute: RouteOptions = {
     const dynaudnorm = Boolean(body.dynaudnorm);
 
     try {
+      onCookRun(id, `${format}.${container}`);
       let ext = allowedContainers[container].ext || `${format}.zip`;
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
@@ -199,6 +206,7 @@ export const runRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, query.key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const ready = await getReady(id);
     if (!ready)
@@ -225,6 +233,7 @@ export const runRoute: RouteOptions = {
     const dynaudnorm = Boolean(query.dynaudnorm);
 
     try {
+      onCookRun(id, `${format}.${container}`);
       let ext = allowedContainers[container].ext || `${format}.zip`;
       if (container === 'mix') ext = format === 'vorbis' ? 'ogg' : format;
       const mime = allowedContainers[container].mime || 'application/zip';
@@ -259,6 +268,7 @@ export const avatarRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const ready = await getReady(id);
     if (!ready)
@@ -307,6 +317,7 @@ export const avatarRoute: RouteOptions = {
       });
 
     try {
+      onCookRun(id, `avatar:${format}.${container}`);
       const ext = container === 'exe' ? (format === 'movpngsfx' ? 'movpng.exe' : 'mov.exe') : `${format}.zip`;
       const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
 
@@ -347,6 +358,7 @@ export const avatarRunRoute: RouteOptions = {
       return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
     if (!keyMatches(info, query.key))
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    onRequest(id);
 
     const ready = await getReady(id);
     if (!ready)
@@ -387,6 +399,7 @@ export const avatarRunRoute: RouteOptions = {
       });
 
     try {
+      onCookRun(id, `avatar:${format}.${container}`);
       const ext = container === 'exe' ? (format === 'movpngsfx' ? 'movpng.exe' : 'mov.exe') : `${format}.zip`;
       const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
 
