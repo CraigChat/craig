@@ -1995,8 +1995,8 @@ ccmds.ownerCommands["shardinfo"] = function(msg, cmd) {
         
         return pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
     }
-    client.shard.broadcastEval('let sir = { i: client.shard.id, s: client.shard.status, g: client.guilds.size, l: Number.isFinite(client.shard.latency) ? client.shard.latency : -1, u: process.uptime(), r: Object.keys(require("./rec.js").activeRecordings).length };sir').then((res) => {
-        let list = `\`\`\`fix\n${res.map((r) => `${String(r.i) === process.env.SHARD_ID ? '>' : ' '} [${r.i}] ${r.s}, ${r.l} ms, ${r.g} guilds, ${r.r} active recs, uptime: ${format(r.u)}`).join('\n')}\n\`\`\``;
+    client.shard.broadcastEval('let sir = { i: process.env.SHARD_ID, s: client.shard.status, g: client.guilds.size, l: Number.isFinite(client.shard.latency) ? client.shard.latency : -1, u: process.uptime(), r: Object.keys(require("./rec.js").activeRecordings).length };sir').then((res) => {
+        let list = `\`\`\`fix\n${res.map((r) => `${r.i === process.env.SHARD_ID ? '>' : ' '} [${r.i}] ${r.s}, ${r.l} ms, ${r.g} guilds, ${r.r} active recs, uptime: ${format(r.u)}`).join('\n')}\n\`\`\``;
         const msgs = cu.splitMessage(list, { prepend: '```fix\n', append: '\n```', maxLength: 1900 });
         Promise.all(msgs.map((m) => m ? msg.channel.send(m) : Promise.resolve()))
             .then(() => {})
