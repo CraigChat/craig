@@ -236,7 +236,7 @@ export const runRoute: RouteOptions = {
         .send({ ok: false, error: 'This recording is missing the mix feature', code: ErrorCode.MISSING_MIX });
     const container = query.container || 'zip';
 
-    const dynaudnorm = Boolean(query.dynaudnorm);
+    const dynaudnorm = query.dynaudnorm === 'false' ? false : Boolean(query.dynaudnorm);
 
     try {
       onCookRun(id, `${format}.${container}${dynaudnorm ? ':dynaudnorm' : ''}`);
@@ -357,14 +357,7 @@ export const avatarRunRoute: RouteOptions = {
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
     if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
-    const query = request.query as {
-      key?: string;
-      format?: string;
-      container?: string;
-      transparent?: boolean;
-      bg?: string;
-      fg?: string;
-    };
+    const query = request.query as Record<string, string>;
     if (!query.key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const info = await getRecording(id);
@@ -396,7 +389,7 @@ export const avatarRunRoute: RouteOptions = {
       return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
     const container = query.container || (format === 'movsfx' || format === 'movpngsfx' ? 'exe' : 'zip');
 
-    const transparent = Boolean(query.transparent);
+    const transparent = query.transparent === 'false' ? false : Boolean(query.transparent);
 
     if (query.bg && !/^[a-f0-9]{6}$/.exec(query.bg))
       return reply.status(400).send({ ok: false, error: 'Invalid background color', code: ErrorCode.INVALID_BG });
