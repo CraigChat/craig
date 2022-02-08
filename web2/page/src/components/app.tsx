@@ -5,7 +5,6 @@ import showIcon from '@iconify-icons/bi/eye-fill';
 import hideIcon from '@iconify-icons/bi/eye-slash-fill';
 import { Translation } from 'react-i18next';
 import {
-  cookAvatars,
   CookAvatarsPayload,
   getRecording,
   getRecordingDuration,
@@ -15,7 +14,7 @@ import {
   RecordingInfo,
   RecordingUser
 } from '../api';
-import { asT, cookDownload, downloadResponse, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
+import { asT, cookAvatarDownload, cookDownload, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
 import { SectionButton } from '../sections';
 import i18n, { languages } from '../i18n';
 import Recording from './recording';
@@ -264,13 +263,12 @@ export default class App extends Component<{}, AppState> {
 
     try {
       const query = new URLSearchParams(location.search);
-      const response = await cookAvatars(this.state.recordingId, query.get('key'), payload);
-
-      await downloadResponse(response);
+      cookAvatarDownload(this.state.recordingId, query.get('key'), payload);
+      await this.waitTillReady(query.get('key'));
       this.closeModal(true);
     } catch (err) {
       const { errorT } = await parseError(err);
-      console.error('Failed to download:', payload, err);
+      console.error('Failed to download avatars:', payload, err);
       this.openModal(
         <ModalContent
           title={i18n.t('modal.error')}

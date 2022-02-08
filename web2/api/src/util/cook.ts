@@ -115,7 +115,7 @@ function getStderrReader(state: ReadyState, writeState: (newState: ReadyState) =
 
     // Watch when a new file is being put in the zip
     if (log.includes('adding:')) {
-      const match = log.match(/ {2}adding: (?:[\w.-]+\/)([\w.-]+)(?: \(deflated \d+%\))?(?=$)/);
+      const match = log.match(/ {2}adding: (?:[\w./-]+\/)?([\w.-]+)(?: \(deflated \d+%\))?(?=$)/);
       if (match) return void writeState({ file: match[1] });
     }
 

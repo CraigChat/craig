@@ -80,6 +80,7 @@ export async function start(): Promise<void> {
   server.route(cookRoute.runRoute);
   server.route(cookRoute.ennuizelRoute);
   server.route(cookRoute.avatarRoute);
+  server.route(cookRoute.avatarRunRoute);
   server.route(pageRoute.pageRoute);
   server.route(pageRoute.scriptRoute);
   server.route(pageRoute.sourceMapRoute);

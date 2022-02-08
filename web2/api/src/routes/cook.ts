@@ -323,3 +323,83 @@ export const avatarRoute: RouteOptions = {
     }
   }
 };
+
+export const avatarRunRoute: RouteOptions = {
+  method: 'GET',
+  url: '/api/recording/:id/cook/avatars/run',
+  handler: async (request, reply) => {
+    const { id } = request.params as Record<string, string>;
+    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    const query = request.query as {
+      key?: string;
+      format?: string;
+      container?: string;
+      transparent?: boolean;
+      bg?: string;
+      fg?: string;
+    };
+    if (!query.key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const info = await getRecording(id);
+    if (info === false)
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info)
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, query.key))
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+
+    const ready = await getReady(id);
+    if (!ready)
+      return reply
+        .status(429)
+        .send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
+
+    if (((query.format && query.format !== 'png') || query.container === 'exe') && !info.features.glowers)
+      return reply
+        .status(403)
+        .send({ ok: false, error: 'This recording is missing the glowers feature', code: ErrorCode.MISSING_GLOWERS });
+    if (query.format && !allowedAvatarFormats.includes(query.format))
+      return reply.status(400).send({ ok: false, error: 'Invalid format', code: ErrorCode.INVALID_FORMAT });
+    const format = query.format || 'png';
+
+    if (query.container && query.container !== 'exe' && query.container !== 'zip')
+      return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
+    if (query.container === 'exe' && !['movsfx', 'movpngsfx'].includes(format))
+      return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
+    const container = query.container || (format === 'movsfx' || format === 'movpngsfx' ? 'exe' : 'zip');
+
+    const transparent = Boolean(query.transparent);
+
+    if (query.bg && !/^[a-f0-9]{6}$/.exec(query.bg))
+      return reply.status(400).send({ ok: false, error: 'Invalid background color', code: ErrorCode.INVALID_BG });
+    const bg = query.bg || '000000';
+
+    if (query.fg && !/^[a-f0-9]{6}$/.exec(query.fg))
+      return reply.status(400).send({ ok: false, error: 'Invalid foreground color', code: ErrorCode.INVALID_FG });
+    const fg = query.fg || '008000';
+
+    // sanity checks
+    if (format === 'png' && container !== 'zip')
+      return reply.status(400).send({
+        ok: false,
+        error: 'PNG format cannot use containers other than ZIP',
+        code: ErrorCode.PNG_FORMAT_MISMATCH
+      });
+
+    try {
+      const ext = container === 'exe' ? (format === 'movpngsfx' ? 'movpng.exe' : 'mov.exe') : `${format}.zip`;
+      const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
+
+      const stream = await cookAvatars(id, format, container, transparent, bg, fg);
+      return reply
+        .status(200)
+        .headers({
+          'content-disposition': `attachment; filename=${id}.${ext}`,
+          'content-type': mime
+        })
+        .send(stream);
+    } catch (err) {
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
+  }
+};

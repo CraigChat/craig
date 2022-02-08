@@ -93,26 +93,6 @@ export async function isReady(id: string, key: string | number): Promise<ReadySt
   return readyState;
 }
 
-export async function cookRecording(id: string, key: string | number, payload: CookPayload): Promise<Response> {
-  const response = await fetch(`/api/recording/${id}/cook?key=${key}`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  if (response.status !== 200) throw response;
-  return response;
-}
-
-export async function cookAvatars(id: string, key: string | number, payload: CookAvatarsPayload): Promise<Response> {
-  const response = await fetch(`/api/recording/${id}/cook/avatars?key=${key}`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  if (response.status !== 200) throw response;
-  return response;
-}
-
 export async function getRawRecording(id: string, key: string | number): Promise<Response> {
   const response = await fetch(`/api/recording/${id}/raw?key=${key}`);
   if (response.status !== 200) throw response;
