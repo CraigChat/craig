@@ -28,7 +28,10 @@ export default function DownloadingModalContent({ readyState, button, avatars, u
       fileElement = <DiscordElement {...user} />;
       fileIndex = parseInt(trackIndex, 10);
     }
-  } else if (readyState && readyState.time) fileElement = <span>{t('processing')}</span>;
+  }
+
+  // Set text to "processing" if there is no file involved (single-track smart mix)
+  if (readyState && !readyState.file && readyState.time) fileElement = <span>{t('processing')}</span>;
 
   return (
     <ModalContent title={t('downloading')}>
@@ -48,7 +51,7 @@ export default function DownloadingModalContent({ readyState, button, avatars, u
             ''
           )}
           {fileElement}
-          {readyState && readyState.file ? (
+          {readyState && (readyState.file || readyState.progress) ? (
             <span class="font-display">{readyState.progress ? `${readyState.progress}%` : '...'}</span>
           ) : (
             ''
