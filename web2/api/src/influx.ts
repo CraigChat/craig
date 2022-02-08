@@ -35,7 +35,7 @@ async function collect(timestamp = new Date()) {
   if (!process.env.INFLUX_URL || !process.env.INFLUX_TOKEN) return;
 
   const writeApi = client.getWriteApi(process.env.INFLUX_ORG, process.env.INFLUX_BUCKET, 's');
-  writeApi.writePoint(
+  const points = [
     new Point('craighorse_stats')
       .tag('server', process.env.SERVER_NAME || hostname())
       .intField('recieved', requestsRecieved)
@@ -43,11 +43,11 @@ async function collect(timestamp = new Date()) {
       .intField('recievedUnique', activeRecordings.length)
       .intField('cooksStarted', cooksStarted)
       .timestamp(timestamp || cron.lastDate())
-  );
+  ];
 
   // Insert format counts
   formatsCooked.forEach((count, name) =>
-    writeApi.writePoint(
+    points.push(
       new Point('craighorse_format_usage')
         .tag('server', process.env.SERVER_NAME || hostname())
         .tag('format', name)
@@ -58,6 +58,7 @@ async function collect(timestamp = new Date()) {
 
   // Send to influx
   try {
+    writeApi.writePoints(points);
     await writeApi.close();
   } catch (e) {
     withScope((scope) => {
