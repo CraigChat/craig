@@ -179,7 +179,9 @@ function session(msgOrInteraction, prefix, rec) {
              * stays alive */
             var oggStream = new stream.Readable();
             try {
-                connection.play(oggStream, {format: "ogg"});
+                // Make sure piper isnt busy so no errors happen from that
+                if (!connection.piper.encoding && !connection.piper.streams.length)
+                    connection.play(oggStream, { format: "ogg" });
             } catch (ex) {
                 logex(ex);
             }
@@ -211,14 +213,17 @@ function session(msgOrInteraction, prefix, rec) {
     // Send the recording message
     const nowRecFile = "data/nowrecording.opus";
     setTimeout(async () => {
-        if (connection.piper.encoding || connection.piper.streams.length) {
-            log("rec-warn",
-                "Tried to play 'now recording' while the piper is busy",
-                {uid: rec.uid, vc: connection.channel, rid: id});
-            return;
-        }
         try {
             await fsp.access(nowRecFile);
+
+            connection.piper.stop();
+            connection.piper.resetPackets();
+            if (connection.piper.encoding || connection.piper.streams.length) {
+                log("rec-warn",
+                    "Tried to play 'now recording' while the piper is busy",
+                    {uid: rec.uid, vc: connection.channel, rid: id});
+                return;
+            }
             connection.play(nowRecFile, { format: "ogg" });
         } catch (e) {}
     }, 200);
