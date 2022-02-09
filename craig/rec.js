@@ -23,6 +23,7 @@
 
 const cp = require("child_process");
 const fs = require("fs");
+const fsp = require("fs/promises");
 const stream = require("stream");
 const https = require("https");
 const ws = require("ws");
@@ -208,16 +209,18 @@ function session(msgOrInteraction, prefix, rec) {
     cc.recordingEvents.emit("start", rec);
 
     // Send the recording message
-    setTimeout(()=>{
-        var nowRec = "data/nowrecording.opus";
-        fs.access(nowRec, fs.constants.R_OK, (err) => {
-            try {
-                if (!err)
-                    connection.play("data/nowrecording.opus", {format: "ogg"});
-            } catch (ex) {
-                logex(ex);
-            }
-        });
+    const nowRecFile = "data/nowrecording.opus";
+    setTimeout(async () => {
+        if (connection.piper.encoding || connection.piper.streams.length) {
+            log("rec-warn",
+                "Tried to play 'now recording' while the piper is busy",
+                {uid: rec.uid, vc: connection.channel, rid: id});
+            return;
+        }
+        try {
+            await fsp.access(nowRecFile);
+            connection.play(nowRecFile, { format: "ogg" });
+        } catch (e) {}
     }, 200);
 
     // Active users, by ID
