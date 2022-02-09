@@ -3,7 +3,7 @@
     {
       "name": "craig.horse",
       "script": "dist/index.js",
-      "instances": "max",
+      "instances": "8",
       "exec_mode": "cluster",
       "wait_ready": true,
       "listen_timeout": 10000,
