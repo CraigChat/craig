@@ -425,7 +425,10 @@ export default class App extends Component<{}, AppState> {
                       bottom
                       items={languages}
                       selected={languages.find((l) => l.value === i18n.language)}
-                      onSelect={(lang) => i18n.changeLanguage(lang.value)}
+                      onSelect={(lang) => {
+                        localStorage.setItem('i18nextLng', lang.value);
+                        i18n.changeLanguage(lang.value);
+                      }}
                     />
                   ) : (
                     ''
