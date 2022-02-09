@@ -194,9 +194,9 @@ export default class App extends Component<{}, AppState> {
             platform={this.state.platform}
             onClose={() => this.closeModal()}
             onConfirm={() =>
-              (location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get('key')}&w=${
-                button.ennuizel
-              }&a=${location.host}`)
+              (location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get(
+                'key'
+              )}&w=${button.ennuizel.toString(36)}&a=${location.host}`)
             }
           />,
           {
