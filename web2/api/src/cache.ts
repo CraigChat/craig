@@ -15,7 +15,7 @@ export async function getReadyState(recordingId: string) {
 }
 
 export async function setReadyState(recordingId: string, data: ReadyState) {
-  return await client.set(`ready:${recordingId}`, JSON.stringify(data), 'EX', 60 * 60);
+  return await client.set(`ready:${recordingId}`, JSON.stringify(data), 'EX', 60 * 5);
 }
 
 export async function clearReadyState(recordingId: string) {
