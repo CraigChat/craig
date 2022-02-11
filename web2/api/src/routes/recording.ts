@@ -1,3 +1,4 @@
+import { captureException, withScope } from '@sentry/node';
 import { RouteOptions } from 'fastify';
 import { onRequest } from '../influx';
 import { ErrorCode, formatTime } from '../util';
@@ -58,37 +59,45 @@ export const textRoute: RouteOptions = {
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
-    const users = await getUsers(id);
-    const notes = await getNotes(id);
+    try {
+      const users = await getUsers(id);
+      const notes = await getNotes(id);
 
-    return reply
-      .status(200)
-      .headers({
-        'content-disposition': `attachment; filename=${id}-info.txt`,
-        'content-type': 'text/plain'
-      })
-      .send(
-        [
-          `Recording ${id}`,
-          '',
-          `Guild:\t\t${info.guildExtra ? `${info.guildExtra.name} (${info.guildExtra.id})` : info.guild}`,
-          `Channel:\t${info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel}`,
-          `Requester:\t${
-            info.requesterExtra
-              ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})`
-              : info.requester
-          }`,
-          `Start time:\t${info.startTime}`,
-          '',
-          'Tracks:',
-          ...users.map((track) => `\t${track.name}#${track.discrim} (${track.id})`),
-          ...(notes.length > 0
-            ? ['', 'Notes:', ...notes.map((n) => `\t${formatTime(parseInt(n.time))}: ${n.note}`)]
-            : [])
-        ]
-          .filter((x) => x !== null)
-          .join('\n')
-      );
+      return reply
+        .status(200)
+        .headers({
+          'content-disposition': `attachment; filename=${id}-info.txt`,
+          'content-type': 'text/plain'
+        })
+        .send(
+          [
+            `Recording ${id}`,
+            '',
+            `Guild:\t\t${info.guildExtra ? `${info.guildExtra.name} (${info.guildExtra.id})` : info.guild}`,
+            `Channel:\t${info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel}`,
+            `Requester:\t${
+              info.requesterExtra
+                ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})`
+                : info.requester
+            }`,
+            `Start time:\t${info.startTime}`,
+            '',
+            'Tracks:',
+            ...users.map((track) => `\t${track.name}#${track.discrim} (${track.id})`),
+            ...(notes.length > 0
+              ? ['', 'Notes:', ...notes.map((n) => `\t${formatTime(parseInt(n.time))}: ${n.note}`)]
+              : [])
+          ]
+            .filter((x) => x !== null)
+            .join('\n')
+        );
+    } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        captureException(err);
+      });
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
   }
 };
 

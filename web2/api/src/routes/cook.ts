@@ -33,9 +33,16 @@ export const durationRoute: RouteOptions = {
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
-    const duration = await getDuration(id);
-
-    return reply.status(200).send({ ok: true, duration });
+    try {
+      const duration = await getDuration(id);
+      return reply.status(200).send({ ok: true, duration });
+    } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        captureException(err);
+      });
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
   }
 };
 
@@ -57,9 +64,16 @@ export const notesRoute: RouteOptions = {
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
-    const notes = await getNotes(id);
-
-    return reply.status(200).send({ ok: true, notes });
+    try {
+      const notes = await getNotes(id);
+      return reply.status(200).send({ ok: true, notes });
+    } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        captureException(err);
+      });
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
   }
 };
 
@@ -94,6 +108,11 @@ export const ennuizelRoute: RouteOptions = {
       const stream = rawPartwise(id, trackNum);
       return reply.status(200).send(stream);
     } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        scope.setExtra('trackNum', trackNum);
+        captureException(err);
+      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -123,8 +142,16 @@ export const getRoute: RouteOptions = {
       return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id, true);
 
-    const ready = await getReady(id);
-    return reply.status(200).send({ ok: true, ready: ready === true, ...(ready !== true ? ready : {}) });
+    try {
+      const ready = await getReady(id);
+      return reply.status(200).send({ ok: true, ready: ready === true, ...(ready !== true ? ready : {}) });
+    } catch (err) {
+      withScope((scope) => {
+        scope.setTag('recordingID', id);
+        captureException(err);
+      });
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
   }
 };
 
