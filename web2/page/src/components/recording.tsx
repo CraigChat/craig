@@ -44,7 +44,7 @@ export default function Recording({
   const recording = state.recording;
   const startDate = new Date(recording.startTime);
   const expiryDate = new Date(startDate.valueOf() + 1000 * 60 * 60 * (recording.expiresAfter || 24));
-  const expiryTime = expiryDate.valueOf() - startDate.valueOf();
+  const expiryTime = expiryDate.valueOf() - Date.now();
   const downloadsSection = getDownloadsSection(recording, state.platform);
   const othersSection = getOtherFormatsSection(recording, state.platform);
 
@@ -122,7 +122,7 @@ export default function Recording({
 
       {/* Expiry Block */}
       <div class="flex flex-col items-center justify-center">
-        {recording.expiresAfter ? (
+        {recording.expiresAfter && expiryTime > 0 ? (
           <h2
             class={clsx('sm:text-2xl text-lg font-display flex items-center justify-center gap-2', {
               'text-zinc-100': expiryTime > EXPIRY_WARN_AT,
