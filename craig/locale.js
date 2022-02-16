@@ -28,7 +28,7 @@ const channelHints = {};
 const regionHints = {};
 
 langs.forEach((lang) => {
-    const ll = JSON.parse(fs.readFileSync("locale/" + lang + ".json", "utf8"));
+    const ll = JSON.parse(fs.readFileSync("craig/locale/" + lang + ".json", "utf8"));
     locale[lang] = ll;
     if (lang !== "en") {
         if ("channels" in ll) {

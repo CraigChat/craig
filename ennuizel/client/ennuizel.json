@@ -1,7 +1,0 @@
-{
-    "plugins": [
-        "ennuizel.github.io/noise-repellent/ennuizel-noise-repellent.js",
-        "ennuizel.github.io/better-normalization/ennuizel-better-normalization.js",
-        "ez.craig.horse/ennuizel-craig.js"
-    ]
-}
