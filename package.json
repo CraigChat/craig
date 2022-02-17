@@ -3,10 +3,10 @@
     "homepage": "http://craig.chat/home/",
     "license": "ISC",
     "private": true,
-    "workspaces": ["web2"],
+    "workspaces": ["bot", "web2"],
     "repository": {
         "type": "git",
-        "url": "https://github.com/Yahweasel/craig"
+        "url": "https://github.com/CraigChat/craig"
     },
     "dependencies": {
         "@discordjs/opus": "^0.1.0",
