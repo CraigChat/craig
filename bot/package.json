@@ -32,6 +32,7 @@
     "winston": "^3.6.0"
   },
   "devDependencies": {
+    "@types/config": "^0.0.41",
     "@types/cron": "^1.7.3",
     "@types/dotenv": "^8.2.0",
     "@types/ioredis": "^4.28.7",
