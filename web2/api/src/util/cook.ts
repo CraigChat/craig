@@ -3,6 +3,7 @@ import path from 'path';
 import execa from 'execa';
 import { spawn } from 'child_process';
 import { clearReadyState, getReadyState, setReadyState } from '../cache';
+import { registerProcess } from './processManager';
 
 export const cookPath = path.join(__dirname, '..', '..', '..', 'cook');
 export const tmpPath = path.join(__dirname, '..', '..', 'tmp');
@@ -141,8 +142,8 @@ export async function cook(id: string, format = 'flac', container = 'zip', dynau
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
     const child = spawn(cookingPath, args);
-    child.stdout.once('end', deleteState);
-    child.stdout.once('error', deleteState);
+    console.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
+    registerProcess(child, deleteState);
 
     // Prevent the stream from ending prematurely (for some reason)
     child.stderr.on('data', getStderrReader(state, writeState));
@@ -182,8 +183,8 @@ export async function cookAvatars(
     const cookingPath = path.join(cookPath, 'avatars.sh');
     const args = [id, format, container, transparent ? '1' : '0', bg, fg];
     const child = spawn(cookingPath, args);
-    child.stdout.once('end', deleteState);
-    child.stdout.once('error', deleteState);
+    console.log(`Cooking avatars ${id} (${format}.${container}) with process ${child.pid}`);
+    registerProcess(child, deleteState);
 
     // Prevent the stream from ending prematurely (for some reason)
     child.stderr.on('data', getStderrReader(state, writeState));
