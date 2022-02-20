@@ -1,7 +1,7 @@
 import { DexareModule, DexareClient, LoggerExtra, BaseConfig } from 'dexare';
 import winston, { format } from 'winston';
 import dayjs from 'dayjs';
-import chalk, { ChalkInstance } from 'chalk';
+import chalk, { Chalk } from 'chalk';
 import * as util from 'util';
 
 export interface LoggerConfig extends BaseConfig {
@@ -43,7 +43,7 @@ const colorPool = [
 ];
 
 export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends DexareModule<T> {
-  moduleColors: { [level: string]: ChalkInstance } = {
+  moduleColors: { [level: string]: Chalk } = {
     dexare: chalk.black.bgRed,
     eris: chalk.black.bgCyan,
     commands: chalk.black.bgYellow,
@@ -51,7 +51,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
     dbots: chalk.black.bgYellowBright
   };
 
-  levelColors: { [level: string]: ChalkInstance } = {
+  levelColors: { [level: string]: Chalk } = {
     info: chalk.black.bgCyan,
     warn: chalk.black.bgYellow,
     error: chalk.black.bgRed,
@@ -86,21 +86,19 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
         format: format.combine(
           format.printf((info) => {
             const lClk = this.levelColors[info.level] || chalk.yellow.bgBlack;
-            const mClk =
-              this.moduleColors[moduleName] || colorPool[this._hashCode(moduleName) % colorPool.length];
+            const mClk = this.moduleColors[moduleName] || colorPool[this._hashCode(moduleName) % colorPool.length];
             return (
               mClk(` ${moduleName} `) +
               chalk.black.bgWhite(` ${dayjs().format('MM/DD HH:mm:ss')} `) +
               lClk(this._centrePad(info.level, 10)) +
-              (info.id !== undefined ? chalk.black.bgYellowBright(` ${info.id} `) : '') +
+              (process.env.SHARD_ID ? chalk.black.bgYellowBright(` ${process.env.SHARD_ID} `) : '') +
               ` ${info.message}`
             );
           })
         ),
         transports: [
           new winston.transports.Console({
-            level: this.config?.level || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
-            id: process.env.SHARD_ID
+            level: this.config?.level || (process.env.NODE_ENV === 'production' ? 'info' : 'debug')
           })
         ]
       });
@@ -139,9 +137,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
   private _centrePad(text: string, length: number) {
     if (text.length < length)
       return (
-        ' '.repeat(Math.floor((length - text.length) / 2)) +
-        text +
-        ' '.repeat(Math.ceil((length - text.length) / 2))
+        ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2))
       );
     else return text;
   }

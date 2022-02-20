@@ -21,5 +21,6 @@ cook/*.macosx
 *.log
 .env
 dist/
+bot/config/default.js
 node-log.txt
 nohup.out
