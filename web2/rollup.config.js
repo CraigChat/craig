@@ -98,7 +98,8 @@ export default ({ watch }) => [
         transforms: {
           generator: false,
           classes: false,
-          asyncAwait: false
+          asyncAwait: false,
+          forOf: false
         }
       }),
       !watch && terser()
