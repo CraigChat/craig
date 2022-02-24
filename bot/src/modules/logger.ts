@@ -2,7 +2,7 @@ import { DexareModule, DexareClient, LoggerExtra, BaseConfig } from 'dexare';
 import winston, { format } from 'winston';
 import dayjs from 'dayjs';
 import chalk, { Chalk } from 'chalk';
-import * as util from 'util';
+import * as util from 'node:util';
 
 export interface LoggerConfig extends BaseConfig {
   logger?: LoggerModuleOptions;

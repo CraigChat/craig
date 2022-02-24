@@ -6,6 +6,7 @@ import LoggerModule from './modules/logger';
 import SlashModule from './modules/slash';
 import { SlashCreatorOptions } from 'slash-create';
 import { iterateFolder } from 'dexare/lib/util';
+import ShardingModule from './modules/sharding';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -45,9 +46,17 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
   }
 }
 
-export const client = new CraigBot(config.get('dexare') as CraigBotConfig);
+const dexareConfig = Object.assign({}, config.get('dexare')) as CraigBotConfig;
+if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined) {
+  dexareConfig.erisOptions = Object.assign(dexareConfig.erisOptions, {
+    firstShardID: parseInt(process.env.SHARD_ID, 10),
+    lastShardID: parseInt(process.env.SHARD_ID, 10),
+    maxShards: parseInt(process.env.SHARD_COUNT, 10)
+  });
+}
+export const client = new CraigBot(dexareConfig);
 
-client.loadModules(LoggerModule, SlashModule);
+client.loadModules(LoggerModule, SlashModule, ShardingModule);
 client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
 // Makes custom emojis with the name 'craig' work as prefixes
@@ -55,8 +64,7 @@ client.events.register(
   'prefixer',
   'messageCreate',
   (event, message) => {
-    if (message.content.startsWith('<:craig:') && /^<a?:craig:\d+>/.test(message.content))
-      event.set('prefix', message.content.match(/^<a?:craig:\d+>/)![0]);
+    if (/^<a?:craig:\d+>/.test(message.content)) event.set('prefix', message.content.match(/^<a?:craig:\d+>/)![0]);
   },
   { after: ['commands'] }
 );
