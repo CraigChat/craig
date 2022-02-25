@@ -34,16 +34,41 @@ export default class ShardingModule extends DexareModule<CraigBot> {
       }
 
       switch (message.t) {
-        case 'fetchProp':
-          // TODO fetchProp shard commmand
+        case 'fetchProp': {
+          try {
+            const result = eval('this.client.' + message.d.prop);
+            this.respond(message.n, { result });
+          } catch (e) {
+            this.respond(message.n, { result: null, error: e });
+          }
           return;
-        case 'eval':
-          // TODO eval shard commmand
+        }
+        case 'eval': {
+          try {
+            const result = function () {
+              return eval(message.d.script);
+            }.bind(this.client)();
+            this.respond(message.n, { result });
+          } catch (e) {
+            this.respond(message.n, { result: null, error: e });
+          }
           return;
+        }
       }
 
       this.client.events.emit('processMessage', message);
     }
+  }
+
+  respond(nonce: string, data: Record<string, any>): void {
+    process.send?.({
+      r: nonce,
+      d: {
+        _guilds: this.client.bot.guilds.size,
+        _status: this.client.shard?.status,
+        ...data
+      }
+    });
   }
 
   sendStatus(type: string): void {
@@ -57,7 +82,7 @@ export default class ShardingModule extends DexareModule<CraigBot> {
     });
   }
 
-  sendAndRecieve<T = any>(type: string, data: any): Promise<ManagerResponseMessage<T>> {
+  sendAndRecieve<T = any>(type: string, data: Record<string, any>): Promise<ManagerResponseMessage<T>> {
     return new Promise((resolve, reject) => {
       if (!process.env.SHARD_COUNT || !process.send) return reject(new Error('This is not sharded.'));
 
