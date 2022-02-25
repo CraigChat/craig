@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String    @id
+  rewardTier Int       @default(0)
+  jwtDate    DateTime? @db.Timestamptz(6)
+  createdAt  DateTime  @db.Timestamptz(6) @default(now())
+  updatedAt  DateTime  @db.Timestamptz(6) @updatedAt
+}
+
+model Guild {
+  guildId     String   @id
+  accessRoles String[]
+  createdAt   DateTime @db.Timestamptz(6) @default(now())
+  updatedAt   DateTime @db.Timestamptz(6) @updatedAt
+}
+
+model Blessing {
+  guildId    String   @id
+  userId     String
+  createdAt  DateTime @db.Timestamptz(6) @default(now())
+  updatedAt  DateTime @db.Timestamptz(6) @updatedAt
+}
+
+model Recording {
+  id           String    @id
+  accessKey    String
+  deleteKey    String
+  userId       String
+  channelId    String
+  guildId      String
+  clientId     String
+  shardId      Int
+  autorecorded Boolean   @default(false)
+  available    Boolean   @default(true)
+  rewardTier   Int       @default(0)
+  createdAt    DateTime  @db.Timestamptz(6) @default(now())
+  endedAt      DateTime? @db.Timestamptz(6)
+}
+
+model AutoRecord {
+  id           String   @id @default(cuid())
+  channelId    String
+  clientId     String
+  userId       String
+  minimum      Int      @default(0)
+  triggerUsers String[]
+}
+
+model GoogleDriveUser {
+  id        String  @id
+  token     String
+  format    String?
+  container String?
+}

@@ -41,6 +41,8 @@ export default class ShardingModule extends DexareModule<CraigBot> {
           // TODO eval shard commmand
           return;
       }
+
+      this.client.events.emit('processMessage', message);
     }
   }
 

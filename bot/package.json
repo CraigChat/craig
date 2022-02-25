@@ -18,6 +18,7 @@
     "dev": "devScript"
   },
   "dependencies": {
+    "@prisma/client": "^3.10.0",
     "@sentry/integrations": "^6.17.4",
     "@sentry/node": "^6.17.4",
     "@sentry/tracing": "^6.17.3",
@@ -50,6 +51,7 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
     "prettier": "^2.5.1",
+    "prisma": "^3.10.0",
     "rimraf": "^3.0.2",
     "slash-up": "^1.0.11",
     "ts-devscript": "^3.0.6",
