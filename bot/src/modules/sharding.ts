@@ -19,6 +19,14 @@ export default class ShardingModule extends DexareModule<CraigBot> {
   load() {
     if (!process.env.SHARD_COUNT || !process.send) this.logger.info('Shard master not found, skipping...');
     process.on('message', this.onMessage.bind(this));
+    this.registerEvent('ready', this.onReady.bind(this));
+    this.registerEvent('shardResume', this.onResume.bind(this));
+    this.registerEvent('shardDisconnect', this.onDisconnect.bind(this));
+    this.registerEvent('debug', this.onDebug.bind(this));
+  }
+
+  unload() {
+    this.unregisterAllEvents();
   }
 
   async onMessage(message: any) {
@@ -60,6 +68,43 @@ export default class ShardingModule extends DexareModule<CraigBot> {
     }
   }
 
+  onReady() {
+    this.send('ready');
+  }
+
+  onDisconnect(_: any, error: Error) {
+    this.send('disconnect', { error });
+  }
+
+  onResume() {
+    this.send('resuming');
+  }
+
+  onDebug(_: any, message: string) {
+    if (
+      [
+        'Immediately reconnecting for potential resume',
+        'Queueing reconnect in ',
+        'Automatically invalidating session due to excessive resume attempts'
+      ].some((st) => message.startsWith(st))
+    ) {
+      this.client.emit('logger', 'info', 'eris', [message]);
+      this.send('reconnecting', { msg: message });
+    }
+  }
+
+  send(type: string, data: Record<string, any> = {}): void {
+    process.send?.({
+      t: type,
+      n: nanoid(),
+      d: {
+        _guilds: this.client.bot.guilds.size,
+        _status: this.client.shard?.status,
+        ...data
+      }
+    });
+  }
+
   respond(nonce: string, data: Record<string, any>): void {
     process.send?.({
       r: nonce,
@@ -71,18 +116,7 @@ export default class ShardingModule extends DexareModule<CraigBot> {
     });
   }
 
-  sendStatus(type: string): void {
-    process.send?.({
-      t: type,
-      n: nanoid(),
-      d: {
-        _guilds: this.client.bot.guilds.size,
-        _status: this.client.shard?.status
-      }
-    });
-  }
-
-  sendAndRecieve<T = any>(type: string, data: Record<string, any>): Promise<ManagerResponseMessage<T>> {
+  sendAndRecieve<T = any>(type: string, data: Record<string, any> = {}): Promise<ManagerResponseMessage<T>> {
     return new Promise((resolve, reject) => {
       if (!process.env.SHARD_COUNT || !process.send) return reject(new Error('This is not sharded.'));
 
@@ -98,9 +132,5 @@ export default class ShardingModule extends DexareModule<CraigBot> {
         }
       });
     });
-  }
-
-  unload() {
-    this.unregisterAllEvents();
   }
 }

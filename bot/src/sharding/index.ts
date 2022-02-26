@@ -7,7 +7,9 @@ const manager = new ShardManager(config.get('sharding'));
 manager.on('shardSpawn', (shard) => logger.info(`Shard ${shard.id} spawned process ${shard.process.pid}`));
 manager.on('disconnect', (shard, e) => logger.warn(`Shard ${shard.id} disconnected.`, e));
 manager.on('reconnecting', (shard, m) => logger.warn(`Shard ${shard.id} reconnecting...`, m));
-manager.on('ready', (shard, msg) => logger.info(`Shard ${shard.id} ready with ${msg.guildCount} guilds.`));
+manager.on('ready', (shard, msg) =>
+  logger.info(`Shard ${shard.id} ready with ${msg.d?._guilds ?? '<unknown>'} guilds.`)
+);
 manager.on('shardError', (shard, e) => logger.error(`Shard ${shard.id} encountered an error`, e));
 
 manager.loadModules(BotListPosterModule);
@@ -16,7 +18,11 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
 (async () => {
   logger.info('Starting to spawn...');
   await manager.spawnAll();
-  logger.info(`Spawned ${manager.shards.size} shards.`);
+  logger.info(
+    `Spawned ${manager.shards.size} shards in ${Array.from(manager.shards.values())
+      .map((shard) => shard.guildCount)
+      .reduce((acc, val) => acc + val, 0)} guilds.`
+  );
   // PM2 graceful start/shutdown
   if (process.send) process.send('ready');
 })();

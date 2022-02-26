@@ -54,7 +54,6 @@
     "prisma": "^3.10.0",
     "rimraf": "^3.0.2",
     "slash-up": "^1.0.11",
-    "ts-devscript": "^3.0.6",
     "typescript": "^4.5.4"
   }
 }

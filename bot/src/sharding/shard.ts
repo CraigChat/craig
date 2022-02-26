@@ -118,12 +118,12 @@ export default class Shard extends EventEmitter {
           case 'disconnect':
             this.ready = false;
             this.emit('disconnect', message.error);
-            this.manager.emit('disconnect', this, message.error);
+            this.manager.emit('disconnect', this, message.d.error);
             return;
           case 'reconnecting':
             this.ready = false;
             this.emit('reconnecting', message.msg);
-            this.manager.emit('reconnecting', this, message.msg);
+            this.manager.emit('reconnecting', this, message.d.msg);
             return;
           case 'resumed':
             this.ready = false;
@@ -132,8 +132,8 @@ export default class Shard extends EventEmitter {
             return;
           case 'error':
             this.ready = false;
-            this.emit('shardError', message.error);
-            this.manager.emit('shardError', this, message.error);
+            this.emit('shardError', message.d.error);
+            this.manager.emit('shardError', this, message.d.error);
             return;
           case 'fetchProp':
             this.manager.fetchClientValues(message._sFetchProp).then(

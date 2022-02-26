@@ -88,10 +88,10 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
             const lClk = this.levelColors[info.level] || chalk.yellow.bgBlack;
             const mClk = this.moduleColors[moduleName] || colorPool[this._hashCode(moduleName) % colorPool.length];
             return (
+              (process.env.SHARD_ID ? chalk.white.bgBlue(` shard ${process.env.SHARD_ID} `) : '') +
               mClk(` ${moduleName} `) +
               chalk.black.bgWhite(` ${dayjs().format('MM/DD HH:mm:ss')} `) +
               lClk(this._centrePad(info.level, 10)) +
-              (process.env.SHARD_ID ? chalk.black.bgYellowBright(` ${process.env.SHARD_ID} `) : '') +
               ` ${info.message}`
             );
           })

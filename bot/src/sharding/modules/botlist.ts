@@ -25,6 +25,7 @@ export default class BotListPosterModule extends ShardManagerModule {
   load() {
     if (!config.has('botlist')) return void logger.info('Botlist is not configured, skipping...');
     this.cron.start();
+    logger.info(`Botlist configured with ${Object.keys(config.get('botlist')).length} key(s).`);
   }
 
   async onCron() {
