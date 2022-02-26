@@ -32,7 +32,7 @@ export default class Shard extends EventEmitter {
 
   spawn(args = this.manager.options.args, execArgv = this.manager.options.execArgv) {
     this.process = childProcess
-      .fork(path.resolve(this.manager.options.file), args, {
+      .fork(path.resolve(__dirname, '..', this.manager.options.file), args, {
         env: this.env,
         execArgv
       })

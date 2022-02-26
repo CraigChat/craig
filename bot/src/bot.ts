@@ -48,7 +48,7 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
 
 const dexareConfig = Object.assign({}, config.get('dexare')) as CraigBotConfig;
 if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined) {
-  dexareConfig.erisOptions = Object.assign(dexareConfig.erisOptions, {
+  dexareConfig.erisOptions = Object.assign({}, dexareConfig.erisOptions, {
     firstShardID: parseInt(process.env.SHARD_ID, 10),
     lastShardID: parseInt(process.env.SHARD_ID, 10),
     maxShards: parseInt(process.env.SHARD_COUNT, 10)

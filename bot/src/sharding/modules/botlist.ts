@@ -16,7 +16,7 @@ export default class BotListPosterModule extends ShardManagerModule {
 
     this.poster = new Poster({
       clientID: config.get('dexare.applicationID'),
-      apiKeys: config.get('botlist') ?? {}
+      apiKeys: config.has('botlist') ? config.get('botlist') : {}
     });
     this.cron = new CronJob('0 * * * *', this.onCron.bind(this), null, false, 'America/New_York');
     this.filePath = __filename;

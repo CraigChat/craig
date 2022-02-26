@@ -143,7 +143,7 @@ export default class ShardManager extends EventEmitter {
       const mod = modules.find((mod) => mod.options.name === modName)!;
       if (this.modules.has(mod.options.name))
         throw new Error(`A module in the client already has been named "${mod.options.name}".`);
-      logger.log('debug', `Loading module "${modName}"`);
+      logger.log(`Loading module "${modName}"`);
       this.modules.set(modName, mod);
       await mod._load();
     }
@@ -153,7 +153,7 @@ export default class ShardManager extends EventEmitter {
     const mod = this._resolveModule(moduleObject);
     if (this.modules.has(mod.options.name))
       throw new Error(`A module in the client already has been named "${mod.options.name}".`);
-    logger.log('debug', `Loading module "${mod.options.name}"`);
+    logger.log(`Loading module "${mod.options.name}"`);
     this.modules.set(mod.options.name, mod);
     await mod._load();
   }
@@ -161,7 +161,7 @@ export default class ShardManager extends EventEmitter {
   async unloadModule(moduleName: string) {
     if (!this.modules.has(moduleName)) return;
     const mod = this.modules.get(moduleName)!;
-    logger.log('debug', `Unloading module "${moduleName}"`);
+    logger.log(`Unloading module "${moduleName}"`);
     await mod.unload();
     this.modules.delete(moduleName);
   }

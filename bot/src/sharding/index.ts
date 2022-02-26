@@ -13,8 +13,10 @@ manager.on('shardError', (shard, e) => logger.error(`Shard ${shard.id} encounter
 manager.loadModules(BotListPosterModule);
 process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r));
 
-console.log('Starting to spawn...');
-await manager.spawnAll();
-console.log(`Spawned ${manager.shards.size} shards.`);
-// PM2 graceful start/shutdown
-if (process.send) process.send('ready');
+(async () => {
+  logger.info('Starting to spawn...');
+  await manager.spawnAll();
+  logger.info(`Spawned ${manager.shards.size} shards.`);
+  // PM2 graceful start/shutdown
+  if (process.send) process.send('ready');
+})();
