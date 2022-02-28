@@ -12,6 +12,8 @@ cook/oggstender
 cook/oggtracks
 cook/wavduration
 cook/*.png
+cook/*.exe
+cook/*.macosx
 *.swp
 *.db
 *.db-shm
