@@ -47,6 +47,6 @@ export const filesRoute: RouteOptions = {
       const mime = file.endsWith('woff2') ? 'font/woff2' : 'font/woff';
       if (file.startsWith(font)) return reply.type(mime).sendFile(file, path.join(fontsPath, font, 'files'));
     }
-    return reply.status(404).send({ error: 'File not found' });
+    return reply.callNotFound();
   }
 };

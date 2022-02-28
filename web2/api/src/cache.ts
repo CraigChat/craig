@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import type { ReadyState } from './util/cook';
+import { DownloadState } from './util/download';
 
 export const client = new Redis({
   host: process.env.REDIS_HOST || 'localhost',
@@ -20,4 +21,18 @@ export async function setReadyState(recordingId: string, data: ReadyState) {
 
 export async function clearReadyState(recordingId: string) {
   return await client.del(`ready:${recordingId}`);
+}
+
+export async function getDownload(recordingId: string) {
+  const data = await client.get(`download:${recordingId}`);
+  if (!data) return null;
+  return JSON.parse(data);
+}
+
+export async function setDownload(recordingId: string, data: DownloadState) {
+  return await client.set(`download:${recordingId}`, JSON.stringify(data), 'EX', 60 * 5);
+}
+
+export async function clearDownload(recordingId: string) {
+  return await client.del(`download:${recordingId}`);
 }

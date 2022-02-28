@@ -10,12 +10,21 @@ import { ErrorCode } from './util';
 import { client as redisClient } from './cache';
 import { cron as influxCron } from './influx';
 import { close as closeSentry } from './sentry';
+import { cron as downloadCron, downloadPath } from './util/download';
+import { access, mkdir } from 'fs/promises';
 
 export let server: FastifyInstance;
 
 export async function start(): Promise<void> {
+  try {
+    await access(downloadPath);
+  } catch (e) {
+    await mkdir(downloadPath);
+  }
+
   await redisClient.connect();
   influxCron.start();
+  downloadCron.start();
 
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
@@ -70,6 +79,11 @@ export async function start(): Promise<void> {
     return reply.status(200).send({ ok: true });
   });
 
+  server.get('/dl/:file', async (request, reply) => {
+    const { file } = request.params as Record<string, string>;
+    return reply.header('content-disposition', `attachment; filename=${file}`).sendFile(path.join(downloadPath, file));
+  });
+
   server.route(recordingRoute.headRoute);
   server.route(recordingRoute.getRoute);
   server.route(recordingRoute.deleteRoute);
@@ -80,10 +94,8 @@ export async function start(): Promise<void> {
   server.route(cookRoute.notesRoute);
   server.route(cookRoute.getRoute);
   server.route(cookRoute.postRoute);
-  server.route(cookRoute.runRoute);
   server.route(cookRoute.ennuizelRoute);
   server.route(cookRoute.avatarRoute);
-  server.route(cookRoute.avatarRunRoute);
   server.route(pageRoute.pageRoute);
   server.route(pageRoute.scriptRoute);
   server.route(pageRoute.sourceMapRoute);
