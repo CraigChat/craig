@@ -30,7 +30,7 @@ export async function getDownload(recordingId: string) {
 }
 
 export async function setDownload(recordingId: string, data: DownloadState) {
-  return await client.set(`download:${recordingId}`, JSON.stringify(data), 'EX', 60 * 5);
+  return await client.set(`download:${recordingId}`, JSON.stringify(data), 'EX', 60 * 60 * 24);
 }
 
 export async function clearDownload(recordingId: string) {
