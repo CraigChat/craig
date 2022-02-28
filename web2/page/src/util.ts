@@ -1,7 +1,6 @@
 /* global WindowEventMap AddEventListenerOptions */
 import { useEffect, useRef } from 'preact/hooks';
 import { TFunction } from 'react-i18next';
-import { CookAvatarsPayload, CookPayload } from './api';
 import i18n from './i18n';
 
 export interface PlatformInfo {
@@ -69,28 +68,4 @@ export const parseError = async (error: any, t?: TFunction) => {
 
 export const wait = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
-export const cookDownload = (id: string, key: string | number, payload: CookPayload) => {
-  location.href = `/api/recording/${id}/cook/run?key=${key}&${new URLSearchParams(
-    payload as Record<string, string>
-  ).toString()}`;
-};
-
-export const cookAvatarDownload = (id: string, key: string | number, payload: CookAvatarsPayload) => {
-  location.href = `/api/recording/${id}/cook/avatars/run?key=${key}&${new URLSearchParams(
-    payload as Record<string, string>
-  ).toString()}`;
-};
-
-export const downloadResponse = async (response: Response) => {
-  const filename = response.headers.get('content-disposition').slice(21);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  console.log('Opened download link', { blob, filename });
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };

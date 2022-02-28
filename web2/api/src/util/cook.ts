@@ -138,7 +138,7 @@ export async function cook(id: string, format = 'flac', container = 'zip', dynau
   const [state, writeState, deleteState] = stateManager(id);
 
   try {
-    await writeState({});
+    await writeState({ message: 'Starting...' });
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
     const child = spawn(cookingPath, args);
@@ -179,7 +179,7 @@ export async function cookAvatars(
   const [state, writeState, deleteState] = stateManager(id);
 
   try {
-    await writeState({});
+    await writeState({ message: 'Starting...' });
     const cookingPath = path.join(cookPath, 'avatars.sh');
     const args = [id, format, container, transparent ? '1' : '0', bg, fg];
     const child = spawn(cookingPath, args);

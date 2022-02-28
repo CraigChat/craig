@@ -59,6 +59,15 @@ export interface ReadyState {
   file?: string;
   time?: string;
   progress?: number;
+  download?: DownloadState;
+}
+
+export interface DownloadState {
+  file: string;
+  format: string;
+  container: string;
+  dynaudnorm: boolean;
+  type?: string;
 }
 
 export async function getRecording(id: string, key: string | number): Promise<RecordingInfo> {
@@ -97,4 +106,14 @@ export async function getRawRecording(id: string, key: string | number): Promise
   const response = await fetch(`/api/recording/${id}/raw?key=${key}`);
   if (response.status !== 200) throw response;
   return response;
+}
+
+export async function cookDownload(id: string, key: string | number, payload: any, type?: string): Promise<void> {
+  const response = await fetch(`/api/recording/${id}/cook${type ? `/${type}` : ''}?key=${key}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (response.status !== 200 && response.status !== 204) throw response;
+  return;
 }

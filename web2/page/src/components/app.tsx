@@ -6,6 +6,7 @@ import hideIcon from '@iconify-icons/bi/eye-slash-fill';
 import { Translation } from 'react-i18next';
 import {
   CookAvatarsPayload,
+  cookDownload,
   getRecording,
   getRecordingDuration,
   getRecordingUsers,
@@ -14,7 +15,7 @@ import {
   RecordingInfo,
   RecordingUser
 } from '../api';
-import { asT, cookAvatarDownload, cookDownload, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
+import { asT, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
 import { SectionButton } from '../sections';
 import i18n, { languages } from '../i18n';
 import Recording from './recording';
@@ -169,8 +170,6 @@ export default class App extends Component<{}, AppState> {
       ready = readyState.ready;
       this.setState({ readyState });
     }
-
-    this.setState({ readyState: null });
   }
 
   async startDownload(button: SectionButton, e: MouseEvent) {
@@ -232,15 +231,28 @@ export default class App extends Component<{}, AppState> {
         }
       );
 
+    // Download if this format already was cooked
+    const payload = {
+      format: button.format || 'flac',
+      container: button.container || 'zip',
+      dynaudnorm: button.dynaudnorm || false
+    };
+    if (
+      readyState.download &&
+      readyState.download.format === payload.format &&
+      readyState.download.container === payload.container &&
+      readyState.download.dynaudnorm === payload.dynaudnorm &&
+      readyState.download.type === 'default'
+    )
+      return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
+
     this.openDownloadingModal(false, button);
 
     try {
-      cookDownload(this.state.recordingId, query.get('key'), {
-        format: button.format || 'flac',
-        container: button.container || 'zip',
-        dynaudnorm: button.dynaudnorm || false
-      });
+      await cookDownload(this.state.recordingId, query.get('key'), payload);
       await this.waitTillReady(query.get('key'));
+      open(`/dl/${this.state.readyState.download.file}`, 'Downloading', 'noopener');
+      this.setState({ readyState: null });
       this.closeModal(true);
     } catch (err) {
       const { errorT } = await parseError(err);
@@ -269,12 +281,42 @@ export default class App extends Component<{}, AppState> {
     (e.target as HTMLButtonElement).blur();
     console.log('Downloading...', payload);
 
+    // Check ready state before cooking
+    const query = new URLSearchParams(location.search);
+    const readyState = await isReady(this.state.recordingId, query.get('key'));
+    if (!readyState.ready)
+      return this.openModal(
+        <ModalContent
+          title={i18n.t('modal.error')}
+          buttons={[
+            <ModalButton key={1} onClick={() => this.closeModal()}>
+              {i18n.t('close')}
+            </ModalButton>
+          ]}
+        >
+          {i18n.t('error.1006')}
+        </ModalContent>,
+        {
+          allowClose: true,
+          contentLabel: i18n.t('modal.error')
+        }
+      );
+
     this.openDownloadingModal(true);
+    if (
+      readyState.download &&
+      readyState.download.format === payload.format &&
+      readyState.download.container === payload.container &&
+      readyState.download.dynaudnorm === false &&
+      readyState.download.type === 'avatars'
+    )
+      return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
 
     try {
-      const query = new URLSearchParams(location.search);
-      cookAvatarDownload(this.state.recordingId, query.get('key'), payload);
+      await cookDownload(this.state.recordingId, query.get('key'), payload, 'avatars');
       await this.waitTillReady(query.get('key'));
+      open(`/dl/${this.state.readyState.download.file}`, 'Downloading', 'noopener');
+      this.setState({ readyState: null });
       this.closeModal(true);
     } catch (err) {
       const { errorT } = await parseError(err);
