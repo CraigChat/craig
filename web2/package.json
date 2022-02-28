@@ -1,14 +1,16 @@
 {
   "name": "craig-horse",
   "description": "API and page source of craig.horse",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
+  "main": "./dist/index.js",
   "author": {
     "name": "Snazzah",
     "email": "me@snazzah.com",
     "url": "https://snazzah.com/"
   },
   "scripts": {
+    "start": "node ./dist/index.js",
     "build": "npm run build:api && npm run build:page",
     "build:api": "cd api && tsc",
     "build:page": "rollup -c",

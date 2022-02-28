@@ -81,7 +81,7 @@ export async function start(): Promise<void> {
 
   server.get('/dl/:file', async (request, reply) => {
     const { file } = request.params as Record<string, string>;
-    return reply.header('content-disposition', `attachment; filename=${file}`).sendFile(path.join(downloadPath, file));
+    return reply.header('content-disposition', `attachment; filename=${file}`).sendFile(file, downloadPath);
   });
 
   server.route(recordingRoute.headRoute);

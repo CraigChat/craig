@@ -238,10 +238,11 @@ export default class App extends Component<{}, AppState> {
       dynaudnorm: button.dynaudnorm || false
     };
     if (
-      readyState.download?.format === payload.format &&
-      readyState.download?.container === payload.container &&
-      readyState.download?.dynaudnorm === payload.dynaudnorm &&
-      readyState.download?.type === 'default'
+      readyState.download &&
+      readyState.download.format === payload.format &&
+      readyState.download.container === payload.container &&
+      readyState.download.dynaudnorm === payload.dynaudnorm &&
+      readyState.download.type === 'default'
     )
       return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
 
@@ -303,10 +304,11 @@ export default class App extends Component<{}, AppState> {
 
     this.openDownloadingModal(true);
     if (
-      readyState.download?.format === payload.format &&
-      readyState.download?.container === payload.container &&
-      readyState.download?.dynaudnorm === false &&
-      readyState.download?.type === 'avatars'
+      readyState.download &&
+      readyState.download.format === payload.format &&
+      readyState.download.container === payload.container &&
+      readyState.download.dynaudnorm === false &&
+      readyState.download.type === 'avatars'
     )
       return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
 
