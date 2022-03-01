@@ -244,14 +244,14 @@ export default class App extends Component<{}, AppState> {
       readyState.download.dynaudnorm === payload.dynaudnorm &&
       readyState.download.type === 'default'
     )
-      return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
+      return void open(`/dl/${readyState.download.file}`, '_blank', 'noopener');
 
     this.openDownloadingModal(false, button);
 
     try {
       await cookDownload(this.state.recordingId, query.get('key'), payload);
       await this.waitTillReady(query.get('key'));
-      open(`/dl/${this.state.readyState.download.file}`, 'Downloading', 'noopener');
+      open(`/dl/${this.state.readyState.download.file}`, '_blank', 'noopener');
       this.setState({ readyState: null });
       this.closeModal(true);
     } catch (err) {
@@ -310,12 +310,12 @@ export default class App extends Component<{}, AppState> {
       readyState.download.dynaudnorm === false &&
       readyState.download.type === 'avatars'
     )
-      return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
+      return void open(`/dl/${readyState.download.file}`, '_blank', 'noopener');
 
     try {
       await cookDownload(this.state.recordingId, query.get('key'), payload, 'avatars');
       await this.waitTillReady(query.get('key'));
-      open(`/dl/${this.state.readyState.download.file}`, 'Downloading', 'noopener');
+      open(`/dl/${this.state.readyState.download.file}`, '_blank', 'noopener');
       this.setState({ readyState: null });
       this.closeModal(true);
     } catch (err) {
