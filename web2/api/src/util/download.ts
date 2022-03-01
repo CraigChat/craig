@@ -29,7 +29,7 @@ export async function writeToFile(
   dynaudnorm: boolean,
   type = 'default'
 ) {
-  const file = `${nanoid()}.${ext}`;
+  const file = `craig-${id}-${nanoid(15)}.${ext}`;
   await setDownload(id, { file, format, container, dynaudnorm, type });
   const writer = fs.createWriteStream(path.join(downloadPath, file));
   writer.on('finish', () => console.log(`Finished writing ${id} to ${file} (${format}.${container})`));
