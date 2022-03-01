@@ -26,6 +26,7 @@ import DeleteModalContent from './deleteModalContent';
 import Dropdown from './dropdown';
 import EnnuizelModalContent from './ennuizelModalContent';
 import DownloadingModalContent from './downloadingModalContent';
+import ModalButtonDownloadLink from './modalButtonDownloadLink';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -110,7 +111,7 @@ export default class App extends Component<{}, AppState> {
     await this.loadRecording();
     const query = new URLSearchParams(location.search);
     const deleteKey = query.get('delete');
-    if (this.state.recording && deleteKey) await this.showDeletePrompt(null, deleteKey);
+    if (this.state.recording && deleteKey) this.showDeletePrompt(null, deleteKey);
   }
 
   componentWillUnmount() {
@@ -243,17 +244,22 @@ export default class App extends Component<{}, AppState> {
       readyState.download.container === payload.container &&
       readyState.download.dynaudnorm === payload.dynaudnorm &&
       readyState.download.type === 'default'
-    )
-      return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
+    ) {
+      location.href = `/dl/${readyState.download.file}`;
+      this.showCompletedPrompt(`/dl/${readyState.download.file}`, true);
+      return;
+    }
 
     this.openDownloadingModal(false, button);
 
     try {
       await cookDownload(this.state.recordingId, query.get('key'), payload);
       await this.waitTillReady(query.get('key'));
-      open(`/dl/${this.state.readyState.download.file}`, 'Downloading', 'noopener');
-      this.setState({ readyState: null });
-      this.closeModal(true);
+
+      const file = this.state.readyState.download.file;
+      this.showCompletedPrompt(file);
+      setTimeout(() => (location.href = `/dl/${file}`), 100);
+      this.setState({ downloading: false, readyState: null });
     } catch (err) {
       const { errorT } = await parseError(err);
       console.error('Failed to download:', button, err);
@@ -309,15 +315,20 @@ export default class App extends Component<{}, AppState> {
       readyState.download.container === payload.container &&
       readyState.download.dynaudnorm === false &&
       readyState.download.type === 'avatars'
-    )
-      return void open(`/dl/${readyState.download.file}`, 'Downloading', 'noopener');
+    ) {
+      location.href = `/dl/${readyState.download.file}`;
+      this.showCompletedPrompt(`/dl/${readyState.download.file}`, true);
+      return;
+    }
 
     try {
       await cookDownload(this.state.recordingId, query.get('key'), payload, 'avatars');
       await this.waitTillReady(query.get('key'));
-      open(`/dl/${this.state.readyState.download.file}`, 'Downloading', 'noopener');
-      this.setState({ readyState: null });
-      this.closeModal(true);
+
+      const file = this.state.readyState.download.file;
+      this.showCompletedPrompt(file);
+      setTimeout(() => (location.href = `/dl/${file}`), 100);
+      this.setState({ downloading: false, readyState: null });
     } catch (err) {
       const { errorT } = await parseError(err);
       console.error('Failed to download avatars:', payload, err);
@@ -341,7 +352,29 @@ export default class App extends Component<{}, AppState> {
     }
   }
 
-  async showDeletePrompt(e?: MouseEvent, deleteKey?: string) {
+  showCompletedPrompt(file: string, alreadyFinished = false) {
+    this.openModal(
+      <ModalContent
+        title={i18n.t('modal.download_done')}
+        buttons={[
+          <ModalButtonDownloadLink key={1} type="brand" file={file} href={`/dl/${file}`}>
+            {i18n.t('modal_content.download')}
+          </ModalButtonDownloadLink>,
+          <ModalButton key={2} onClick={() => this.closeModal()}>
+            {i18n.t('close')}
+          </ModalButton>
+        ]}
+      >
+        <p>{i18n.t(alreadyFinished ? 'modal_content.download_already_done' : 'modal_content.download_done')}</p>
+      </ModalContent>,
+      {
+        allowClose: true,
+        contentLabel: i18n.t('modal.download_done')
+      }
+    );
+  }
+
+  showDeletePrompt(e?: MouseEvent, deleteKey?: string) {
     if (e) (e.target as HTMLButtonElement).blur();
 
     this.openModal(
