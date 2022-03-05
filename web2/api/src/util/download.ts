@@ -53,8 +53,10 @@ export async function removeFile(file: string) {
 async function clean(timestamp = new Date()) {
   try {
     for (const file of await fs.promises.readdir(downloadPath)) {
-      const stat = await fs.promises.stat(path.join(downloadPath, file));
-      if (stat.mtime.getTime() + DOWNLOAD_EXPIRATION < (timestamp || cron.lastDate()).getTime()) await removeFile(file);
+      try {
+        const stat = await fs.promises.stat(path.join(downloadPath, file));
+        if (stat.mtime.getTime() + DOWNLOAD_EXPIRATION < (timestamp || cron.lastDate()).getTime()) await removeFile(file);
+      } catch (e) {}
     }
   } catch (e) {
     withScope((scope) => {
