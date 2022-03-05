@@ -7,6 +7,7 @@ import SlashModule from './modules/slash';
 import { SlashCreatorOptions } from 'slash-create';
 import { iterateFolder } from 'dexare/lib/util';
 import ShardingModule from './modules/sharding';
+import RecorderModule from './modules/recorder';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -20,6 +21,7 @@ export interface CraigBotConfig extends BaseConfig {
     emoji: string;
     downloadDomain: string;
     homepage: string;
+    recordingFolder: string;
     inviteID?: string;
   };
 
@@ -56,7 +58,7 @@ if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined)
 }
 export const client = new CraigBot(dexareConfig);
 
-client.loadModules(LoggerModule, SlashModule, ShardingModule);
+client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule);
 client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
 // Makes custom emojis with the name 'craig' work as prefixes

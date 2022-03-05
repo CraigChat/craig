@@ -1,6 +1,9 @@
 import { DexareModule, DexareClient, BaseConfig } from 'dexare';
-import { GatewayServer, SlashCreator, SlashCreatorOptions } from 'slash-create';
+import { ComponentType, GatewayServer, SlashCreator, SlashCreatorOptions, TextInputStyle } from 'slash-create';
 import path from 'node:path';
+import RecorderModule from './recorder';
+import { CraigBotConfig } from '../bot';
+import { RecordingState } from './recorder/recording';
 
 export interface SlashConfig extends BaseConfig {
   applicationID: string;
@@ -50,6 +53,70 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     this.creator.on('commandError', (command, error) => {
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString());
     });
+    this.creator.on('componentInteraction', async (ctx) => {
+      // TODO check for permissions
+      if (ctx.customID.startsWith('rec:')) {
+        const [, recordingID, action] = ctx.customID.split(':');
+        const recording = this.recorder.find(recordingID);
+        if (!recording)
+          return ctx.send({
+            content: 'That recording was not found or may have already ended.',
+            ephemeral: true
+          });
+        if (recording.channel.guild.id !== ctx.guildID) return;
+
+        if (action === 'stop') {
+          await recording.stop(false, ctx.user.id);
+          await ctx.acknowledge();
+        } else if (action === 'note') {
+          await ctx.sendModal(
+            {
+              title: 'Add a note to this recording',
+              components: [
+                {
+                  type: ComponentType.ACTION_ROW,
+                  components: [
+                    {
+                      type: ComponentType.TEXT_INPUT,
+                      label: 'Note',
+                      style: TextInputStyle.PARAGRAPH,
+                      custom_id: 'note',
+                      placeholder: 'Chapter 1, Part 1, etc.'
+                    }
+                  ]
+                }
+              ]
+            },
+            (modalCtx) => {
+              if (recording.state === RecordingState.ENDED || recording.state === RecordingState.ERROR)
+                return modalCtx.send({
+                  content: 'That recording was not found or may have already ended.',
+                  ephemeral: true
+                });
+              try {
+                recording.note(modalCtx.values.note);
+                recording.pushToActivity(`${ctx.user.mention} added a note.`);
+                return modalCtx.send({
+                  content: 'Added the note to the recording!',
+                  ephemeral: true
+                });
+              } catch (e) {
+                recording.recorder.logger.error(`Error adding note to recording ${recordingID}:`, e);
+                return modalCtx.send({
+                  content: 'An error occurred while adding the note.',
+                  ephemeral: true
+                });
+              }
+            }
+          );
+        }
+        await ctx.acknowledge();
+      }
+    });
+  }
+
+  get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {
+    return this.client.modules.get('recorder') as RecorderModule<any>;
   }
 
   unload() {

@@ -46,6 +46,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
   moduleColors: { [level: string]: Chalk } = {
     dexare: chalk.black.bgRed,
     eris: chalk.black.bgCyan,
+    recorder: chalk.red.bgBlack,
     commands: chalk.black.bgYellow,
     sys: chalk.black.bgGray,
     dbots: chalk.black.bgYellowBright
