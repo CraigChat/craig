@@ -8,6 +8,7 @@ import { SlashCreatorOptions } from 'slash-create';
 import { iterateFolder } from 'dexare/lib/util';
 import ShardingModule from './modules/sharding';
 import RecorderModule from './modules/recorder';
+import { prisma } from './prisma';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -24,6 +25,7 @@ export interface CraigBotConfig extends BaseConfig {
     recordingFolder: string;
     sizeLimit: number;
     inviteID?: string;
+    rewardTiers: { [tier: string]: RewardTier };
   };
 
   logger: {
@@ -36,6 +38,12 @@ export interface CraigBotConfig extends BaseConfig {
   };
 }
 
+export interface RewardTier {
+  recordHours: number;
+  downloadExpiryHours: number;
+  features: string[];
+}
+
 export class CraigBot extends DexareClient<CraigBotConfig> {
   _shard?: Eris.Shard;
 
@@ -46,6 +54,10 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
   get shard() {
     if (!this._shard) this._shard = this.bot.shards.values().next().value;
     return this._shard;
+  }
+
+  get prisma() {
+    return prisma;
   }
 }
 

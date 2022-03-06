@@ -1,5 +1,4 @@
 import { stripIndents } from 'common-tags';
-import { DexareClient } from 'dexare';
 import Eris from 'eris';
 import { createWriteStream, WriteStream } from 'fs';
 import { writeFile, access } from 'fs/promises';
@@ -7,12 +6,15 @@ import { nanoid } from 'nanoid';
 import path from 'path';
 import { ButtonStyle, ComponentType } from 'slash-create';
 import RecorderModule from '.';
-import { CraigBotConfig } from '../../bot';
+import { CraigBot, CraigBotConfig } from '../../bot';
 import OggEncoder, { BOS } from './ogg';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import axios from 'axios';
 import { OpusEncoder } from '@discordjs/opus';
+import { prisma } from '../../prisma';
+import { ParsedRewards } from '../../util';
+import { DexareClient } from 'dexare';
 dayjs.extend(duration);
 
 const opus = new OpusEncoder(48000, 2);
@@ -63,6 +65,7 @@ export interface Chunk {
   time: number;
 }
 
+// TODO warn on silence
 // TODO add recording expiry cron (iterate over files and delete old ones)
 // TODO add recording timeout
 export default class Recording {
@@ -108,7 +111,7 @@ export default class Recording {
     this.user = user;
   }
 
-  async start() {
+  async start(parsedRewards: ParsedRewards, auto = false) {
     this.recorder.logger.debug(
       `Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`
     );
@@ -127,6 +130,7 @@ export default class Recording {
     this.startedAt = new Date();
 
     const fileBase = path.join(this.recorder.recordingPath, `${this.id}.ogg`);
+    const { tier, rewards } = parsedRewards;
     await writeFile(
       fileBase + '.info',
       JSON.stringify({
@@ -152,10 +156,9 @@ export default class Recording {
           avatar: this.user.dynamicAvatarURL('png', 256)
         },
         requesterId: this.user.id,
-        startTime: this.startedAt.toISOString()
-        // TODO
-        // expiresAfter: f.limits.download,
-        // features: f
+        startTime: this.startedAt.toISOString(),
+        expiresAfter: rewards.downloadExpiryHours,
+        features: rewards.features.reduce((acc, cur) => ({ ...acc, [cur]: true }), {} as { [key: string]: boolean })
       }),
       { encoding: 'utf8' }
     );
@@ -164,12 +167,30 @@ export default class Recording {
     this.headerEncoder2 = new OggEncoder(createWriteStream(fileBase + '.header2'));
     this.usersStream = createWriteStream(fileBase + '.users');
     this.logStream = createWriteStream(fileBase + '.log');
+
     this.usersStream.write('"0":{}\n');
+    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
 
     this.active = true;
     await this.playNowRecording();
     this.updateMessage();
-    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
+
+    await prisma.recording.create({
+      data: {
+        id: this.id,
+        accessKey: this.accessKey,
+        deleteKey: this.deleteKey,
+        userId: this.user.id,
+        channelId: this.channel.id,
+        guildId: this.channel.guild.id,
+        clientId: this.recorder.client.bot.user.id,
+        shardId: (this.recorder.client as unknown as CraigBot).shard!.id || -1,
+        rewardTier: tier,
+        autorecorded: auto,
+        expiresAt: new Date(this.startedAt.valueOf() + rewards.downloadExpiryHours * 60 * 60 * 1000),
+        createdAt: this.startedAt
+      }
+    });
     // TODO add stats on recording start
   }
 
@@ -194,6 +215,11 @@ export default class Recording {
     this.logStream?.end();
 
     this.recorder.recordings.delete(this.channel.guild.id);
+
+    await prisma.recording.update({
+      where: { id: this.id },
+      data: { endedAt: new Date() }
+    });
     // TODO add stats on recording stop
   }
 

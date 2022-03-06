@@ -2,7 +2,7 @@ import { oneLine, stripIndents } from 'common-tags';
 import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle } from 'slash-create';
 import Recording from '../modules/recorder/recording';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission, cutoffText } from '../util';
+import { checkRecordingPermission, cutoffText, parseRewards } from '../util';
 
 // TODO stage-specific behavior
 export default class Join extends GeneralCommand {
@@ -24,10 +24,8 @@ export default class Join extends GeneralCommand {
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
     const guild = this.client.bot.guilds.get(ctx.guildID!)!;
-    const hasPermission = checkRecordingPermission(
-      ctx.member!,
-      await this.prisma.guild.findFirst({ where: { id: ctx.guildID } })
-    );
+    const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
+    const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
@@ -127,6 +125,16 @@ export default class Join extends GeneralCommand {
         return `An error occurred while changing my nickname: ${e}`;
       }
 
+    // Get rewards
+    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
+    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
+    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+    const parsedRewards = parseRewards(
+      this.recorder.client.config,
+      userData?.rewardTier ?? 0,
+      blessingUser?.rewardTier ?? 0
+    );
+
     // Start recording
     const recording = new Recording(this.recorder, channel as any, member.user);
     this.recorder.recordings.set(ctx.guildID, recording);
@@ -134,13 +142,12 @@ export default class Join extends GeneralCommand {
     const { id: messageID } = await ctx.fetch();
     recording.messageID = messageID;
     recording.messageChannelID = ctx.channelID;
-    await recording.start();
+    await recording.start(parsedRewards);
 
     // Send DM
-    // TODO change expire time relative to reward tier
-    const recordTime = Date.now() + 1000 * 60 * 60 * 3;
-    const expireTime = Date.now() + 1000 * 60 * 60 * 24 * 7;
-    await dmChannel
+    const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
+    const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
+    const dmMessage = await dmChannel
       .createMessage({
         embeds: [
           {
@@ -151,8 +158,12 @@ export default class Join extends GeneralCommand {
               **Recording ID:** \`${recording.id}\`
               **Delete key:** ||\`${recording.deleteKey}\`||
 
-              I will record up to 3 hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
-              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (7 days from now)
+              I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
+              recordTime / 1000
+            )}:R> from now.
+              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${
+              parsedRewards.rewards.downloadExpiryHours / 24
+            } days from now)
             `,
             footer: {
               text: "The audio can be downloaded even while I'm still recording."
@@ -192,6 +203,26 @@ export default class Join extends GeneralCommand {
           }
         ]
       })
-      .catch(() => {});
+      .catch(() => null);
+
+    if (dmMessage)
+      await ctx.sendFollowUp({
+        content: `Started recording in <#${channel!.id}>.`,
+        ephemeral: true,
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Jump to DM',
+                url: dmMessage.jumpLink,
+                emoji: { id: '949782524131942460' }
+              }
+            ]
+          }
+        ]
+      });
   }
 }

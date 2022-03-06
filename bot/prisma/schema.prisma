@@ -42,10 +42,10 @@ model Recording {
   clientId     String
   shardId      Int
   autorecorded Boolean   @default(false)
-  available    Boolean   @default(true)
   rewardTier   Int       @default(0)
   createdAt    DateTime  @db.Timestamptz(6) @default(now())
   endedAt      DateTime? @db.Timestamptz(6)
+  expiresAt    DateTime  @db.Timestamptz(6)
 }
 
 model AutoRecord {
