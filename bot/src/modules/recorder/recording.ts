@@ -62,6 +62,8 @@ export interface Chunk {
 
 // TODO stop when a size limit is hit
 // TODO add corruption warnings
+// TODO add recording expiry cron (iterate over files and delete old ones)
+// TODO add recording timeout
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   id = nanoid(18);

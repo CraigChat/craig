@@ -16,10 +16,21 @@ export default class Stop extends GeneralCommand {
       ctx.member!,
       await this.prisma.guild.findFirst({ where: { id: ctx.guildID } })
     );
-    if (!hasPermission) return 'You need the `Manage Server` permission or have an access role to manage recordings.';
-    if (!this.recorder.recordings.has(ctx.guildID)) return 'There is no recording to stop.';
+    if (!hasPermission)
+      return {
+        content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
+        ephemeral: true
+      };
+    if (!this.recorder.recordings.has(ctx.guildID))
+      return {
+        content: 'There is no recording to stop.',
+        ephemeral: true
+      };
     const recording = this.recorder.recordings.get(ctx.guildID)!;
     await recording.stop(false, ctx.user.id);
-    return 'Recording stopped.';
+    return {
+      content: 'Stopped recording.',
+      ephemeral: true
+    };
   }
 }
