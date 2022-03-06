@@ -39,7 +39,7 @@ export interface ParsedRewards {
 export function parseRewards(config: CraigBotConfig, tier: number = 0, guildTier: number = 0): ParsedRewards {
   const userRewards = config.craig.rewardTiers[tier] || config.craig.rewardTiers[0];
   const guildRewards = config.craig.rewardTiers[guildTier] || config.craig.rewardTiers[0];
-  if (tier >= guildTier || tier === -1) return { tier, rewards: userRewards };
+  if (tier === -1 || (tier >= guildTier && guildTier !== -1)) return { tier, rewards: userRewards };
   return { tier: guildTier, rewards: guildRewards };
 }
 

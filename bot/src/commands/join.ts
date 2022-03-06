@@ -219,7 +219,7 @@ export default class Join extends GeneralCommand {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Jump to DM',
-                url: dmMessage.jumpLink,
+                url: `https://discord.com/channels/@me/${dmChannel.id}/${dmMessage.id}`,
                 emoji: { id: '949782524131942460' }
               }
             ]
