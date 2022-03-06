@@ -1,5 +1,5 @@
 import { Guild } from '@prisma/client';
-import { ButtonStyle, ComponentType, Member, MessageOptions } from 'slash-create';
+import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
 import { CraigBotConfig, RewardTier } from './bot';
 import { prisma } from './prisma';
 
@@ -45,6 +45,13 @@ export function parseRewards(config: CraigBotConfig, tier: number = 0, guildTier
 
 export function cutoffText(text: string, limit = 2000) {
   return text.length > limit ? text.slice(0, limit - 1) + '…' : text;
+}
+
+export function disableComponents(components: ComponentActionRow[]) {
+  return components.map((c) => ({
+    ...c,
+    components: c.components.map((c) => ({ ...c, disabled: true }))
+  }));
 }
 
 export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {

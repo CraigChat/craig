@@ -1,5 +1,6 @@
 import { DexareModule, DexareClient, BaseConfig } from 'dexare';
 import {
+  ComponentActionRow,
   ComponentContext,
   ComponentType,
   GatewayServer,
@@ -11,7 +12,7 @@ import path from 'node:path';
 import RecorderModule from './recorder';
 import { CraigBotConfig } from '../bot';
 import { RecordingState } from './recorder/recording';
-import { blessServer, checkRecordingPermission, unblessServer } from '../util';
+import { blessServer, checkRecordingPermission, disableComponents, unblessServer } from '../util';
 import { prisma } from '../prisma';
 
 export interface SlashConfig extends BaseConfig {
@@ -83,21 +84,23 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
   async handleRecordingInteraction(ctx: ComponentContext) {
     const [, recordingID, action] = ctx.customID.split(':');
     const recording = this.recorder.find(recordingID);
-    if (!recording)
+    if (!recording) {
+      await ctx.editParent({ components: disableComponents(ctx.message.components as ComponentActionRow[]) });
       return ctx.send({
         content: 'That recording was not found or may have already ended.',
         ephemeral: true
       });
+    }
     if (recording.channel.guild.id !== ctx.guildID) return;
     const hasPermission = checkRecordingPermission(
       ctx.member!,
       await prisma.guild.findFirst({ where: { id: ctx.guildID } })
     );
     if (!hasPermission)
-      return {
+      return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
         ephemeral: true
-      };
+      });
 
     if (action === 'stop') {
       await recording.stop(false, ctx.user.id);
