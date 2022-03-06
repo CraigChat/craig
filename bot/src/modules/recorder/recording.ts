@@ -12,7 +12,10 @@ import OggEncoder, { BOS } from './ogg';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import axios from 'axios';
+import { OpusEncoder } from '@discordjs/opus';
 dayjs.extend(duration);
+
+const opus = new OpusEncoder(48000, 2);
 
 const OPUS_HEADERS = [
   Buffer.from([
@@ -86,6 +89,7 @@ export default class Recording {
 
   users: { [key: string]: RecordingUser } = {};
   userPackets: { [key: string]: Chunk[] } = {};
+  usersWarned: string[] = [];
   trackNo = 1;
   notePacketNo = 0;
   dataEncoder: OggEncoder | null = null;
@@ -308,17 +312,19 @@ export default class Recording {
       buffer = buffer.slice(off);
     }
 
-    // TODO Occasionally check that it's valid Opus data
-    // if (packetNo % 50 === 49) {
-    //   try {
-    //     opus.decode(chunk, 960);
-    //   } catch (ex) {
-    //     if (!corruptWarn[user.id]) {
-    //       sReply(true, l('corrupt', lang, user.username, user.discriminator));
-    //       corruptWarn[user.id] = true;
-    //     }
-    //   }
-    // }
+    // Occasionally check that it's valid Opus data
+    if (packetNo % 50 === 49) {
+      try {
+        opus.decode(chunk.data);
+      } catch (ex) {
+        if (!(user.id in this.usersWarned)) {
+          this.pushToActivity(
+            `⚠️ User ${user.id} has corrupt data! I will not be able to correctly process their audio!`
+          );
+          this.usersWarned.push(user.id);
+        }
+      }
+    }
 
     // Write out the chunk itself
     this.write(oggStream, chunk.time, streamNo, packetNo, buffer);
