@@ -22,6 +22,7 @@ export interface CraigBotConfig extends BaseConfig {
     downloadDomain: string;
     homepage: string;
     recordingFolder: string;
+    sizeLimit: number;
     inviteID?: string;
   };
 

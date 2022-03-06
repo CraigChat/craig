@@ -63,8 +63,6 @@ export interface Chunk {
   time: number;
 }
 
-// TODO stop when a size limit is hit
-// TODO add corruption warnings
 // TODO add recording expiry cron (iterate over files and delete old ones)
 // TODO add recording timeout
 export default class Recording {
@@ -92,6 +90,8 @@ export default class Recording {
   usersWarned: string[] = [];
   trackNo = 1;
   notePacketNo = 0;
+  bytesWritten = 0;
+  hardLimitHit = false;
   dataEncoder: OggEncoder | null = null;
   usersStream: WriteStream | null = null;
   logStream: WriteStream | null = null;
@@ -291,7 +291,21 @@ export default class Recording {
   }
 
   write(stream: OggEncoder, granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags?: number) {
-    stream.write(granulePos, streamNo, packetNo, chunk, flags);
+    this.bytesWritten += chunk.length;
+    if (
+      this.recorder.client.config.craig.sizeLimit &&
+      this.bytesWritten >= this.recorder.client.config.craig.sizeLimit
+    ) {
+      if (!this.hardLimitHit) {
+        this.hardLimitHit = true;
+        this.stateDescription = '⚠️ The recording has reached the size limit and has been automatically stopped.';
+        this.stop();
+      }
+    } else {
+      try {
+        stream.write(granulePos, streamNo, packetNo, chunk, flags);
+      } catch (ex) {}
+    }
   }
 
   encodeChunk(user: RecordingUser, oggStream: OggEncoder, streamNo: number, packetNo: number, chunk: Chunk) {
