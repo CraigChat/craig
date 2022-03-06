@@ -11,6 +11,7 @@ import { CraigBotConfig } from '../../bot';
 import OggEncoder, { BOS } from './ogg';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
+import axios from 'axios';
 dayjs.extend(duration);
 
 const OPUS_HEADERS = [
@@ -60,6 +61,7 @@ export interface Chunk {
 }
 
 // TODO stop when a size limit is hit
+// TODO add corruption warnings
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   id = nanoid(18);
@@ -161,6 +163,8 @@ export default class Recording {
     this.active = true;
     await this.playNowRecording();
     this.updateMessage();
+    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
+    // TODO add stats on recording start
   }
 
   async stop(internal = false, userID?: string) {
@@ -184,6 +188,7 @@ export default class Recording {
     this.logStream?.end();
 
     this.recorder.recordings.delete(this.channel.guild.id);
+    // TODO add stats on recording stop
   }
 
   async connect() {
@@ -191,11 +196,11 @@ export default class Recording {
     connection.on('connect', this.onConnectionConnect.bind(this));
     connection.on('disconnect', this.onConnectionDisconnect.bind(this));
     connection.on('error', (err) => {
-      this.writeToLog(`Connection error: ${err}`);
+      this.writeToLog(`Connection error: ${err}`, 'debug');
       this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
     });
     connection.on('warn', (m) => {
-      this.writeToLog(`Connection warning: ${m}`);
+      this.writeToLog(`Connection warning: ${m}`, 'debug');
       this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
     });
     connection.on('debug', (m) => this.recorder.logger.debug(`Recording ${this.id}`, m));
@@ -204,7 +209,6 @@ export default class Recording {
     this.state = RecordingState.RECORDING;
     this.receiver = receiver;
     this.connection = connection;
-    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
   }
 
   async playNowRecording() {
@@ -216,21 +220,24 @@ export default class Recording {
     } catch (e) {}
   }
 
+  // Event handlers //
+
   async onVoiceStateUpdate(member: Eris.Member, oldState: Eris.OldVoiceState) {
     if (member.id === this.recorder.client.bot.user.id) {
       if (member.voiceState.deaf && !oldState.deaf) {
         this.warningState = WarningState.DEAFENED;
         this.stateDescription = 'The bot has been deafened! Please undeafen me to continue recording.';
+        this.pushToActivity('I was deafened!');
       } else if (!member.voiceState.deaf && oldState.deaf && this.warningState === WarningState.DEAFENED) {
         this.warningState = null;
         delete this.stateDescription;
+        this.pushToActivity('I was undeafened.');
       }
       this.logStream?.write(
         `${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(
           member.voiceState
         )} -> ${JSON.stringify(oldState)}\n`
       );
-      await this.updateMessage();
     }
   }
 
@@ -317,7 +324,7 @@ export default class Recording {
     this.write(oggStream, chunk.timestamp ? chunk.timestamp : 0, streamNo, packetNo + 1, EMPTY_BUFFER);
   }
 
-  async onData(data: Buffer, userID: string, timestamp: number, sequence: number) {
+  async onData(data: Buffer, userID: string, timestamp: number) {
     data = Buffer.from(data);
     // TODO log unusual data
     if (!userID) return;
@@ -328,13 +335,11 @@ export default class Recording {
     if (!this.userPackets[userID]) this.userPackets[userID] = [];
     if (!recordingUser) {
       if (Object.keys(this.users).length >= USER_HARD_LIMIT) return;
-      const user = this.recorder.client.bot.users.get(userID);
+      let user = this.recorder.client.bot.users.get(userID);
       this.users[userID] = {
         id: userID,
         username: user?.username ?? 'Unknown',
         discriminator: user?.discriminator ?? '0000',
-        // TODO add avatars to users
-        // avatar: user?.dynamicAvatarURL() ?? '',
         unknown: !user,
         track: this.trackNo++,
         packet: 2
@@ -353,10 +358,26 @@ export default class Recording {
         recordingUser.username = member?.username ?? 'Unknown';
         recordingUser.discriminator = member?.discriminator ?? '0000';
         recordingUser.unknown = !member;
+        if (member) user = member.user;
       }
-      this.usersStream?.write(`,"${recordingUser.track}":${JSON.stringify(recordingUser)}\n`);
-      this.writeToLog(`New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id})`);
 
+      if (user)
+        try {
+          const { data } = await axios.get(user.dynamicAvatarURL('png', 2048));
+          recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data).toString('base64');
+        } catch (e) {
+          this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
+          this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
+        }
+
+      this.usersStream?.write(
+        `,"${recordingUser.track}":${JSON.stringify({
+          ...recordingUser,
+          track: undefined,
+          packet: undefined
+        })}\n`
+      );
+      this.writeToLog(`New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id})`);
       this.pushToActivity(`<@${userID}> joined the recording.`);
       this.recorder.logger.debug(
         `User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`
@@ -396,16 +417,16 @@ export default class Recording {
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       this.logs.push(`\`${dayjs.duration(time).format('HH:mm:ss')}\`: ${log}`);
     } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
-    this.logStream?.write(`${new Date().toISOString()} [To user]: ${log}\n`);
+    this.logStream?.write(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
     this.updateMessage();
   }
 
-  writeToLog(log: string) {
-    this.logStream?.write(`${new Date().toISOString()}: ${log}\n`);
+  writeToLog(log: string, type?: string) {
+    this.logStream?.write(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
   }
 
   messageContent() {
-    let color = 0;
+    let color: number | undefined = undefined;
     let title = 'Loading...';
     switch (this.state) {
       case RecordingState.IDLE: {
@@ -413,7 +434,7 @@ export default class Recording {
         break;
       }
       case RecordingState.RECORDING: {
-        title = 'Recording...';
+        title = '🔴 Recording...';
         if (this.warningState === null) color = 0x2ecc71;
         else color = 0xf1c40f;
         break;
@@ -484,7 +505,7 @@ export default class Recording {
               label: 'Stop recording',
               custom_id: `rec:${this.id}:stop`,
               disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { name: '⏹' }
+              emoji: { id: '949783292603949096' }
             },
             {
               type: ComponentType.BUTTON,
@@ -492,7 +513,7 @@ export default class Recording {
               label: 'Add a note',
               custom_id: `rec:${this.id}:note`,
               disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { name: '📝' }
+              emoji: { id: '949783292356460557' }
             }
           ]
         }

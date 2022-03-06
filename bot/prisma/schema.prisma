@@ -19,7 +19,7 @@ model User {
 }
 
 model Guild {
-  guildId     String   @id
+  id          String   @id
   accessRoles String[]
   createdAt   DateTime @db.Timestamptz(6) @default(now())
   updatedAt   DateTime @db.Timestamptz(6) @updatedAt

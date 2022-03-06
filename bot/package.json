@@ -22,6 +22,7 @@
     "@sentry/integrations": "^6.17.4",
     "@sentry/node": "^6.17.4",
     "@sentry/tracing": "^6.17.3",
+    "axios": "^0.26.0",
     "chalk": "4",
     "common-tags": "^1.8.2",
     "config": "^3.3.7",
