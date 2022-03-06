@@ -19,11 +19,13 @@ export default class Join extends GeneralCommand {
         }
       ]
     });
+
+    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
-    const guild = this.client.bot.guilds.get(ctx.guildID!)!;
+    const guild = this.client.bot.guilds.get(ctx.guildID)!;
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)

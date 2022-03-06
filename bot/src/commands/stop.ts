@@ -8,6 +8,8 @@ export default class Stop extends GeneralCommand {
       name: 'stop',
       description: 'Stop your current recording.'
     });
+
+    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {

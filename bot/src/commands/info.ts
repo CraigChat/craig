@@ -9,6 +9,8 @@ export default class Info extends GeneralCommand {
       name: 'info',
       description: 'Get information and statistics about this bot.'
     });
+
+    this.filePath = __filename;
   }
 
   async run() {

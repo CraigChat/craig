@@ -1,5 +1,5 @@
 import { stripIndents } from 'common-tags';
-import { SlashCreator, CommandContext } from 'slash-create';
+import { SlashCreator, CommandContext, ComponentType, ButtonStyle } from 'slash-create';
 import { RewardTier } from '../bot';
 import GeneralCommand from '../slashCommand';
 
@@ -10,6 +10,8 @@ export default class Features extends GeneralCommand {
       description: 'List your active perks and active server perks.',
       deferEphemeral: true
     });
+
+    this.filePath = __filename;
   }
 
   formatRewards(rewards: RewardTier, tier: number, by?: string) {
@@ -53,17 +55,36 @@ export default class Features extends GeneralCommand {
               inline: true
             },
             {
-              name: 'Guild Perks',
-              value: !ctx.guildID
-                ? '*You are not in a guild.*'
-                : !blessingUser
-                ? '*This guild has no rewards.*'
-                : this.formatRewards(guildRewards, guildTier, blessingUser.id),
+              name: 'Server Perks',
+              value:
+                !ctx.guildID || !blessingUser ? null : this.formatRewards(guildRewards, guildTier, blessingUser.id),
               inline: true
             }
-          ]
+          ].filter((f) => f.value),
+          footer: {
+            text:
+              ctx.guildID && !blessingUser && userTier !== 0
+                ? 'This server has no perks, you can bless this server.'
+                : null
+          }
         }
-      ]
+      ],
+      components:
+        ctx.guildID && !blessingUser && userTier !== 0
+          ? [
+              {
+                type: ComponentType.ACTION_ROW,
+                components: [
+                  {
+                    type: ComponentType.BUTTON,
+                    style: ButtonStyle.SUCCESS,
+                    label: 'Bless server',
+                    custom_id: `user:bless:${ctx.guildID}`
+                  }
+                ]
+              }
+            ]
+          : []
     };
   }
 }
