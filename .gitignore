@@ -14,7 +14,7 @@ cook/wavduration
 cook/*.png
 cook/*.exe
 cook/*.macosx
-web2/downloads/
+apps/download/downloads/
 *.swp
 *.db
 *.db-shm
@@ -22,6 +22,6 @@ web2/downloads/
 *.log
 .env
 dist/
-bot/config/default.js
+apps/bot/config/default.js
 node-log.txt
 nohup.out

@@ -3,7 +3,16 @@
     "homepage": "http://craig.chat/home/",
     "license": "ISC",
     "private": true,
-    "workspaces": ["bot", "web2"],
+    "workspaces": [
+        "apps/bot",
+        "apps/download"
+    ],
+    "scripts": {
+      "build": "yarn workspaces run build",
+      "test": "yarn workspaces run test",
+      "lint": "yarn workspaces run lint",
+      "lint:fix": "yarn workspaces run lint:fix"
+    },
     "repository": {
         "type": "git",
         "url": "https://github.com/CraigChat/craig"
@@ -18,5 +27,8 @@
         "request": "^2.88.2",
         "sqlite3": "^5.0.1",
         "ws": "^7.4.5"
+    },
+    "devDependencies": {
+        "prisma": "^3.10.0"
     }
 }
