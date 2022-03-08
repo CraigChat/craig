@@ -70,9 +70,9 @@ export interface Chunk {
 // TODO add recording timeout
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
-  id = nanoid(18);
-  accessKey = nanoid(8);
-  deleteKey = nanoid(8);
+  id = nanoid(9);
+  accessKey = nanoid(6);
+  deleteKey = nanoid(6);
   channel: Eris.StageChannel | Eris.VoiceChannel;
   user: Eris.User;
   active = false;
