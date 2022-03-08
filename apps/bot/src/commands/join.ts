@@ -3,7 +3,7 @@ import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonS
 import Recording from '../modules/recorder/recording';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission, cutoffText, getDiscordStatus, parseRewards } from '../util';
+import { checkRecordingPermission, cutoffText, parseRewards } from '../util';
 
 // TODO stage-specific behavior
 export default class Join extends GeneralCommand {
@@ -113,12 +113,25 @@ export default class Join extends GeneralCommand {
       };
 
     // Check discord status
-    const discordStatus = await getDiscordStatus();
-    if ((['major', 'minor', 'critical'] as any[]).includes(discordStatus))
-      return {
-        content: `The Discord API is currently ${discordStatus}! Recording is not possible at this time.`,
-        ephemeral: true
-      };
+    // const discordStatus = await getDiscordStatus();
+    // if ((['major', 'minor', 'critical'] as any[]).includes(discordStatus))
+    //   return {
+    //     content: `The Discord API is currently having a ${discordStatus} issue! To prevent issues along the way, recording will not be possible until the issue is resolved.`,
+    //     components: [
+    //       {
+    //         type: ComponentType.ACTION_ROW,
+    //         components: [
+    //           {
+    //             type: ComponentType.BUTTON,
+    //             style: ButtonStyle.LINK,
+    //             label: 'discordstatus.com',
+    //             url: 'https://discordstatus.com/'
+    //           }
+    //         ]
+    //       }
+    //     ],
+    //     ephemeral: true
+    //   };
 
     // Check for DM permissions
     const dmChannel = await member.user.getDMChannel().catch(() => null);
