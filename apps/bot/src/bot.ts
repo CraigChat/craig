@@ -25,6 +25,7 @@ export interface CraigBotConfig extends BaseConfig {
     downloadDomain: string;
     homepage: string;
     recordingFolder: string;
+    removeNickname: boolean;
     sizeLimit: number;
     inviteID?: string;
     rewardTiers: { [tier: string]: RewardTier };

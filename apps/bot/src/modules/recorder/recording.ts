@@ -263,18 +263,20 @@ export default class Recording {
     });
 
     // Reset nickname
-    const selfUser = (await this.channel.guild.fetchMembers({ userIDs: [this.recorder.client.bot.user.id] }))[0];
-    if (selfUser.nick && recIndicator.test(selfUser.nick))
-      try {
-        await this.recorder.client.bot.editGuildMember(
-          this.channel.guild.id,
-          '@me',
-          { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
-          'Removing recording status'
-        );
-      } catch (e) {
-        this.recorder.logger.error('Failed to change nickname', e);
-      }
+    if (this.recorder.client.config.craig.removeNickname) {
+      const selfUser = (await this.channel.guild.fetchMembers({ userIDs: [this.recorder.client.bot.user.id] }))[0];
+      if (selfUser.nick && recIndicator.test(selfUser.nick))
+        try {
+          await this.recorder.client.bot.editGuildMember(
+            this.channel.guild.id,
+            '@me',
+            { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
+            'Removing recording status'
+          );
+        } catch (e) {
+          this.recorder.logger.error('Failed to change nickname', e);
+        }
+    }
 
     // TODO add stats on recording stop
   }
