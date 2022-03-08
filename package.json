@@ -5,7 +5,8 @@
     "private": true,
     "workspaces": [
         "apps/bot",
-        "apps/download"
+        "apps/download",
+        "apps/tasks"
     ],
     "scripts": {
       "build": "yarn workspaces run build",

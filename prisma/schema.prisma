@@ -14,6 +14,7 @@ model User {
   id         String    @id
   rewardTier Int       @default(0)
   jwtDate    DateTime? @db.Timestamptz(6)
+  patronId   String?
   createdAt  DateTime  @db.Timestamptz(6) @default(now())
   updatedAt  DateTime  @db.Timestamptz(6) @updatedAt
 }
@@ -62,4 +63,14 @@ model GoogleDriveUser {
   token     String
   format    String?
   container String?
+}
+
+model Patreon {
+  id          String    @id
+  name        String
+  email       String
+  cents       Int
+	tiers       String[]
+  createdAt   DateTime  @db.Timestamptz(6) @default(now())
+  updatedAt   DateTime  @db.Timestamptz(6) @updatedAt
 }
