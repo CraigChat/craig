@@ -3,7 +3,7 @@ import Eris from 'eris';
 import { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
 import { processCooldown } from '../redis';
-import { makeDownloadMessage, parseRewards } from '../util';
+import { cutoffText, makeDownloadMessage, parseRewards } from '../util';
 import RecorderModule from './recorder';
 import Recording from './recorder/recording';
 
@@ -101,15 +101,29 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           where: { id: autoRecording.id }
         }));
 
-      // Check guild-wide cooldown, skip if hit
-      const guildCooldown = await processCooldown(`join:guild:${guildId}`, 30, 2);
-      if (guildCooldown !== true) return;
-
       // Check if user can record (sanity check)
       if (parsedRewards.rewards.recordHours <= 0)
         return void (await prisma.autoRecord.delete({
           where: { id: autoRecording.id }
         }));
+
+      // Check guild-wide cooldown, skip if hit
+      const guildCooldown = await processCooldown(`join:guild:${guildId}`, 30, 2);
+      if (guildCooldown !== true) return;
+
+      // Nickname the bot
+      const selfUser = (await guild.fetchMembers({ userIDs: [this.client.bot.user.id] }))[0];
+      const recNick = cutoffText(`![RECORDING] ${selfUser.nick ?? selfUser.username}`, 32);
+      if (!selfUser.nick || !selfUser.nick.includes('[RECORDING]'))
+        try {
+          await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
+        } catch (e) {
+          this.client.commands.logger.error('Failed to change nickname', e);
+          return void this.logger.debug(
+            `Could not connect to ${channelId}: An error occurred while changing my nickname`,
+            e
+          );
+        }
 
       // Start recording
       const recording = new Recording(this.recorder, channel as any, member.user, true);
