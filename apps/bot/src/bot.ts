@@ -9,6 +9,7 @@ import { iterateFolder } from 'dexare/lib/util';
 import ShardingModule from './modules/sharding';
 import RecorderModule from './modules/recorder';
 import { prisma } from './prisma';
+import { client as redisClient } from './redis';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -70,7 +71,6 @@ if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined)
   });
 }
 export const client = new CraigBot(dexareConfig);
-
 client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule);
 client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
@@ -100,6 +100,7 @@ export async function connect() {
   await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) =>
     client.commands.register(require(file))
   );
+  await redisClient.connect();
   await client.connect();
   client.bot.editStatus('online', client.config.status);
 }

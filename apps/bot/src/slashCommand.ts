@@ -3,6 +3,7 @@ import { SlashCommand, SlashCommandOptions, SlashCreator } from 'slash-create';
 import { CraigBot, CraigBotConfig } from './bot';
 import RecorderModule from './modules/recorder';
 import { prisma } from './prisma';
+import { client as redisClient } from './redis';
 
 export default abstract class GeneralCommand extends SlashCommand {
   constructor(creator: SlashCreator, opts: SlashCommandOptions) {
@@ -19,5 +20,9 @@ export default abstract class GeneralCommand extends SlashCommand {
 
   get prisma() {
     return prisma;
+  }
+
+  get redis() {
+    return redisClient;
   }
 }
