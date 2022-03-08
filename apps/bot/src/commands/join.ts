@@ -1,6 +1,7 @@
 import { oneLine, stripIndents } from 'common-tags';
 import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle } from 'slash-create';
 import Recording from '../modules/recorder/recording';
+import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission, cutoffText, parseRewards } from '../util';
 
@@ -26,6 +27,14 @@ export default class Join extends GeneralCommand {
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
     const guild = this.client.bot.guilds.get(ctx.guildID)!;
+
+    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    if (userCooldown !== true)
+      return {
+        content: 'You are running commands too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
@@ -95,6 +104,14 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
+    // Check guild-wide cooldown
+    const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}`, 60, 2);
+    if (guildCooldown !== true)
+      return {
+        content: 'This server is recording too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
     // Check for DM permissions
     const dmChannel = await member.user.getDMChannel().catch(() => null);
     if (!dmChannel) {
@@ -158,7 +175,7 @@ export default class Join extends GeneralCommand {
 
               **Guild:** ${guild.name} (${guild.id})
               **Recording ID:** \`${recording.id}\`
-              **Delete key:** ||\`${recording.deleteKey}\`||
+              **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
 
               I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
               recordTime / 1000

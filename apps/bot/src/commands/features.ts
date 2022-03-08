@@ -1,6 +1,7 @@
 import { stripIndents } from 'common-tags';
 import { SlashCreator, CommandContext, ComponentType, ButtonStyle } from 'slash-create';
 import { RewardTier } from '../bot';
+import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 
 export default class Features extends GeneralCommand {
@@ -34,6 +35,13 @@ export default class Features extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
+    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    if (userCooldown !== true)
+      return {
+        content: 'You are running commands too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
     const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
     const blessing = ctx.guildID ? await this.prisma.blessing.findFirst({ where: { guildId: ctx.guildID } }) : null;
     const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;

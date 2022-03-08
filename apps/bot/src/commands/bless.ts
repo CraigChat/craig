@@ -1,4 +1,5 @@
 import { SlashCreator, CommandContext } from 'slash-create';
+import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { blessServer } from '../util';
 
@@ -15,6 +16,14 @@ export default class Bless extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
+
+    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    if (userCooldown !== true)
+      return {
+        content: 'You are running commands too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
     return await blessServer(ctx.user.id, ctx.guildID);
   }
 }

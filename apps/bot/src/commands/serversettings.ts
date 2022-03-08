@@ -1,5 +1,6 @@
 import { stripIndents } from 'common-tags';
 import { SlashCreator, CommandContext, CommandOptionType } from 'slash-create';
+import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 
 export default class ServerSettings extends GeneralCommand {
@@ -56,6 +57,14 @@ export default class ServerSettings extends GeneralCommand {
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
     const guild = this.client.bot.guilds.get(ctx.guildID)!;
+
+    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    if (userCooldown !== true)
+      return {
+        content: 'You are running commands too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     if (!ctx.member!.permissions.has('MANAGE_GUILD'))
       return {
