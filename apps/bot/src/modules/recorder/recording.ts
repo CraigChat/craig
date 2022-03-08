@@ -67,9 +67,6 @@ export interface Chunk {
   time: number;
 }
 
-// TODO warn on silence
-// TODO add recording expiry cron (iterate over files and delete old ones)
-// TODO add recording timeout
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   id = recNanoid();
