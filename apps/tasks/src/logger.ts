@@ -66,7 +66,7 @@ function _log({ file, level, args }: { file: string; level: string; args: any[] 
       format: format.combine(
         format.printf((info) => {
           const lClk = levelColors[info.level] || chalk.yellow.bgBlack;
-          const mClk = colorPool[_hashCode(file) % colorPool.length];
+          const mClk = colorPool[Math.abs(_hashCode(file)) % colorPool.length];
           return (
             mClk(` ${file} `) +
             chalk.black.bgWhite(` ${dayjs().format('MM/DD HH:mm:ss')} `) +

@@ -7,7 +7,7 @@ const downloadConfig = config.get('downloads') as {
   expiration: number;
 };
 
-export default class RefreshPatrons extends TaskJob {
+export default class CleanDownloads extends TaskJob {
   constructor() {
     super('cleanDownloads', '0 * * * *');
   }
