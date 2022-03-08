@@ -1,7 +1,10 @@
 import { Guild } from '@prisma/client';
 import axios from 'axios';
+import { stripIndents } from 'common-tags';
+import Eris from 'eris';
 import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
 import { CraigBotConfig, RewardTier } from './bot';
+import Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
 
 export const userAgent = `CraigBot (https://craig.chat ${require('../package.json').version}) Node.js/${
@@ -68,6 +71,71 @@ export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | '
   } catch (e) {
     return null;
   }
+}
+
+export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig) {
+  const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
+  const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
+  return {
+    embeds: [
+      {
+        description: stripIndents`
+          Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
+          Date.now() / 1000
+        )}:F>.
+          > You can bring up the recording panel with \`/join\`.
+
+          **Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})
+          **Recording ID:** \`${recording.id}\`
+          **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
+
+          I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
+          recordTime / 1000
+        )}:R> from now.
+          This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${
+          parsedRewards.rewards.downloadExpiryHours / 24
+        } days from now)
+        `,
+        footer: {
+          text: "The audio can be downloaded even while I'm still recording."
+        }
+      }
+    ],
+    components: [
+      {
+        type: ComponentType.ACTION_ROW,
+        components: [
+          {
+            type: ComponentType.BUTTON,
+            style: ButtonStyle.LINK,
+            label: 'Download',
+            url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+            emoji: { id: '949825704923639828' }
+          },
+          {
+            type: ComponentType.BUTTON,
+            style: ButtonStyle.LINK,
+            label: 'Delete recording',
+            url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+            emoji: { id: '949825704596500481' }
+          }
+        ]
+      },
+      recording.messageChannelID && recording.messageID
+        ? {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Jump to recording panel',
+                url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+              }
+            ]
+          }
+        : null
+    ].filter((c) => !!c)
+  } as Eris.MessageContent;
 }
 
 export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {

@@ -48,6 +48,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
     eris: chalk.black.bgCyan,
     recorder: chalk.red.bgBlack,
     sharding: chalk.blue.bgBlack,
+    autorecord: chalk.black.bgGreen,
     commands: chalk.black.bgYellow,
     sys: chalk.black.bgGray,
     dbots: chalk.black.bgYellowBright
@@ -88,7 +89,8 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
         format: format.combine(
           format.printf((info) => {
             const lClk = this.levelColors[info.level] || chalk.yellow.bgBlack;
-            const mClk = this.moduleColors[moduleName] || colorPool[this._hashCode(moduleName) % colorPool.length];
+            const mClk =
+              this.moduleColors[moduleName] || colorPool[Math.abs(this._hashCode(moduleName)) % colorPool.length];
             return (
               (process.env.SHARD_ID ? chalk.white.bgBlue(` shard ${process.env.SHARD_ID} `) : '') +
               mClk(` ${moduleName} `) +

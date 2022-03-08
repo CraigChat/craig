@@ -53,9 +53,11 @@ model AutoRecord {
   id           String   @id @default(cuid())
   channelId    String
   clientId     String
+  guildId      String
   userId       String
-  minimum      Int      @default(0)
+  minimum      Int      @default(1)
   triggerUsers String[]
+  updatedAt    DateTime  @db.Timestamptz(6) @updatedAt
 }
 
 model GoogleDriveUser {

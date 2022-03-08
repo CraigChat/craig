@@ -1,9 +1,9 @@
-import { oneLine, stripIndents } from 'common-tags';
+import { oneLine } from 'common-tags';
 import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle } from 'slash-create';
 import Recording from '../modules/recorder/recording';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission, cutoffText, parseRewards } from '../util';
+import { checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards } from '../util';
 
 // TODO stage-specific behavior
 export default class Join extends GeneralCommand {
@@ -105,7 +105,7 @@ export default class Join extends GeneralCommand {
       };
 
     // Check guild-wide cooldown
-    const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}`, 60, 2);
+    const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}`, 30, 2);
     if (guildCooldown !== true)
       return {
         content: 'This server is recording too often! Try again in a few seconds.',
@@ -184,64 +184,8 @@ export default class Join extends GeneralCommand {
     await recording.start(parsedRewards);
 
     // Send DM
-    const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
-    const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
     const dmMessage = await dmChannel
-      .createMessage({
-        embeds: [
-          {
-            description: stripIndents`
-              Started recording in <#${channel!.id}> at <t:${Math.floor(Date.now() / 1000)}:F>.
-
-              **Guild:** ${guild.name} (${guild.id})
-              **Recording ID:** \`${recording.id}\`
-              **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-
-              I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
-              recordTime / 1000
-            )}:R> from now.
-              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${
-              parsedRewards.rewards.downloadExpiryHours / 24
-            } days from now)
-            `,
-            footer: {
-              text: "The audio can be downloaded even while I'm still recording."
-            }
-          }
-        ],
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Download',
-                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-                emoji: { id: '949825704923639828' }
-              },
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Delete recording',
-                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
-                emoji: { id: '949825704596500481' }
-              }
-            ]
-          },
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Jump to recording panel',
-                url: `https://discordapp.com/channels/${ctx.guildID}/${recording.messageChannelID}/${recording.messageID}`
-              }
-            ]
-          }
-        ]
-      })
+      .createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config))
       .catch(() => null);
 
     if (dmMessage)

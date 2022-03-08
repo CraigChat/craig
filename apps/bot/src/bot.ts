@@ -2,12 +2,13 @@ import { DexareClient, BaseConfig } from 'dexare';
 import config from 'config';
 import path from 'node:path';
 import Eris from 'eris';
+import { SlashCreatorOptions } from 'slash-create';
 import LoggerModule from './modules/logger';
 import SlashModule from './modules/slash';
-import { SlashCreatorOptions } from 'slash-create';
 import { iterateFolder } from 'dexare/lib/util';
 import ShardingModule from './modules/sharding';
 import RecorderModule from './modules/recorder';
+import AutorecordModule from './modules/autoRecord';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 
@@ -71,7 +72,7 @@ if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined)
   });
 }
 export const client = new CraigBot(dexareConfig);
-client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule);
+client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule);
 client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
 // Makes custom emojis with the name 'craig' work as prefixes

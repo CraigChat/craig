@@ -20,6 +20,7 @@ dayjs.extend(duration);
 const opus = new OpusEncoder(48000, 2);
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const recNanoid = customAlphabet(alphabet, 10);
+const recIndicator = / *!?\[RECORDING\] */g;
 
 const OPUS_HEADERS = [
   Buffer.from([
@@ -75,6 +76,7 @@ export default class Recording {
   channel: Eris.StageChannel | Eris.VoiceChannel;
   user: Eris.User;
   active = false;
+  autorecorded = false;
   state: RecordingState = RecordingState.IDLE;
   warningState: WarningState | null = null;
   stateDescription?: string;
@@ -110,14 +112,16 @@ export default class Recording {
   constructor(
     recorder: RecorderModule<DexareClient<CraigBotConfig>>,
     channel: Eris.StageChannel | Eris.VoiceChannel,
-    user: Eris.User
+    user: Eris.User,
+    auto = false
   ) {
     this.recorder = recorder;
     this.channel = channel;
     this.user = user;
+    this.autorecorded = auto;
   }
 
-  async start(parsedRewards: ParsedRewards, auto = false) {
+  async start(parsedRewards: ParsedRewards) {
     this.recorder.logger.debug(
       `Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`
     );
@@ -144,6 +148,7 @@ export default class Recording {
         key: this.accessKey,
         delete: this.deleteKey,
         guild: this.channel.guild.name,
+        autorecorded: this.autorecorded,
         guildExtra: {
           name: this.channel.guild.name,
           id: this.channel.guild.id,
@@ -195,7 +200,7 @@ export default class Recording {
 
       this.unusedMinutes++;
       if (this.usedMinutes === 0) {
-        this.stateDescription = "⚠️ I haven't received any data from anyone!";
+        this.stateDescription = "⚠️ I haven't received any audio from anyone!";
         await this.stop();
       } else if (this.unusedMinutes === 5 && !this.silenceWarned) {
         this.pushToActivity(
@@ -220,7 +225,7 @@ export default class Recording {
         clientId: this.recorder.client.bot.user.id,
         shardId: (this.recorder.client as unknown as CraigBot).shard!.id || -1,
         rewardTier: tier,
-        autorecorded: auto,
+        autorecorded: this.autorecorded,
         expiresAt: new Date(this.startedAt.valueOf() + rewards.downloadExpiryHours * 60 * 60 * 1000),
         createdAt: this.startedAt
       }
@@ -256,6 +261,21 @@ export default class Recording {
       where: { id: this.id },
       data: { endedAt: new Date() }
     });
+
+    // Reset nickname
+    const selfUser = (await this.channel.guild.fetchMembers({ userIDs: [this.recorder.client.bot.user.id] }))[0];
+    if (selfUser.nick && recIndicator.test(selfUser.nick))
+      try {
+        await this.recorder.client.bot.editGuildMember(
+          this.channel.guild.id,
+          '@me',
+          { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
+          'Removing recording status'
+        );
+      } catch (e) {
+        this.recorder.logger.error('Failed to change nickname', e);
+      }
+
     // TODO add stats on recording stop
   }
 
@@ -327,7 +347,7 @@ export default class Recording {
       this.pushToActivity('An error has disconnected me, reconnecting...');
       await this.connect();
     } else {
-      this.pushToActivity('The voice connection was closed, disconnecting...');
+      this.pushToActivity('The voice connection was closed, disconnecting...', false);
       try {
         await this.stop();
       } catch (e) {
@@ -495,14 +515,14 @@ export default class Recording {
 
   // Message handling //
 
-  pushToActivity(log: string) {
+  pushToActivity(log: string, update = true) {
     if (this.startTime) {
       const timestamp = process.hrtime(this.startTime);
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       this.logs.push(`\`${dayjs.duration(time).format('HH:mm:ss')}\`: ${log}`);
     } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
     this.logStream?.write(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
-    this.updateMessage();
+    if (update) this.updateMessage();
   }
 
   writeToLog(log: string, type?: string) {
