@@ -2,7 +2,7 @@ import { stripIndents } from 'common-tags';
 import Eris from 'eris';
 import { createWriteStream, WriteStream } from 'fs';
 import { writeFile, access } from 'fs/promises';
-import { nanoid } from 'nanoid';
+import { nanoid, customAlphabet } from 'nanoid';
 import path from 'path';
 import { ButtonStyle, ComponentType } from 'slash-create';
 import RecorderModule from '.';
@@ -18,6 +18,8 @@ import { DexareClient } from 'dexare';
 dayjs.extend(duration);
 
 const opus = new OpusEncoder(48000, 2);
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const recNanoid = customAlphabet(alphabet, 10);
 
 const OPUS_HEADERS = [
   Buffer.from([
@@ -70,7 +72,7 @@ export interface Chunk {
 // TODO add recording timeout
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
-  id = nanoid(9);
+  id = recNanoid();
   accessKey = nanoid(6);
   deleteKey = nanoid(6);
   channel: Eris.StageChannel | Eris.VoiceChannel;
