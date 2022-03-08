@@ -101,6 +101,13 @@ export default class Recording {
   headerEncoder1: OggEncoder | null = null;
   headerEncoder2: OggEncoder | null = null;
 
+  timeout: any;
+  usageInterval: any;
+  lastSize = 0;
+  usedMinutes = 0;
+  unusedMinutes = 0;
+  silenceWarned = false;
+
   constructor(
     recorder: RecorderModule<DexareClient<CraigBotConfig>>,
     channel: Eris.StageChannel | Eris.VoiceChannel,
@@ -171,6 +178,34 @@ export default class Recording {
     this.usersStream.write('"0":{}\n');
     this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
 
+    this.timeout = setTimeout(async () => {
+      if (this.state !== RecordingState.RECORDING) return;
+      this.writeToLog('Timeout reached, stopping recording');
+      this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.downloadExpiryHours} hours for this recording.`;
+      await this.stop();
+    }, rewards.downloadExpiryHours * 60 * 60 * 1000);
+
+    this.usageInterval = setInterval(async () => {
+      if (this.state !== RecordingState.RECORDING) return;
+      if (this.bytesWritten !== this.lastSize) {
+        this.lastSize = this.bytesWritten;
+        this.usedMinutes++;
+        this.unusedMinutes = 0;
+        return;
+      }
+
+      this.unusedMinutes++;
+      if (this.usedMinutes === 0) {
+        this.stateDescription = "⚠️ I haven't received any data from anyone!";
+        await this.stop();
+      } else if (this.unusedMinutes === 5 && !this.silenceWarned) {
+        this.pushToActivity(
+          "⚠️ Hello? I haven't heard anything for five minutes. Make sure to stop the recording if you are done! If you are taking a break, disregard this message."
+        );
+        this.silenceWarned = true;
+      }
+    }, 60000);
+
     this.active = true;
     await this.playNowRecording();
     this.updateMessage();
@@ -195,6 +230,8 @@ export default class Recording {
   }
 
   async stop(internal = false, userID?: string) {
+    clearTimeout(this.timeout);
+    clearInterval(this.usageInterval);
     this.active = false;
     if (!internal) {
       this.state = RecordingState.ENDED;
