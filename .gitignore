@@ -22,6 +22,6 @@ apps/download/downloads/
 *.log
 .env
 dist/
-apps/bot/config/default.js
+apps/*/config/default.js
 node-log.txt
 nohup.out

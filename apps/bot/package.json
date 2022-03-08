@@ -14,7 +14,7 @@
     "build": "npx rimraf dist && tsc",
     "lint": "npx eslint --ext .ts,.tsx .",
     "lint:fix": "npx eslint --ext .ts,.tsx . --fix",
-    "prisma:generate": "prisma generate --schema=../prisma/schema.prisma"
+    "prisma:generate": "prisma generate --schema=../../prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^3.10.0",

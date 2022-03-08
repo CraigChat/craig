@@ -11,7 +11,11 @@
       "build": "yarn workspaces run build",
       "test": "yarn workspaces run test",
       "lint": "yarn workspaces run lint",
-      "lint:fix": "yarn workspaces run lint:fix"
+      "lint:fix": "yarn workspaces run lint:fix",
+      "sync": "yarn workspace craig-bot sync",
+      "sync:dev": "yarn workspace craig-bot sync:dev",
+      "prisma:generate": "prisma generate",
+      "prisma:deploy": "prisma migrate deploy"
     },
     "repository": {
         "type": "git",
