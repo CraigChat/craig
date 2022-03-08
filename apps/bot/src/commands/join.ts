@@ -112,26 +112,35 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
-    // Check discord status
-    // const discordStatus = await getDiscordStatus();
-    // if ((['major', 'minor', 'critical'] as any[]).includes(discordStatus))
-    //   return {
-    //     content: `The Discord API is currently having a ${discordStatus} issue! To prevent issues along the way, recording will not be possible until the issue is resolved.`,
-    //     components: [
-    //       {
-    //         type: ComponentType.ACTION_ROW,
-    //         components: [
-    //           {
-    //             type: ComponentType.BUTTON,
-    //             style: ButtonStyle.LINK,
-    //             label: 'discordstatus.com',
-    //             url: 'https://discordstatus.com/'
-    //           }
-    //         ]
-    //       }
-    //     ],
-    //     ephemeral: true
-    //   };
+    // Get rewards
+    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
+    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
+    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+    const parsedRewards = parseRewards(
+      this.recorder.client.config,
+      userData?.rewardTier ?? 0,
+      blessingUser?.rewardTier ?? 0
+    );
+
+    // Check if user can record
+    if (parsedRewards.rewards.recordHours <= 0)
+      return {
+        content: 'Sorry, but this bot is only for patrons. Please use Craig.',
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'craig.chat',
+                url: 'https://craig.chat/'
+              }
+            ]
+          }
+        ],
+        ephemeral: true
+      };
 
     // Check for DM permissions
     const dmChannel = await member.user.getDMChannel().catch(() => null);
@@ -164,16 +173,6 @@ export default class Join extends GeneralCommand {
         this.client.commands.logger.error('Failed to change nickname', e);
         return `An error occurred while changing my nickname: ${e}`;
       }
-
-    // Get rewards
-    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
-    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(
-      this.recorder.client.config,
-      userData?.rewardTier ?? 0,
-      blessingUser?.rewardTier ?? 0
-    );
 
     // Start recording
     const recording = new Recording(this.recorder, channel as any, member.user);
