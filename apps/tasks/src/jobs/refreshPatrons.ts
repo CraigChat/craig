@@ -27,7 +27,8 @@ export default class RefreshPatrons extends TaskJob {
       `https://patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`,
       {
         headers: {
-          Authorization: `Bearer ${patreonConfig.accessToken}`
+          Authorization: `Bearer ${patreonConfig.accessToken}`,
+          'User-Agent': this.userAgent
         }
       }
     );

@@ -4,6 +4,10 @@ import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions 
 import { CraigBotConfig, RewardTier } from './bot';
 import { prisma } from './prisma';
 
+export const userAgent = `CraigBot (https://craig.chat ${require('../package.json').version}) Node.js/${
+  process.version
+}`;
+
 export function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -57,7 +61,9 @@ export function disableComponents(components: ComponentActionRow[]) {
 
 export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | 'major' | 'minor' | 'maintenence'> {
   try {
-    const response = await axios.get('https://discordstatus.com/api/v2/status.json');
+    const response = await axios.get('https://discordstatus.com/api/v2/status.json', {
+      headers: { 'User-Agent': userAgent }
+    });
     return response.data?.status?.indicator;
   } catch (e) {
     return null;

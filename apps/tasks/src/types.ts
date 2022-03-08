@@ -4,6 +4,7 @@ export class TaskJob {
   name: string;
   time: string;
   logger: Logger;
+  userAgent = `CraigTasks (https://craig.chat ${require('../package.json').version}) Node.js/${process.version}`;
 
   constructor(name: string, time: string) {
     this.name = name;
