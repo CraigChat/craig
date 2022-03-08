@@ -1,4 +1,5 @@
 import { Guild } from '@prisma/client';
+import axios from 'axios';
 import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
 import { CraigBotConfig, RewardTier } from './bot';
 import { prisma } from './prisma';
@@ -52,6 +53,15 @@ export function disableComponents(components: ComponentActionRow[]) {
     ...c,
     components: c.components.map((c) => ({ ...c, disabled: true }))
   }));
+}
+
+export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | 'major' | 'minor' | 'maintenence'> {
+  try {
+    const response = await axios.get('https://discordstatus.com/api/v2/status.json');
+    return response.data?.status?.indicator;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {

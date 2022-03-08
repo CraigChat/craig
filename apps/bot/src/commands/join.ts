@@ -3,7 +3,7 @@ import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonS
 import Recording from '../modules/recorder/recording';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission, cutoffText, parseRewards } from '../util';
+import { checkRecordingPermission, cutoffText, getDiscordStatus, parseRewards } from '../util';
 
 // TODO stage-specific behavior
 export default class Join extends GeneralCommand {
@@ -109,6 +109,14 @@ export default class Join extends GeneralCommand {
     if (guildCooldown !== true)
       return {
         content: 'This server is recording too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
+    // Check discord status
+    const discordStatus = await getDiscordStatus();
+    if ((['major', 'minor', 'critical'] as any[]).includes(discordStatus))
+      return {
+        content: `The Discord API is currently ${discordStatus}! Recording is not possible at this time.`,
         ephemeral: true
       };
 
