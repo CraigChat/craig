@@ -1,5 +1,5 @@
 import { stripIndents } from 'common-tags';
-import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle } from 'slash-create';
+import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle, ChannelType } from 'slash-create';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission, parseRewards } from '../util';
@@ -32,8 +32,8 @@ export default class AutoRecord extends GeneralCommand {
             {
               type: CommandOptionType.CHANNEL,
               name: 'channel',
-              description: 'The channel to view.',
-              channel_types: [2, 13],
+              description: 'The channel to auto-record in.',
+              channel_types: [ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE],
               required: true
             },
             {
@@ -47,6 +47,12 @@ export default class AutoRecord extends GeneralCommand {
               type: CommandOptionType.STRING,
               name: 'triggers',
               description: 'The members that trigger the auto-recording. Mention users inside this option.'
+            },
+            {
+              type: CommandOptionType.CHANNEL,
+              name: 'post-channel',
+              description: 'The channel to post recording panels to when an auto-recording starts.',
+              channel_types: [ChannelType.GUILD_TEXT]
             }
           ]
         },
@@ -59,7 +65,7 @@ export default class AutoRecord extends GeneralCommand {
               type: CommandOptionType.CHANNEL,
               name: 'channel',
               description: 'The channel to turn off auto-recording in.',
-              channel_types: [2, 13],
+              channel_types: [ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE],
               required: true
             }
           ]
@@ -166,10 +172,14 @@ export default class AutoRecord extends GeneralCommand {
             {
               title: 'Auto-recorded Channels',
               description: autoRecordings
-                .map(
-                  (ar) =>
-                    `<#${ar.channelId}> by <@${ar.userId}> (${ar.minimum} minimum, ${ar.triggerUsers.length} trigger users)`
-                )
+                .map((ar) => {
+                  const extra = [
+                    ar.minimum !== 1 ? `${ar.minimum} minimum` : null,
+                    ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} trigger users` : null,
+                    ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
+                  ].filter((e) => !!e) as string[];
+                  return `<#${ar.channelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
+                })
                 .join('\n')
             }
           ],
@@ -180,6 +190,7 @@ export default class AutoRecord extends GeneralCommand {
         const channel = ctx.options.on.channel as string;
         const min = ctx.options.on.mininum || 1;
         const triggerUsers = ctx.users.map((u) => u.id);
+        const postChannel = ctx.options.on['post-channel'] as string;
 
         const autoRecordingCount = await this.prisma.autoRecord.count({
           where: { guildId: ctx.guildID, clientId: this.client.bot.user.id }
@@ -198,7 +209,7 @@ export default class AutoRecord extends GeneralCommand {
         if (autoRecording)
           await this.prisma.autoRecord.update({
             where: { id: autoRecording.id },
-            data: { userId: ctx.user.id, minimum: min, triggerUsers: triggerUsers }
+            data: { userId: ctx.user.id, minimum: min, triggerUsers: triggerUsers, postChannelId: postChannel || null }
           });
         else
           await this.prisma.autoRecord.create({
@@ -207,13 +218,15 @@ export default class AutoRecord extends GeneralCommand {
               guildId: ctx.guildID,
               channelId: channel,
               userId: ctx.user.id,
+              postChannelId: postChannel || null,
               minimum: min,
               triggerUsers: triggerUsers
             }
           });
 
         return {
-          content: `Auto-recording on <#${channel}> has been activated. Please make sure you can receive DMs from me.`
+          content: `Auto-recording on <#${channel}> has been activated. Please make sure you can receive DMs from me.`,
+          ephemeral: true
         };
       }
       case 'off': {

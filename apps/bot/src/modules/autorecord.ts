@@ -128,6 +128,22 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       // Start recording
       const recording = new Recording(this.recorder, channel as any, member.user, true);
       this.recorder.recordings.set(guildId, recording);
+      if (autoRecording.postChannelId) {
+        const postChannel = guild.channels.get(autoRecording.postChannelId);
+        if (
+          postChannel &&
+          channel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
+          channel.permissionsOf(this.client.bot.user.id).has('embedLinks')
+        ) {
+          const message = await this.client.bot
+            .createMessage(postChannel.id, recording.messageContent() as any)
+            .catch(() => null);
+          if (message) {
+            recording.messageID = message.id;
+            recording.messageChannelID = message.channel.id;
+          }
+        }
+      }
       await recording.start(parsedRewards);
 
       // Try to DM user
