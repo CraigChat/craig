@@ -15,6 +15,7 @@
       "lint:fix": "yarn workspaces run lint:fix",
       "sync": "yarn workspace craig-bot sync",
       "sync:dev": "yarn workspace craig-bot sync:dev",
+      "run-job": "yarn workspace craig-tasks run-job",
       "prisma:generate": "prisma generate",
       "prisma:deploy": "prisma migrate deploy"
     },

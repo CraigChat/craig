@@ -48,9 +48,10 @@ export default class CleanRecordings extends TaskJob {
 
       try {
         const info = JSON.parse(await readFile(path.join(recPath, `${id}.ogg.info`), 'utf8'));
-        const shouldExpire = info.expiresAt
-          ? Date.parse(info.startTime) + info.expiresAt * 60 * 60 * 60 < Date.now()
-          : s.mtime.getTime() + recordingConfig.fallbackExpiration < Date.now();
+        const shouldExpire =
+          info.expiresAfter !== undefined
+            ? Date.parse(info.startTime) + info.expiresAfter * 60 * 60 * 60 < Date.now()
+            : s.mtime.getTime() + recordingConfig.fallbackExpiration < Date.now();
 
         if (shouldExpire) {
           this.logger.log(`Deleting ${id}.`);
