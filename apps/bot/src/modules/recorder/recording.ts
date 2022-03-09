@@ -469,8 +469,8 @@ export default class Recording {
 
       if (user)
         try {
-          const { data } = await axios.get(user.dynamicAvatarURL('png', 2048));
-          recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data).toString('base64');
+          const { data } = await axios.get(user.dynamicAvatarURL('png', 2048), { responseType: 'arraybuffer' });
+          recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data, 'binary').toString('base64');
         } catch (e) {
           this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
           this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
