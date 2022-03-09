@@ -1,21 +1,39 @@
 import { stripIndents } from 'common-tags';
 import { CommandContext, DexareClient, DexareCommand } from 'dexare';
 import { ButtonStyle, ComponentType } from 'slash-create';
+import RecorderModule from '../modules/recorder';
+import { prisma } from '../prisma';
+import { checkRecordingPermissionEris } from '../util';
 
-export default class JoinCommand extends DexareCommand {
+export default class LeaveCommand extends DexareCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
-      name: 'join'
+      name: 'leave',
+      aliases: ['stop']
     });
 
     this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {
+    if (ctx.member) {
+      const hasPermission = checkRecordingPermissionEris(
+        ctx.member!,
+        await prisma.guild.findFirst({ where: { id: ctx.member.guild.id } })
+      );
+      if (hasPermission) {
+        const recorder = this.client.modules.get('recorder') as RecorderModule<any>;
+        const recording = recorder.recordings.get(ctx.member.guild.id);
+        await recording?.stop(false, ctx.member.id);
+      }
+    }
+
     ctx.reply({
       content: stripIndents`
         **${ctx.client.bot.user.username}** now uses slash commands for recordings!
         Please make sure that my commands are showing up when typing \`/\` in your chat box.
+
+        *If you had any recordings in progress, they have been stopped.*
       `,
       components: [
         {

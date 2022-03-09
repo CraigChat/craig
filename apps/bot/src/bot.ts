@@ -81,7 +81,7 @@ client.events.register(
   'prefixer',
   'messageCreate',
   (event, message) => {
-    if (/^<a?:craig:\d+>/.test(message.content)) event.set('prefix', message.content.match(/^<a?:craig:\d+>/)![0]);
+    if (/^<a?:craig:\d+>,?/.test(message.content)) event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
   },
   { after: ['commands'] }
 );

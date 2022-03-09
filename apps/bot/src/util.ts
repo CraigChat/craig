@@ -39,6 +39,13 @@ export function checkRecordingPermission(member: Member, guildData?: Guild | nul
   return false;
 }
 
+export function checkRecordingPermissionEris(member: Eris.Member, guildData?: Guild | null) {
+  if (!member) return false;
+  if (member.permissions.has('manageGuild')) return true;
+  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) return true;
+  return false;
+}
+
 export interface ParsedRewards {
   tier: number;
   rewards: RewardTier;
