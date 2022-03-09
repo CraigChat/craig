@@ -11,6 +11,7 @@
   },
   "scripts": {
     "start": "node dist/index.js",
+    "start:sharding": "node dist/sharding/index.js",
     "build": "npx rimraf dist && tsc",
     "sync": "npx slash-up sync",
     "sync:dev": "npx slash-up sync -e development",
