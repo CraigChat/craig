@@ -109,4 +109,5 @@ export async function connect() {
 
 export async function disconnect() {
   await client.disconnect();
+  redisClient.disconnect();
 }

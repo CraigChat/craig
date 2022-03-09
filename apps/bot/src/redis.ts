@@ -14,6 +14,10 @@ interface Cooldown {
   expires: number;
 }
 
+interface Maintenance {
+  message: string;
+}
+
 export async function processCooldown(key: string, duration: number, uses: number) {
   const currentTime = Date.now();
   const cooldownString = await client.get(`cooldown:${key}`);
@@ -25,4 +29,10 @@ export async function processCooldown(key: string, duration: number, uses: numbe
   const expiry = (cooldown.expires - currentTime) / 1000;
   if (Math.round(expiry) > 0) await client.set(`cooldown:${key}`, JSON.stringify(cooldown), 'EX', Math.round(expiry));
   return true;
+}
+
+export async function checkMaintenance(clientId: string): Promise<Maintenance | false> {
+  const maintenanceString = await client.get(`maintenance:${clientId}`);
+  if (!maintenanceString) return false;
+  return JSON.parse(maintenanceString);
 }

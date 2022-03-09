@@ -3,7 +3,8 @@ import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
 import { CraigBotConfig } from '../../bot';
-import Recording from './recording';
+import { checkMaintenance } from '../../redis';
+import Recording, { RecordingState } from './recording';
 
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
@@ -38,6 +39,22 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   find(id: string) {
     for (const recording of this.recordings.values()) {
       if (recording.id === id) return recording;
+    }
+  }
+
+  async checkForMaintenence() {
+    const maintenence = await checkMaintenance(this.client.bot.user.id);
+    if (maintenence) {
+      for (const recording of this.recordings.values()) {
+        if (recording.state === RecordingState.RECORDING) {
+          recording.maintenceWarned = true;
+          recording.pushToActivity('⚠️ The bot is undergoing maintenance, recording will be stopped.', false);
+          recording.stateDescription = `__The bot is undergoing maintenance.__${
+            maintenence.message ? `\n\n${maintenence.message}` : ''
+          }`;
+          await recording.stop().catch(() => null);
+        }
+      }
     }
   }
 

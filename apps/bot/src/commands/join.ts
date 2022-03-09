@@ -1,7 +1,7 @@
 import { oneLine } from 'common-tags';
 import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle } from 'slash-create';
 import Recording from '../modules/recorder/recording';
-import { processCooldown } from '../redis';
+import { checkMaintenance, processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards } from '../util';
 
@@ -101,6 +101,14 @@ export default class Join extends GeneralCommand {
     if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname'))
       return {
         content: 'I do not have permission to change my nickname. I will not record without this permission.',
+        ephemeral: true
+      };
+
+    // Check for maintenence
+    const maintenence = await checkMaintenance(this.client.bot.user.id);
+    if (maintenence)
+      return {
+        content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
         ephemeral: true
       };
 

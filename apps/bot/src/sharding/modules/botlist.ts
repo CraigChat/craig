@@ -31,7 +31,7 @@ export default class BotListPosterModule extends ShardManagerModule {
   async onCron() {
     try {
       const responses = await this.manager.fetchClientValues('bot.guilds.size');
-      const serverCount = responses.reduce((acc, val) => acc + val, 0);
+      const serverCount = responses.reduce((acc, val) => acc + (val ?? 0), 0);
       await this.poster.postManual('all', { serverCount });
     } catch (error) {
       logger.error('Failed to post stats', error);

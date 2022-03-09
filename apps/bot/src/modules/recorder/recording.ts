@@ -108,6 +108,7 @@ export default class Recording {
   usedMinutes = 0;
   unusedMinutes = 0;
   silenceWarned = false;
+  maintenceWarned = false;
 
   constructor(
     recorder: RecorderModule<DexareClient<CraigBotConfig>>,
