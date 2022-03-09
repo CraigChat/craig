@@ -294,6 +294,10 @@ export default class Recording {
       this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
     });
     connection.on('debug', (m) => this.recorder.logger.debug(`Recording ${this.id}`, m));
+    connection.on('error', (err) => {
+      this.writeToLog(`Connection error: ${err}`, 'error');
+      this.recorder.logger.error(`Recording ${this.id}: Connection error`, err);
+    });
     const receiver = connection.receive('opus');
     receiver.on('data', this.onData.bind(this));
     this.state = RecordingState.RECORDING;
