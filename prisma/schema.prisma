@@ -46,6 +46,7 @@ model Recording {
   rewardTier   Int       @default(0)
   createdAt    DateTime  @db.Timestamptz(6) @default(now())
   endedAt      DateTime? @db.Timestamptz(6)
+  errored      Boolean   @default(false)
   expiresAt    DateTime  @db.Timestamptz(6)
 }
 

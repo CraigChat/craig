@@ -98,6 +98,20 @@ process.once('beforeExit', async () => {
   process.exit(0);
 });
 
+process.on('unhandledRejection', (r) => {
+  client.emit('logger', 'error', 'sys', ['Unhandled rejection:', r]);
+});
+
+process.on('uncaughtException', (e) => {
+  client.emit('logger', 'error', 'sys', ['Uncaught exception:', e]);
+});
+
+process.once('unhandledExceptrion', async () => {
+  client.emit('logger', 'warn', 'sys', ['Exiting....']);
+  await client.disconnect();
+  process.exit(0);
+});
+
 export async function connect() {
   await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) =>
     client.commands.register(require(file))

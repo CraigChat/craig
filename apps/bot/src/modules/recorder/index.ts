@@ -3,6 +3,7 @@ import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
 import { CraigBotConfig } from '../../bot';
+import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';
 import Recording, { RecordingState } from './recording';
 
@@ -21,6 +22,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   }
 
   async load() {
+    this.registerEvent('ready', this.onReady.bind(this));
     this.registerEvent('voiceStateUpdate', this.onVoiceStateUpdate.bind(this));
 
     try {
@@ -30,6 +32,10 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       await mkdir(this.recordingPath);
       return;
     }
+  }
+
+  async onReady() {
+    this.checkForErroredRecordings();
   }
 
   unload() {
@@ -42,10 +48,67 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     }
   }
 
+  async checkForErroredRecordings() {
+    const badRecordings = (
+      await prisma.recording.findMany({
+        where: {
+          clientId: this.client.bot.user.id,
+          shardId: this.client.bot.shards.keys().next().value,
+          errored: false,
+          endedAt: null
+        }
+      })
+    ).filter((br) => !this.find(br.id));
+
+    this.logger.info(`Found ${badRecordings.length} errored recordings.`);
+    if (!badRecordings.length) return;
+
+    // Make craig leave from dead channels
+    const guildIds = [...new Set<string>(badRecordings.map((r) => r.guildId))];
+    for (const guildId of guildIds) {
+      const recording = this.recordings.get(guildId);
+      if (recording) continue;
+
+      const guild = this.client.bot.guilds.get(guildId);
+      if (!guild) continue;
+
+      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as
+        | Eris.StageChannel
+        | Eris.VoiceChannel;
+      if (!channel) continue;
+
+      await channel.join().catch(() => null);
+      channel.leave();
+    }
+
+    // Warn users
+    const userIds = [...new Set<string>(badRecordings.map((r) => r.userId))];
+    for (const userId of userIds) {
+      const user = this.client.bot.users.get(userId);
+      if (!user) continue;
+
+      const dmChannel = await user.getDMChannel().catch(() => null);
+      if (!dmChannel) continue;
+
+      await dmChannel.createMessage(
+        `**⚠️ The following recordings have abruptly ended, please start a new recording from the slash command as the recording interface is no longer valid.**\n\n${badRecordings
+          .filter((r) => r.userId === userId)
+          .map((r) => `- \`${r.id}\` in <#${r.channelId}>`)
+          .join('\n')}`
+      );
+    }
+
+    // Delete errored recordings
+    for (const recording of badRecordings) {
+      await prisma.recording.delete({ where: { id: recording.id } });
+    }
+  }
+
   async checkForMaintenence() {
     const maintenence = await checkMaintenance(this.client.bot.user.id);
     if (maintenence) {
-      for (const recording of this.recordings.values()) {
+      const recordings = Array.from(this.recordings.values());
+      for (const recording of recordings) {
         if (recording.state === RecordingState.RECORDING) {
           recording.maintenceWarned = true;
           recording.pushToActivity('⚠️ The bot is undergoing maintenance, recording will be stopped.', false);

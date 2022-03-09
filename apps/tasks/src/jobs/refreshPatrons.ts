@@ -147,7 +147,7 @@ export default class RefreshPatrons extends TaskJob {
           }
         )
       ) {
-        this.logger.log(`Upserting patron ${patron.id} (${patron.name} ${patron.email})`);
+        this.logger.log(`Upserting patron ${patron.id} (${patron.name} - ${patron.email})`);
         operations.push(
           prisma.patreon.upsert({
             where: { id: patron.id },

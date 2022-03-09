@@ -224,7 +224,7 @@ export default class Recording {
         channelId: this.channel.id,
         guildId: this.channel.guild.id,
         clientId: this.recorder.client.bot.user.id,
-        shardId: (this.recorder.client as unknown as CraigBot).shard!.id || -1,
+        shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
         rewardTier: tier,
         autorecorded: this.autorecorded,
         expiresAt: new Date(this.startedAt.valueOf() + rewards.downloadExpiryHours * 60 * 60 * 1000),
