@@ -2,6 +2,7 @@ import * as logger from './logger';
 import ShardManager from './manager';
 import config from 'config';
 import BotListPosterModule from './modules/botlist';
+import ShardUtilModule from './modules/shardutil';
 
 const manager = new ShardManager(config.get('sharding'));
 manager.on('shardSpawn', (shard) => logger.info(`Shard ${shard.id} spawned process ${shard.process.pid}`));
@@ -12,7 +13,7 @@ manager.on('ready', (shard, msg) =>
 );
 manager.on('shardError', (shard, e) => logger.error(`Shard ${shard.id} encountered an error`, e));
 
-manager.loadModules(BotListPosterModule);
+manager.loadModules(BotListPosterModule, ShardUtilModule);
 process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r));
 
 (async () => {
