@@ -24,13 +24,21 @@ try {
 
 // Really annoying locale implementation
 const localePath = path.join(__dirname, '../../locale');
-const locales = readdirSync(localePath).filter((f) => !f.includes('.')).reduce((pl, l) => ({
-  ...pl,
-  [l]: readdirSync(path.join(localePath, l)).reduce((pj, j) => ({
-    ...pj,
-    [j.replace('.json', '')]: JSON.parse(readFileSync(path.join(localePath, l, j), { encoding: 'utf-8' }))
-  }), {})
-}), {})
+const locales = readdirSync(localePath)
+  .filter((f) => !f.includes('.'))
+  .reduce(
+    (pl, l) => ({
+      ...pl,
+      [l]: readdirSync(path.join(localePath, l)).reduce(
+        (pj, j) => ({
+          ...pj,
+          [j.replace('.json', '')]: JSON.parse(readFileSync(path.join(localePath, l, j), { encoding: 'utf-8' }))
+        }),
+        {}
+      )
+    }),
+    {}
+  );
 
 export default ({ watch }) => [
   {
