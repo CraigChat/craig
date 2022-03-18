@@ -15,24 +15,15 @@ import { OpusEncoder } from '@discordjs/opus';
 import { prisma } from '../../prisma';
 import { ParsedRewards } from '../../util';
 import { DexareClient } from 'dexare';
+import { EMPTY_BUFFER, OPUS_HEADERS } from './util';
+import { WebappClient } from './webapp';
+import { UserExtraType, WebappOpCloseReason } from './protocol';
 dayjs.extend(duration);
 
 const opus = new OpusEncoder(48000, 2);
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const recNanoid = customAlphabet(alphabet, 10);
 const recIndicator = / *!?\[RECORDING\] */g;
-
-const OPUS_HEADERS = [
-  Buffer.from([
-    0x4f, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64, 0x01, 0x02, 0x00, 0x0f, 0x80, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00
-  ]),
-  Buffer.from([
-    0x4f, 0x70, 0x75, 0x73, 0x54, 0x61, 0x67, 0x73, 0x09, 0x00, 0x00, 0x00, 0x6e, 0x6f, 0x64, 0x65, 0x2d, 0x6f, 0x70,
-    0x75, 0x73, 0x00, 0x00, 0x00, 0x00, 0xff
-  ])
-];
-
-const EMPTY_BUFFER = Buffer.alloc(0);
 
 const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
@@ -57,6 +48,7 @@ export interface RecordingUser {
   username: string;
   discriminator: string;
   avatar?: string;
+  avatarUrl?: string;
   unknown: boolean;
   track: number;
   packet: number;
@@ -68,11 +60,14 @@ export interface Chunk {
   time: number;
 }
 
+// TODO make webapp an opt-in feature and check craig.webapp.on var
+
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   id = recNanoid();
   accessKey = nanoid(6);
   deleteKey = nanoid(6);
+  ennuiKey = nanoid(6);
   channel: Eris.StageChannel | Eris.VoiceChannel;
   user: Eris.User;
   active = false;
@@ -82,6 +77,7 @@ export default class Recording {
   stateDescription?: string;
   connection: Eris.VoiceConnection | null = null;
   receiver: Eris.VoiceDataStream | null = null;
+  webapp?: WebappClient;
 
   messageChannelID: string | null = null;
   messageID: string | null = null;
@@ -104,6 +100,7 @@ export default class Recording {
 
   timeout: any;
   usageInterval: any;
+  sizeLimit = 0;
   lastSize = 0;
   usedMinutes = 0;
   unusedMinutes = 0;
@@ -120,6 +117,7 @@ export default class Recording {
     this.channel = channel;
     this.user = user;
     this.autorecorded = auto;
+    this.sizeLimit = this.recorder.client.config.craig.sizeLimit;
   }
 
   async start(parsedRewards: ParsedRewards) {
@@ -231,6 +229,9 @@ export default class Recording {
         createdAt: this.startedAt
       }
     });
+
+    this.webapp = new WebappClient(this, parsedRewards);
+
     // TODO add stats on recording start
   }
 
@@ -248,6 +249,7 @@ export default class Recording {
       const user = this.users[userID];
       this.flush(user, this.userPackets[userID].length);
     }
+    this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
 
     // Close the output files
     this.headerEncoder1?.end();
@@ -381,10 +383,7 @@ export default class Recording {
 
   write(stream: OggEncoder, granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags?: number) {
     this.bytesWritten += chunk.length;
-    if (
-      this.recorder.client.config.craig.sizeLimit &&
-      this.bytesWritten >= this.recorder.client.config.craig.sizeLimit
-    ) {
+    if (this.sizeLimit && this.bytesWritten >= this.sizeLimit) {
       if (!this.hardLimitHit) {
         this.hardLimitHit = true;
         this.stateDescription = '⚠️ The recording has reached the size limit and has been automatically stopped.';
@@ -457,6 +456,12 @@ export default class Recording {
       };
       recordingUser = this.users[userID];
 
+      this.webapp?.monitorSetConnected(
+        recordingUser.track,
+        `${recordingUser.username}#${recordingUser.discriminator}`,
+        true
+      );
+
       try {
         this.write(this.headerEncoder1!, 0, recordingUser.track, 0, OPUS_HEADERS[0], BOS);
         this.write(this.headerEncoder2!, 0, recordingUser.track, 1, OPUS_HEADERS[1]);
@@ -472,7 +477,7 @@ export default class Recording {
         if (member) user = member.user;
       }
 
-      if (user)
+      if (user) {
         try {
           const { data } = await axios.get(user.dynamicAvatarURL('png', 2048), { responseType: 'arraybuffer' });
           recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data, 'binary').toString('base64');
@@ -480,6 +485,11 @@ export default class Recording {
           this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
           this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
         }
+
+        recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
+        if (recordingUser.avatarUrl)
+          this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
+      }
 
       this.usersStream?.write(
         `,"${recordingUser.track}":${JSON.stringify({
@@ -508,6 +518,9 @@ export default class Recording {
 
     // Flush packets if its getting long
     if (this.userPackets[userID].length >= 16) this.flush(recordingUser, 1);
+
+    // Set speaking thru webapp
+    this.webapp?.userSpeaking(recordingUser.track);
   }
 
   note(note: string) {

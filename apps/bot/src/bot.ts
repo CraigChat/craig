@@ -27,7 +27,15 @@ export interface CraigBotConfig extends BaseConfig {
     recordingFolder: string;
     removeNickname: boolean;
     sizeLimit: number;
+    sizeLimitWeb: number;
+    sizeLimitWebOpus: number;
     inviteID?: string;
+    webapp: {
+      on: boolean;
+      url: string;
+      token: string;
+      connectUrl: string;
+    };
     rewardTiers: { [tier: string]: RewardTier };
   };
 

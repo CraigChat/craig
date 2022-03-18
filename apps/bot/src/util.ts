@@ -1,6 +1,6 @@
 import { Guild } from '@prisma/client';
 import axios from 'axios';
-import { stripIndents } from 'common-tags';
+import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import Eris from 'eris';
 import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
 import { CraigBotConfig, RewardTier } from './bot';
@@ -80,6 +80,15 @@ export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | '
   }
 }
 
+export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'), {
+  onEndResult(endResult) {
+    return endResult
+      .replace(/[^\S\n]+$/gm, '')
+      .replace(/^\n/, '')
+      .replace(/\n\n+/, '\n');
+  }
+});
+
 export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig) {
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
@@ -92,9 +101,18 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
         )}:F>.
           > You can bring up the recording panel with \`/join\`.
 
-          **Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})
-          **Recording ID:** \`${recording.id}\`
-          **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
+          ${stripIndentsAndLines`
+            **Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})
+            **Recording ID:** \`${recording.id}\`
+            **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
+            ${
+              recording.webapp
+                ? `**Webapp URL:** ${config.craig.webapp.connectUrl
+                    .replace('{id}', recording.id)
+                    .replace('{key}', recording.ennuiKey)}`
+                : ''
+            }
+          `}
 
           I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
           recordTime / 1000
