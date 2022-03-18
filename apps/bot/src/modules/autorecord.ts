@@ -2,7 +2,7 @@ import { DexareModule, DexareClient } from 'dexare';
 import Eris from 'eris';
 import { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
-import { processCooldown } from '../redis';
+import { checkMaintenance, processCooldown } from '../redis';
 import { cutoffText, makeDownloadMessage, parseRewards } from '../util';
 import RecorderModule from './recorder';
 import Recording from './recorder/recording';
@@ -65,6 +65,10 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       return void (await prisma.autoRecord.delete({
         where: { id: autoRecording.id }
       }));
+
+    // Check maintenence
+    const maintenence = await checkMaintenance(this.client.bot.user.id);
+    if (maintenence) return;
 
     // Determine min and trigger users
     const guild = this.client.bot.guilds.get(guildId)!;

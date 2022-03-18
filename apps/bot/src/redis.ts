@@ -36,3 +36,11 @@ export async function checkMaintenance(clientId: string): Promise<Maintenance | 
   if (!maintenanceString) return false;
   return JSON.parse(maintenanceString);
 }
+
+export async function setMaintenance(clientId: string, data: Maintenance): Promise<void> {
+  await client.set(`maintenance:${clientId}`, JSON.stringify(data));
+}
+
+export async function removeMaintenance(clientId: string): Promise<void> {
+  await client.del(`maintenance:${clientId}`);
+}

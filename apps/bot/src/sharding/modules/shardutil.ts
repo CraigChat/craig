@@ -21,7 +21,7 @@ export default class ShardUtilModule extends ShardManagerModule {
       const onShard = this.manager.shards.get(msg.d.id);
       if (!onShard) return respond({ result: null, error: 'Shard not found' });
       try {
-        const res = await onShard.eval(msg.cmd);
+        const res = await onShard.eval(msg.d.script);
         return respond({ result: res });
       } catch (ex) {
         return respond({ result: null, error: ex });
@@ -50,6 +50,21 @@ export default class ShardUtilModule extends ShardManagerModule {
       const recResponses = await this.manager.fetchClientValues('modules.get("recorder").recordings.size');
       const recordings = recResponses.reduce((acc, val) => acc + (val ?? 0), 0);
       return respond({ guilds, recordings });
+    });
+    this.registerCommand('getShardInfo', async (shard, msg, respond) => {
+      logger.debug(`Shard ${shard.id}: Getting shard info`);
+      const res = await this.manager.broadcastEval(`
+        let res = {
+          id: this.shard ? this.shard.id : parseInt(process.env.SHARD_ID),
+          status: this.shard.status,
+          guilds: this.bot.guilds.size,
+          latency: Number.isFinite(this.shard.latency) ? this.shard.latency : -1,
+          uptime: process.uptime(),
+          recordings: this.modules.get("recorder").recordings.size
+        };
+        res
+      `);
+      return respond({ res });
     });
   }
 

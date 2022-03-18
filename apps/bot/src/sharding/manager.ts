@@ -36,7 +36,7 @@ export default class ShardManager extends EventEmitter {
     this.on('message', this._processCommand.bind(this));
     this.commands.set('managerEval', (shard, msg, respond) => {
       try {
-        const r = eval(msg.cmd);
+        const r = eval(msg.d.script);
         respond({ result: r });
       } catch (e) {
         respond({ result: null, error: e });
@@ -53,7 +53,7 @@ export default class ShardManager extends EventEmitter {
     try {
       if (cmd) await cmd(shard, msg, respond);
     } catch (e) {
-      logger.error(`Error from shard ${shard.id} command`, e);
+      logger.error(`Error from shard ${shard.id} command ${msg.t}`, e);
     }
   }
 

@@ -2,10 +2,14 @@ import { DexareModule } from 'dexare';
 import { nanoid } from 'nanoid';
 import { CraigBot } from '../bot';
 import type { ManagerResponseMessage } from '../sharding/types';
+import { makePlainError } from '../util';
 
 // @ts-ignore
 export default class ShardingModule extends DexareModule<CraigBot> {
-  _awaitedPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: unknown) => void }>();
+  _awaitedPromises = new Map<
+    string,
+    { resolve: (value: any) => void; reject: (reason?: unknown) => void; timeout: any }
+  >();
   on = !!process.env.SHARD_COUNT;
 
   constructor(client: any) {
@@ -36,7 +40,8 @@ export default class ShardingModule extends DexareModule<CraigBot> {
     if (typeof message === 'object') {
       // Respond to requests
       if (message.r && this._awaitedPromises.has(message.r)) {
-        const { resolve } = this._awaitedPromises.get(message.r)!;
+        const { resolve, timeout } = this._awaitedPromises.get(message.r)!;
+        clearTimeout(timeout);
         this._awaitedPromises.delete(message.r);
         resolve(message);
         return;
@@ -48,7 +53,7 @@ export default class ShardingModule extends DexareModule<CraigBot> {
             const result = eval('this.client.' + message.d.prop);
             this.respond(message.n, { result });
           } catch (e) {
-            this.respond(message.n, { result: null, error: e });
+            this.respond(message.n, { result: null, error: makePlainError(e as any) });
           }
           return;
         }
@@ -59,7 +64,7 @@ export default class ShardingModule extends DexareModule<CraigBot> {
             }.bind(this.client)();
             this.respond(message.n, { result });
           } catch (e) {
-            this.respond(message.n, { result: null, error: e });
+            this.respond(message.n, { result: null, error: makePlainError(e as any) });
           }
           return;
         }
@@ -122,7 +127,11 @@ export default class ShardingModule extends DexareModule<CraigBot> {
       if (!process.env.SHARD_COUNT || !process.send) return reject(new Error('This is not sharded.'));
 
       const nonce = nanoid();
-      this._awaitedPromises.set(nonce, { resolve, reject });
+      const timeout = setTimeout(() => {
+        this._awaitedPromises.delete(nonce);
+        reject(new Error('Request timed out.'));
+      }, 5000);
+      this._awaitedPromises.set(nonce, { resolve, reject, timeout });
       process.send({
         t: type,
         n: nonce,
