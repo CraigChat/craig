@@ -6,6 +6,7 @@ import type { ManagerResponseMessage } from '../sharding/types';
 // @ts-ignore
 export default class ShardingModule extends DexareModule<CraigBot> {
   _awaitedPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: unknown) => void }>();
+  on = !!process.env.SHARD_COUNT;
 
   constructor(client: any) {
     super(client, {
@@ -132,5 +133,12 @@ export default class ShardingModule extends DexareModule<CraigBot> {
         }
       });
     });
+  }
+
+  async getCounts(): Promise<[number, number]> {
+    if (!this.on) return [this.client.bot.guilds.size, (this.client.modules.get('recorder')! as any).recordings.size];
+
+    const a = await this.sendAndRecieve<{ guilds: number; recordings: number }>('getCounts');
+    return [a.d.guilds, a.d.recordings];
   }
 }

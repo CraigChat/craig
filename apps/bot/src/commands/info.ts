@@ -2,7 +2,6 @@ import { stripIndents } from 'common-tags';
 import { SlashCreator, ComponentType, ButtonStyle } from 'slash-create';
 import GeneralCommand from '../slashCommand';
 
-// TODO show active recording count and guild count
 export default class Info extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
@@ -14,9 +13,13 @@ export default class Info extends GeneralCommand {
   }
 
   async run() {
+    const [guildCount, recordings] = await this.sharding.getCounts();
+
     return {
       content: stripIndents`
         <:craig:${this.client.config.craig.emoji}> **Craig** is a multi-track voice channel recorder.
+        I am in **${guildCount.toLocaleString()}** guilds and currently recording **${recordings.toLocaleString()}** conversations.
+
         This server is on shard ${this.client.shard?.id ?? process.env.SHARD_ID} with ${
         this.client.shard?.latency ?? '<unknown>'
       } milliseconds of latency.

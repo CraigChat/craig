@@ -43,6 +43,14 @@ export default class ShardUtilModule extends ShardManagerModule {
       logger.info(`Shard ${shard.id}: Told shards to check maintenance`);
       await this.manager.broadcastEval('this.modules.get("recorder").checkMaintenance()');
     });
+    this.registerCommand('getCounts', async (shard, msg, respond) => {
+      logger.debug(`Shard ${shard.id}: Getting counts`);
+      const guildResponses = await this.manager.fetchClientValues('bot.guilds.size');
+      const guilds = guildResponses.reduce((acc, val) => acc + (val ?? 0), 0);
+      const recResponses = await this.manager.fetchClientValues('modules.get("recorder").recordings.size');
+      const recordings = recResponses.reduce((acc, val) => acc + (val ?? 0), 0);
+      return respond({ guilds, recordings });
+    });
   }
 
   unload() {
