@@ -11,6 +11,8 @@ import RecorderModule from './modules/recorder';
 import AutorecordModule from './modules/autoRecord';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
+import { cron as influxCron } from './influx';
+import { close as closeSentry } from './sentry';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -126,10 +128,12 @@ export async function connect() {
   );
   await redisClient.connect();
   await client.connect();
+  influxCron.start();
   client.bot.editStatus('online', client.config.status);
 }
 
 export async function disconnect() {
   await client.disconnect();
+  await closeSentry();
   redisClient.disconnect();
 }

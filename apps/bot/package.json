@@ -20,6 +20,7 @@
     "prisma:generate": "prisma generate --schema=../../prisma/schema.prisma"
   },
   "dependencies": {
+    "@influxdata/influxdb-client": "^1.24.0",
     "@prisma/client": "^3.10.0",
     "@sentry/integrations": "^6.17.4",
     "@sentry/node": "^6.17.4",

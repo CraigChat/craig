@@ -420,6 +420,11 @@
   resolved "https://registry.yarnpkg.com/@influxdata/influxdb-client/-/influxdb-client-1.23.0.tgz#d1472eca049cef613cfa109de9a3ee3eaa6d4d42"
   integrity sha512-0bRb60PSQO1OxfYVJ5MKDMqMPuBE3qlN9C6o6Jmnx8cMj/MO1eEBfc6vNdO8Cudvhn0K+SKEUs2KCrM+kjynqw==
 
+"@influxdata/influxdb-client@^1.24.0":
+  version "1.24.0"
+  resolved "https://registry.yarnpkg.com/@influxdata/influxdb-client/-/influxdb-client-1.24.0.tgz#f054a65fe77f1051683fb0b07cdeadd8463b4b09"
+  integrity sha512-UsqTvmhgVy4Z3o71kp8794FoxMWuF9I9yjZ3RCjzNPLQZsO7wmG3bD+Bik7tTDq9gnRdb/CV9wypdDl0ApHhIg==
+
 "@jridgewell/resolve-uri@^3.0.3":
   version "3.0.5"
   resolved "https://registry.yarnpkg.com/@jridgewell/resolve-uri/-/resolve-uri-3.0.5.tgz#68eb521368db76d040a6315cdb24bf2483037b9c"

@@ -18,6 +18,7 @@ import { DexareClient } from 'dexare';
 import { EMPTY_BUFFER, OPUS_HEADERS } from './util';
 import { WebappClient } from './webapp';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
+import { onRecordingStart } from '../../influx';
 dayjs.extend(duration);
 
 const opus = new OpusEncoder(48000, 2);
@@ -239,6 +240,8 @@ export default class Recording {
     });
 
     if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
+
+    onRecordingStart(this.user.id, this.channel.guild.id, this.autorecorded);
   }
 
   async stop(internal = false, userID?: string) {

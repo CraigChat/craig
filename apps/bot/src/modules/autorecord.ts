@@ -144,7 +144,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           }
         }
       }
-      await recording.start(parsedRewards);
+      await recording.start(parsedRewards, userData?.webapp ?? false);
 
       // Try to DM user
       const dmChannel = await member.user.getDMChannel().catch(() => null);

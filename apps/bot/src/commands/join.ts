@@ -182,7 +182,7 @@ export default class Join extends GeneralCommand {
       }
 
     // Start recording
-    const recording = new Recording(this.recorder, channel as any, member.user);
+    const recording = new Recording(this.recorder, channel as any, member.user, userData?.webapp ?? false);
     this.recorder.recordings.set(ctx.guildID, recording);
     await ctx.editOriginal(recording.messageContent() as any);
     const { id: messageID } = await ctx.fetch();
