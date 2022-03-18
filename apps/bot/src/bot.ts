@@ -13,6 +13,7 @@ import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 import { cron as influxCron } from './influx';
 import { close as closeSentry } from './sentry';
+import { init as i18nInit } from './i18n';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -123,6 +124,7 @@ process.once('unhandledExceptrion', async () => {
 });
 
 export async function connect() {
+  await i18nInit();
   await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) =>
     client.commands.register(require(file))
   );
