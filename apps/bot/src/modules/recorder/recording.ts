@@ -120,7 +120,17 @@ export default class Recording {
     this.sizeLimit = this.recorder.client.config.craig.sizeLimit;
   }
 
+  async sanityCheckIdClashing() {
+    // Realistically, this should never happen, but just in case
+    if (await prisma.recording.count({ where: { id: this.id } })) {
+      this.id = recNanoid();
+      await this.sanityCheckIdClashing();
+    }
+  }
+
   async start(parsedRewards: ParsedRewards) {
+    await this.sanityCheckIdClashing();
+
     this.recorder.logger.debug(
       `Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`
     );

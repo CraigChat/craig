@@ -111,8 +111,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                     .replace('{id}', recording.id)
                     .replace('{key}', recording.ennuiKey)}`
                 : ''
-            }
-          `}
+            }`}
 
           I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
           recordTime / 1000
