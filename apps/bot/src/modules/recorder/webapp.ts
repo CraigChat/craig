@@ -326,7 +326,6 @@ export class WebappClient {
 
     switch (cmd) {
       case EnnuicastrId.INFO: {
-        // FIXME: We're counting on the fact that only FLAC sends info right now
         if (message.length != EnnuicastrParts.info.length)
           return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
 

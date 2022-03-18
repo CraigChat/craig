@@ -5,7 +5,6 @@ import { checkMaintenance, processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards } from '../util';
 
-// TODO stage-specific behavior
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {

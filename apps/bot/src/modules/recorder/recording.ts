@@ -60,8 +60,6 @@ export interface Chunk {
   time: number;
 }
 
-// TODO make webapp an opt-in feature and check craig.webapp.on var
-
 export default class Recording {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   id = recNanoid();
@@ -128,7 +126,7 @@ export default class Recording {
     }
   }
 
-  async start(parsedRewards: ParsedRewards) {
+  async start(parsedRewards: ParsedRewards, webapp = false) {
     await this.sanityCheckIdClashing();
 
     this.recorder.logger.debug(
@@ -240,9 +238,7 @@ export default class Recording {
       }
     });
 
-    this.webapp = new WebappClient(this, parsedRewards);
-
-    // TODO add stats on recording start
+    if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
   }
 
   async stop(internal = false, userID?: string) {
@@ -290,8 +286,6 @@ export default class Recording {
           this.recorder.logger.error('Failed to change nickname', e);
         }
     }
-
-    // TODO add stats on recording stop
   }
 
   async connect() {
@@ -446,7 +440,6 @@ export default class Recording {
 
   async onData(data: Buffer, userID: string, timestamp: number) {
     data = Buffer.from(data);
-    // TODO log unusual data
     if (!userID) return;
 
     let recordingUser = this.users[userID];
