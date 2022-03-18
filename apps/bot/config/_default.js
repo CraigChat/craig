@@ -120,7 +120,7 @@ module.exports = {
           // MP3 God
           recordHours: 24,
           downloadExpiryHours: 720,
-          features: ['mp3']
+          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3']
         }
       }
     },
