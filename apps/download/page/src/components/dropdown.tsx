@@ -5,11 +5,13 @@ import { Icon, IconifyIcon } from '@iconify/react';
 import checkIcon from '@iconify-icons/ic/baseline-check';
 import dropdownIcon from '@iconify-icons/ic/baseline-arrow-drop-down';
 import clsx from 'clsx';
+import { asT, StringT } from '../util';
+import { useTranslation } from 'react-i18next';
 
-interface DropdownItem extends Record<string, any> {
+export interface DropdownItem extends Record<string, any> {
   icon?: IconifyIcon;
-  title: string;
-  suffix?: string;
+  title: StringT;
+  suffix?: StringT;
   value: string;
 }
 
@@ -34,6 +36,7 @@ export default function Dropdown({
   bottom,
   onSelect
 }: DropdownProps) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(defaultSelected || items[0]);
 
   function onSelectItem(item: DropdownItem) {
@@ -55,8 +58,8 @@ export default function Dropdown({
               <span className="flex items-center gap-1">
                 {selected.icon ? <Icon icon={selected.icon} className="w-5 h-5 pointer-events-none" /> : ''}
                 <span className="block truncate font-medium">
-                  {selected.title}
-                  {selected.suffix ? <span className="font-normal"> {selected.suffix}</span> : ''}
+                  {asT(t, selected.title)}
+                  {selected.suffix ? <span className="font-normal"> {asT(t, selected.suffix)}</span> : ''}
                 </span>
               </span>
               <span className="ml-3 absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -96,8 +99,8 @@ export default function Dropdown({
                         <div className="flex items-center gap-1 text-sm sm:text-base">
                           {item.icon ? <Icon icon={item.icon} className="w-5 h-5 pointer-events-none" /> : ''}
                           <span className="block truncate font-medium">
-                            {item.title}
-                            {item.suffix ? <span className="font-normal"> {item.suffix}</span> : ''}
+                            {asT(t, item.title)}
+                            {item.suffix ? <span className="font-normal"> {asT(t, item.suffix)}</span> : ''}
                           </span>
                         </div>
 

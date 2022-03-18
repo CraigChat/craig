@@ -4,8 +4,8 @@ import glowersIcon from '@iconify-icons/ic/round-adjust';
 import videoIcon from '@iconify-icons/ic/round-video-file';
 import { useTranslation } from 'react-i18next';
 import Section from './section';
-import { asT, PlatformInfo, StringT } from '../util';
-import Dropdown from './dropdown';
+import { PlatformInfo } from '../util';
+import Dropdown, { DropdownItem } from './dropdown';
 import { CookAvatarsPayload, RecordingUser } from '../api';
 import Toggle from './toggle';
 import ColorPicker from './colorPicker';
@@ -16,19 +16,6 @@ interface GlowersSectionProps {
   users: RecordingUser[];
   platform: PlatformInfo;
   onDownload?(payload: CookAvatarsPayload, e: MouseEvent): any;
-}
-
-interface DropdownItem {
-  title: StringT;
-  suffix?: StringT;
-  value: string;
-  hidden?: (p: PlatformInfo) => boolean;
-}
-
-interface DropdownItemString {
-  title: string;
-  suffix?: string;
-  value: string;
 }
 
 const items: DropdownItem[] = [
@@ -82,23 +69,14 @@ const items: DropdownItem[] = [
 
 export default function GlowersSection({ users, platform, onDownload }: GlowersSectionProps) {
   const { t } = useTranslation();
-  const [options, setOptions] = useState<DropdownItemString[]>([]);
+  const [options, setOptions] = useState<DropdownItem[]>(items);
   const [formatOption, setFormatOption] = useState(options[0]);
   const [bgColor, setBgColor] = useState('#000000');
   const [fgColor, setFgColor] = useState('#008000');
   const [transparent, setTransparent] = useState(false);
 
   useEffect(() => {
-    const newOptions = items
-      .filter((item) => !item.hidden || !item.hidden(platform))
-      .map(
-        (item) =>
-          ({
-            title: asT(t, item.title),
-            ...(item.suffix ? { suffix: asT(t, item.suffix) } : ''),
-            value: item.value
-          } as DropdownItemString)
-      );
+    const newOptions = items.filter((item) => !item.hidden || !item.hidden(platform));
     setOptions(newOptions);
     setFormatOption(newOptions[0]);
   }, [platform, t]);
