@@ -18,7 +18,7 @@ import { DexareClient } from 'dexare';
 import { EMPTY_BUFFER, OPUS_HEADERS } from './util';
 import { WebappClient } from './webapp';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
-import { onRecordingStart } from '../../influx';
+import { onRecordingEnd, onRecordingStart } from '../../influx';
 dayjs.extend(duration);
 
 const opus = new OpusEncoder(48000, 2);
@@ -273,6 +273,18 @@ export default class Recording {
       where: { id: this.id },
       data: { endedAt: new Date() }
     });
+
+    const timestamp = process.hrtime(this.startTime);
+    const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
+    await onRecordingEnd(
+      this.user.id,
+      this.channel.guild.id,
+      this.startedAt!,
+      time,
+      this.autorecorded,
+      !!this.webapp,
+      false
+    );
 
     // Reset nickname
     if (this.recorder.client.config.craig.removeNickname) {

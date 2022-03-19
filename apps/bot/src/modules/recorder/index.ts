@@ -3,6 +3,7 @@ import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
 import { CraigBotConfig } from '../../bot';
+import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';
 import Recording, { RecordingState } from './recording';
@@ -101,6 +102,15 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     // Delete errored recordings
     for (const recording of badRecordings) {
       await prisma.recording.delete({ where: { id: recording.id } });
+      await onRecordingEnd(
+        recording.userId,
+        recording.guildId,
+        recording.createdAt,
+        Date.now() - recording.createdAt.valueOf(),
+        recording.autorecorded,
+        false,
+        true
+      );
     }
   }
 

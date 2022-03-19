@@ -18,6 +18,8 @@ export let commandsRan = 0;
 export let recordingsStarted = 0;
 export let autorecordingsStarted = 0;
 
+export let pointQueue: Point[] = [];
+
 export function onCommandRun(userID: string, commandName: string, guildID?: string) {
   const commandCount = commandCounts.get(commandName) || { users: [], used: 0 };
 
@@ -39,6 +41,48 @@ export function onRecordingStart(userID: string, guildID: string, auto = false) 
   if (auto) autorecordingsStarted++;
 }
 
+export async function onRecordingEnd(
+  userID: string,
+  guildID: string,
+  started: Date,
+  duration: number,
+  auto = false,
+  webapp = false,
+  errored = false
+) {
+  if (!activeUsers.includes(userID)) activeUsers.push(userID);
+  if (!activeGuilds.includes(guildID)) activeGuilds.push(guildID);
+
+  // Push this to queue
+  pointQueue.push(
+    new Point('recording')
+      .tag('server', influxOpts.server || hostname())
+      .tag('bot', influxOpts.bot || 'craig')
+      .tag('guildId', guildID)
+      .tag('userId', userID)
+      .tag('auto', auto ? 'true' : 'false')
+      .tag('webapp', webapp ? 'true' : 'false')
+      .tag('errored', errored ? 'true' : 'false')
+      .intField('duration', duration)
+      .timestamp(started)
+  );
+
+  // Flush queue
+  try {
+    const writeApi = client!.getWriteApi(influxOpts.org, influxOpts.bucket, 's');
+    writeApi.writePoints(pointQueue);
+    await writeApi.close();
+
+    pointQueue = [];
+  } catch (e) {
+    withScope((scope) => {
+      scope.clear();
+      captureException(e);
+    });
+    console.error('Error writing points to Influx.', e);
+  }
+}
+
 async function collect(timestamp = new Date()) {
   if (!influxOpts || !influxOpts.url) return;
   if (!timestamp) timestamp = cron.lastDate();
@@ -50,7 +94,7 @@ async function collect(timestamp = new Date()) {
       .tag('bot', influxOpts.bot || 'craig')
       .intField('recordingsStarted', recordingsStarted)
       .intField('autorecordingsStarted', autorecordingsStarted)
-      .intField('activeRecordings', (dexareClient.modules.get('recorder') as any).activeRecordings.size)
+      .intField('activeRecordings', (dexareClient.modules.get('recorder') as any).recordings.size)
       .intField('commandsRan', commandsRan)
       .intField('activeUsers', activeUsers.length)
       .intField('activeGuilds', activeGuilds.length)
