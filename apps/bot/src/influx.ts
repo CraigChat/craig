@@ -84,7 +84,7 @@ async function collect(timestamp = new Date()) {
         .tag('shard', String(shard.id))
         .intField('ms', isFinite(shard.latency) ? shard.latency : 0)
         .stringField('status', shard.status || 'unknown')
-        .intField('guilds', serverMap[String(shard.id)])
+        .intField('guilds', serverMap[String(shard.id)] ?? 0)
         .timestamp(timestamp)
     )
   );
