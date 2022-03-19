@@ -25,12 +25,22 @@ export default class Features extends GeneralCommand {
       40: 'MP3 God Weasel'
     };
 
+    const featureNames: { [key: string]: string } = {
+      mix: 'Smart Mix',
+      auto: 'Auto-recording',
+      drive: 'Google Drive Integration',
+      glowers: 'Glowers',
+      eccontinuous: 'Continuous Mode via Webapp',
+      ecflac: 'FLAC via Webapp',
+      mp3: 'Exporting to MP3'
+    };
+
     return stripIndents`
       __**${tierNames[tier] || `Tier ${tier}`}**__ ${by ? `(Blessed by <@${by}>)` : ''}
       Record Duration Limit: ${rewards.recordHours} hours
       Download Expiration: ${rewards.downloadExpiryHours / 24} days
 
-      ${rewards.features.map((feat) => `<:check:842172191801212949> ${feat}`).join('\n')}
+      ${rewards.features.map((feat) => `<:check:842172191801212949> ${featureNames[feat] ?? feat}`).join('\n')}
     `;
   }
 
