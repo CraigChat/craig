@@ -50,6 +50,7 @@ async function collect(timestamp = new Date()) {
       .tag('bot', influxOpts.bot || 'craig')
       .intField('recordingsStarted', recordingsStarted)
       .intField('autorecordingsStarted', autorecordingsStarted)
+      .intField('activeRecordings', (dexareClient.modules.get('recorder') as any).activeRecordings.size)
       .intField('commandsRan', commandsRan)
       .intField('activeUsers', activeUsers.length)
       .intField('activeGuilds', activeGuilds.length)
