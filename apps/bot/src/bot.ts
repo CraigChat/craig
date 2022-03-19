@@ -8,7 +8,7 @@ import SlashModule from './modules/slash';
 import { iterateFolder } from 'dexare/lib/util';
 import ShardingModule from './modules/sharding';
 import RecorderModule from './modules/recorder';
-import AutorecordModule from './modules/autoRecord';
+import AutorecordModule from './modules/autorecord';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 import { cron as influxCron } from './influx';
