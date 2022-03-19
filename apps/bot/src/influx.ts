@@ -70,9 +70,9 @@ async function collect(timestamp = new Date()) {
   );
 
   // Insert shard data
-  const serverMap: { [key: number]: number } = {};
+  const serverMap: { [key: string]: number } = {};
   dexareClient.bot.guilds.map((guild) => {
-    const shardID = guild.shard.id;
+    const shardID = String(guild.shard.id);
     if (serverMap[shardID]) serverMap[shardID] += 1;
     else serverMap[shardID] = 1;
   });
@@ -84,7 +84,7 @@ async function collect(timestamp = new Date()) {
         .tag('shard', String(shard.id))
         .intField('ms', isFinite(shard.latency) ? shard.latency : 0)
         .stringField('status', shard.status || 'unknown')
-        .intField('guilds', serverMap[shard.id])
+        .intField('guilds', serverMap[String(shard.id)])
         .timestamp(timestamp)
     )
   );
