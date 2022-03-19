@@ -3,8 +3,6 @@ import fs from 'fs';
 import { Readable } from 'stream';
 import { clearDownload, setDownload } from '../cache';
 import { nanoid } from 'nanoid';
-import { CronJob } from 'cron';
-import { captureException, withScope } from '@sentry/node';
 
 export interface DownloadState {
   file: string;
@@ -15,10 +13,6 @@ export interface DownloadState {
 }
 
 export const downloadPath = path.join(__dirname, '..', '..', 'downloads');
-
-export const cron = new CronJob('0 * * * *', clean, null, false, 'America/New_York');
-
-const DOWNLOAD_EXPIRATION = 24 * 60 * 60 * 1000;
 
 export async function writeToFile(
   stream: Readable,
@@ -47,24 +41,5 @@ export async function removeFile(file: string) {
     await fs.promises.unlink(path.join(downloadPath, file));
   } catch (err) {
     console.error(`Failed to delete file ${file}`, err);
-  }
-}
-
-async function clean(timestamp = new Date()) {
-  try {
-    for (const file of await fs.promises.readdir(downloadPath)) {
-      try {
-        const stat = await fs.promises.stat(path.join(downloadPath, file));
-        if (stat.mtime.getTime() + DOWNLOAD_EXPIRATION < (timestamp || cron.lastDate()).getTime())
-          await removeFile(file);
-      } catch (e) {}
-    }
-  } catch (e) {
-    withScope((scope) => {
-      scope.clear();
-      scope.setExtra('date', timestamp || cron.lastDate());
-      captureException(e);
-    });
-    console.error('Error cleaning download files.', e);
   }
 }
