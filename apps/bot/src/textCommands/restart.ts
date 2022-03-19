@@ -11,7 +11,7 @@ export default class RestartCommand extends DexareCommand {
       category: 'Developer',
       userPermissions: ['dexare.elevated'],
       metadata: {
-        usage: '[message]',
+        usage: '[shardId] ...',
         examples: ['restart', 'restart 0 1 2']
       }
     });
@@ -22,6 +22,8 @@ export default class RestartCommand extends DexareCommand {
   async run(ctx: CommandContext) {
     const client = this.client as unknown as CraigBot;
     const sharding = client.modules.get('sharding') as ShardingModule;
+
+    if (!sharding.on) return 'Sharding is not enabled.';
 
     if (!ctx.args[0]) {
       await ctx.reply('Restarting this shard.');

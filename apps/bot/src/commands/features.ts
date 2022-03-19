@@ -22,7 +22,7 @@ export default class Features extends GeneralCommand {
       10: 'Weasel',
       20: 'Better Weasel',
       30: 'FLAC Weasel',
-      40: 'MP3 God Weasel'
+      100: 'MP3 God Weasel'
     };
 
     const featureNames: { [key: string]: string } = {
