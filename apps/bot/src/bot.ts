@@ -130,6 +130,7 @@ export async function connect() {
   );
   await redisClient.connect();
   await client.connect();
+  await prisma.$connect();
   influxCron.start();
   client.bot.editStatus('online', client.config.status);
 }
@@ -137,5 +138,6 @@ export async function connect() {
 export async function disconnect() {
   await client.disconnect();
   await closeSentry();
+  await prisma.$disconnect();
   redisClient.disconnect();
 }
