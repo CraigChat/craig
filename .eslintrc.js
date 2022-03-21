@@ -6,7 +6,9 @@ module.exports = {
     node: true
   },
   extends: ['eslint:recommended', 'plugin:prettier/recommended'],
-  globals: {},
+  globals: {
+    NodeJS: true
+  },
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 6,
@@ -31,5 +33,11 @@ module.exports = {
       }
     ],
     'spaced-comment': 'warn'
-  }
+  },
+  overrides: [
+    {
+      files: ['*.d.ts'],
+      rules: { 'spaced-comment': 0 }
+    }
+  ]
 };

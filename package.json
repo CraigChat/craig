@@ -5,6 +5,7 @@
     "private": true,
     "workspaces": [
         "apps/bot",
+        "apps/dashboard",
         "apps/download",
         "apps/tasks"
     ],
@@ -16,7 +17,7 @@
       "sync": "yarn workspace craig-bot sync",
       "sync:dev": "yarn workspace craig-bot sync:dev",
       "run-job": "yarn workspace craig-tasks run-job",
-      "prisma:generate": "prisma generate && yarn workspace craig-bot prisma:generate",
+      "prisma:generate": "prisma generate && yarn workspace craig-bot prisma:generate && yarn workspace craig-dashboard prisma:generate",
       "prisma:deploy": "prisma migrate deploy"
     },
     "repository": {

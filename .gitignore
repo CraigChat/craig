@@ -1,9 +1,25 @@
+# dependencies
+node_modules/
+
+# development
+.next/
 .vscode/
 .idea/
 node_modules/
-rec/
+.vercel
+
+# production
 data/
-config.json
+rec/
+dist/
+build/
+
+# misc
+.DS_Store
+*.pem
+*.swp
+
+# Cook
 cook/extnotes
 cook/oggcorrect
 cook/oggduration
@@ -15,13 +31,22 @@ cook/*.png
 cook/*.exe
 cook/*.macosx
 apps/download/downloads/
-*.swp
+
+# Database
 *.db
 *.db-shm
 *.db-wal
+
+# Logs
 *.log
-.env
-dist/
-apps/*/config/default.js
 node-log.txt
 nohup.out
+
+# ENV files and Config
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env
+config.json
+apps/*/config/default.js

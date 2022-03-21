@@ -115,11 +115,18 @@ export default class RefreshPatrons extends TaskJob {
         processedPatrons.push(dbPatron.id);
 
         // Reset rewards tier
-        prisma.user.findFirst();
         const user = await prisma.user.findFirst({ where: { patronId: dbPatron.id } });
         if (user && !patreonConfig.skipUsers.includes(user.id)) {
           this.logger.log(`Resetting rewards for user ${user.id}`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0 } }));
+          const googleDrive = await prisma.googleDriveUser.findFirst({ where: { id: user.id } });
+          if (googleDrive)
+            operations.push(
+              prisma.googleDriveUser.update({
+                where: { id: googleDrive.id },
+                data: { enabled: false }
+              })
+            );
         }
       }
     }

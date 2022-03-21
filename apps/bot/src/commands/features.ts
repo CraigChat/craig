@@ -19,10 +19,10 @@ export default class Features extends GeneralCommand {
     const tierNames: { [key: number]: string } = {
       [-1]: 'Greater Weasel',
       0: 'Default',
-      10: 'Weasel',
-      20: 'Better Weasel',
-      30: 'FLAC Weasel',
-      100: 'MP3 God Weasel'
+      10: 'Supporter',
+      20: 'Better Supporter',
+      30: 'FLAC Demander',
+      100: 'MP3 God'
     };
 
     const featureNames: { [key: string]: string } = {

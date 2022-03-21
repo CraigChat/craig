@@ -14,7 +14,6 @@ model User {
   id         String    @id
   rewardTier Int       @default(0)
   webapp     Boolean   @default(false)
-  jwtDate    DateTime? @db.Timestamptz(6)
   patronId   String?
   createdAt  DateTime  @db.Timestamptz(6) @default(now())
   updatedAt  DateTime  @db.Timestamptz(6) @updatedAt
@@ -64,10 +63,12 @@ model AutoRecord {
 }
 
 model GoogleDriveUser {
-  id        String  @id
-  token     String
-  format    String?
-  container String?
+  id           String  @id
+  refreshToken String?
+  token        String
+  enabled      Boolean @default(false)
+  format       String?
+  container    String?
 }
 
 model Patreon {
