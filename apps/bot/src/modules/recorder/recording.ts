@@ -301,6 +301,63 @@ export default class Recording {
           this.recorder.logger.error('Failed to change nickname', e);
         }
     }
+
+    this.uploadToDrive();
+  }
+
+  async uploadToDrive() {
+    const driveUser = await prisma.googleDriveUser.findUnique({ where: { id: this.user.id } });
+    if (!driveUser || !driveUser.enabled) return;
+
+    const response = await this.recorder.trpc.query('driveUpload', {
+      recordingId: this.id,
+      userId: this.user.id
+    });
+
+    if (response.error) {
+      this.recorder.logger.error(`Failed to upload recording ${this.id} to Google Drive: ${response.error}`);
+      if (response.notify) {
+        const dmChannel = await this.user.getDMChannel().catch(() => null);
+        if (dmChannel)
+          await dmChannel.createMessage({
+            embeds: [
+              {
+                title: 'Failed to upload to Google Drive',
+                description: `Failed to upload recording ${this.id} to Google Drive. You may need to manually upload it to your Google Drive.`,
+                color: 0xe74c3c
+              }
+            ]
+          });
+      }
+      return;
+    }
+
+    if (response.notify) {
+      const dmChannel = await this.user.getDMChannel().catch(() => null);
+      if (dmChannel)
+        await dmChannel.createMessage({
+          embeds: [
+            {
+              title: 'Uploaded to Google Drive',
+              description: `Recording \`${this.id}\` was uploaded to Google Drive.`,
+              color: 0x2ecc71
+            }
+          ],
+          components: [
+            {
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.LINK,
+                  label: 'Open in Google Drive',
+                  url: `https://drive.google.com/open?id=${response.id}`
+                }
+              ]
+            }
+          ]
+        });
+    }
   }
 
   async connect() {

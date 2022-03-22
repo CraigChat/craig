@@ -4,6 +4,11 @@ import { CronJob } from 'cron';
 import config from 'config';
 import { createLogger } from './logger';
 import { TaskJob } from './types';
+import { listen } from './trpc';
+import { client } from './redis';
+const tasksConfig: {
+  ignore: string[];
+} = config.get('tasks');
 
 (async () => {
   const logger = createLogger('tasks');
@@ -16,6 +21,11 @@ import { TaskJob } from './types';
     const jobName = job.replace('.js', '');
     const jobModule = await import(jobPath);
     const jobClass = jobModule.default;
+
+    if (tasksConfig && jobName in tasksConfig.ignore) {
+      logger.info('Ignoring job %s', jobName);
+      continue;
+    }
 
     if (!jobClass) {
       logger.error('Failed to import job %s', jobName);
@@ -41,6 +51,9 @@ import { TaskJob } from './types';
 
     jobCron.start();
   }
+
+  await client.connect();
+  listen(2022);
 
   logger.info('Ready.');
   if (process.send) process.send('ready');

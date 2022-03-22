@@ -2,15 +2,52 @@ import { DexareModule, DexareClient } from 'dexare';
 import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
+import fetch from 'node-fetch';
+import { createTRPCClient } from '@trpc/client';
+import { httpLink } from '@trpc/client/links/httpLink';
 import { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';
 import Recording, { RecordingState } from './recording';
+import type { Procedure } from '@trpc/server/dist/declarations/src/internals/procedure';
+import type { DefaultErrorShape, Router } from '@trpc/server/dist/declarations/src/router';
+
+type TRPCRouter = Router<
+  unknown,
+  unknown,
+  Record<
+    'driveUpload',
+    Procedure<
+      unknown,
+      unknown,
+      {
+        recordingId: string;
+        userId: string;
+      },
+      {
+        recordingId: string;
+        userId: string;
+      },
+      {
+        error: string | null;
+        notify: boolean;
+        id?: string | undefined;
+      }
+    >
+  >,
+  {},
+  {},
+  DefaultErrorShape
+>;
 
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
   recordingPath: string;
+  trpc = createTRPCClient<TRPCRouter>({
+    fetch: fetch as any,
+    links: [httpLink({ url: `http://localhost:2022` })]
+  });
 
   constructor(client: T) {
     super(client, {
