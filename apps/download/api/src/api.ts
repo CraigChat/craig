@@ -10,7 +10,7 @@ import { ErrorCode } from './util';
 import { client as redisClient } from './cache';
 import { cron as influxCron } from './influx';
 import { close as closeSentry } from './sentry';
-import { cron as downloadCron, downloadPath } from './util/download';
+import { downloadPath } from './util/download';
 import { access, mkdir } from 'fs/promises';
 
 export let server: FastifyInstance;
@@ -24,7 +24,6 @@ export async function start(): Promise<void> {
 
   await redisClient.connect();
   influxCron.start();
-  downloadCron.start();
 
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
