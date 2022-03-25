@@ -19,7 +19,7 @@ if (process.argv[4]) {
   var param = process.argv[4];
   val = val[param] ? val[param] : '';
 } else if (typeof val === 'object') {
-  val = val.username + '#' + val.discriminator;
+  val = (val.name || val.username) + '#' + (val.discrim || val.discriminator);
   val = val.replace(/[^a-zA-Z0-9]/g, '_');
 }
 if (process.argv[5] === 'datauri' && val.startsWith('data:')) val = Buffer.from(val.split(',')[1], 'base64');
