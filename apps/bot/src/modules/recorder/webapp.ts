@@ -35,8 +35,8 @@ interface WebUser {
   webUserID: string;
   data: {
     id: string;
-    name: string;
-    discrim: 'web';
+    username: string;
+    discriminator: 'web';
     dtype: DataTypeFlag;
   };
 }
@@ -140,14 +140,14 @@ export class WebappClient {
     if (!user) {
       /* Initialize this user's data (FIXME: partially duplicated from
        * the Discord version) */
-      const userData: WebUser['data'] = { id: webUserID, name: username, discrim: 'web', dtype: dataType };
+      const userData: WebUser['data'] = { id: webUserID, username, discriminator: 'web', dtype: dataType };
       userTrackNo = this.recording.trackNo++;
       this.userTrackNos[webUserID] = userTrackNo;
       this.userPacketNos[webUserID] = 0;
 
       // Announce them
       this.recording.pushToActivity(`${username} has connected to the webapp!`);
-      this.monitorSetConnected(userTrackNo, `${userData.name}#${userData.discrim}`, true, clientId);
+      this.monitorSetConnected(userTrackNo, `${userData.username}#${userData.discriminator}`, true, clientId);
 
       // Put a valid Opus header at the beginning if we're Opus
       if (dataType === DataTypeFlag.OPUS) {
@@ -237,7 +237,7 @@ export class WebappClient {
     // Catch the monitor up on connected web users
     for (const [, user] of this.webUsers) {
       if (!user.connected) continue;
-      const nickBuf = Buffer.from(`${user.data.name}#${user.data.discrim}`, 'utf8');
+      const nickBuf = Buffer.from(`${user.data.username}#${user.data.discriminator}`, 'utf8');
       const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
       buf.writeUInt32LE(EnnuicastrId.USER, 0);
       buf.writeUInt32LE(this.userTrackNos[user.webUserID], EnnuicastrParts.user.index);
@@ -479,13 +479,17 @@ export class WebappClient {
         const user = this.findWebUserFromClientId(clientId);
         if (!user) return;
         this.recording.writeToLog(
-          `Webapp user disconnected. clientId=${clientId}, name=${user.data.name}, trackNo=${
+          `Webapp user disconnected. clientId=${clientId}, name=${user.data.username}, trackNo=${
             this.userTrackNos[user.webUserID]
           }`,
           'webapp'
         );
         user.connected = false;
-        this.monitorSetConnected(this.userTrackNos[user.webUserID], `${user.data.name}#${user.data.discrim}`, false);
+        this.monitorSetConnected(
+          this.userTrackNos[user.webUserID],
+          `${user.data.username}#${user.data.discriminator}`,
+          false
+        );
         break;
       }
       case WebappOp.PONG: {
