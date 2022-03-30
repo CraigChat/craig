@@ -2,8 +2,10 @@ import { InfluxDB, Point } from '@influxdata/influxdb-client';
 import { CronJob } from 'cron';
 import { hostname } from 'os';
 import { captureException, withScope } from '@sentry/node';
-import { client as dexareClient } from './bot';
+import { client as dexareClient, CraigBotConfig } from './bot';
 import config from 'config';
+import RecorderModule from './modules/recorder';
+import { DexareClient } from 'dexare';
 
 const influxOpts: any = config.get('influx');
 export const client: InfluxDB | null =
@@ -88,13 +90,14 @@ async function collect(timestamp = new Date()) {
   if (!timestamp) timestamp = cron.lastDate();
 
   const writeApi = client!.getWriteApi(influxOpts.org, influxOpts.bucket, 's');
+  const recorder = dexareClient.modules.get('recorder') as any as RecorderModule<DexareClient<CraigBotConfig>>;
   const points = [
     new Point('craig_stats')
       .tag('server', influxOpts.server || hostname())
       .tag('bot', influxOpts.bot || 'craig')
       .intField('recordingsStarted', recordingsStarted)
       .intField('autorecordingsStarted', autorecordingsStarted)
-      .intField('activeRecordings', (dexareClient.modules.get('recorder') as any).recordings.size)
+      .intField('activeRecordings', recorder ? recorder.recordings.size : 0)
       .intField('commandsRan', commandsRan)
       .intField('activeUsers', activeUsers.length)
       .intField('activeGuilds', activeGuilds.length)
