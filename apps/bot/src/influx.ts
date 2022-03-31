@@ -85,9 +85,9 @@ export async function onRecordingEnd(
   }
 }
 
-async function collect(timestamp = new Date()) {
+async function collect() {
   if (!influxOpts || !influxOpts.url) return;
-  if (!timestamp) timestamp = cron.lastDate();
+  const timestamp = cron.lastDate();
 
   const writeApi = client!.getWriteApi(influxOpts.org, influxOpts.bucket, 's');
   const recorder = dexareClient.modules.get('recorder') as any as RecorderModule<DexareClient<CraigBotConfig>>;
@@ -101,7 +101,7 @@ async function collect(timestamp = new Date()) {
       .intField('commandsRan', commandsRan)
       .intField('activeUsers', activeUsers.length)
       .intField('activeGuilds', activeGuilds.length)
-      .timestamp(timestamp || cron.lastDate())
+      .timestamp(timestamp)
   ];
 
   // Insert command counts
