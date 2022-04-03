@@ -50,7 +50,7 @@ export default class CleanRecordings extends TaskJob {
         const info = JSON.parse(await readFile(path.join(recPath, `${id}.ogg.info`), 'utf8'));
         const shouldExpire =
           info.expiresAfter !== undefined
-            ? Date.parse(info.startTime) + info.expiresAfter * 60 * 60 * 60 < Date.now()
+            ? Date.parse(info.startTime) + info.expiresAfter * 60 * 60 * 1000 < Date.now()
             : s.mtime.getTime() + recordingConfig.fallbackExpiration < Date.now();
 
         if (shouldExpire) {
