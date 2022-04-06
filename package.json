@@ -1,8 +1,13 @@
 {
     "name": "craig",
     "homepage": "http://craig.chat/home/",
-    "license": "ISC",
+    "license": "MIT",
     "private": true,
+    "author": {
+      "name": "Snazzah",
+      "email": "me@snazzah.com",
+      "url": "https://snazzah.com/"
+    },
     "workspaces": [
         "apps/bot",
         "apps/dashboard",
