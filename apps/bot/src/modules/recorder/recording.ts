@@ -323,7 +323,7 @@ export default class Recording {
             embeds: [
               {
                 title: 'Failed to upload to Google Drive',
-                description: `Failed to upload recording ${this.id} to Google Drive. You may need to manually upload it to your Google Drive.`,
+                description: `Failed to upload recording \`${this.id}\` to Google Drive. You may need to manually upload it to your Google Drive, or possibly re-connect your Google Drive.\n\n- **\`${response.error}\`**`,
                 color: 0xe74c3c
               }
             ]
