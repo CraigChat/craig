@@ -49,7 +49,7 @@ export default class Recordings extends GeneralCommand {
               name: `Recording ${r.id} - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
               value: stripIndentsAndLines`
                 ${r.autorecorded ? 'Auto-recorded' : 'Recorded'} in <#${r.channelId}>
-                Exipres <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(
+                Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(
                 r.expiresAt.valueOf() / 1000
               )}:F>)
                 [Download](https://${config.craig.downloadDomain}/rec/${r.id}?key=${r.accessKey}) - [Delete](https://${
