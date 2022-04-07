@@ -13,7 +13,7 @@ import duration from 'dayjs/plugin/duration';
 import axios from 'axios';
 import { OpusEncoder } from '@discordjs/opus';
 import { prisma } from '../../prisma';
-import { ParsedRewards } from '../../util';
+import { ParsedRewards, stripIndentsAndLines } from '../../util';
 import { DexareClient } from 'dexare';
 import { EMPTY_BUFFER, OPUS_HEADERS } from './util';
 import { WebappClient } from './webapp';
@@ -680,9 +680,12 @@ export default class Recording {
           description: stripIndents`
             ${this.stateDescription ?? ''}
 
-            **Recording ID:** \`${this.id}\`
-            **Channel:** ${this.channel.mention}
-            ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
+            ${stripIndentsAndLines`
+              ${this.autorecorded ? '- *Autorecorded*' : ''}
+              **Recording ID:** \`${this.id}\`
+              **Channel:** ${this.channel.mention}
+              ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
+            `}
           `,
           fields: this.logs.length
             ? [

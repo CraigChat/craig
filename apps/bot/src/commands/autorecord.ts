@@ -230,7 +230,7 @@ export default class AutoRecord extends GeneralCommand {
         };
       }
       case 'off': {
-        const channel = ctx.options.on.channel as string;
+        const channel = ctx.options.off.channel as string;
 
         const autoRecording = await this.prisma.autoRecord.findFirst({
           where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: channel }
@@ -242,11 +242,13 @@ export default class AutoRecord extends GeneralCommand {
           });
         else
           return {
-            content: `No auto-recording found on <#${channel}>.`
+            content: `No auto-recording found on <#${channel}>.`,
+            ephemeral: true
           };
 
         return {
-          content: `Auto-recording on <#${channel}> has been deactivated.`
+          content: `Auto-recording on <#${channel}> has been deactivated.`,
+          ephemeral: true
         };
       }
     }
