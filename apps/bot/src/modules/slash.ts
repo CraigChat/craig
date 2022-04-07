@@ -9,8 +9,8 @@ import {
   TextInputStyle
 } from 'slash-create';
 import path from 'node:path';
-import RecorderModule from './recorder';
-import { CraigBotConfig } from '../bot';
+import type RecorderModule from './recorder';
+import type { CraigBotConfig } from '../bot';
 import { RecordingState } from './recorder/recording';
 import { blessServer, checkRecordingPermission, disableComponents, unblessServer } from '../util';
 import { prisma } from '../prisma';

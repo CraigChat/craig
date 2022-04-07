@@ -6,7 +6,7 @@ import { nanoid, customAlphabet } from 'nanoid';
 import path from 'path';
 import { ButtonStyle, ComponentType } from 'slash-create';
 import RecorderModule from '.';
-import { CraigBot, CraigBotConfig } from '../../bot';
+import type { CraigBot, CraigBotConfig } from '../../bot';
 import OggEncoder, { BOS } from './ogg';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';

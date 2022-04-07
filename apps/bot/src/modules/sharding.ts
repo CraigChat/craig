@@ -1,6 +1,6 @@
 import { DexareModule } from 'dexare';
 import { nanoid } from 'nanoid';
-import { CraigBot } from '../bot';
+import type { CraigBot } from '../bot';
 import type { ManagerResponseMessage } from '../sharding/types';
 import { makePlainError } from '../util';
 

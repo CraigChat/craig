@@ -1,6 +1,6 @@
 import { stripIndents } from 'common-tags';
 import { SlashCreator, CommandContext, ComponentType, ButtonStyle } from 'slash-create';
-import { RewardTier } from '../bot';
+import type { RewardTier } from '../bot';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 

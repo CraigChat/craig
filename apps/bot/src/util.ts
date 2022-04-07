@@ -3,8 +3,8 @@ import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import Eris from 'eris';
 import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
-import { CraigBotConfig, RewardTier } from './bot';
-import Recording from './modules/recorder/recording';
+import type { CraigBotConfig, RewardTier } from './bot';
+import type Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
 
 export const userAgent = `CraigBot (https://craig.chat ${require('../package.json').version}) Node.js/${

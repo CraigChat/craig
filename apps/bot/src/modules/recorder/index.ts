@@ -5,7 +5,7 @@ import path from 'path';
 import fetch from 'node-fetch';
 import { createTRPCClient } from '@trpc/client';
 import { httpLink } from '@trpc/client/links/httpLink';
-import { CraigBotConfig } from '../../bot';
+import type { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';

@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
-import { CraigBot, CraigBotConfig } from '../../bot';
-import { ParsedRewards } from '../../util';
+import type { CraigBot, CraigBotConfig } from '../../bot';
+import type { ParsedRewards } from '../../util';
 import { BOS } from './ogg';
 import {
   ConnectionType,

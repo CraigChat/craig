@@ -1,10 +1,10 @@
 import { DexareModule, DexareClient } from 'dexare';
 import Eris from 'eris';
-import { CraigBotConfig } from '../bot';
+import type { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
 import { checkMaintenance, processCooldown } from '../redis';
 import { cutoffText, makeDownloadMessage, parseRewards } from '../util';
-import RecorderModule from './recorder';
+import type RecorderModule from './recorder';
 import Recording from './recorder/recording';
 
 // @ts-ignore
