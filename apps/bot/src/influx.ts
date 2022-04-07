@@ -4,7 +4,7 @@ import { hostname } from 'os';
 import { captureException, withScope } from '@sentry/node';
 import { client as dexareClient, CraigBotConfig } from './bot';
 import config from 'config';
-import RecorderModule from './modules/recorder';
+import type RecorderModule from './modules/recorder';
 import { DexareClient } from 'dexare';
 
 const influxOpts: any = config.get('influx');

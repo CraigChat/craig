@@ -84,18 +84,6 @@ if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined)
   });
 }
 export const client = new CraigBot(dexareConfig);
-client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule);
-client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
-
-// Makes custom emojis with the name 'craig' work as prefixes
-client.events.register(
-  'prefixer',
-  'messageCreate',
-  (event, message) => {
-    if (/^<a?:craig:\d+>,?/.test(message.content)) event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
-  },
-  { after: ['commands'] }
-);
 
 process.once('SIGINT', async () => {
   client.emit('logger', 'warn', 'sys', ['Caught SIGINT']);
@@ -124,6 +112,20 @@ process.once('unhandledExceptrion', async () => {
 });
 
 export async function connect() {
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule);
+  client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
+
+  // Makes custom emojis with the name 'craig' work as prefixes
+  client.events.register(
+    'prefixer',
+    'messageCreate',
+    (event, message) => {
+      if (/^<a?:craig:\d+>,?/.test(message.content))
+        event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
+    },
+    { after: ['commands'] }
+  );
+
   await i18nInit();
   await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) =>
     client.commands.register(require(file))

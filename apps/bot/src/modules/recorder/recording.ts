@@ -5,7 +5,7 @@ import { writeFile, access } from 'fs/promises';
 import { nanoid, customAlphabet } from 'nanoid';
 import path from 'path';
 import { ButtonStyle, ComponentType } from 'slash-create';
-import RecorderModule from '.';
+import type RecorderModule from '.';
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import OggEncoder, { BOS } from './ogg';
 import dayjs from 'dayjs';
