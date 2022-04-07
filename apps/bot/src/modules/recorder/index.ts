@@ -46,7 +46,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   recordingPath: string;
   trpc = createTRPCClient<TRPCRouter>({
     fetch: fetch as any,
-    links: [httpLink({ url: `http://localhost:2022` })]
+    links: [httpLink({ url: 'http://localhost:2022' })]
   });
 
   constructor(client: T) {

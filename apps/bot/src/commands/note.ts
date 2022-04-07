@@ -1,0 +1,56 @@
+import { SlashCreator, CommandContext, CommandOptionType } from 'slash-create';
+import GeneralCommand from '../slashCommand';
+import { checkRecordingPermission } from '../util';
+
+export default class Note extends GeneralCommand {
+  constructor(creator: SlashCreator) {
+    super(creator, {
+      name: 'note',
+      description: 'Note something within a recording.',
+      options: [
+        {
+          type: CommandOptionType.STRING,
+          name: 'message',
+          description: 'The note to put down.',
+          required: true
+        }
+      ]
+    });
+
+    this.filePath = __filename;
+  }
+
+  async run(ctx: CommandContext) {
+    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    const hasPermission = checkRecordingPermission(
+      ctx.member!,
+      await this.prisma.guild.findFirst({ where: { id: ctx.guildID } })
+    );
+    if (!hasPermission)
+      return {
+        content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
+        ephemeral: true
+      };
+    if (!this.recorder.recordings.has(ctx.guildID))
+      return {
+        content: "You aren't recording in this server.",
+        ephemeral: true
+      };
+    const recording = this.recorder.recordings.get(ctx.guildID)!;
+
+    try {
+      recording.note(ctx.options.note || '');
+      recording.pushToActivity(`${ctx.user.mention} added a note.`);
+      return {
+        content: 'Added the note to the recording!',
+        ephemeral: true
+      };
+    } catch (e) {
+      recording.recorder.logger.error(`Error adding note to recording ${recording.id}:`, e);
+      return {
+        content: 'An error occurred while adding the note.',
+        ephemeral: true
+      };
+    }
+  }
+}
