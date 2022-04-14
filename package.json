@@ -19,9 +19,10 @@
     "test": "yarn workspaces run test",
     "lint": "yarn workspaces run lint",
     "lint:fix": "yarn workspaces run lint:fix",
+    "lint:monorepo": "yarn manypkg check",
     "sync": "yarn workspace craig-bot sync",
-    "sync:dev": "yarn workspace craig-bot sync:dev",
-    "run-job": "yarn workspace craig-tasks run-job",
+    "sync:dev": "yarn manypkg run bot sync:dev",
+    "run-job": "yarn manypkg run tasks run-job",
     "prisma:generate": "prisma generate && yarn workspace craig-bot prisma:generate && yarn workspace craig-dashboard prisma:generate",
     "prisma:deploy": "prisma migrate deploy"
   },
@@ -30,18 +31,10 @@
     "url": "https://github.com/CraigChat/craig"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.7.0",
-    "better-sqlite3": "^7.1.2",
-    "bufferutil": "^4.0.1",
-    "cyclic-32": "^1.1.0",
-    "eris": "^0.16.1",
+    "@manypkg/cli": "^0.19.1",
     "eslint": "^8.13.0",
     "eslint-config-snazzah": "^1.1.0",
-    "googleapis": "^58.0.0",
     "prisma": "^3.12.0",
-    "request": "^2.88.2",
-    "rimraf": "^3.0.2",
-    "sqlite3": "^5.0.1",
-    "ws": "^7.4.5"
+    "rimraf": "^3.0.2"
   }
 }
