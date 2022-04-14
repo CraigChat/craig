@@ -598,7 +598,7 @@ export default class Recording {
     this.webapp?.userSpeaking(recordingUser.track);
   }
 
-  note(note: string) {
+  note(note?: string) {
     if (this.notePacketNo === 0) {
       this.write(this.headerEncoder1!, 0, NOTE_TRACK_NUMBER, 0, Buffer.from('STREAMNOTE'), BOS);
       this.notePacketNo++;

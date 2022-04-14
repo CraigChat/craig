@@ -12,7 +12,7 @@ import path from 'node:path';
 import type RecorderModule from './recorder';
 import type { CraigBotConfig } from '../bot';
 import { RecordingState } from './recorder/recording';
-import { blessServer, checkRecordingPermission, disableComponents, unblessServer } from '../util';
+import { blessServer, checkRecordingPermission, cutoffText, disableComponents, unblessServer } from '../util';
 import { prisma } from '../prisma';
 import { onCommandRun } from '../influx';
 
@@ -134,7 +134,11 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
             });
           try {
             recording.note(modalCtx.values.note || '');
-            recording.pushToActivity(`${ctx.user.mention} added a note.`);
+            recording.pushToActivity(
+              `${ctx.user.mention} added a note.${
+                modalCtx.values.note ? ` - ${cutoffText(modalCtx.values.note, 100)}` : ''
+              }`
+            );
             return modalCtx.send({
               content: 'Added the note to the recording!',
               ephemeral: true

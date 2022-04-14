@@ -1,6 +1,6 @@
 import { SlashCreator, CommandContext, CommandOptionType } from 'slash-create';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission } from '../util';
+import { checkRecordingPermission, cutoffText } from '../util';
 
 export default class Note extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -40,7 +40,9 @@ export default class Note extends GeneralCommand {
 
     try {
       recording.note(ctx.options.message || '');
-      recording.pushToActivity(`${ctx.user.mention} added a note.`);
+      recording.pushToActivity(
+        `${ctx.user.mention} added a note.${ctx.options.message ? ` - ${cutoffText(ctx.options.message, 100)}` : ''}`
+      );
       return {
         content: 'Added the note to the recording!',
         ephemeral: true
