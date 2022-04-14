@@ -39,7 +39,7 @@ export default class Note extends GeneralCommand {
     const recording = this.recorder.recordings.get(ctx.guildID)!;
 
     try {
-      recording.note(ctx.options.note || '');
+      recording.note(ctx.options.message || '');
       recording.pushToActivity(`${ctx.user.mention} added a note.`);
       return {
         content: 'Added the note to the recording!',
