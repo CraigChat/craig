@@ -1,0 +1,28 @@
+name: ESLint
+on:
+  push:
+    paths:
+      - "apps/**/*.{js,json,ts,tsx}"
+      - ".eslintrc.*"
+      - ".github/workflows/lint.yml"
+      - "package.json"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint source code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install Node v14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run ESLint
+        run: yarn lint
