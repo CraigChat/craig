@@ -13,17 +13,7 @@ interface DiscordElementProps {
   discrim?: string;
 }
 
-export default function DiscordElement({
-  id,
-  avatar,
-  icon,
-  name,
-  username,
-  discriminator,
-  discrim,
-  elementType,
-  type
-}: DiscordElementProps) {
+export default function DiscordElement({ id, avatar, icon, name, username, discriminator, discrim, elementType, type }: DiscordElementProps) {
   const image = avatar || icon;
   const elementDiscrim = discriminator || discrim;
   let elementIcon;

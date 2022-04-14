@@ -1,19 +1,20 @@
-import { DexareClient, BaseConfig } from 'dexare';
 import config from 'config';
-import path from 'node:path';
-import Eris from 'eris';
-import { SlashCreatorOptions } from 'slash-create';
-import LoggerModule from './modules/logger';
-import SlashModule from './modules/slash';
+import { BaseConfig, DexareClient } from 'dexare';
 import { iterateFolder } from 'dexare/lib/util';
-import ShardingModule from './modules/sharding';
-import RecorderModule from './modules/recorder';
+import Eris from 'eris';
+import path from 'node:path';
+import { SlashCreatorOptions } from 'slash-create';
+
+import { init as i18nInit } from './i18n';
+import { cron as influxCron } from './influx';
 import AutorecordModule from './modules/autorecord';
+import LoggerModule from './modules/logger';
+import RecorderModule from './modules/recorder';
+import ShardingModule from './modules/sharding';
+import SlashModule from './modules/slash';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
-import { cron as influxCron } from './influx';
 import { close as closeSentry } from './sentry';
-import { init as i18nInit } from './i18n';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -120,16 +121,14 @@ export async function connect() {
     'prefixer',
     'messageCreate',
     (event, message) => {
-      if (/^<a?:craig:\d+>,?/.test(message.content))
-        event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
+      if (/^<a?:craig:\d+>,?/.test(message.content)) event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
     },
     { after: ['commands'] }
   );
 
   await i18nInit();
-  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) =>
-    client.commands.register(require(file))
-  );
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => client.commands.register(require(file)));
   await redisClient.connect();
   await client.connect();
   await prisma.$connect();

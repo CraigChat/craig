@@ -1,5 +1,6 @@
 import { h } from 'preact';
 import { useTranslation } from 'react-i18next';
+
 import { PlatformInfo } from '../util';
 import ModalButton from './modalButton';
 import ModalContent from './modalContent';
@@ -35,9 +36,7 @@ export default function EnnuizelModalContent({ platform, onConfirm, onClose }: E
     >
       <p>{t('modal_content.ennuizel')}</p>
       {platform.android || platform.iphone ? (
-        <div class="flex flex-col mt-6 p-2 border-2 bg-opacity-25 rounded-md border-red-500 bg-red-500">
-          {t('modal_content.ennuizel_mobile')}
-        </div>
+        <div class="flex flex-col mt-6 p-2 border-2 bg-opacity-25 rounded-md border-red-500 bg-red-500">{t('modal_content.ennuizel_mobile')}</div>
       ) : (
         ''
       )}

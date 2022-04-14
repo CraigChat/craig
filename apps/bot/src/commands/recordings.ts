@@ -1,4 +1,5 @@
-import { SlashCreator, CommandContext } from 'slash-create';
+import { CommandContext, SlashCreator } from 'slash-create';
+
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { stripIndentsAndLines } from '../util';
@@ -49,9 +50,7 @@ export default class Recordings extends GeneralCommand {
               name: `Recording ${r.id} - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
               value: stripIndentsAndLines`
                 ${r.autorecorded ? 'Auto-recorded' : 'Recorded'} in <#${r.channelId}>
-                Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(
-                r.expiresAt.valueOf() / 1000
-              )}:F>)
+                Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:F>)
                 [Download](https://${config.craig.downloadDomain}/rec/${r.id}?key=${r.accessKey}) - [Delete](https://${
                 config.craig.downloadDomain
               }/rec/${r.id}?key=${r.accessKey}&delete=${r.deleteKey})

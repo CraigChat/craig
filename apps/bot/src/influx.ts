@@ -1,15 +1,15 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
-import { CronJob } from 'cron';
-import { hostname } from 'os';
 import { captureException, withScope } from '@sentry/node';
-import { client as dexareClient, CraigBotConfig } from './bot';
 import config from 'config';
-import type RecorderModule from './modules/recorder';
+import { CronJob } from 'cron';
 import { DexareClient } from 'dexare';
+import { hostname } from 'os';
+
+import { client as dexareClient, CraigBotConfig } from './bot';
+import type RecorderModule from './modules/recorder';
 
 const influxOpts: any = config.get('influx');
-export const client: InfluxDB | null =
-  influxOpts && influxOpts.url ? new InfluxDB({ url: influxOpts.url, token: influxOpts.token }) : null;
+export const client: InfluxDB | null = influxOpts && influxOpts.url ? new InfluxDB({ url: influxOpts.url, token: influxOpts.token }) : null;
 
 export const cron = new CronJob('*/5 * * * *', collect, null, false, 'America/New_York');
 

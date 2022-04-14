@@ -1,9 +1,10 @@
-import { Component, h } from 'preact';
 import { Icon } from '@iconify/react';
-import closeIcon from '@iconify-icons/ic/close';
 import showIcon from '@iconify-icons/bi/eye-fill';
 import hideIcon from '@iconify-icons/bi/eye-slash-fill';
+import closeIcon from '@iconify-icons/ic/close';
+import { Component, h } from 'preact';
 import { Translation } from 'react-i18next';
+
 import {
   CookAvatarsPayload,
   cookDownload,
@@ -15,18 +16,18 @@ import {
   RecordingInfo,
   RecordingUser
 } from '../api';
-import { asT, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
-import { SectionButton } from '../sections';
 import i18n, { languages } from '../i18n';
-import Recording from './recording';
-import Modal from './modal';
-import ModalContent from './modalContent';
-import ModalButton from './modalButton';
+import { SectionButton } from '../sections';
+import { asT, getPlatformInfo, parseError, PlatformInfo, wait } from '../util';
 import DeleteModalContent from './deleteModalContent';
+import DownloadingModalContent from './downloadingModalContent';
 import Dropdown from './dropdown';
 import EnnuizelModalContent from './ennuizelModalContent';
-import DownloadingModalContent from './downloadingModalContent';
+import Modal from './modal';
+import ModalButton from './modalButton';
 import ModalButtonDownloadLink from './modalButtonDownloadLink';
+import ModalContent from './modalContent';
+import Recording from './recording';
 
 export interface ModalOptions {
   contentLabel?: string;
@@ -56,7 +57,7 @@ interface AppState {
   modalContent: any;
 }
 
-export default class App extends Component<{}, AppState> {
+export default class App extends Component<any, AppState> {
   constructor() {
     super();
 
@@ -194,9 +195,9 @@ export default class App extends Component<{}, AppState> {
             platform={this.state.platform}
             onClose={() => this.closeModal()}
             onConfirm={() =>
-              (location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get(
-                'key'
-              )}&w=${button.ennuizel.toString(36)}&a=${location.host}`)
+              (location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get('key')}&w=${button.ennuizel.toString(36)}&a=${
+                location.host
+              }`)
             }
           />,
           {
@@ -205,9 +206,7 @@ export default class App extends Component<{}, AppState> {
           }
         );
       } else {
-        location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get('key')}&w=${
-          button.ennuizel
-        }&a=${location.host}`;
+        location.href = `${process.env.ENNUIZEL_BASE}?i=${this.state.recordingId}&k=${query.get('key')}&w=${button.ennuizel}&a=${location.host}`;
       }
       return;
     }
@@ -419,8 +418,7 @@ export default class App extends Component<{}, AppState> {
   }
 
   closeModal(force = false) {
-    if (this.state.allowModalClose || force)
-      this.setState({ modalOpen: false, modalContent: null, downloading: false });
+    if (this.state.allowModalClose || force) this.setState({ modalOpen: false, modalContent: null, downloading: false });
   }
 
   render() {
@@ -436,10 +434,7 @@ export default class App extends Component<{}, AppState> {
                 <img src="/craig.png" class="w-16 h-16 rounded-full" />
                 <div class="flex flex-col">
                   <h1 class="sm:text-4xl text-2xl text-zinc-100 font-display">{t('craig_rec')}</h1>
-                  <a
-                    href="https://craig.chat/"
-                    class="text-zinc-400 font-medium hover:underline focus:underline outline-none"
-                  >
+                  <a href="https://craig.chat/" class="text-zinc-400 font-medium hover:underline focus:underline outline-none">
                     craig.chat →
                   </a>
                 </div>

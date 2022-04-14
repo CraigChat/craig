@@ -1,6 +1,7 @@
 /* global WindowEventMap AddEventListenerOptions */
 import { useEffect, useRef } from 'preact/hooks';
 import { TFunction } from 'react-i18next';
+
 import i18n from './i18n';
 
 export interface PlatformInfo {

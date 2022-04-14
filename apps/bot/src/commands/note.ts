@@ -1,4 +1,5 @@
-import { SlashCreator, CommandContext, CommandOptionType } from 'slash-create';
+import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
+
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission, cutoffText } from '../util';
 
@@ -22,10 +23,7 @@ export default class Note extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
-    const hasPermission = checkRecordingPermission(
-      ctx.member!,
-      await this.prisma.guild.findFirst({ where: { id: ctx.guildID } })
-    );
+    const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findFirst({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
@@ -40,9 +38,7 @@ export default class Note extends GeneralCommand {
 
     try {
       recording.note(ctx.options.message || '');
-      recording.pushToActivity(
-        `${ctx.user.mention} added a note.${ctx.options.message ? ` - ${cutoffText(ctx.options.message, 100)}` : ''}`
-      );
+      recording.pushToActivity(`${ctx.user.mention} added a note.${ctx.options.message ? ` - ${cutoffText(ctx.options.message, 100)}` : ''}`);
       return {
         content: 'Added the note to the recording!',
         ephemeral: true

@@ -1,7 +1,9 @@
-import { TaskJob } from '../types';
 import config from 'config';
 import { readdir, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
+
+import { TaskJob } from '../types';
+
 const downloadConfig = config.get('downloads') as {
   path: string;
   expiration: number;

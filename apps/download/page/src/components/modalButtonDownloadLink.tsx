@@ -9,13 +9,7 @@ interface ModalButtonDownloadLinkProps {
   disabled?: boolean;
 }
 
-export default function ModalButtonDownloadLink({
-  children,
-  type,
-  href,
-  file,
-  disabled
-}: ModalButtonDownloadLinkProps) {
+export default function ModalButtonDownloadLink({ children, type, href, file, disabled }: ModalButtonDownloadLinkProps) {
   return (
     <a
       href={href}

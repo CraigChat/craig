@@ -1,8 +1,9 @@
-import { Poster } from 'dbots';
-import ShardManagerModule from '../module';
 import config from 'config';
-import * as logger from '../logger';
 import { CronJob } from 'cron';
+import { Poster } from 'dbots';
+
+import * as logger from '../logger';
+import ShardManagerModule from '../module';
 
 export default class BotListPosterModule extends ShardManagerModule {
   poster: Poster;

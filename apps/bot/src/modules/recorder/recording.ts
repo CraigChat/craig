@@ -1,24 +1,26 @@
+import { OpusEncoder } from '@discordjs/opus';
+import axios from 'axios';
 import { stripIndents } from 'common-tags';
-import Eris from 'eris';
-import { createWriteStream, WriteStream } from 'fs';
-import { writeFile, access } from 'fs/promises';
-import { nanoid, customAlphabet } from 'nanoid';
-import path from 'path';
-import { ButtonStyle, ComponentType } from 'slash-create';
-import type RecorderModule from '.';
-import type { CraigBot, CraigBotConfig } from '../../bot';
-import OggEncoder, { BOS } from './ogg';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import axios from 'axios';
-import { OpusEncoder } from '@discordjs/opus';
+import { DexareClient } from 'dexare';
+import Eris from 'eris';
+import { createWriteStream, WriteStream } from 'fs';
+import { access, writeFile } from 'fs/promises';
+import { customAlphabet, nanoid } from 'nanoid';
+import path from 'path';
+import { ButtonStyle, ComponentType } from 'slash-create';
+
+import type { CraigBot, CraigBotConfig } from '../../bot';
+import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
 import { ParsedRewards, stripIndentsAndLines } from '../../util';
-import { DexareClient } from 'dexare';
+import type RecorderModule from '.';
+import OggEncoder, { BOS } from './ogg';
+import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { EMPTY_BUFFER, OPUS_HEADERS } from './util';
 import { WebappClient } from './webapp';
-import { UserExtraType, WebappOpCloseReason } from './protocol';
-import { onRecordingEnd, onRecordingStart } from '../../influx';
+
 dayjs.extend(duration);
 
 const opus = new OpusEncoder(48000, 2);
@@ -106,12 +108,7 @@ export default class Recording {
   silenceWarned = false;
   maintenceWarned = false;
 
-  constructor(
-    recorder: RecorderModule<DexareClient<CraigBotConfig>>,
-    channel: Eris.StageChannel | Eris.VoiceChannel,
-    user: Eris.User,
-    auto = false
-  ) {
+  constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
     this.channel = channel;
     this.user = user;
@@ -130,9 +127,7 @@ export default class Recording {
   async start(parsedRewards: ParsedRewards, webapp = false) {
     await this.sanityCheckIdClashing();
 
-    this.recorder.logger.debug(
-      `Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`
-    );
+    this.recorder.logger.debug(`Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`);
     this.state = RecordingState.CONNECTING;
 
     try {
@@ -276,15 +271,7 @@ export default class Recording {
 
     const timestamp = process.hrtime(this.startTime);
     const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-    await onRecordingEnd(
-      this.user.id,
-      this.channel.guild.id,
-      this.startedAt!,
-      time,
-      this.autorecorded,
-      !!this.webapp,
-      false
-    );
+    await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt!, time, this.autorecorded, !!this.webapp, false);
 
     // Reset nickname
     if (this.recorder.client.config.craig.removeNickname) {
@@ -407,9 +394,7 @@ export default class Recording {
         this.pushToActivity('I was undeafened.');
       }
       this.logStream?.write(
-        `${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(
-          member.voiceState
-        )} -> ${JSON.stringify(oldState)}\n`
+        `${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(member.voiceState)} -> ${JSON.stringify(oldState)}\n`
       );
     }
   }
@@ -418,8 +403,7 @@ export default class Recording {
     if (!this.active) return;
     this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
     if (this.connection!.channelID !== this.channel.id) {
-      this.stateDescription =
-        '⚠️ I was moved to another channel! If you want me to leave, please press the stop button.';
+      this.stateDescription = '⚠️ I was moved to another channel! If you want me to leave, please press the stop button.';
       return await this.stop();
     } else this.pushToActivity('Reconnected.');
   }
@@ -445,7 +429,7 @@ export default class Recording {
 
   flush(user: RecordingUser, ct: number) {
     let packetNo = user.packet;
-    for (var i = 0; i < ct; i++) {
+    for (let i = 0; i < ct; i++) {
       const chunk = this.userPackets[user.id].shift();
       try {
         this.encodeChunk(user, this.dataEncoder!, user.track, packetNo, chunk!);
@@ -480,8 +464,8 @@ export default class Recording {
       const rtpHLen = buffer.readUInt16BE(2);
       let off = 4;
 
-      for (var rhs = 0; rhs < rtpHLen && off < buffer.length; rhs++) {
-        var subLen = (buffer[off] & 0xf) + 2;
+      for (let rhs = 0; rhs < rtpHLen && off < buffer.length; rhs++) {
+        const subLen = (buffer[off] & 0xf) + 2;
         off += subLen;
       }
       while (off < buffer.length && buffer[off] === 0) off++;
@@ -496,9 +480,7 @@ export default class Recording {
         opus.decode(chunk.data);
       } catch (ex) {
         if (!(user.id in this.usersWarned)) {
-          this.pushToActivity(
-            `⚠️ User ${user.id} has corrupt data! I will not be able to correctly process their audio!`
-          );
+          this.pushToActivity(`⚠️ User ${user.id} has corrupt data! I will not be able to correctly process their audio!`);
           this.usersWarned.push(user.id);
         }
       }
@@ -531,11 +513,7 @@ export default class Recording {
       };
       recordingUser = this.users[userID];
 
-      this.webapp?.monitorSetConnected(
-        recordingUser.track,
-        `${recordingUser.username}#${recordingUser.discriminator}`,
-        true
-      );
+      this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
 
       try {
         this.write(this.headerEncoder1!, 0, recordingUser.track, 0, OPUS_HEADERS[0], BOS);
@@ -562,8 +540,7 @@ export default class Recording {
         }
 
         recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
-        if (recordingUser.avatarUrl)
-          this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
+        if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
       }
 
       this.usersStream?.write(
@@ -575,9 +552,7 @@ export default class Recording {
       );
       this.writeToLog(`New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id})`);
       this.pushToActivity(`<@${userID}> joined the recording.`);
-      this.recorder.logger.debug(
-        `User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`
-      );
+      this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
     }
 
     // Add packet to list

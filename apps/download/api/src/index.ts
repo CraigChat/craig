@@ -8,6 +8,7 @@ if (path.parse(process.cwd()).name === 'dist') dotenvPath = path.join(process.cw
 
 dotenv.config({ path: dotenvPath });
 
+// eslint-disable-next-line import/first
 import { start } from './api';
 
 start();

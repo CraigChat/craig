@@ -1,8 +1,9 @@
-import { DiscordUser } from './types';
 import { parse } from 'cookie';
 import { verify } from 'jsonwebtoken';
-import { config } from './config';
 import { IncomingMessage } from 'node:http';
+
+import { config } from './config';
+import { DiscordUser } from './types';
 
 export function parseUser(req: IncomingMessage): DiscordUser | null {
   if (!req.headers.cookie) return null;
@@ -10,6 +11,7 @@ export function parseUser(req: IncomingMessage): DiscordUser | null {
   if (!token) return null;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { iat, exp, ...user } = verify(token, config.jwtSecret) as DiscordUser & { iat: number; exp: number };
     return user;
   } catch (e) {

@@ -1,5 +1,5 @@
-import ShardManagerModule from '../module';
 import * as logger from '../logger';
+import ShardManagerModule from '../module';
 
 export default class ShardUtilModule extends ShardManagerModule {
   constructor(client: any) {

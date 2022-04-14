@@ -1,9 +1,11 @@
-import axios from 'axios';
-import { TaskJob } from '../types';
-import config from 'config';
-import { prisma } from '../prisma';
 import { PrismaPromise } from '@prisma/client';
+import axios from 'axios';
+import config from 'config';
 import isEqual from 'lodash.isequal';
+
+import { prisma } from '../prisma';
+import { TaskJob } from '../types';
+
 const patreonConfig = config.get('patreon') as {
   campaignId: string;
   accessToken: string;
@@ -23,15 +25,12 @@ export default class RefreshPatrons extends TaskJob {
       'fields[user]': 'social_connections',
       ...(cursor ? { 'page[cursor]': cursor } : {})
     });
-    const response = await axios.get(
-      `https://patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`,
-      {
-        headers: {
-          Authorization: `Bearer ${patreonConfig.accessToken}`,
-          'User-Agent': this.userAgent
-        }
+    const response = await axios.get(`https://patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
+      headers: {
+        Authorization: `Bearer ${patreonConfig.accessToken}`,
+        'User-Agent': this.userAgent
       }
-    );
+    });
 
     const data = response.data as PatronCampaignMembersResponse;
     const patrons = data.data.map((member) => {
@@ -83,10 +82,9 @@ export default class RefreshPatrons extends TaskJob {
           }
         }
         this.logger.log(
-          `Got ${newPatrons} more patrons (${patrons.length}/${initialData.total}, ${(
-            (patrons.length / initialData.total) *
-            100
-          ).toFixed(2)}%), ${nextData.next ? `fetching next page from cursor ${nextData.next}...` : 'no cursor found.'}`
+          `Got ${newPatrons} more patrons (${patrons.length}/${initialData.total}, ${((patrons.length / initialData.total) * 100).toFixed(2)}%), ${
+            nextData.next ? `fetching next page from cursor ${nextData.next}...` : 'no cursor found.'
+          }`
         );
         if (!nextData.next) break;
         nextCursor = nextData.next;
@@ -95,9 +93,7 @@ export default class RefreshPatrons extends TaskJob {
     this.logger.info(
       `Collected ${patrons.length} patrons in ${(Date.now() - start) / 1000}s. (${patrons
         .filter((p) => p.status === 'active_patron')
-        .length.toLocaleString()} active, ${patrons
-        .filter((p) => !!p.discordId)
-        .length.toLocaleString()} with discord, ${patrons
+        .length.toLocaleString()} active, ${patrons.filter((p) => !!p.discordId).length.toLocaleString()} with discord, ${patrons
         .filter((p) => !!p.discordId && p.status === 'active_patron')
         .length.toLocaleString()} active with discord)`
     );

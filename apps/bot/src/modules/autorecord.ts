@@ -1,5 +1,6 @@
-import { DexareModule, DexareClient } from 'dexare';
+import { DexareClient, DexareModule } from 'dexare';
 import Eris from 'eris';
+
 import type { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
 import { checkMaintenance, processCooldown } from '../redis';
@@ -54,11 +55,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     const userData = await prisma.user.findFirst({ where: { id: autoRecording.userId } });
     const blessing = await prisma.blessing.findFirst({ where: { guildId: guildId } });
     const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(
-      this.recorder.client.config,
-      userData?.rewardTier ?? 0,
-      blessingUser?.rewardTier ?? 0
-    );
+    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Remove auto-recording if they lost the ability to autorecord
     if (!parsedRewards.rewards.features.includes('auto'))
@@ -76,10 +73,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
     const memberCount = channel.voiceMembers.filter((m) => !m.bot).length;
     let shouldRecord = memberCount >= autoRecording.minimum;
-    if (
-      autoRecording.triggerUsers.length > 0 &&
-      channel.voiceMembers.some((member) => autoRecording.triggerUsers.includes(member.id) && !member.bot)
-    )
+    if (autoRecording.triggerUsers.length > 0 && channel.voiceMembers.some((member) => autoRecording.triggerUsers.includes(member.id) && !member.bot))
       shouldRecord = true;
 
     if (!shouldRecord && recording) {
@@ -98,8 +92,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         return void this.logger.debug(`Could not connect to ${channelId}: Missing nickname permissions`);
 
       // Find member
-      const member =
-        guild.members.get(autoRecording.userId) || (await guild.fetchMembers({ userIDs: [autoRecording.userId] }))[0];
+      const member = guild.members.get(autoRecording.userId) || (await guild.fetchMembers({ userIDs: [autoRecording.userId] }))[0];
       if (!member)
         return void (await prisma.autoRecord.delete({
           where: { id: autoRecording.id }
@@ -123,10 +116,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
         } catch (e) {
           this.client.commands.logger.error('Failed to change nickname', e);
-          return void this.logger.debug(
-            `Could not connect to ${channelId}: An error occurred while changing my nickname`,
-            e
-          );
+          return void this.logger.debug(`Could not connect to ${channelId}: An error occurred while changing my nickname`, e);
         }
 
       // Start recording
@@ -139,9 +129,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           channel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
           channel.permissionsOf(this.client.bot.user.id).has('embedLinks')
         ) {
-          const message = await this.client.bot
-            .createMessage(postChannel.id, recording.messageContent() as any)
-            .catch(() => null);
+          const message = await this.client.bot.createMessage(postChannel.id, recording.messageContent() as any).catch(() => null);
           if (message) {
             recording.messageID = message.id;
             recording.messageChannelID = message.channel.id;
@@ -152,10 +140,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
       // Try to DM user
       const dmChannel = await member.user.getDMChannel().catch(() => null);
-      if (dmChannel)
-        await dmChannel
-          .createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config))
-          .catch(() => null);
+      if (dmChannel) await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);
     }
   }
 

@@ -1,9 +1,10 @@
 import { CommandContext, DexareClient, DexareCommand } from 'dexare';
 import { escapeRegex } from 'dexare/lib/util';
+import Eris from 'eris';
+import util from 'util';
+
 import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
-import util from 'util';
-import Eris from 'eris';
 import { makeError } from '../util';
 
 const nl = '!!NL!!';
@@ -57,25 +58,18 @@ export default class ShardEvalCommand extends DexareCommand {
   }
 
   makeResultMessages(result: any, hrDiff: [number, number], input?: string): [string, Eris.FileContent | undefined] {
-    const inspected = util
-      .inspect(result, { depth: 0 })
-      .replace(nlPattern, '\n')
-      .replace(this.sensitivePattern, '--snip--');
+    const inspected = util.inspect(result, { depth: 0 }).replace(nlPattern, '\n').replace(this.sensitivePattern, '--snip--');
     if (input) {
       if (input.length > 1900)
         return [
           '',
           {
             name: 'eval.js',
-            file: Buffer.from(
-              `// Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.\n\n${inspected}`
-            )
+            file: Buffer.from(`// Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.\n\n${inspected}`)
           }
         ];
       return [
-        `*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*\n\`\`\`js\n` +
-          inspected.slice(0, 1900) +
-          `\`\`\``,
+        `*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*\n\`\`\`js\n` + inspected.slice(0, 1900) + `\`\`\``,
         undefined
       ];
     }

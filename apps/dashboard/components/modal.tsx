@@ -14,12 +14,7 @@ export function Modal({ open, setOpen, title, children }: ModalProps) {
   const Description = Dialog.Description as any;
 
   return (
-    <DialogFix
-      as="div"
-      open={open}
-      className="fixed inset-0 z-10 overflow-y-auto bg-black bg-opacity-50"
-      onClose={() => setOpen(false)}
-    >
+    <DialogFix as="div" open={open} className="fixed inset-0 z-10 overflow-y-auto bg-black bg-opacity-50" onClose={() => setOpen(false)}>
       <div className="min-h-screen px-4 text-center">
         <Dialog.Overlay className="fixed inset-0" />
 

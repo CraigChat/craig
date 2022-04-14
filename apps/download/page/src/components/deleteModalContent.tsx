@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { useTranslation } from 'react-i18next';
+
 import { deleteRecording } from '../api';
 import { parseError } from '../util';
 import ModalButton from './modalButton';
@@ -14,12 +15,7 @@ interface DeleteModalContentProps {
   deleteKey?: string;
 }
 
-export default function DeleteModalContent({
-  recordingId,
-  deleteKey: defaultDeleteKey,
-  setModalClose,
-  onClose
-}: DeleteModalContentProps) {
+export default function DeleteModalContent({ recordingId, deleteKey: defaultDeleteKey, setModalClose, onClose }: DeleteModalContentProps) {
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>(null);
   const [deleteKey, setDeleteKey] = useState(defaultDeleteKey || '');

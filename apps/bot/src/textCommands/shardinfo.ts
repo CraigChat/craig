@@ -1,4 +1,5 @@
 import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+
 import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
 
@@ -41,11 +42,10 @@ export default class ShardInfoCommand extends DexareCommand {
       res
         .map(
           (shard) =>
-            `${shard.id === parseInt(process.env.SHARD_ID!) ? '>' : ' '} [${shard.id
-              .toString()
-              .padStart(3, ' ')}]: ${shard.status.padStart(12, ' ')} | Guilds: ${shard.guilds
-              .toLocaleString()
-              .padEnd(6, ' ')} | Latency: ${`${shard.latency}ms`.padEnd(6, ' ')} | Uptime: ${this.format(
+            `${shard.id === parseInt(process.env.SHARD_ID!) ? '>' : ' '} [${shard.id.toString().padStart(3, ' ')}]: ${shard.status.padStart(
+              12,
+              ' '
+            )} | Guilds: ${shard.guilds.toLocaleString().padEnd(6, ' ')} | Latency: ${`${shard.latency}ms`.padEnd(6, ' ')} | Uptime: ${this.format(
               shard.uptime
             )} | Recordings: ${shard.recordings.toLocaleString()}`
         )

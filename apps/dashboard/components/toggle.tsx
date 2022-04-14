@@ -1,6 +1,6 @@
 import { Switch } from '@headlessui/react';
-import { useState } from 'react';
 import clsx from 'clsx';
+import { useState } from 'react';
 import { Tooltip } from 'react-tippy';
 
 interface ToggleProps {
@@ -14,16 +14,7 @@ interface ToggleProps {
   onToggle?(checked: boolean): any;
 }
 
-export default function Toggle({
-  label,
-  description,
-  checked,
-  disabled,
-  tooltip,
-  className,
-  alignSwitchUp,
-  onToggle
-}: ToggleProps) {
+export default function Toggle({ label, description, checked, disabled, tooltip, className, alignSwitchUp, onToggle }: ToggleProps) {
   const [enabled, setEnabled] = useState(checked || false);
 
   function onSwitch(checked: boolean) {

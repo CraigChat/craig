@@ -1,16 +1,17 @@
-import { h } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
 import glowersIcon from '@iconify-icons/ic/round-adjust';
 import videoIcon from '@iconify-icons/ic/round-video-file';
+import clsx from 'clsx';
+import { h } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
 import { useTranslation } from 'react-i18next';
-import Section from './section';
-import { PlatformInfo } from '../util';
-import Dropdown, { DropdownItem } from './dropdown';
+
 import { CookAvatarsPayload, RecordingUser } from '../api';
-import Toggle from './toggle';
+import { PlatformInfo } from '../util';
 import ColorPicker from './colorPicker';
 import DownloadButton from './downloadButton';
-import clsx from 'clsx';
+import Dropdown, { DropdownItem } from './dropdown';
+import Section from './section';
+import Toggle from './toggle';
 
 interface GlowersSectionProps {
   users: RecordingUser[];
@@ -106,34 +107,17 @@ export default function GlowersSection({ users, platform, onDownload }: GlowersS
           ))}
         </div>
         <div class="flex gap-2 flex-col sm:flex-row">
-          <ColorPicker
-            label={t('glowers.bg_color')}
-            color={bgColor}
-            onChange={setBgColor}
-            full
-            className="flex-grow"
-            disabled={transparent}
-          />
+          <ColorPicker label={t('glowers.bg_color')} color={bgColor} onChange={setBgColor} full className="flex-grow" disabled={transparent} />
           <ColorPicker label={t('glowers.fg_color')} color={fgColor} onChange={setFgColor} full className="flex-grow" />
         </div>
         <Toggle
           label={t('glowers.transparent_bg')}
-          description={t([
-            `glowers.format_desc.${formatOption ? formatOption.value : 'mov'}`,
-            'glowers.format_desc.mov'
-          ])}
+          description={t([`glowers.format_desc.${formatOption ? formatOption.value : 'mov'}`, 'glowers.format_desc.mov'])}
           checked={transparent}
           onToggle={setTransparent}
         />
         {formatOption && ( // Only render after useEffect goes off
-          <Dropdown
-            items={options}
-            label={t('glowers.format')}
-            className="w-full sm:w-2/3"
-            full
-            selected={formatOption}
-            onSelect={setFormatOption}
-          />
+          <Dropdown items={options} label={t('glowers.format')} className="w-full sm:w-2/3" full selected={formatOption} onSelect={setFormatOption} />
         )}
         <DownloadButton
           icon={videoIcon}

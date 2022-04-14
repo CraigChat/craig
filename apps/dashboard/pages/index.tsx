@@ -1,19 +1,19 @@
+import type { GoogleDriveUser, Patreon } from '@prisma/client';
+import clsx from 'clsx';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
-import { useState } from 'react';
-import clsx from 'clsx';
-import { DiscordUser } from '../utils/types';
-import { getAvatarUrl, parseUser } from '../utils';
-import Button from '../components/button';
-import type { GoogleDriveUser, Patreon } from '@prisma/client';
-import Row from '../components/row';
-import prisma from '../lib/prisma';
-import Section from '../components/section';
-import { Modal } from '../components/modal';
-import { useEffect } from 'react';
-import Toggle from '../components/toggle';
-import Dropdown, { DropdownItem } from '../components/dropdown';
+import { useEffect, useState } from 'react';
 import { Tooltip } from 'react-tippy';
+
+import Button from '../components/button';
+import Dropdown, { DropdownItem } from '../components/dropdown';
+import { Modal } from '../components/modal';
+import Row from '../components/row';
+import Section from '../components/section';
+import Toggle from '../components/toggle';
+import prisma from '../lib/prisma';
+import { getAvatarUrl, parseUser } from '../utils';
+import { DiscordUser } from '../utils/types';
 
 interface Props {
   user: DiscordUser;
@@ -83,9 +83,7 @@ export default function Index(props: Props) {
   const [drive, setDrive] = useState(props.googleDrive);
   const [driveEnabled, setDriveEnabled] = useState(props.googleDrive?.enabled ?? false);
   const [driveFormat, setDriveFormat] = useState(
-    formats.find(
-      (f) => f.value === `${props.googleDrive?.format || 'flac'}-${props.googleDrive?.container || 'zip'}`
-    ) ?? formats[0]
+    formats.find((f) => f.value === `${props.googleDrive?.format || 'flac'}-${props.googleDrive?.container || 'zip'}`) ?? formats[0]
   );
 
   useEffect(() => {
@@ -103,8 +101,7 @@ export default function Index(props: Props) {
 
       if (error === 'access_denied') content = 'You denied access to your Google Drive account.';
       else if (error === 'invalid_scope')
-        content =
-          'You have provided partial permissions to Craig. Google Drive integration will not work unless both permissions are checked.';
+        content = 'You have provided partial permissions to Craig. Google Drive integration will not work unless both permissions are checked.';
       else content = p.get('error');
     }
 
@@ -217,15 +214,8 @@ export default function Index(props: Props) {
                     Disconnect
                   </Button>
                 ) : (
-                  <Tooltip
-                    disabled={props.rewardTier !== 0}
-                    title="You must be a patron to connect to your Google Drive."
-                  >
-                    <Button
-                      disabled={props.rewardTier === 0}
-                      type="brand"
-                      onClick={() => (location.href = '/api/google/oauth')}
-                    >
+                  <Tooltip disabled={props.rewardTier !== 0} title="You must be a patron to connect to your Google Drive.">
+                    <Button disabled={props.rewardTier === 0} type="brand" onClick={() => (location.href = '/api/google/oauth')}>
                       Connect
                     </Button>
                   </Tooltip>
@@ -262,11 +252,7 @@ export default function Index(props: Props) {
           </div>
         </div>
       </div>
-      <Modal
-        open={patronUnlinkOpen}
-        title="Are you sure you want to unlink your Patreon account?"
-        setOpen={setPatronUnlinkOpen}
-      >
+      <Modal open={patronUnlinkOpen} title="Are you sure you want to unlink your Patreon account?" setOpen={setPatronUnlinkOpen}>
         <div className="flex flex-col gap-2">
           <span>Your benefits will be revoked if you unlink your Patreon.</span>
           <div className="flex gap-2 items-center">

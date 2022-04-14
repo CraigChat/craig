@@ -1,5 +1,6 @@
 import { stripIndents } from 'common-tags';
-import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle, ChannelType } from 'slash-create';
+import { ButtonStyle, ChannelType, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
+
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission, parseRewards } from '../util';
@@ -99,11 +100,7 @@ export default class AutoRecord extends GeneralCommand {
     const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
     const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
     const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(
-      this.recorder.client.config,
-      userData?.rewardTier ?? 0,
-      blessingUser?.rewardTier ?? 0
-    );
+    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Check if user can manage auto-recordings
     if (!parsedRewards.rewards.features.includes('auto'))
@@ -146,9 +143,7 @@ export default class AutoRecord extends GeneralCommand {
                   **Channel:** <#${ctx.options.view.channel}>
                   **Created by:** <@${autoRecording.userId}>
                   **Minimum members:** ${autoRecording.minimum.toLocaleString()}
-                  **Trigger users:** ${
-                    autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || '*None*'
-                  }
+                  **Trigger users:** ${autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || '*None*'}
                   **Updated at:** <t:${Math.round(autoRecording.updatedAt.valueOf() / 1000)}:F>
                 `
               }

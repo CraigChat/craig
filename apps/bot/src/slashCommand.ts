@@ -1,5 +1,6 @@
 import { DexareClient } from 'dexare';
 import { SlashCommand, SlashCommandOptions, SlashCreator } from 'slash-create';
+
 import type { CraigBot, CraigBotConfig } from './bot';
 import type RecorderModule from './modules/recorder';
 import type ShardingModule from './modules/sharding';

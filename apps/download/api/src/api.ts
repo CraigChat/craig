@@ -1,17 +1,18 @@
 import fastify, { FastifyInstance } from 'fastify';
 import helmet from 'fastify-helmet';
-import staticPlugin from 'fastify-static';
 import rateLimit from 'fastify-rate-limit';
+import staticPlugin from 'fastify-static';
+import { access, mkdir } from 'fs/promises';
 import path from 'path';
-import * as recordingRoute from './routes/recording';
-import * as cookRoute from './routes/cook';
-import * as pageRoute from './routes/page';
-import { ErrorCode } from './util';
+
 import { client as redisClient } from './cache';
 import { cron as influxCron } from './influx';
+import * as cookRoute from './routes/cook';
+import * as pageRoute from './routes/page';
+import * as recordingRoute from './routes/recording';
 import { close as closeSentry } from './sentry';
+import { ErrorCode } from './util';
 import { downloadPath } from './util/download';
-import { access, mkdir } from 'fs/promises';
 
 export let server: FastifyInstance;
 

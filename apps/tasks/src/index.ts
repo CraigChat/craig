@@ -1,11 +1,13 @@
+import config from 'config';
+import { CronJob } from 'cron';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CronJob } from 'cron';
-import config from 'config';
+
 import { createLogger } from './logger';
-import { TaskJob } from './types';
-import { listen } from './trpc';
 import { client } from './redis';
+import { listen } from './trpc';
+import { TaskJob } from './types';
+
 const tasksConfig: {
   ignore: string[];
 } = config.get('tasks');
@@ -41,13 +43,7 @@ const tasksConfig: {
 
     logger.info('Starting job %s', jobName);
 
-    const jobCron = new CronJob(
-      jobInstance.time,
-      jobInstance._run.bind(jobInstance),
-      null,
-      false,
-      config.get('timezone') as string
-    );
+    const jobCron = new CronJob(jobInstance.time, jobInstance._run.bind(jobInstance), null, false, config.get('timezone') as string);
 
     jobCron.start();
   }

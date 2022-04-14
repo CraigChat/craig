@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { parseUser } from '../../../utils';
+
 import prisma from '../../../lib/prisma';
+import { parseUser } from '../../../utils';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'GET') return res.redirect('/');

@@ -1,8 +1,8 @@
-import winston, { format } from 'winston';
-import dayjs from 'dayjs';
 import chalk, { Chalk } from 'chalk';
-import * as util from 'util';
 import config from 'config';
+import dayjs from 'dayjs';
+import * as util from 'util';
+import winston, { format } from 'winston';
 
 const levelColors: { [level: string]: Chalk } = {
   info: chalk.black.bgCyan,
@@ -41,15 +41,12 @@ const colorPool: Chalk[] = [
 ];
 
 function _centrePad(text: string, length: number) {
-  if (text.length < length)
-    return (
-      ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2))
-    );
+  if (text.length < length) return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
   else return text;
 }
 
 function _hashCode(str: string) {
-  var hash = 0,
+  let hash = 0,
     i,
     chr;
   for (i = 0; i < str.length; i++) {
@@ -68,10 +65,7 @@ function _log({ file, level, args }: { file: string; level: string; args: any[] 
           const lClk = levelColors[info.level] || chalk.yellow.bgBlack;
           const mClk = colorPool[Math.abs(_hashCode(file)) % colorPool.length];
           return (
-            mClk(` ${file} `) +
-            chalk.black.bgWhite(` ${dayjs().format('MM/DD HH:mm:ss')} `) +
-            lClk(_centrePad(info.level, 10)) +
-            ` ${info.message}`
+            mClk(` ${file} `) + chalk.black.bgWhite(` ${dayjs().format('MM/DD HH:mm:ss')} `) + lClk(_centrePad(info.level, 10)) + ` ${info.message}`
           );
         })
       ),

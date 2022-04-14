@@ -1,9 +1,10 @@
-import { RecordingNote, recPath } from './recording';
-import path from 'path';
-import execa from 'execa';
 import { spawn } from 'child_process';
+import execa from 'execa';
+import path from 'path';
+
 import { clearReadyState, getReadyState, setReadyState } from '../cache';
 import { registerProcess } from './processManager';
+import { RecordingNote, recPath } from './recording';
 
 export const cookPath = path.join(__dirname, '..', '..', '..', '..', 'cook');
 export const tmpPath = path.join(__dirname, '..', '..', '..', 'tmp');
@@ -94,11 +95,7 @@ function stateManager(id: string): [ReadyState, (newState: ReadyState) => Promis
 
   const writeState = async (newState: ReadyState) => {
     if (stateDeleted) return;
-    const isNew = !(
-      state.file === newState.file &&
-      state.progress === newState.progress &&
-      state.time === newState.time
-    );
+    const isNew = !(state.file === newState.file && state.progress === newState.progress && state.time === newState.time);
     if (isNew) {
       state.file = newState.file;
       state.progress = newState.progress;
@@ -155,27 +152,9 @@ export async function cook(id: string, format = 'flac', container = 'zip', dynau
   }
 }
 
-export const allowedAvatarFormats = [
-  'png',
-  'mkvh264',
-  'webmvp8',
-  'movsfx',
-  'movsfxm',
-  'movsfxu',
-  'movpngsfx',
-  'movpngsfxm',
-  'movpngsfxu',
-  'exe'
-];
+export const allowedAvatarFormats = ['png', 'mkvh264', 'webmvp8', 'movsfx', 'movsfxm', 'movsfxu', 'movpngsfx', 'movpngsfxm', 'movpngsfxu', 'exe'];
 
-export async function cookAvatars(
-  id: string,
-  format = 'png',
-  container = 'zip',
-  transparent = false,
-  bg = '000000',
-  fg = '008000'
-) {
+export async function cookAvatars(id: string, format = 'png', container = 'zip', transparent = false, bg = '000000', fg = '008000') {
   const [state, writeState, deleteState] = stateManager(id);
 
   try {

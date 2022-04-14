@@ -1,5 +1,6 @@
 import { captureException, withScope } from '@sentry/node';
 import { RouteOptions } from 'fastify';
+
 import { clearDownload, getDownload } from '../cache';
 import { onCookRun, onRequest } from '../influx';
 import { ErrorCode } from '../util';
@@ -27,12 +28,9 @@ export const durationRoute: RouteOptions = {
     if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const info = await getRecording(id);
-    if (info === false)
-      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info)
-      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key))
-      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
     try {
@@ -58,12 +56,9 @@ export const notesRoute: RouteOptions = {
     if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const info = await getRecording(id);
-    if (info === false)
-      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info)
-      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key))
-      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
     try {
@@ -91,20 +86,15 @@ export const ennuizelRoute: RouteOptions = {
     onRequest(id);
 
     const info = await getRecording(id);
-    if (info === false)
-      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info)
-      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key))
-      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const trackNum = parseInt(track, 10);
-    if (isNaN(trackNum) || trackNum <= 0)
-      return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
+    if (isNaN(trackNum) || trackNum <= 0) return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
 
     const users = await getUsers(id);
-    if (!users[trackNum - 1])
-      return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
+    if (!users[trackNum - 1]) return reply.status(400).send({ ok: false, error: 'Invalid track', code: ErrorCode.INVALID_TRACK });
 
     try {
       const stream = rawPartwise(id, trackNum);
@@ -136,12 +126,9 @@ export const getRoute: RouteOptions = {
     if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const info = await getRecording(id);
-    if (info === false)
-      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info)
-      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key))
-      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id, true);
 
     try {
@@ -168,35 +155,26 @@ export const postRoute: RouteOptions = {
     if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const info = await getRecording(id);
-    if (info === false)
-      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info)
-      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key))
-      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
     const ready = await getReady(id);
     if (ready !== true)
-      return reply
-        .status(429)
-        .send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
+      return reply.status(429).send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
 
     const body = request.body as { format?: string; container?: string; dynaudnorm?: boolean };
     if (body.format && !allowedFormats.includes(body.format))
       return reply.status(400).send({ ok: false, error: 'Invalid format', code: ErrorCode.INVALID_FORMAT });
     if (body.format === 'mp3' && !info.features.mp3)
-      return reply
-        .status(403)
-        .send({ ok: false, error: 'This recording is missing the MP3 feature', code: ErrorCode.MISSING_MP3 });
+      return reply.status(403).send({ ok: false, error: 'This recording is missing the MP3 feature', code: ErrorCode.MISSING_MP3 });
     const format = body.format || 'flac';
 
     if (body.container && !Object.keys(allowedContainers).includes(body.container))
       return reply.status(400).send({ ok: false, error: 'Invalid container', code: ErrorCode.INVALID_CONTAINER });
     if (body.container === 'mix' && !info.features.mix)
-      return reply
-        .status(403)
-        .send({ ok: false, error: 'This recording is missing the mix feature', code: ErrorCode.MISSING_MIX });
+      return reply.status(403).send({ ok: false, error: 'This recording is missing the mix feature', code: ErrorCode.MISSING_MIX });
     const container = body.container || 'zip';
 
     const dynaudnorm = Boolean(body.dynaudnorm);
@@ -237,19 +215,13 @@ export const avatarRoute: RouteOptions = {
     if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
 
     const info = await getRecording(id);
-    if (info === false)
-      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info)
-      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key))
-      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
     onRequest(id);
 
     const ready = await getReady(id);
-    if (!ready)
-      return reply
-        .status(429)
-        .send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
+    if (!ready) return reply.status(429).send({ ok: false, error: 'This recording is already being processed', code: ErrorCode.RECORDING_NOT_READY });
 
     const body = request.body as {
       format?: string;
@@ -260,9 +232,7 @@ export const avatarRoute: RouteOptions = {
     };
 
     if (((body.format && body.format !== 'png') || body.container === 'exe') && !info.features.glowers)
-      return reply
-        .status(403)
-        .send({ ok: false, error: 'This recording is missing the glowers feature', code: ErrorCode.MISSING_GLOWERS });
+      return reply.status(403).send({ ok: false, error: 'This recording is missing the glowers feature', code: ErrorCode.MISSING_GLOWERS });
     if (body.format && !allowedAvatarFormats.includes(body.format))
       return reply.status(400).send({ ok: false, error: 'Invalid format', code: ErrorCode.INVALID_FORMAT });
     const format = body.format || 'png';

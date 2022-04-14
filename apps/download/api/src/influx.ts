@@ -1,7 +1,7 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
+import { captureException, withScope } from '@sentry/node';
 import { CronJob } from 'cron';
 import { hostname } from 'os';
-import { captureException, withScope } from '@sentry/node';
 
 export const client = new InfluxDB({ url: process.env.INFLUX_URL, token: process.env.INFLUX_TOKEN });
 

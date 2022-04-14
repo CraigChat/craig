@@ -1,20 +1,13 @@
-import { DexareModule, DexareClient, BaseConfig } from 'dexare';
-import {
-  ComponentActionRow,
-  ComponentContext,
-  ComponentType,
-  GatewayServer,
-  SlashCreator,
-  SlashCreatorOptions,
-  TextInputStyle
-} from 'slash-create';
+import { BaseConfig, DexareClient, DexareModule } from 'dexare';
 import path from 'node:path';
-import type RecorderModule from './recorder';
+import { ComponentActionRow, ComponentContext, ComponentType, GatewayServer, SlashCreator, SlashCreatorOptions, TextInputStyle } from 'slash-create';
+
 import type { CraigBotConfig } from '../bot';
-import { RecordingState } from './recorder/recording';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, unblessServer } from '../util';
-import { prisma } from '../prisma';
 import { onCommandRun } from '../influx';
+import { prisma } from '../prisma';
+import { blessServer, checkRecordingPermission, cutoffText, disableComponents, unblessServer } from '../util';
+import type RecorderModule from './recorder';
+import { RecordingState } from './recorder/recording';
 
 export interface SlashConfig extends BaseConfig {
   applicationID: string;
@@ -58,9 +51,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     this.creator.on('error', (error) => this.logger.error(error.stack || error.toString()));
     this.creator.on('commandRun', (command, _, ctx) => {
       onCommandRun(ctx.user.id, command.commandName, ctx.guildID);
-      this.logger.debug(
-        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`
-      );
+      this.logger.debug(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
     });
     this.creator.on('commandError', (command, error) => {
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString());
@@ -94,10 +85,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       });
     }
     if (recording.channel.guild.id !== ctx.guildID) return;
-    const hasPermission = checkRecordingPermission(
-      ctx.member!,
-      await prisma.guild.findFirst({ where: { id: ctx.guildID } })
-    );
+    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
@@ -134,11 +122,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
             });
           try {
             recording.note(modalCtx.values.note || '');
-            recording.pushToActivity(
-              `${ctx.user.mention} added a note.${
-                modalCtx.values.note ? ` - ${cutoffText(modalCtx.values.note, 100)}` : ''
-              }`
-            );
+            recording.pushToActivity(`${ctx.user.mention} added a note.${modalCtx.values.note ? ` - ${cutoffText(modalCtx.values.note, 100)}` : ''}`);
             return modalCtx.send({
               content: 'Added the note to the recording!',
               ephemeral: true

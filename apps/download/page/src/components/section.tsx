@@ -1,9 +1,9 @@
 import { Icon, IconifyIcon } from '@iconify/react';
+import arrowDown from '@iconify-icons/ic/baseline-arrow-drop-down';
+import arrowUp from '@iconify-icons/ic/baseline-arrow-drop-up';
 import clsx from 'clsx';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-import arrowDown from '@iconify-icons/ic/baseline-arrow-drop-down';
-import arrowUp from '@iconify-icons/ic/baseline-arrow-drop-up';
 
 interface SectionProps {
   icon?: IconifyIcon;

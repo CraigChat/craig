@@ -1,17 +1,18 @@
-import { DexareModule, DexareClient } from 'dexare';
-import Eris from 'eris';
-import { access, mkdir } from 'fs/promises';
-import path from 'path';
-import fetch from 'node-fetch';
 import { createTRPCClient } from '@trpc/client';
 import { httpLink } from '@trpc/client/links/httpLink';
+import type { Procedure } from '@trpc/server/dist/declarations/src/internals/procedure';
+import type { DefaultErrorShape, Router } from '@trpc/server/dist/declarations/src/router';
+import { DexareClient, DexareModule } from 'dexare';
+import Eris from 'eris';
+import { access, mkdir } from 'fs/promises';
+import fetch from 'node-fetch';
+import path from 'path';
+
 import type { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';
 import Recording, { RecordingState } from './recording';
-import type { Procedure } from '@trpc/server/dist/declarations/src/internals/procedure';
-import type { DefaultErrorShape, Router } from '@trpc/server/dist/declarations/src/router';
 
 type TRPCRouter = Router<
   unknown,
@@ -36,8 +37,8 @@ type TRPCRouter = Router<
       }
     >
   >,
-  {},
-  {},
+  any,
+  any,
   DefaultErrorShape
 >;
 
@@ -110,9 +111,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       const guild = this.client.bot.guilds.get(guildId);
       if (!guild) continue;
 
-      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as
-        | Eris.StageChannel
-        | Eris.VoiceChannel;
+      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as Eris.StageChannel | Eris.VoiceChannel;
       if (!channel) continue;
 
       await channel.join().catch(() => null);
@@ -159,9 +158,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         if (recording.state === RecordingState.RECORDING) {
           recording.maintenceWarned = true;
           recording.pushToActivity('⚠️ The bot is undergoing maintenance, recording will be stopped.', false);
-          recording.stateDescription = `__The bot is undergoing maintenance.__${
-            maintenence.message ? `\n\n${maintenence.message}` : ''
-          }`;
+          recording.stateDescription = `__The bot is undergoing maintenance.__${maintenence.message ? `\n\n${maintenence.message}` : ''}`;
           await recording.stop().catch(() => null);
         }
       }

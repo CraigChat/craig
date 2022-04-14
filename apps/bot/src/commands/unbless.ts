@@ -1,4 +1,5 @@
-import { SlashCreator, CommandContext } from 'slash-create';
+import { CommandContext, SlashCreator } from 'slash-create';
+
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { unblessServer } from '../util';

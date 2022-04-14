@@ -1,5 +1,6 @@
 import { stripIndents } from 'common-tags';
-import { SlashCreator, CommandContext, ComponentType, ButtonStyle } from 'slash-create';
+import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
+
 import type { RewardTier } from '../bot';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
@@ -74,16 +75,12 @@ export default class Features extends GeneralCommand {
             },
             {
               name: 'Server Perks',
-              value:
-                !ctx.guildID || !blessingUser ? null : this.formatRewards(guildRewards, guildTier, blessingUser.id),
+              value: !ctx.guildID || !blessingUser ? null : this.formatRewards(guildRewards, guildTier, blessingUser.id),
               inline: true
             }
           ].filter((f) => f.value),
           footer: {
-            text:
-              ctx.guildID && !blessingUser && userTier !== 0
-                ? 'This server has no perks, you can bless this server.'
-                : null
+            text: ctx.guildID && !blessingUser && userTier !== 0 ? 'This server has no perks, you can bless this server.' : null
           }
         }
       ],

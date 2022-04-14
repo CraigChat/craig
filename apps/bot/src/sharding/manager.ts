@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3';
+
 import { wait } from '../util';
 import * as logger from './logger';
 import ManagerModule from './module';
@@ -141,8 +142,7 @@ export default class ShardManager extends EventEmitter {
 
     for (const modName of loadOrder) {
       const mod = modules.find((mod) => mod.options.name === modName)!;
-      if (this.modules.has(mod.options.name))
-        throw new Error(`A module in the client already has been named "${mod.options.name}".`);
+      if (this.modules.has(mod.options.name)) throw new Error(`A module in the client already has been named "${mod.options.name}".`);
       logger.log(`Loading module "${modName}"`);
       this.modules.set(modName, mod);
       await mod._load();
@@ -151,8 +151,7 @@ export default class ShardManager extends EventEmitter {
 
   async loadModule(moduleObject: any) {
     const mod = this._resolveModule(moduleObject);
-    if (this.modules.has(mod.options.name))
-      throw new Error(`A module in the client already has been named "${mod.options.name}".`);
+    if (this.modules.has(mod.options.name)) throw new Error(`A module in the client already has been named "${mod.options.name}".`);
     logger.log(`Loading module "${mod.options.name}"`);
     this.modules.set(mod.options.name, mod);
     await mod._load();
@@ -183,8 +182,7 @@ export default class ShardManager extends EventEmitter {
       if (mod.options.requires && mod.options.requires.length)
         mod.options.requires.forEach((modName) => {
           const dep = modules.find((mod) => mod.options.name === modName) || this.modules.get(modName);
-          if (!dep)
-            throw new Error(`Module '${mod.options.name}' requires dependency '${modName}' which does not exist!`);
+          if (!dep) throw new Error(`Module '${mod.options.name}' requires dependency '${modName}' which does not exist!`);
           if (!this.modules.has(modName)) insert(dep);
         });
       if (!loadOrder.includes(mod.options.name)) loadOrder.push(mod.options.name);

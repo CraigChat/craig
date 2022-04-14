@@ -1,9 +1,10 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import fetch from 'node-fetch';
+
+import prisma from '../../../lib/prisma';
+import { parseUser } from '../../../utils';
 import { config } from '../../../utils/config';
 import { PatreonUser } from '../../../utils/types';
-import { NextApiRequest, NextApiResponse } from 'next';
-import { parseUser } from '../../../utils';
-import prisma from '../../../lib/prisma';
 
 const REDIRECT_URI = `${config.appUri}/api/patreon/oauth`;
 

@@ -1,5 +1,6 @@
 import { stripIndents } from 'common-tags';
-import { SlashCreator, ComponentType, ButtonStyle } from 'slash-create';
+import { ButtonStyle, ComponentType, SlashCreator } from 'slash-create';
+
 import GeneralCommand from '../slashCommand';
 
 export default class Info extends GeneralCommand {

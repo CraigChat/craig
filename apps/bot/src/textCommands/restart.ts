@@ -1,4 +1,5 @@
 import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+
 import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
 

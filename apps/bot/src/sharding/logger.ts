@@ -1,7 +1,7 @@
-import winston, { format } from 'winston';
-import dayjs from 'dayjs';
 import chalk, { Chalk } from 'chalk';
+import dayjs from 'dayjs';
 import * as util from 'util';
+import winston, { format } from 'winston';
 
 const logger = winston.createLogger({
   format: format.combine(
@@ -30,10 +30,7 @@ const levelColors: { [level: string]: Chalk } = {
 };
 
 function _centrePad(text: string, length: number) {
-  if (text.length < length)
-    return (
-      ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2))
-    );
+  if (text.length < length) return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
   else return text;
 }
 

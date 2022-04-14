@@ -1,8 +1,9 @@
-import path from 'path';
 import fs from 'fs';
-import { Readable } from 'stream';
-import { clearDownload, setDownload } from '../cache';
 import { nanoid } from 'nanoid';
+import path from 'path';
+import { Readable } from 'stream';
+
+import { clearDownload, setDownload } from '../cache';
 
 export interface DownloadState {
   file: string;

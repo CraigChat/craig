@@ -1,8 +1,3 @@
-import { h } from 'preact';
-import { render } from 'preact/compat';
-import * as Sentry from '@sentry/react';
-import { Integrations } from '@sentry/tracing';
-
 import 'tailwindcss/tailwind.css';
 import 'react-tippy/dist/tippy.css';
 import '@fontsource/red-hat-text/400.css';
@@ -13,6 +8,12 @@ import '@fontsource/lexend/700.css';
 import '@fontsource/ubuntu-mono/400.css';
 import './index.sass';
 import './i18n';
+
+import * as Sentry from '@sentry/react';
+import { Integrations } from '@sentry/tracing';
+import { h } from 'preact';
+import { render } from 'preact/compat';
+
 import App from './components/app';
 
 if (process.env.SENTRY_DSN)

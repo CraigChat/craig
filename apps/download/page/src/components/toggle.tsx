@@ -1,7 +1,7 @@
 import { Switch } from '@headlessui/react';
-import { useState } from 'preact/hooks';
-import { h } from 'preact';
 import clsx from 'clsx';
+import { h } from 'preact';
+import { useState } from 'preact/hooks';
 
 interface ToggleProps {
   label: string;
@@ -38,10 +38,7 @@ export default function Toggle({ label, description, checked, alignSwitchUp, onT
           )}
         >
           <span
-            className={clsx(
-              enabled ? 'translate-x-6' : 'translate-x-1',
-              'inline-block w-4 h-4 transform bg-white rounded-full transition-transform'
-            )}
+            className={clsx(enabled ? 'translate-x-6' : 'translate-x-1', 'inline-block w-4 h-4 transform bg-white rounded-full transition-transform')}
           />
         </Switch>
       </div>

@@ -1,14 +1,15 @@
 import { IconifyIcon } from '@iconify/react';
-import multiTrackIcon from '@iconify-icons/ic/round-clear-all';
-import singleTrackIcon from '@iconify-icons/mdi/merge';
-import audacityIcon from '@iconify-icons/file-icons/audacity';
-import mp3Icon from '@iconify-icons/ic/baseline-music-off';
-import computerIcon from '@iconify-icons/ic/baseline-computer';
-import windowsIcon from '@iconify-icons/cib/windows';
+import txtIcon from '@iconify-icons/bi/file-earmark-text-fill';
 import macIcon from '@iconify-icons/cib/apple';
 import unixIcon from '@iconify-icons/cib/linux';
+import windowsIcon from '@iconify-icons/cib/windows';
+import audacityIcon from '@iconify-icons/file-icons/audacity';
+import computerIcon from '@iconify-icons/ic/baseline-computer';
+import mp3Icon from '@iconify-icons/ic/baseline-music-off';
+import multiTrackIcon from '@iconify-icons/ic/round-clear-all';
 import rawIcon from '@iconify-icons/ic/round-insert-drive-file';
-import txtIcon from '@iconify-icons/bi/file-earmark-text-fill';
+import singleTrackIcon from '@iconify-icons/mdi/merge';
+
 import { RecordingInfo } from './api';
 import { PlatformInfo, StringT } from './util';
 

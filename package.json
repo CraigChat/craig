@@ -1,46 +1,47 @@
 {
-    "name": "craig",
-    "homepage": "http://craig.chat/home/",
-    "license": "MIT",
-    "private": true,
-    "author": {
-      "name": "Snazzah",
-      "email": "me@snazzah.com",
-      "url": "https://snazzah.com/"
-    },
-    "workspaces": [
-        "apps/bot",
-        "apps/dashboard",
-        "apps/download",
-        "apps/tasks"
-    ],
-    "scripts": {
-      "build": "yarn workspaces run build",
-      "test": "yarn workspaces run test",
-      "lint": "yarn workspaces run lint",
-      "lint:fix": "yarn workspaces run lint:fix",
-      "sync": "yarn workspace craig-bot sync",
-      "sync:dev": "yarn workspace craig-bot sync:dev",
-      "run-job": "yarn workspace craig-tasks run-job",
-      "prisma:generate": "prisma generate && yarn workspace craig-bot prisma:generate && yarn workspace craig-dashboard prisma:generate",
-      "prisma:deploy": "prisma migrate deploy"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/CraigChat/craig"
-    },
-    "dependencies": {
-        "@discordjs/opus": "^0.7.0",
-        "better-sqlite3": "^7.1.2",
-        "bufferutil": "^4.0.1",
-        "cyclic-32": "^1.1.0",
-        "eris": "^0.16.1",
-        "googleapis": "^58.0.0",
-        "request": "^2.88.2",
-        "sqlite3": "^5.0.1",
-        "ws": "^7.4.5"
-    },
-    "devDependencies": {
-        "prisma": "^3.10.0"
-    }
+  "name": "craig",
+  "homepage": "http://craig.chat/home/",
+  "license": "MIT",
+  "private": true,
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "workspaces": [
+    "apps/bot",
+    "apps/dashboard",
+    "apps/download",
+    "apps/tasks"
+  ],
+  "scripts": {
+    "build": "yarn workspaces run build",
+    "test": "yarn workspaces run test",
+    "lint": "yarn workspaces run lint",
+    "lint:fix": "yarn workspaces run lint:fix",
+    "sync": "yarn workspace craig-bot sync",
+    "sync:dev": "yarn workspace craig-bot sync:dev",
+    "run-job": "yarn workspace craig-tasks run-job",
+    "prisma:generate": "prisma generate && yarn workspace craig-bot prisma:generate && yarn workspace craig-dashboard prisma:generate",
+    "prisma:deploy": "prisma migrate deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CraigChat/craig"
+  },
+  "dependencies": {
+    "@discordjs/opus": "^0.7.0",
+    "better-sqlite3": "^7.1.2",
+    "bufferutil": "^4.0.1",
+    "cyclic-32": "^1.1.0",
+    "eris": "^0.16.1",
+    "eslint": "^8.13.0",
+    "eslint-config-snazzah": "^1.1.0",
+    "googleapis": "^58.0.0",
+    "prisma": "^3.12.0",
+    "request": "^2.88.2",
+    "rimraf": "^3.0.2",
+    "sqlite3": "^5.0.1",
+    "ws": "^7.4.5"
+  }
 }

@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+
 import type { ReadyState } from './util/cook';
 import { DownloadState } from './util/download';
 

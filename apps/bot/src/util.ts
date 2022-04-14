@@ -3,13 +3,13 @@ import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import Eris from 'eris';
 import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
+
 import type { CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
 
-export const userAgent = `CraigBot (https://craig.chat ${require('../package.json').version}) Node.js/${
-  process.version
-}`;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+export const userAgent = `CraigBot (https://craig.chat ${require('../package.json').version}) Node.js/${process.version}`;
 
 export function wait(ms: number) {
   return new Promise((resolve) => {
@@ -51,7 +51,7 @@ export interface ParsedRewards {
   rewards: RewardTier;
 }
 
-export function parseRewards(config: CraigBotConfig, tier: number = 0, guildTier: number = 0): ParsedRewards {
+export function parseRewards(config: CraigBotConfig, tier = 0, guildTier = 0): ParsedRewards {
   const userRewards = config.craig.rewardTiers[tier] || config.craig.rewardTiers[0];
   const guildRewards = config.craig.rewardTiers[guildTier] || config.craig.rewardTiers[0];
   if (tier === -1 || (tier >= guildTier && guildTier !== -1)) return { tier, rewards: userRewards };
@@ -96,9 +96,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
     embeds: [
       {
         description: stripIndents`
-          Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
-          Date.now() / 1000
-        )}:F>.
+          Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(Date.now() / 1000)}:F>.
           > You can bring up the recording panel with \`/join\`.
 
           ${stripIndentsAndLines`
@@ -107,18 +105,12 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
             **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
             ${
               recording.webapp
-                ? `**Webapp URL:** ${config.craig.webapp.connectUrl
-                    .replace('{id}', recording.id)
-                    .replace('{key}', recording.ennuiKey)}`
+                ? `**Webapp URL:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
                 : ''
             }`}
 
-          I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(
-          recordTime / 1000
-        )}:R> from now.
-          This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${
-          parsedRewards.rewards.downloadExpiryHours / 24
-        } days from now)
+          I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
+          This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
         `,
         footer: {
           text: "The audio can be downloaded even while I'm still recording."
@@ -165,11 +157,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
 export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {
   const userData = await prisma.user.findFirst({ where: { id: userID } });
   const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
-  const blessingUser = blessing
-    ? blessing.userId === userID
-      ? userData
-      : await prisma.user.findFirst({ where: { id: blessing.userId } })
-    : null;
+  const blessingUser = blessing ? (blessing.userId === userID ? userData : await prisma.user.findFirst({ where: { id: blessing.userId } })) : null;
 
   const userTier = userData?.rewardTier || 0;
   const guildTier = blessingUser?.rewardTier || 0;

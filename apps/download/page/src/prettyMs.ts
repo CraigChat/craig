@@ -56,11 +56,7 @@ export default function prettyMilliseconds(milliseconds: number, options: Option
   add(parsed.hours, 'hour', 'h');
   add(parsed.minutes, 'minute', 'm');
 
-  if (
-    options.separateMilliseconds ||
-    options.formatSubMilliseconds ||
-    (!options.colonNotation && milliseconds < 1000)
-  ) {
+  if (options.separateMilliseconds || options.formatSubMilliseconds || (!options.colonNotation && milliseconds < 1000)) {
     add(parsed.seconds, 'second', 's');
     if (options.formatSubMilliseconds) {
       add(parsed.milliseconds, 'millisecond', 'ms');
@@ -69,15 +65,11 @@ export default function prettyMilliseconds(milliseconds: number, options: Option
     } else {
       const millisecondsAndBelow = parsed.milliseconds + parsed.microseconds / 1000 + parsed.nanoseconds / 1e6;
 
-      const millisecondsDecimalDigits =
-        typeof options.millisecondsDecimalDigits === 'number' ? options.millisecondsDecimalDigits : 0;
+      const millisecondsDecimalDigits = typeof options.millisecondsDecimalDigits === 'number' ? options.millisecondsDecimalDigits : 0;
 
-      const roundedMiliseconds =
-        millisecondsAndBelow >= 1 ? Math.round(millisecondsAndBelow) : Math.ceil(millisecondsAndBelow);
+      const roundedMiliseconds = millisecondsAndBelow >= 1 ? Math.round(millisecondsAndBelow) : Math.ceil(millisecondsAndBelow);
 
-      const millisecondsString = millisecondsDecimalDigits
-        ? millisecondsAndBelow.toFixed(millisecondsDecimalDigits)
-        : String(roundedMiliseconds);
+      const millisecondsString = millisecondsDecimalDigits ? millisecondsAndBelow.toFixed(millisecondsDecimalDigits) : String(roundedMiliseconds);
 
       add(Number.parseFloat(millisecondsString), 'millisecond', 'ms', millisecondsString);
     }
@@ -89,10 +81,7 @@ export default function prettyMilliseconds(milliseconds: number, options: Option
     add(Number.parseFloat(secondsString), 'second', 's', secondsString);
   }
 
-  if (result.length === 0)
-    return options.verbose && options.t
-      ? options.t('ms.ms', { count: 0 })
-      : `0${options.verbose ? ' milliseconds' : 'ms'}`;
+  if (result.length === 0) return options.verbose && options.t ? options.t('ms.ms', { count: 0 }) : `0${options.verbose ? ' milliseconds' : 'ms'}`;
 
   if (options.compact) return result[0].trim();
 

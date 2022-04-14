@@ -1,7 +1,8 @@
-import fs from 'fs/promises';
-import StreamConcat from './streamConcat';
 import { createReadStream } from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
+
+import StreamConcat from './streamConcat';
 
 export const recPath = path.join(__dirname, '..', '..', '..', '..', 'rec');
 
@@ -62,16 +63,14 @@ export async function fileExists(file: string) {
 }
 
 export function getRawRecordingStream(id: string) {
-  const stream = new StreamConcat(
-    ['header1', 'header2', 'data'].map((ext) => createReadStream(path.join(recPath, `${id}.ogg.${ext}`)))
-  );
+  const stream = new StreamConcat(['header1', 'header2', 'data'].map((ext) => createReadStream(path.join(recPath, `${id}.ogg.${ext}`))));
   return stream;
 }
 
 export async function getRecording(id: string): Promise<RecordingInfo | false> {
-  const dataExists = !(
-    await Promise.all(['data', 'header1', 'header2'].map((ext) => fileExists(path.join(recPath, `${id}.ogg.${ext}`))))
-  ).some((exists) => exists === false);
+  const dataExists = !(await Promise.all(['data', 'header1', 'header2'].map((ext) => fileExists(path.join(recPath, `${id}.ogg.${ext}`))))).some(
+    (exists) => exists === false
+  );
   const infoExists = await fileExists(path.join(recPath, `${id}.ogg.info`));
   if (!dataExists && infoExists) return false;
   if (!dataExists || !infoExists) return null;

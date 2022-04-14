@@ -42,9 +42,7 @@ async function clean(timestamp = new Date()) {
   try {
     for (const { process, started } of processes.values()) {
       if (Date.now() - lastActivity.get(process.pid) > 360000) {
-        console.log(
-          `Process ${process.pid} has been inactive for 5 minutes... (started ${Date.now() - started}ms ago)`
-        );
+        console.log(`Process ${process.pid} has been inactive for 5 minutes... (started ${Date.now() - started}ms ago)`);
         removeProcess(process.pid);
       }
     }

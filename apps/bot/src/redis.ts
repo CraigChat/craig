@@ -1,5 +1,5 @@
-import Redis, { RedisOptions } from 'ioredis';
 import config from 'config';
+import Redis, { RedisOptions } from 'ioredis';
 
 const redisConfig: RedisOptions = config.get('redis');
 export const client = new Redis({
@@ -21,9 +21,7 @@ interface Maintenance {
 export async function processCooldown(key: string, duration: number, uses: number) {
   const currentTime = Date.now();
   const cooldownString = await client.get(`cooldown:${key}`);
-  const cooldown: Cooldown = cooldownString
-    ? JSON.parse(cooldownString)
-    : { uses, expires: currentTime + duration * 1000 };
+  const cooldown: Cooldown = cooldownString ? JSON.parse(cooldownString) : { uses, expires: currentTime + duration * 1000 };
   cooldown.uses--;
   if (cooldown.uses <= 0 && currentTime < cooldown.expires) return cooldown;
   const expiry = (cooldown.expires - currentTime) / 1000;

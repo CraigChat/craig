@@ -1,5 +1,6 @@
 import { h } from 'preact';
 import { useTranslation } from 'react-i18next';
+
 import { ReadyState, RecordingUser } from '../api';
 import { SectionButton } from '../sections';
 import { asT } from '../util';
@@ -16,9 +17,7 @@ interface DownloadingModalContentProps {
 
 export default function DownloadingModalContent({ readyState, button, avatars, users }: DownloadingModalContentProps) {
   const { t } = useTranslation();
-  let fileElement: any = (
-    <span>{readyState && readyState.file ? `${readyState.file}:` : t('modal_content.download_processing')}</span>
-  );
+  let fileElement: any = <span>{readyState && readyState.file ? `${readyState.file}:` : t('modal_content.download_processing')}</span>;
   let fileIndex = -1;
 
   if (readyState && readyState.file) {
@@ -36,11 +35,7 @@ export default function DownloadingModalContent({ readyState, button, avatars, u
   return (
     <ModalContent title={t('downloading')}>
       <div class="flex flex-col gap-4">
-        <p>
-          {avatars
-            ? t('modal_content.downloading_avatar')
-            : t('modal_content.downloading', { format: asT(t, button!.text) })}
-        </p>
+        <p>{avatars ? t('modal_content.downloading_avatar') : t('modal_content.downloading', { format: asT(t, button!.text) })}</p>
         <div class="flex gap-2 items-center">
           <Spinner />
           {fileIndex !== -1 ? (

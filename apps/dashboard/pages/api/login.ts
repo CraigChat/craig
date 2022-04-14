@@ -1,9 +1,10 @@
-import fetch from 'node-fetch';
 import { serialize } from 'cookie';
-import { config } from '../../utils/config';
 import { sign } from 'jsonwebtoken';
-import { DiscordUser } from '../../utils/types';
 import { NextApiRequest, NextApiResponse } from 'next';
+import fetch from 'node-fetch';
+
+import { config } from '../../utils/config';
+import { DiscordUser } from '../../utils/types';
 
 const scope = ['identify'].join(' ');
 const REDIRECT_URI = `${config.appUri}/api/login`;

@@ -1,6 +1,7 @@
 import * as trpc from '@trpc/server';
-import { z } from 'zod';
 import { createHTTPServer } from '@trpc/server/adapters/standalone';
+import { z } from 'zod';
+
 import { driveUpload } from './queries/driveUpload';
 
 export const appRouter = trpc.router().query('driveUpload', {
@@ -22,4 +23,4 @@ const { server, listen } = createHTTPServer({
   }
 });
 
-export { server, listen };
+export { listen, server };

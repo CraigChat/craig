@@ -1,14 +1,14 @@
+import { IconifyIcon } from '@iconify/react';
+import deFlag from '@iconify-icons/twemoji/flag-for-germany';
+import arFlag from '@iconify-icons/twemoji/flag-for-saudi-arabia';
+import esFlag from '@iconify-icons/twemoji/flag-for-spain';
+import enFlag from '@iconify-icons/twemoji/flag-for-united-states';
+import unknownFlag from '@iconify-icons/twemoji/white-question-mark';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { IconifyIcon } from '@iconify/react';
 
 const locales = process.env.LOCALES as unknown as { [key: string]: any };
 
-import unknownFlag from '@iconify-icons/twemoji/white-question-mark';
-import enFlag from '@iconify-icons/twemoji/flag-for-united-states';
-import esFlag from '@iconify-icons/twemoji/flag-for-spain';
-import deFlag from '@iconify-icons/twemoji/flag-for-germany';
-import arFlag from '@iconify-icons/twemoji/flag-for-saudi-arabia';
 const langFlagMap: { [key: string]: IconifyIcon } = {
   en: enFlag,
   es: esFlag,

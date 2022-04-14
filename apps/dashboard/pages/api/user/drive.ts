@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { parseUser } from '../../../utils';
+
 import prisma from '../../../lib/prisma';
+import { parseUser } from '../../../utils';
 
 const formats = ['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', 'wav8'];
 const containers = ['aupzip', 'zip'];

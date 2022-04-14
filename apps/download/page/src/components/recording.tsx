@@ -1,20 +1,21 @@
-import { Fragment, h } from 'preact';
 import { Icon } from '@iconify/react';
-import DiscordElement from './discordElement';
-import Section from './section';
-import DownloadButton from './downloadButton';
-import { CookAvatarsPayload, RecordingInfo, RecordingUser } from '../api';
-import { PlatformInfo, asT } from '../util';
-import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
-import prettyMs from '../prettyMs';
-import downloadIcon from '@iconify-icons/ic/baseline-download';
 import avatarsIcon from '@iconify-icons/ic/baseline-burst-mode';
-import imageIcon from '@iconify-icons/ic/round-image';
-import audioIcon from '@iconify-icons/ic/round-audio-file';
+import downloadIcon from '@iconify-icons/ic/baseline-download';
 import expiryIcon from '@iconify-icons/ic/outline-timer';
+import audioIcon from '@iconify-icons/ic/round-audio-file';
+import imageIcon from '@iconify-icons/ic/round-image';
 import clsx from 'clsx';
+import { Fragment, h } from 'preact';
 import { useTranslation } from 'react-i18next';
+
+import { CookAvatarsPayload, RecordingInfo, RecordingUser } from '../api';
+import prettyMs from '../prettyMs';
+import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
+import { asT, PlatformInfo } from '../util';
+import DiscordElement from './discordElement';
+import DownloadButton from './downloadButton';
 import GlowersSection from './glowersSection';
+import Section from './section';
 
 const EXPIRY_WARN_AT = 1000 * 60 * 60 * 3;
 
@@ -33,13 +34,7 @@ interface RecordingProps {
   onDeleteClick?(e: MouseEvent): any;
 }
 
-export default function Recording({
-  state,
-  onDurationClick,
-  onDownloadClick,
-  onDeleteClick,
-  onAvatarsClick
-}: RecordingProps) {
+export default function Recording({ state, onDurationClick, onDownloadClick, onDeleteClick, onAvatarsClick }: RecordingProps) {
   const { t } = useTranslation();
   const recording = state.recording;
   const startDate = new Date(recording.startTime);
@@ -53,26 +48,17 @@ export default function Recording({
       {/* Info Box */}
       <div class="flex flex-col gap-4 bg-zinc-700 shadow-md p-4 rounded-lg text-sm text-zinc-200">
         <div>
-          <span class="text-zinc-100 font-display">{t('info.rec_id')}:</span>{' '}
-          <span class="font-mono">{state.recordingId}</span>
+          <span class="text-zinc-100 font-display">{t('info.rec_id')}:</span> <span class="font-mono">{state.recordingId}</span>
         </div>
 
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">{t('info.req_by')}:</span>
-            {recording.requesterExtra ? (
-              <DiscordElement {...recording.requesterExtra} id={recording.requesterId} />
-            ) : (
-              recording.requester
-            )}
+            {recording.requesterExtra ? <DiscordElement {...recording.requesterExtra} id={recording.requesterId} /> : recording.requester}
             {recording.user ? (
               <Fragment>
                 <span class="text-zinc-400 font-medium">{t('info.behalf')}</span>
-                {recording.userExtra ? (
-                  <DiscordElement {...recording.userExtra} id={recording.userId} />
-                ) : (
-                  recording.user
-                )}
+                {recording.userExtra ? <DiscordElement {...recording.userExtra} id={recording.userId} /> : recording.user}
               </Fragment>
             ) : (
               ''
@@ -84,11 +70,7 @@ export default function Recording({
           </div>
           <div class="flex items-center gap-1 flex-wrap">
             <span class="text-zinc-100 font-display">{t('info.channel')}:</span>
-            {recording.channelExtra ? (
-              <DiscordElement {...recording.channelExtra} elementType="channel" />
-            ) : (
-              recording.channel
-            )}
+            {recording.channelExtra ? <DiscordElement {...recording.channelExtra} elementType="channel" /> : recording.channel}
           </div>
           <div>
             <span class="text-zinc-100 font-display">{t('info.started')}:</span> {startDate.toLocaleString()}
@@ -101,10 +83,7 @@ export default function Recording({
             {state.durationLoading ? (
               <span class="font-medium text-zinc-400">{t('loading')}</span>
             ) : state.duration === null ? (
-              <button
-                onClick={onDurationClick}
-                class="font-medium text-zinc-400 hover:underline focus:underline outline-none"
-              >
+              <button onClick={onDurationClick} class="font-medium text-zinc-400 hover:underline focus:underline outline-none">
                 {t('reveal')}
               </button>
             ) : (
@@ -135,10 +114,7 @@ export default function Recording({
         ) : (
           ''
         )}
-        <button
-          onClick={onDeleteClick}
-          class="text-zinc-400 font-medium hover:text-red-500 focus:text-red-500 outline-none active:underline"
-        >
+        <button onClick={onDeleteClick} class="text-zinc-400 font-medium hover:text-red-500 focus:text-red-500 outline-none active:underline">
           {t('info.delete_rec')}
         </button>
       </div>
@@ -172,11 +148,7 @@ export default function Recording({
         <div class="flex flex-row flex-wrap gap-3">
           <DownloadButton icon={imageIcon} onClick={(e) => onAvatarsClick({}, e)} title="PNG" />
         </div>
-        {recording.features.glowers ? (
-          <GlowersSection platform={state.platform} users={state.users} onDownload={onAvatarsClick} />
-        ) : (
-          ''
-        )}
+        {recording.features.glowers ? <GlowersSection platform={state.platform} users={state.users} onDownload={onAvatarsClick} /> : ''}
       </Section>
 
       {/* Other Formats */}

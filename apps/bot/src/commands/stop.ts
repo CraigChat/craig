@@ -1,4 +1,5 @@
-import { SlashCreator, CommandContext } from 'slash-create';
+import { CommandContext, SlashCreator } from 'slash-create';
+
 import GeneralCommand from '../slashCommand';
 import { checkRecordingPermission } from '../util';
 
@@ -14,10 +15,7 @@ export default class Stop extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
-    const hasPermission = checkRecordingPermission(
-      ctx.member!,
-      await this.prisma.guild.findFirst({ where: { id: ctx.guildID } })
-    );
+    const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findFirst({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',

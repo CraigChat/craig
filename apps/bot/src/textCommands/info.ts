@@ -1,6 +1,7 @@
 import { stripIndents } from 'common-tags';
 import { CommandContext, DexareClient, DexareCommand } from 'dexare';
 import { ButtonStyle, ComponentType } from 'slash-create';
+
 import { CraigBot } from '../bot';
 
 export default class InfoCommand extends DexareCommand {
@@ -17,9 +18,7 @@ export default class InfoCommand extends DexareCommand {
     await ctx.reply({
       content: stripIndents`
         <:craig:${client.config.craig.emoji}> **Craig** is a multi-track voice channel recorder.
-        This server is on shard ${client.shard?.id ?? process.env.SHARD_ID} with ${
-        client.shard?.latency ?? '<unknown>'
-      } milliseconds of latency.
+        This server is on shard ${client.shard?.id ?? process.env.SHARD_ID} with ${client.shard?.latency ?? '<unknown>'} milliseconds of latency.
       `,
       components: [
         {

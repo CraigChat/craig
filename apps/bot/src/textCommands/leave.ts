@@ -1,6 +1,7 @@
 import { stripIndents } from 'common-tags';
 import { CommandContext, DexareClient, DexareCommand } from 'dexare';
 import { ButtonStyle, ComponentType } from 'slash-create';
+
 import RecorderModule from '../modules/recorder';
 import { prisma } from '../prisma';
 import { checkRecordingPermissionEris } from '../util';
@@ -17,10 +18,7 @@ export default class LeaveCommand extends DexareCommand {
 
   async run(ctx: CommandContext) {
     if (ctx.member) {
-      const hasPermission = checkRecordingPermissionEris(
-        ctx.member!,
-        await prisma.guild.findFirst({ where: { id: ctx.member.guild.id } })
-      );
+      const hasPermission = checkRecordingPermissionEris(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.member.guild.id } }));
       if (hasPermission) {
         const recorder = this.client.modules.get('recorder') as RecorderModule<any>;
         const recording = recorder.recordings.get(ctx.member.guild.id);

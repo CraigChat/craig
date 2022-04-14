@@ -1,15 +1,13 @@
 import { DexareModule } from 'dexare';
 import { nanoid } from 'nanoid';
+
 import type { CraigBot } from '../bot';
 import type { ManagerResponseMessage } from '../sharding/types';
 import { makePlainError } from '../util';
 
 // @ts-ignore
 export default class ShardingModule extends DexareModule<CraigBot> {
-  _awaitedPromises = new Map<
-    string,
-    { resolve: (value: any) => void; reject: (reason?: unknown) => void; timeout: any }
-  >();
+  _awaitedPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: unknown) => void; timeout: any }>();
   on = !!process.env.SHARD_COUNT;
 
   constructor(client: any) {

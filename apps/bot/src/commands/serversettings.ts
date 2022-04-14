@@ -1,5 +1,6 @@
 import { stripIndents } from 'common-tags';
-import { SlashCreator, CommandContext, CommandOptionType } from 'slash-create';
+import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
+
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 
@@ -79,11 +80,7 @@ export default class ServerSettings extends GeneralCommand {
             {
               title: 'Server Settings',
               description: stripIndents`
-                **Access Roles:** ${
-                  guildData && guildData.accessRoles.length
-                    ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ')
-                    : '*None*'
-                }
+                **Access Roles:** ${guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : '*None*'}
               `
             }
           ],

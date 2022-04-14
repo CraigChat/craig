@@ -1,8 +1,8 @@
-import { useState } from 'preact/hooks';
-import { createRef, h } from 'preact';
-import { ChromePicker } from 'react-color';
-import clsx from 'clsx';
 import { FocusTrap } from '@headlessui/react';
+import clsx from 'clsx';
+import { createRef, h } from 'preact';
+import { useState } from 'preact/hooks';
+import { ChromePicker } from 'react-color';
 
 interface ColorPickerProps {
   label?: string;
@@ -13,14 +13,7 @@ interface ColorPickerProps {
   onChange?(color: string): any;
 }
 
-export default function ColorPicker({
-  label,
-  color: defaultColor,
-  onChange,
-  className,
-  full,
-  disabled
-}: ColorPickerProps) {
+export default function ColorPicker({ label, color: defaultColor, onChange, className, full, disabled }: ColorPickerProps) {
   const [color, setColor] = useState(defaultColor || '#000000');
   const [showPicker, setShowPicker] = useState(false);
   const buttonRef = createRef();

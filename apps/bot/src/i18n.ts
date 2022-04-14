@@ -1,8 +1,8 @@
+import { promises as fs } from 'fs';
 import i18next, { TFunction } from 'i18next';
 import Backend from 'i18next-fs-backend';
-import { promises as fs } from 'fs';
-import { CommandContext } from 'slash-create';
 import path from 'path';
+import { CommandContext } from 'slash-create';
 
 export const init = async () => {
   await i18next.use(Backend).init({

@@ -1,5 +1,5 @@
-import Redis, { RedisOptions } from 'ioredis';
 import config from 'config';
+import Redis, { RedisOptions } from 'ioredis';
 
 const redisConfig: RedisOptions = config.get('redis');
 export const client = new Redis({

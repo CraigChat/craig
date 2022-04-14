@@ -1,5 +1,6 @@
 import { oneLine } from 'common-tags';
-import { SlashCreator, CommandContext, CommandOptionType, ComponentType, ButtonStyle } from 'slash-create';
+import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
+
 import Recording from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
@@ -47,9 +48,7 @@ export default class Join extends GeneralCommand {
     if (this.recorder.recordings.has(ctx.guildID)) {
       const recording = this.recorder.recordings.get(ctx.guildID)!;
       if (recording.messageID && recording.messageChannelID) {
-        const message = await this.client.bot
-          .getMessage(recording.messageChannelID, recording.messageID)
-          .catch(() => null);
+        const message = await this.client.bot.getMessage(recording.messageChannelID, recording.messageID).catch(() => null);
         if (message)
           return {
             content: 'Already recording in this guild.',
@@ -123,11 +122,7 @@ export default class Join extends GeneralCommand {
     const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
     const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
     const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(
-      this.recorder.client.config,
-      userData?.rewardTier ?? 0,
-      blessingUser?.rewardTier ?? 0
-    );
+    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Check if user can record
     if (parsedRewards.rewards.recordHours <= 0)
@@ -191,9 +186,7 @@ export default class Join extends GeneralCommand {
     await recording.start(parsedRewards, userData?.webapp ?? false);
 
     // Send DM
-    const dmMessage = await dmChannel
-      .createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config))
-      .catch(() => null);
+    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);
 
     if (dmMessage)
       await ctx.sendFollowUp({

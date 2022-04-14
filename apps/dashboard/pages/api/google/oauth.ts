@@ -1,15 +1,13 @@
-import { config } from '../../../utils/config';
-import { NextApiRequest, NextApiResponse } from 'next';
-import { parseUser } from '../../../utils';
-import prisma from '../../../lib/prisma';
 import { google } from 'googleapis';
+import { NextApiRequest, NextApiResponse } from 'next';
+
+import prisma from '../../../lib/prisma';
+import { parseUser } from '../../../utils';
+import { config } from '../../../utils/config';
 
 const REDIRECT_URI = `${config.appUri}/api/google/oauth`;
 
-const scopes = [
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive.metadata.readonly'
-];
+const scopes = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.metadata.readonly'];
 const oauth2Client = new google.auth.OAuth2(config.googleClientId, config.googleClientSecret, REDIRECT_URI);
 
 const OAUTH_URI = oauth2Client.generateAuthUrl({
@@ -33,8 +31,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { tokens } = await oauth2Client.getToken(code);
   if (!('access_token' in tokens)) return res.redirect(OAUTH_URI);
-  if (tokens.scope.split(' ').sort().join(' ') !== scopes.sort().join(' '))
-    return res.redirect('/?error=invalid_scope&from=google');
+  if (tokens.scope.split(' ').sort().join(' ') !== scopes.sort().join(' ')) return res.redirect('/?error=invalid_scope&from=google');
 
   await prisma.googleDriveUser.upsert({
     where: { id: user.id },

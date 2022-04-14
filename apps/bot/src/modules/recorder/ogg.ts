@@ -1,4 +1,5 @@
 import { WriteStream } from 'fs';
+
 import crc32 from './crc32';
 
 export const BOS = 2;
@@ -11,13 +12,13 @@ export default class OggEncoder {
     this.stream = stream;
   }
 
-  write(granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags: number = 0) {
+  write(granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags = 0) {
     // How many bytes will be required to explain this chunk?
-    var lengthBytes = Math.ceil((chunk.length + 1) / 255) + 1;
+    const lengthBytes = Math.ceil((chunk.length + 1) / 255) + 1;
 
     // The total header length
-    var headerBytes = 26 + lengthBytes;
-    var header = Buffer.alloc(headerBytes + chunk.length);
+    const headerBytes = 26 + lengthBytes;
+    const header = Buffer.alloc(headerBytes + chunk.length);
 
     // Byte 0: Initial header
     header.write('OggS');
@@ -42,9 +43,9 @@ export default class OggEncoder {
     header.writeUInt8(lengthBytes - 1, 26);
 
     // And the segment lengths themselves
-    var i = 27;
+    let i = 27;
     if (chunk.length) {
-      var r = chunk.length;
+      let r = chunk.length;
       while (r >= 255) {
         header.writeUInt8(255, i++);
         r -= 255;

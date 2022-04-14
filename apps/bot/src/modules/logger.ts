@@ -1,8 +1,8 @@
-import { DexareModule, DexareClient, LoggerExtra, BaseConfig } from 'dexare';
-import winston, { format } from 'winston';
-import dayjs from 'dayjs';
 import chalk, { Chalk } from 'chalk';
+import dayjs from 'dayjs';
+import { BaseConfig, DexareClient, DexareModule, LoggerExtra } from 'dexare';
 import * as util from 'node:util';
+import winston, { format } from 'winston';
 
 export interface LoggerConfig extends BaseConfig {
   logger?: LoggerModuleOptions;
@@ -89,8 +89,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
         format: format.combine(
           format.printf((info) => {
             const lClk = this.levelColors[info.level] || chalk.yellow.bgBlack;
-            const mClk =
-              this.moduleColors[moduleName] || colorPool[Math.abs(this._hashCode(moduleName)) % colorPool.length];
+            const mClk = this.moduleColors[moduleName] || colorPool[Math.abs(this._hashCode(moduleName)) % colorPool.length];
             return (
               (process.env.SHARD_ID ? chalk.white.bgBlue(` shard ${process.env.SHARD_ID} `) : '') +
               mClk(` ${moduleName} `) +
@@ -139,15 +138,12 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
   }
 
   private _centrePad(text: string, length: number) {
-    if (text.length < length)
-      return (
-        ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2))
-      );
+    if (text.length < length) return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
     else return text;
   }
 
   private _hashCode(str: string) {
-    var hash = 0,
+    let hash = 0,
       i,
       chr;
     for (i = 0; i < str.length; i++) {
