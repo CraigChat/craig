@@ -20,10 +20,10 @@
     "lint": "yarn workspaces run lint",
     "lint:fix": "yarn workspaces run lint:fix",
     "lint:monorepo": "yarn manypkg check",
-    "sync": "yarn workspace craig-bot sync",
+    "sync": "yarn manypkg run bot sync",
     "sync:dev": "yarn manypkg run bot sync:dev",
     "run-job": "yarn manypkg run tasks run-job",
-    "prisma:generate": "prisma generate && yarn workspace craig-bot prisma:generate && yarn workspace craig-dashboard prisma:generate",
+    "prisma:generate": "prisma generate && yarn manypkg run bot prisma:generate && yarn manypkg run dashboard prisma:generate",
     "prisma:deploy": "prisma migrate deploy"
   },
   "repository": {
