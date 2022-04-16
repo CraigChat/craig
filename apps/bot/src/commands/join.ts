@@ -163,8 +163,8 @@ export default class Join extends GeneralCommand {
         const nickWarnTimeout = setTimeout(() => {
           if (!nickChanged)
             ctx.editOriginal(oneLine`
-              Due to recent changes to Discord's rate limiting, it's taking a while for me to change my nick to indicate that I'm recording.
-              I cannot start recording until I've changed my nick. Please be patient.
+              It's taking a while for me to change my nickname to indicate that I'm recording.
+              I cannot start recording until I've changed my nickname. Please be patient.
             `);
         }, 3000) as unknown as number;
         await this.client.bot.editGuildMember(ctx.guildID, '@me', { nick: recNick }, 'Setting recording status');

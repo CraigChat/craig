@@ -644,6 +644,7 @@ export default class Recording {
 
     const startedTimestamp = this.startedAt ? Math.floor(this.startedAt.valueOf() / 1000) : null;
     return {
+      content: '',
       embeds: [
         {
           author: {
