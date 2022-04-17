@@ -15,19 +15,16 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (!dbUser) return res.status(404).send({ error: 'User not found' });
   if (dbUser.rewardTier === 0) return res.status(400).send({ error: 'User is not a patron' });
 
-  const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
-  if (!googleDrive) return res.status(404).send({ error: 'Google drive data not found' });
-
   const { format, container, enabled } = req.body;
   if (!formats.includes(format)) return res.status(400).send({ error: 'Invalid format' });
   if (!containers.includes(container)) return res.status(400).send({ error: 'Invalid container' });
   if (format !== 'flac' && container === 'aupzip') return res.status(400).send({ error: 'Invalid combination' });
   if (typeof enabled !== 'boolean') return res.status(400).send({ error: 'Invalid enabled state' });
 
-  if (googleDrive.enabled !== enabled || googleDrive.format !== format || googleDrive.container !== container)
-    await prisma.googleDriveUser.update({
+  if (dbUser.driveEnabled !== enabled || dbUser.driveFormat !== format || dbUser.driveContainer !== container)
+    await prisma.user.update({
       where: { id: user.id },
-      data: { format, container, enabled }
+      data: { driveFormat: format, driveContainer: container, driveEnabled: enabled }
     });
 
   res.status(200).send({ ok: true });

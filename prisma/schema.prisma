@@ -11,12 +11,20 @@ datasource db {
 }
 
 model User {
-  id         String    @id
-  rewardTier Int       @default(0)
-  webapp     Boolean   @default(false)
-  patronId   String?
-  createdAt  DateTime  @db.Timestamptz(6) @default(now())
-  updatedAt  DateTime  @db.Timestamptz(6) @updatedAt
+  id             String  @id
+
+  rewardTier     Int     @default(0)
+  patronId       String?
+
+  webapp         Boolean @default(false)
+
+  driveEnabled   Boolean @default(false)
+  driveService   String  @default("google")
+  driveFormat    String?
+  driveContainer String?
+
+  createdAt      DateTime @db.Timestamptz(6) @default(now())
+  updatedAt      DateTime @db.Timestamptz(6) @updatedAt
 }
 
 model Guild {
@@ -59,16 +67,13 @@ model AutoRecord {
   postChannelId String?
   minimum       Int      @default(1)
   triggerUsers  String[]
-  updatedAt     DateTime  @db.Timestamptz(6) @updatedAt
+  updatedAt     DateTime @db.Timestamptz(6) @updatedAt
 }
 
 model GoogleDriveUser {
   id           String  @id
   refreshToken String?
   token        String
-  enabled      Boolean @default(false)
-  format       String?
-  container    String?
 }
 
 model Patreon {

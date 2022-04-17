@@ -11,16 +11,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   await prisma.user.upsert({
     where: { id: user.id },
-    update: { patronId: null, rewardTier: dbUser?.rewardTier === -1 ? dbUser?.rewardTier : 0 },
+    update: { patronId: null, rewardTier: dbUser?.rewardTier === -1 ? dbUser?.rewardTier : 0, driveEnabled: false },
     create: { id: user.id, patronId: null }
   });
-
-  const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
-  if (googleDrive)
-    await prisma.googleDriveUser.update({
-      where: { id: user.id },
-      data: { enabled: false }
-    });
 
   res.redirect('/?r=patreon_unlinked');
 };

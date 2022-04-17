@@ -34,6 +34,7 @@ type TRPCRouter = Router<
         error: string | null;
         notify: boolean;
         id?: string | undefined;
+        url?: string | undefined;
       }
     >
   >,

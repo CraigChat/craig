@@ -1,4 +1,4 @@
-import type { GoogleDriveUser, Patreon } from '@prisma/client';
+import type { Patreon } from '@prisma/client';
 import clsx from 'clsx';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
@@ -20,7 +20,15 @@ interface Props {
   rewardTier: number | null;
   patronId: string | null;
   patron: Patreon | null;
-  googleDrive: GoogleDriveUser | null;
+  drive: DriveProps;
+  googleDrive: boolean;
+}
+
+interface DriveProps {
+  enabled: boolean;
+  service: string;
+  format: string;
+  container: string;
 }
 
 const tierNames: { [key: number]: string } = {
@@ -80,12 +88,13 @@ export default function Index(props: Props) {
   const [patronUnlinkOpen, setPatronUnlinkOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [drive, setDrive] = useState(props.googleDrive);
-  const [driveEnabled, setDriveEnabled] = useState(props.googleDrive?.enabled ?? false);
+  const [drive, setDrive] = useState(props.drive);
+  const [driveEnabled, setDriveEnabled] = useState(props.drive.enabled ?? false);
   const [driveFormat, setDriveFormat] = useState(
-    formats.find((f) => f.value === `${props.googleDrive?.format || 'flac'}-${props.googleDrive?.container || 'zip'}`) ?? formats[0]
+    formats.find((f) => f.value === `${props.drive.format || 'flac'}-${props.drive.container || 'zip'}`) ?? formats[0]
   );
 
+  // Use modal
   useEffect(() => {
     if (modalParsed) return;
 
@@ -128,6 +137,7 @@ export default function Index(props: Props) {
     setModalParsed(true);
   });
 
+  // Drive state update
   useEffect(() => {
     if (!props.googleDrive || !drive) return;
     const [format, container] = driveFormat.value.split('-');
@@ -300,6 +310,18 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
   const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
 
   return {
-    props: { user, rewardTier: dbUser?.rewardTier || 0, patronId: dbUser?.patronId || null, patron, googleDrive }
+    props: {
+      user,
+      rewardTier: dbUser?.rewardTier || 0,
+      patronId: dbUser?.patronId || null,
+      patron,
+      drive: {
+        enabled: dbUser?.driveEnabled || false,
+        service: dbUser?.driveContainer || 'google',
+        format: dbUser?.driveFormat || 'flac',
+        container: dbUser?.driveContainer || 'zip'
+      },
+      googleDrive: !!googleDrive
+    }
   };
 };

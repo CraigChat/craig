@@ -293,8 +293,15 @@ export default class Recording {
   }
 
   async uploadToDrive() {
-    const driveUser = await prisma.googleDriveUser.findUnique({ where: { id: this.user.id } });
-    if (!driveUser || !driveUser.enabled) return;
+    const user = await prisma.user.findUnique({ where: { id: this.user.id } });
+    if (!user || !user.driveEnabled) return;
+
+    const services: { [key: string]: string } = {
+      google: 'Google Drive',
+      dropbox: 'Dropbox',
+      onedrive: 'OneDrive'
+    };
+    const service = services[user.driveService] ?? user.driveService;
 
     const response = await this.recorder.trpc.query('driveUpload', {
       recordingId: this.id,
@@ -302,15 +309,15 @@ export default class Recording {
     });
 
     if (response.error) {
-      this.recorder.logger.error(`Failed to upload recording ${this.id} to Google Drive: ${response.error}`);
+      this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: ${response.error}`);
       if (response.notify) {
         const dmChannel = await this.user.getDMChannel().catch(() => null);
         if (dmChannel)
           await dmChannel.createMessage({
             embeds: [
               {
-                title: 'Failed to upload to Google Drive',
-                description: `Failed to upload recording \`${this.id}\` to Google Drive. You may need to manually upload it to your Google Drive, or possibly re-connect your Google Drive.\n\n- **\`${response.error}\`**`,
+                title: `Failed to upload to ${service}`,
+                description: `Failed to upload recording \`${this.id}\` to ${service}. You may need to manually upload it to your ${service}, or possibly re-connect your ${service}.\n\n- **\`${response.error}\`**`,
                 color: 0xe74c3c
               }
             ]
@@ -325,23 +332,27 @@ export default class Recording {
         await dmChannel.createMessage({
           embeds: [
             {
-              title: 'Uploaded to Google Drive',
-              description: `Recording \`${this.id}\` was uploaded to Google Drive.`,
+              title: `Uploaded to ${service}`,
+              description: `Recording \`${this.id}\` was uploaded to ${service}.`,
               color: 0x2ecc71
             }
           ],
           components: [
-            {
-              type: ComponentType.ACTION_ROW,
-              components: [
-                {
-                  type: ComponentType.BUTTON,
-                  style: ButtonStyle.LINK,
-                  label: 'Open in Google Drive',
-                  url: `https://drive.google.com/open?id=${response.id}`
-                }
-              ]
-            }
+            ...(response.url
+              ? ([
+                  {
+                    type: ComponentType.ACTION_ROW,
+                    components: [
+                      {
+                        type: ComponentType.BUTTON,
+                        style: ButtonStyle.LINK,
+                        label: `Open in ${service}`,
+                        url: response.url
+                      }
+                    ]
+                  }
+                ] as any)
+              : [])
           ]
         });
     }

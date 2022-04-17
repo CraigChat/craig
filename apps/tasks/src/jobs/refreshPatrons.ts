@@ -114,15 +114,7 @@ export default class RefreshPatrons extends TaskJob {
         const user = await prisma.user.findFirst({ where: { patronId: dbPatron.id } });
         if (user && !patreonConfig.skipUsers.includes(user.id)) {
           this.logger.log(`Resetting rewards for user ${user.id}`);
-          operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0 } }));
-          const googleDrive = await prisma.googleDriveUser.findFirst({ where: { id: user.id } });
-          if (googleDrive)
-            operations.push(
-              prisma.googleDriveUser.update({
-                where: { id: googleDrive.id },
-                data: { enabled: false }
-              })
-            );
+          operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } }));
         }
       }
     }
@@ -176,7 +168,7 @@ export default class RefreshPatrons extends TaskJob {
         const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
         if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id)) {
           this.logger.log(`Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
-          operations.push(prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0 } }));
+          operations.push(prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } }));
         }
 
         if (patreonConfig.skipUsers.includes(patron.id)) continue;

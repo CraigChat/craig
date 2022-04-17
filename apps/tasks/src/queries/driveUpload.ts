@@ -27,26 +27,30 @@ async function fileExists(file: string) {
   }
 }
 
-async function findCraigDirectory(drive: drive_v3.Drive) {
-  const list = await drive.files.list({
-    q: "name = 'Craig' and mimeType = 'application/vnd.google-apps.folder'"
-  });
+async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
+  try {
+    const list = await drive.files.list({
+      q: "name = 'Craig' and mimeType = 'application/vnd.google-apps.folder'"
+    });
 
-  if (list.data.files && list.data.files.length > 0) return list.data.files[0].id;
+    if (list.data.files && list.data.files.length > 0) return list.data.files[0].id;
 
-  const folder = await drive.files.create({
-    requestBody: {
-      name: 'Craig',
-      mimeType: 'application/vnd.google-apps.folder'
-    }
-  });
+    const folder = await drive.files.create({
+      requestBody: {
+        name: 'Craig',
+        mimeType: 'application/vnd.google-apps.folder'
+      }
+    });
 
-  return folder.data.id;
+    return folder.data.id;
+  } catch (e) {
+    return null;
+  }
 }
 
 async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
   try {
-    await setReadyState(id, { message: 'Uploading recording to Google Drive...' });
+    await setReadyState(id, { message: 'Uploading recording to Drive service...' });
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
     const child = spawn(cookingPath, args);
@@ -68,61 +72,65 @@ export async function driveUpload({
 }: {
   recordingId: string;
   userId: string;
-}): Promise<{ error: null | string; notify: boolean; id?: string }> {
+}): Promise<{ error: null | string; notify: boolean; id?: string; url?: string }> {
   const infoExists = await fileExists(path.join(recPath, `${recordingId}.ogg.info`));
   if (!infoExists) return { error: 'info_deleted', notify: false };
   const dataExists = await fileExists(path.join(recPath, `${recordingId}.ogg.data`));
   if (!dataExists) return { error: 'data_deleted', notify: false };
   const info = JSON.parse(await fs.readFile(path.join(recPath, `${recordingId}.ogg.info`), 'utf8'));
 
-  const oAuth2Client = new google.auth.OAuth2(driveConfig.clientId, driveConfig.clientSecret);
-
   const user = await prisma.user.findFirst({ where: { id: userId } });
   if (!user) return { error: 'user_not_found', notify: false };
   if (user.rewardTier === 0) return { error: 'user_not_allowed', notify: false };
+  if (!user.driveEnabled) return { error: 'not_enabled', notify: false };
 
-  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
-  if (!driveUser) return { error: 'drive_not_found', notify: false };
-  if (!driveUser.enabled) return { error: 'not_enabled', notify: false };
-
-  oAuth2Client.setCredentials({
-    access_token: driveUser.token,
-    refresh_token: driveUser.refreshToken
-  });
-
-  const drive = google.drive({ version: 'v3', auth: oAuth2Client });
   let child: ChildProcessWithoutNullStreams | null = null;
 
   try {
-    const folderId = await findCraigDirectory(drive);
-    if (!folderId) return { error: 'folder_not_found', notify: false };
+    switch (user.driveService) {
+      case 'google': {
+        const oAuth2Client = new google.auth.OAuth2(driveConfig.clientId, driveConfig.clientSecret);
+        const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
+        if (!driveUser) return { error: 'drive_not_found', notify: false };
+        oAuth2Client.setCredentials({
+          access_token: driveUser.token,
+          refresh_token: driveUser.refreshToken
+        });
+        const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 
-    const format = driveUser.format || 'flac';
-    const container = driveUser.container || 'zip';
-    const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
-    const ext = container === 'exe' ? 'exe' : 'zip';
-    child = await cook(recordingId, format, container);
+        const folderId = await findCraigDirectoryInGoogleDrive(drive);
+        if (!folderId) return { error: 'google_drive_folder_not_found', notify: true };
 
-    const file = await drive.files.create({
-      requestBody: {
-        name: `craig-${recordingId}-${info.startTime}.${ext}`,
-        mimeType: mime,
-        parents: [folderId]
-      },
-      media: {
-        mimeType: mime,
-        body: child.stdout
+        const format = user.driveFormat || 'flac';
+        const container = user.driveContainer || 'zip';
+        const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
+        const ext = container === 'exe' ? 'exe' : 'zip';
+        child = await cook(recordingId, format, container);
+
+        const file = await drive.files.create({
+          requestBody: {
+            name: `craig-${recordingId}-${info.startTime}.${ext}`,
+            mimeType: mime,
+            parents: [folderId]
+          },
+          media: {
+            mimeType: mime,
+            body: child.stdout
+          }
+        });
+
+        await clearReadyState(recordingId);
+        child.kill();
+        return {
+          error: null,
+          notify: true,
+          id: file.data.id!,
+          url: `https://drive.google.com/open?id=${file.data.id}`
+        };
       }
-    });
-
-    await clearReadyState(recordingId);
-    child.kill();
-    return {
-      error: null,
-      notify: true,
-      id: file.data.id!
-      // https://drive.google.com/open?id=${file.data.id}
-    };
+      default:
+        return { error: 'unknown_service', notify: false };
+    }
   } catch (e) {
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`, e);
     await clearReadyState(recordingId);
