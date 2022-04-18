@@ -289,7 +289,7 @@ export default class Recording {
         }
     }
 
-    this.uploadToDrive();
+    await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id}`, e));
   }
 
   async uploadToDrive() {
