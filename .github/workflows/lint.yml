@@ -1,11 +1,6 @@
 name: ESLint
 on:
   push:
-    paths:
-      - "apps/**/*.{js,json,ts,tsx}"
-      - ".eslintrc.*"
-      - ".github/workflows/lint.yml"
-      - "package.json"
   workflow_dispatch:
 
 jobs:
