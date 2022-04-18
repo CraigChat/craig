@@ -35,7 +35,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   await prisma.googleDriveUser.upsert({
     where: { id: user.id },
-    update: { token: tokens.access_token, refreshToken: tokens.refresh_token, enabled: false },
+    update: { token: tokens.access_token, refreshToken: tokens.refresh_token },
     create: { id: user.id, token: tokens.access_token, refreshToken: tokens.refresh_token }
   });
 
