@@ -7,6 +7,7 @@ import { Tooltip } from 'react-tippy';
 
 import Button from '../components/button';
 import Dropdown, { DropdownItem } from '../components/dropdown';
+import GoogleButton from '../components/googleButton';
 import { Modal } from '../components/modal';
 import Row from '../components/row';
 import Section from '../components/section';
@@ -208,7 +209,7 @@ export default function Index(props: Props) {
             </div>
             <Row title="Patreon" icon="/patreon.svg">
               {props.patronId ? (
-                <Button type="danger" onClick={() => setPatronUnlinkOpen(true)}>
+                <Button type="transparent" className="text-red-500" onClick={() => setPatronUnlinkOpen(true)}>
                   Disconnect
                 </Button>
               ) : (
@@ -220,15 +221,15 @@ export default function Index(props: Props) {
             <Section title="Google Drive">
               <Row title="Google" icon="/google.svg">
                 {props.googleDrive ? (
-                  <Button type="danger" onClick={() => (location.href = '/api/google/disconnect')}>
+                  <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/google/disconnect')}>
                     Disconnect
                   </Button>
-                ) : (
-                  <Tooltip disabled={props.rewardTier !== 0} title="You must be a patron to connect to your Google Drive.">
-                    <Button disabled={props.rewardTier === 0} type="brand" onClick={() => (location.href = '/api/google/oauth')}>
-                      Connect
-                    </Button>
+                ) : props.rewardTier === 0 ? (
+                  <Tooltip title="You must be a patron to connect to your Google Drive.">
+                    <GoogleButton disabled />
                   </Tooltip>
+                ) : (
+                  <GoogleButton onClick={() => (location.href = '/api/google/oauth')} />
                 )}
               </Row>
               {props.googleDrive ? (

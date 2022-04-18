@@ -9,6 +9,7 @@ module.exports = {
       fontFamily: {
         display: ['Lexend', '"Red Hat Text"', ...sans],
         body: ['"Red Hat Text"', ...sans],
+        roboto: ['Roboto', ...sans],
         mono: ['"Ubunto Mono"', ...mono]
       }
     }
