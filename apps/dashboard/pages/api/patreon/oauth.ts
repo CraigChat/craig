@@ -47,7 +47,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     headers: { Authorization: `${token_type} ${access_token}` }
   }).then((res) => res.json());
 
-  if (!('data' in me)) return res.redirect(OAUTH_URI);
+  if (!('data' in me)) return res.redirect(`/?error=${encodeURIComponent('Could not get user data, please sign in again.')}&from=patreon`);
 
   const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });
   if (otherUser) await prisma.user.update({ where: { id: otherUser.id }, data: { patronId: null } });
