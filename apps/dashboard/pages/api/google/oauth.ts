@@ -30,7 +30,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (!code || typeof code !== 'string') return res.redirect(OAUTH_URI);
 
   const { tokens } = await oauth2Client.getToken(code);
-  if (!('access_token' in tokens)) return res.redirect(OAUTH_URI);
+  if (!('access_token' in tokens))
+    return res.redirect(`/?error=${encodeURIComponent('Could not get an access token, please sign in again.')}&from=google`);
   if (tokens.scope.split(' ').sort().join(' ') !== scopes.sort().join(' ')) return res.redirect('/?error=invalid_scope&from=google');
 
   await prisma.googleDriveUser.upsert({

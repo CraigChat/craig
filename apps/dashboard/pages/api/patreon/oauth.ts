@@ -40,7 +40,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     body
   }).then((res) => res.json());
 
-  if (!access_token || typeof access_token !== 'string') return res.redirect(OAUTH_URI);
+  if (!access_token || typeof access_token !== 'string')
+    return res.redirect(`/?error=${encodeURIComponent('Could not get an access token, please sign in again.')}&from=patreon`);
 
   const me: PatreonUser = await fetch('https://www.patreon.com/api/oauth2/v2/identity', {
     headers: { Authorization: `${token_type} ${access_token}` }
