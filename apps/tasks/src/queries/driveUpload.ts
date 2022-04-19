@@ -99,6 +99,15 @@ export async function driveUpload({
         });
         const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 
+        // Update refresh token
+        oAuth2Client.on('tokens', async (tokens) => {
+          if (tokens.refresh_token)
+            await prisma.googleDriveUser.update({
+              where: { id: userId },
+              data: { refreshToken: tokens.refresh_token }
+            });
+        });
+
         const folderId = await findCraigDirectoryInGoogleDrive(drive);
         if (!folderId) return { error: 'google_drive_folder_not_found', notify: true };
 
@@ -107,6 +116,8 @@ export async function driveUpload({
         const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
         const ext = container === 'exe' ? 'exe' : 'zip';
         child = await cook(recordingId, format, container);
+
+        // TODO server icon as contentHints.thumbnail ?
 
         const file = await drive.files.create({
           quotaUser: userId,
