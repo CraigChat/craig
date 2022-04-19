@@ -38,7 +38,8 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
     const folder = await drive.files.create({
       requestBody: {
         name: 'Craig',
-        mimeType: 'application/vnd.google-apps.folder'
+        mimeType: 'application/vnd.google-apps.folder',
+        folderColorRgb: '#00aaaa'
       }
     });
 
@@ -50,7 +51,7 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
 
 async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
   try {
-    await setReadyState(id, { message: 'Uploading recording to Drive service...' });
+    await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
     const child = spawn(cookingPath, args);
@@ -108,10 +109,28 @@ export async function driveUpload({
         child = await cook(recordingId, format, container);
 
         const file = await drive.files.create({
+          quotaUser: userId,
           requestBody: {
             name: `craig-${recordingId}-${info.startTime}.${ext}`,
             mimeType: mime,
-            parents: [folderId]
+            parents: [folderId],
+            createdTime: info.startTime,
+            description: [
+              `Craig recording ${recordingId} via https://craig.chat/`,
+              '',
+              `${info.autorecorded ? 'Auto-recorded in behalf of' : 'Started by'}: ${info.requester} (${info.requesterId})`,
+              `Server: ${info.guild} (${info.guildExtra.id})`,
+              `Channel: ${info.channel} (${info.channelExtra.id})`
+            ].join('\n'),
+            properties: {
+              'craig-recording-id': recordingId,
+              'craig-requester-id': info.requesterId,
+              'craig-guild-id': info.guildExtra.id,
+              'craig-channel-id': info.channelExtra.id
+            },
+            contentHints: {
+              indexableText: `${info.channel} - ${info.guild} - Craig recording ${recordingId} - https://craig.chat/`
+            }
           },
           media: {
             mimeType: mime,
