@@ -104,6 +104,7 @@ export default function Dropdown({ className, label, items, selected: defaultSel
                     key={item.value}
                     className={({ active }) => clsx(active ? 'text-white bg-teal-600' : '', 'cursor-default select-none relative py-2 pl-3 pr-12')}
                     value={item}
+                    disabled={item.disabled}
                   >
                     {({ selected, active }) => (
                       <Fragment>

@@ -3,7 +3,6 @@ import clsx from 'clsx';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
-import { Tooltip } from 'react-tippy';
 
 import Button from '../components/button';
 import Dropdown, { DropdownItem } from '../components/dropdown';
@@ -11,6 +10,9 @@ import GoogleButton from '../components/googleButton';
 import { Modal } from '../components/modal';
 import Row from '../components/row';
 import Section from '../components/section';
+import SelectableRow from '../components/selectableRow';
+import GoogleDriveLogo from '../components/svg/googleDrive';
+import PatreonLogo from '../components/svg/patreon';
 import Toggle from '../components/toggle';
 import prisma from '../lib/prisma';
 import { getAvatarUrl, parseUser } from '../utils';
@@ -80,6 +82,13 @@ const formats: DropdownItem[] = [
   }
 ];
 
+const serviceNames: { [key: string]: string } = {
+  google: 'Google Drive',
+  dropbox: 'Dropbox',
+  onedrive: 'OneDrive',
+  box: 'Box'
+};
+
 export default function Index(props: Props) {
   const [modalParsed, setModalParsed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -94,6 +103,9 @@ export default function Index(props: Props) {
   const [driveFormat, setDriveFormat] = useState(
     formats.find((f) => f.value === `${props.drive.format || 'flac'}-${props.drive.container || 'zip'}`) ?? formats[0]
   );
+  const [driveService, setDriveService] = useState(props.drive.service ?? 'google');
+
+  const driveCanEnable = driveService === 'google' && props.googleDrive;
 
   // Use modal
   useEffect(() => {
@@ -140,7 +152,7 @@ export default function Index(props: Props) {
 
   // Drive state update
   useEffect(() => {
-    if (!props.googleDrive || !drive) return;
+    if (!drive) return;
     const [format, container] = driveFormat.value.split('-');
     if (drive.enabled === driveEnabled && format === drive.format && container == drive.container) return;
     setLoading(true);
@@ -207,7 +219,7 @@ export default function Index(props: Props) {
                 {tierNames[props.rewardTier] ?? `#${props.rewardTier}`}
               </span>
             </div>
-            <Row title="Patreon" icon="/patreon.svg">
+            <Row title="Patreon" icon={<PatreonLogo className="w-8 h-8 rounded-full" />}>
               {props.patronId ? (
                 <Button type="transparent" className="text-red-500" onClick={() => setPatronUnlinkOpen(true)}>
                   Disconnect
@@ -218,43 +230,51 @@ export default function Index(props: Props) {
                 </Button>
               )}
             </Row>
-            <Section title="Google Drive">
-              <Row title="Google" icon="/google.svg">
-                {props.googleDrive ? (
-                  <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/google/disconnect')}>
-                    Disconnect
-                  </Button>
-                ) : props.rewardTier === 0 ? (
-                  <Tooltip title="You must be a patron to connect to your Google Drive.">
-                    <GoogleButton disabled />
-                  </Tooltip>
-                ) : (
-                  <GoogleButton onClick={() => (location.href = '/api/google/oauth')} />
-                )}
-              </Row>
-              {props.googleDrive ? (
+            <Section title="Cloud Backup" big>
+              {props.rewardTier === 0 ? (
+                <div className="w-full">
+                  To enable cloud backup to services like Google Drive, you must be a patron. <br />
+                  <a href="https://patreon.com/CraigRec" target="_blank" rel="noreferrer noopener" className="text-teal-500">
+                    Become a patron
+                  </a>
+                </div>
+              ) : (
                 <>
                   <Toggle
-                    label="Upload Recordings to Google Drive"
+                    label={`Upload Recordings to ${serviceNames[driveService] || 'Drive'}`}
                     description="Note: After your recording has finished, the recording will not be able to be downloaded while the recording is still uploading."
+                    tooltip={!driveCanEnable && 'You must link a service to your account to enable cloud backups.'}
                     className="w-full"
-                    disabled={props.rewardTier === 0 || loading}
-                    tooltip={props.rewardTier === 0 ? 'You must be a patron to enable this feature.' : undefined}
+                    disabled={!driveCanEnable || loading}
                     checked={driveEnabled}
                     onToggle={setDriveEnabled}
                   />
+                  <SelectableRow
+                    title="Google Drive"
+                    icon={<GoogleDriveLogo className="w-8 h-8" />}
+                    selected={drive.service === 'google'}
+                    disabled={loading}
+                    hidden={!props.googleDrive}
+                    onClick={() => setDriveService('google')}
+                  >
+                    {props.googleDrive ? (
+                      <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/google/disconnect')}>
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <GoogleButton onClick={() => (location.href = '/api/google/oauth')} />
+                    )}
+                  </SelectableRow>
                   <Dropdown
                     disabled={loading}
                     items={formats}
                     label="Format"
-                    className={clsx('w-full', { hidden: !driveEnabled })}
+                    className={'w-full'}
                     full
                     selected={driveFormat}
                     onSelect={setDriveFormat}
                   />
                 </>
-              ) : (
-                ''
               )}
             </Section>
             <Button type="danger" onClick={() => (location.href = '/api/logout')}>
@@ -318,7 +338,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
       patron,
       drive: {
         enabled: dbUser?.driveEnabled || false,
-        service: dbUser?.driveContainer || 'google',
+        service: dbUser?.driveService || 'google',
         format: dbUser?.driveFormat || 'flac',
         container: dbUser?.driveContainer || 'zip'
       },
