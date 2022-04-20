@@ -10,14 +10,14 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const user = parseUser(req);
   if (!user) return res.redirect('/');
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  await setNextAvailableService(dbUser, 'google');
-
   const driveData = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
   if (driveData) {
     await prisma.googleDriveUser.delete({ where: { id: user.id } });
     await oauth2Client.revokeToken(driveData.token).catch(() => {});
   }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+  await setNextAvailableService(dbUser, 'google');
 
   res.redirect('/?r=google_unlinked');
 };
