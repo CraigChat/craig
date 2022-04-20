@@ -153,7 +153,7 @@ export default function Index(props: Props) {
       content = (
         <span>
           You have unlinked your Microsoft account, but you can revoke app permissions in your{' '}
-          <Link href="https://microsoft.com/concent">Microsoft settings</Link>.
+          <Link href="https://microsoft.com/consent">Microsoft settings</Link>.
         </span>
       );
     }
