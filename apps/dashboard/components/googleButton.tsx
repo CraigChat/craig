@@ -1,11 +1,8 @@
 import clsx from 'clsx';
 
 interface ButtonProps {
-  children?: any;
-  type?: 'brand' | 'danger' | 'transparent';
   onClick?(): any;
   disabled?: boolean;
-  className?: string;
 }
 
 export default function GoogleButton({ onClick, disabled }: ButtonProps) {

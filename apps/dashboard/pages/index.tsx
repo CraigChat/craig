@@ -8,6 +8,7 @@ import Button from '../components/button';
 import Dropdown, { DropdownItem } from '../components/dropdown';
 import GoogleButton from '../components/googleButton';
 import Link from '../components/link';
+import MicrosoftButton from '../components/microsoftButton';
 import { Modal } from '../components/modal';
 import Row from '../components/row';
 import Section from '../components/section';
@@ -308,9 +309,7 @@ export default function Index(props: Props) {
                         Disconnect
                       </Button>
                     ) : (
-                      <Button type="brand" onClick={() => (location.href = '/api/microsoft/oauth')}>
-                        Connect
-                      </Button>
+                      <MicrosoftButton onClick={() => (location.href = '/api/microsoft/oauth')} />
                     )}
                   </SelectableRow>
                   <Dropdown
