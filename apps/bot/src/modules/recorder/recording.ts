@@ -303,10 +303,28 @@ export default class Recording {
     };
     const service = services[user.driveService] ?? user.driveService;
 
-    const response = await this.recorder.trpc.query('driveUpload', {
-      recordingId: this.id,
-      userId: this.user.id
-    });
+    const response = await this.recorder.trpc
+      .query('driveUpload', {
+        recordingId: this.id,
+        userId: this.user.id
+      })
+      .catch(() => null);
+
+    if (!response) {
+      this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: Could not connect to the server`);
+      const dmChannel = await this.user.getDMChannel().catch(() => null);
+      if (dmChannel)
+        await dmChannel.createMessage({
+          embeds: [
+            {
+              title: `Failed to upload to ${service}`,
+              description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording to your ${service}.`,
+              color: 0xe74c3c
+            }
+          ]
+        });
+      return;
+    }
 
     if (response.error) {
       this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: ${response.error}`);
