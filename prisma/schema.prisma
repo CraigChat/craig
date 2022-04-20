@@ -76,6 +76,14 @@ model GoogleDriveUser {
   token        String
 }
 
+model MicrosoftUser {
+  id           String  @id
+  refreshToken String
+  token        String
+  name         String
+  username     String
+}
+
 model Patreon {
   id          String    @id
   name        String

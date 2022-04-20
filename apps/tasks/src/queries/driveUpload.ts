@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import config from 'config';
 import { drive_v3, google } from 'googleapis';
@@ -13,6 +14,12 @@ const driveConfig = config.get('drive') as {
   clientSecret: string;
 };
 
+const microsoftConfig = config.get('microsoft') as {
+  clientId: string;
+  clientSecret: string;
+  redirect: string;
+};
+
 const logger = createLogger('drive');
 
 const recPath = path.join(__dirname, '..', '..', '..', '..', 'rec');
@@ -24,6 +31,24 @@ async function fileExists(file: string) {
     return true;
   } catch (err) {
     return false;
+  }
+}
+
+async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
+  try {
+    await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
+    const cookingPath = path.join(cookPath, '..', 'cook.sh');
+    const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
+    const child = spawn(cookingPath, args);
+    logger.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
+
+    // Prevent the stream from ending prematurely (for some reason)
+    child.stderr.on('data', () => {});
+
+    return child;
+  } catch (e) {
+    await clearReadyState(id);
+    throw e;
   }
 }
 
@@ -49,22 +74,38 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
   }
 }
 
-async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
-  try {
-    await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
-    const cookingPath = path.join(cookPath, '..', 'cook.sh');
-    const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
-    const child = spawn(cookingPath, args);
-    logger.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
+async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToken: string, userId: string) {
+  const me = await axios.get('https://graph.microsoft.com/v1.0/me', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    validateStatus: () => true
+  });
 
-    // Prevent the stream from ending prematurely (for some reason)
-    child.stderr.on('data', () => {});
+  if (me.status === 200) return accessToken;
 
-    return child;
-  } catch (e) {
-    await clearReadyState(id);
-    throw e;
+  const response = await axios.post(
+    'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: microsoftConfig.clientId,
+      client_secret: microsoftConfig.clientSecret,
+      refresh_token: refreshToken,
+      redirect_uri: microsoftConfig.redirect
+    }).toString(),
+    {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      validateStatus: () => true
+    }
+  );
+
+  if (response.status === 200) {
+    const { access_token, refresh_token } = response.data;
+    await prisma.microsoftUser.update({ where: { id: userId }, data: { token: access_token, refreshToken: refresh_token } });
+    return access_token;
   }
+
+  return null;
 }
 
 export async function driveUpload({
@@ -92,7 +133,7 @@ export async function driveUpload({
       case 'google': {
         const oAuth2Client = new google.auth.OAuth2(driveConfig.clientId, driveConfig.clientSecret);
         const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
-        if (!driveUser) return { error: 'drive_not_found', notify: false };
+        if (!driveUser) return { error: 'data_not_found', notify: false };
         oAuth2Client.setCredentials({
           access_token: driveUser.token,
           refresh_token: driveUser.refreshToken
@@ -156,6 +197,39 @@ export async function driveUpload({
           notify: true,
           id: file.data.id!,
           url: `https://drive.google.com/open?id=${file.data.id}`
+        };
+      }
+      case 'onedrive': {
+        const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
+        if (!driveUser) return { error: 'data_not_found', notify: false };
+        const accessToken = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
+        if (!accessToken) {
+          await prisma.microsoftUser.delete({ where: { id: userId } });
+          return { error: 'microsoft_token_expired', notify: true };
+        }
+
+        const format = user.driveFormat || 'flac';
+        const container = user.driveContainer || 'zip';
+        const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
+        const ext = container === 'exe' ? 'exe' : 'zip';
+        const startDate = new Date(info.startTime);
+        const fileName = `craig_${recordingId}_${startDate.getFullYear()}-${
+          startDate.getMonth() + 1
+        }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}.${ext}`;
+        child = await cook(recordingId, format, container);
+
+        const file = await axios.put(`https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}:/content`, child.stdout, {
+          headers: { 'Content-Type': mime, Authorization: `Bearer ${accessToken}` }
+        });
+
+        await clearReadyState(recordingId);
+        child.kill();
+
+        return {
+          error: null,
+          notify: true,
+          id: file.data.id,
+          url: file.data.webUrl
         };
       }
       default:

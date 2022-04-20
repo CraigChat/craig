@@ -1,4 +1,4 @@
-export default function Patreon(props) {
+export default function PatreonLogo(props) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" {...props}>
       <rect x="0.5" y="-0.5" width="1080" height="1080" fill="#ff424d" />

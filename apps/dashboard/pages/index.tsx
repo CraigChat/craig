@@ -12,6 +12,7 @@ import Row from '../components/row';
 import Section from '../components/section';
 import SelectableRow from '../components/selectableRow';
 import GoogleDriveLogo from '../components/svg/googleDrive';
+import OneDriveLogo from '../components/svg/oneDrive';
 import PatreonLogo from '../components/svg/patreon';
 import Toggle from '../components/toggle';
 import prisma from '../lib/prisma';
@@ -25,6 +26,7 @@ interface Props {
   patron: Patreon | null;
   drive: DriveProps;
   googleDrive: boolean;
+  microsoft: boolean;
 }
 
 interface DriveProps {
@@ -105,7 +107,7 @@ export default function Index(props: Props) {
   );
   const [driveService, setDriveService] = useState(props.drive.service ?? 'google');
 
-  const driveCanEnable = driveService === 'google' && props.googleDrive;
+  const driveCanEnable = (driveService === 'google' && props.googleDrive) || (driveService === 'onedrive' && props.microsoft);
 
   // Use modal
   useEffect(() => {
@@ -116,15 +118,17 @@ export default function Index(props: Props) {
     if (p.get('error')) {
       const error = p.get('error');
       const from = p.get('from');
-      if (from === 'google') title = 'An error occurred while connecting to Google Drive.';
+      // titlecase from
+      if (from === 'google') title = 'An error occurred while connecting to Google.';
       else if (from === 'patreon') title = 'An error occurred while connecting to Patreon.';
       else if (from === 'discord') title = 'An error occurred while connecting to Discord.';
+      else if (from === 'microsoft') title = 'An error occurred while connecting to Microsoft.';
       else title = 'An error occurred.';
 
-      if (error === 'access_denied') content = 'You denied access to your Google Drive account.';
+      if (error === 'access_denied') content = 'You denied access to your account.';
       else if (error === 'invalid_scope')
-        content = 'You have provided partial permissions to Craig. Google Drive integration will not work unless both permissions are checked.';
-      else content = p.get('error');
+        content = 'You have provided partial permissions to Craig. Cloud backup will not work unless all permissions are checked.';
+      else content = error;
     }
 
     const r = p.get('r');
@@ -137,9 +141,15 @@ export default function Index(props: Props) {
     } else if (r === 'google_linked') {
       title = 'Google Drive linked!';
       content = 'You have successfully linked your Google Drive account.';
+    } else if (r === 'microsoft_linked') {
+      title = 'Microsoft OneDrive linked!';
+      content = 'You have successfully linked your Microsoft account.';
     } else if (r === 'google_unlinked') {
       title = 'Google Drive unlinked.';
       content = 'You have successfully unlinked your Google Drive account.';
+    } else if (r === 'microsoft_unlinked') {
+      title = 'Microsoft OneDrive unlinked.';
+      content = 'You have successfully unlinked your Microsoft account.';
     }
 
     if (title && content) {
@@ -154,7 +164,7 @@ export default function Index(props: Props) {
   useEffect(() => {
     if (!drive) return;
     const [format, container] = driveFormat.value.split('-');
-    if (drive.enabled === driveEnabled && format === drive.format && container == drive.container) return;
+    if (drive.enabled === driveEnabled && format === drive.format && container === drive.container && drive.service === driveService) return;
     setLoading(true);
     fetch(`/api/user/drive`, {
       method: 'PUT',
@@ -164,24 +174,40 @@ export default function Index(props: Props) {
       body: JSON.stringify({
         enabled: driveEnabled,
         format: format ?? 'flac',
-        container: container ?? 'zip'
+        container: container ?? 'zip',
+        service: driveService ?? 'google'
       })
     })
-      .then((res) => {
+      .then(async (res) => {
         if (res.status === 200) {
           setDrive({
             ...drive,
             enabled: driveEnabled,
             format: format ?? 'flac',
-            container: container ?? 'zip'
+            container: container ?? 'zip',
+            service: driveService
           });
           setLoading(false);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setLoading(false);
+          setModalTitle('An error occurred.');
+          setModalContent(`An error occurred while updating your drive settings.${data.error ? `\n${data.error}` : ''}`);
+          setModalOpen(true);
+
+          // Reset settings
+          setDriveEnabled(drive.enabled);
+          setDriveFormat(formats.find((f) => f.value === `${drive.format}-${drive.container}`) ?? formats[0]);
+          setDriveService(drive.service);
         }
       })
-      .catch(() => {
+      .catch((e) => {
         setLoading(false);
+        setModalTitle('An error occurred.');
+        setModalContent(`An error occurred while updating your drive settings.\n${e.message}`);
+        setModalOpen(true);
       });
-  }, [driveEnabled, driveFormat, drive]);
+  }, [driveEnabled, driveFormat, driveService, drive]);
 
   return (
     <>
@@ -243,7 +269,7 @@ export default function Index(props: Props) {
                   <Toggle
                     label={`Upload Recordings to ${serviceNames[driveService] || 'Drive'}`}
                     description="Note: After your recording has finished, the recording will not be able to be downloaded while the recording is still uploading."
-                    tooltip={!driveCanEnable && 'You must link a service to your account to enable cloud backups.'}
+                    tooltip={!driveCanEnable ? 'You must link a service to your account to enable cloud backups.' : undefined}
                     className="w-full"
                     disabled={!driveCanEnable || loading}
                     checked={driveEnabled}
@@ -263,6 +289,24 @@ export default function Index(props: Props) {
                       </Button>
                     ) : (
                       <GoogleButton onClick={() => (location.href = '/api/google/oauth')} />
+                    )}
+                  </SelectableRow>
+                  <SelectableRow
+                    title="Microsoft OneDrive"
+                    icon={<OneDriveLogo className="w-8 h-8" />}
+                    selected={drive.service === 'onedrive'}
+                    disabled={loading}
+                    hidden={!props.microsoft}
+                    onClick={() => setDriveService('onedrive')}
+                  >
+                    {props.microsoft ? (
+                      <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/microsoft/disconnect')}>
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button type="brand" onClick={() => (location.href = '/api/microsoft/oauth')}>
+                        Connect
+                      </Button>
                     )}
                   </SelectableRow>
                   <Dropdown
@@ -329,6 +373,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   const patron = dbUser && dbUser.patronId ? await prisma.patreon.findUnique({ where: { id: dbUser.patronId } }) : null;
   const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
+  const microsoft = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
 
   return {
     props: {
@@ -342,7 +387,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
         format: dbUser?.driveFormat || 'flac',
         container: dbUser?.driveContainer || 'zip'
       },
-      googleDrive: !!googleDrive
+      googleDrive: !!googleDrive,
+      microsoft: !!microsoft
     }
   };
 };
