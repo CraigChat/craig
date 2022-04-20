@@ -108,6 +108,16 @@ async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToke
   return null;
 }
 
+function getRecordingDescription(recordingId: string, info: any, joiner = '\n') {
+  return [
+    `Craig recording ${recordingId} via https://craig.chat/`,
+    '',
+    `${info.autorecorded ? 'Auto-recorded in behalf of' : 'Started by'}: ${info.requester} (${info.requesterId})`,
+    `Server: ${info.guild} (${info.guildExtra.id})`,
+    `Channel: ${info.channel} (${info.channelExtra.id})`
+  ].join(joiner);
+}
+
 export async function driveUpload({
   recordingId,
   userId
@@ -120,6 +130,10 @@ export async function driveUpload({
   const dataExists = await fileExists(path.join(recPath, `${recordingId}.ogg.data`));
   if (!dataExists) return { error: 'data_deleted', notify: false };
   const info = JSON.parse(await fs.readFile(path.join(recPath, `${recordingId}.ogg.info`), 'utf8'));
+  const startDate = new Date(info.startTime);
+  const fileName = `craig_${recordingId}_${startDate.getFullYear()}-${
+    startDate.getMonth() + 1
+  }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}`;
 
   const user = await prisma.user.findFirst({ where: { id: userId } });
   if (!user) return { error: 'user_not_found', notify: false };
@@ -163,17 +177,11 @@ export async function driveUpload({
         const file = await drive.files.create({
           quotaUser: userId,
           requestBody: {
-            name: `craig-${recordingId}-${info.startTime}.${ext}`,
+            name: `${fileName}.${ext}`,
             mimeType: mime,
             parents: [folderId],
             createdTime: info.startTime,
-            description: [
-              `Craig recording ${recordingId} via https://craig.chat/`,
-              '',
-              `${info.autorecorded ? 'Auto-recorded in behalf of' : 'Started by'}: ${info.requester} (${info.requesterId})`,
-              `Server: ${info.guild} (${info.guildExtra.id})`,
-              `Channel: ${info.channel} (${info.channelExtra.id})`
-            ].join('\n'),
+            description: getRecordingDescription(recordingId, info),
             properties: {
               'craig-recording-id': recordingId,
               'craig-requester-id': info.requesterId,
@@ -212,18 +220,31 @@ export async function driveUpload({
         const container = user.driveContainer || 'zip';
         const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
         const ext = container === 'exe' ? 'exe' : 'zip';
-        const startDate = new Date(info.startTime);
-        const fileName = `craig_${recordingId}_${startDate.getFullYear()}-${
-          startDate.getMonth() + 1
-        }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}.${ext}`;
         child = await cook(recordingId, format, container);
 
-        const file = await axios.put(`https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}:/content`, child.stdout, {
+        const file = await axios.put(`https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/content`, child.stdout, {
           headers: { 'Content-Type': mime, Authorization: `Bearer ${accessToken}` }
         });
 
         await clearReadyState(recordingId);
         child.kill();
+
+        // Set file description
+        await axios.patch(
+          `https://graph.microsoft.com/v1.0/drive/items/${file.data.id}/`,
+          JSON.stringify({ description: getRecordingDescription(recordingId, info, ' - ') }),
+          {
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }
+          }
+        );
+
+        // // Set file icon
+        // if (info.guildExtra.icon) {
+        //   const icon = await axios.get(info.guildExtra.icon, { responseType: 'arraybuffer' });
+        //   await axios.put(`https://graph.microsoft.com/v1.0/drive/items/${file.data.id}/thumbnails/0/source/content`, icon.data, {
+        //     headers: { 'Content-Type': icon.headers['content-type'], Authorization: `Bearer ${accessToken}` }
+        //   });
+        // }
 
         return {
           error: null,
