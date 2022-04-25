@@ -712,7 +712,7 @@ export default class Recording {
               label: 'Stop recording',
               custom_id: `rec:${this.id}:stop`,
               disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { id: '949783292603949096' }
+              emoji: { id: '968242879539576862' }
             },
             {
               type: ComponentType.BUTTON,
@@ -720,7 +720,7 @@ export default class Recording {
               label: 'Add a note',
               custom_id: `rec:${this.id}:note`,
               disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { id: '949783292356460557' }
+              emoji: { id: '968242878948192267' }
             }
           ]
         }
