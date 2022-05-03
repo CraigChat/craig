@@ -55,7 +55,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const patron = formatPatron(body);
   if (!patron) return res.status(400).send('No patron ID found');
   const dbPatron = await prisma.patreon.findUnique({ where: { id: patron.id } });
-  console.info(new Date().toISOString(), `New event: ${event} (${patron.id}, ${patron.name} - ${patron.email})`, patron);
+  console.info(new Date().toISOString(), `New event: ${event} (${patron.id}, ${patron.name} - ${patron.email})`);
   res.status(200).send('OK');
 
   // Handle event
