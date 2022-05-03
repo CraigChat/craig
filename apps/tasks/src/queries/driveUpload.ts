@@ -164,7 +164,7 @@ export async function driveUpload({
         });
 
         const folderId = await findCraigDirectoryInGoogleDrive(drive);
-        if (!folderId) return { error: 'google_drive_folder_not_found', notify: true };
+        if (!folderId) return { error: 'google_token_expired', notify: true };
 
         const format = user.driveFormat || 'flac';
         const container = user.driveContainer || 'zip';
