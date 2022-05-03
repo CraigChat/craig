@@ -24,14 +24,20 @@ const webhookPayloadParser = (req: NextApiRequest) =>
   }) as Promise<string>;
 
 const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
-const formatPatron = (body: any) =>
-  ({
-    id: body.data.relationships.user?.data?.id,
+const formatPatron = (body: any) => {
+  const id = body.data.relationships.user?.data?.id;
+  if (!id) return null;
+  const user = body.included.find((i: any) => i.type === 'user' && i.id === id);
+
+  return {
+    id,
     name: body.data.attributes.full_name,
-    email: body.data.attributes.email,
+    email: body.data.attributes.email || user?.attributes?.email,
     cents: body.data.attributes.currently_entitled_amount_cents,
-    tiers: body.data.relationships.currently_entitled_tiers?.data.map((tier: { id: string }) => tier.id) || []
-  } as { id: string; name: string; email: string; cents: number; tiers: string[] });
+    tiers: body.data.relationships.currently_entitled_tiers?.data.map((tier: { id: string }) => tier.id) || [],
+    discordId: user?.attributes?.social_connections?.discord?.user_id
+  } as { id: string; name: string; email: string; cents?: number; tiers: string[]; discordId?: string };
+};
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'POST') return res.redirect('/');
@@ -47,21 +53,22 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   // Parse patron
   const patron = formatPatron(body);
-  if (!patron.id) return res.status(400).send('No patron ID found');
+  if (!patron) return res.status(400).send('No patron ID found');
   const dbPatron = await prisma.patreon.findUnique({ where: { id: patron.id } });
-  console.log(new Date().toISOString(), `New event: ${event} (${patron.id}, ${patron.name}, ${patron.email})`);
+  console.info(new Date().toISOString(), `New event: ${event} (${patron.id}, ${patron.name} - ${patron.email})`, patron);
+  res.status(200).send('OK');
 
   // Handle event
   if (event === 'members:pledge:delete') {
-    console.log(new Date().toISOString(), `Deleted patron ${patron.id}`);
+    console.info(new Date().toISOString(), `Deleted patron ${patron.id}`);
     const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
     if (user && user.rewardTier > 0) {
-      console.log(new Date().toISOString(), `Resetting rewards for user ${user.id}`);
+      console.info(new Date().toISOString(), `Resetting rewards for user ${user.id}`);
       await prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } });
     }
   } else if (event === 'members:pledge:create' || event === 'members:pledge:update') {
     const patron = formatPatron(body);
-    if (!patron.tiers.length) return;
+    if (!patron.tiers.length || !patron.cents) return;
 
     if (
       !dbPatron ||
@@ -70,7 +77,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       dbPatron.cents !== patron.cents ||
       dbPatron.tiers !== patron.tiers
     ) {
-      console.log(new Date().toISOString(), `Upserting patron ${patron.id} (${patron.name} - ${patron.email})`);
+      console.info(new Date().toISOString(), `Upserting patron ${patron.id} (${patron.name} - ${patron.email})`);
       await prisma.patreon.upsert({
         where: { id: patron.id },
         update: {
@@ -89,24 +96,20 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       });
     }
 
-    const discordId: string | undefined = body.includes?.users?.find((u: any) => u.id === patron.id && u.type === 'user')?.social_connections?.discord
-      ?.id;
-    if (discordId) {
+    if (patron.discordId) {
       const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-      if (user && user.id !== discordId) {
-        console.log(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${discordId} (${patron.id})`);
+      if (user && user.id !== patron.discordId) {
+        console.info(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
         await prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } });
       }
 
       const tier = determineRewardTier(patron.tiers);
-      console.log(new Date().toISOString(), `Upserting user ${discordId} for patron ${patron.id} (${patron.name}, tier=${tier})`);
+      console.info(new Date().toISOString(), `Upserting user ${patron.discordId} for patron ${patron.id} (${patron.name}, tier=${tier})`);
       await prisma.user.upsert({
-        where: { id: discordId },
+        where: { id: patron.discordId },
         update: { patronId: patron.id, rewardTier: tier },
-        create: { id: discordId, patronId: patron.id, rewardTier: tier }
+        create: { id: patron.discordId, patronId: patron.id, rewardTier: tier }
       });
     }
   }
-
-  res.status(200).send('OK');
 };
