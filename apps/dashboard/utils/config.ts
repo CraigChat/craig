@@ -18,6 +18,8 @@ export const config = {
   clientSecret: validateEnv('CLIENT_SECRET'),
   patreonClientId: validateEnv('PATREON_CLIENT_ID'),
   patreonClientSecret: validateEnv('PATREON_CLIENT_SECRET'),
+  patreonWebhookSecret: validateEnv('PATREON_WEBHOOK_SECRET'),
+  patreonTierMap: validateEnv('PATREON_TIER_MAP', '{}'),
   googleClientId: validateEnv('GOOGLE_CLIENT_ID'),
   googleClientSecret: validateEnv('GOOGLE_CLIENT_SECRET'),
   microsoftClientId: validateEnv('MICROSOFT_CLIENT_ID'),
