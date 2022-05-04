@@ -72,6 +72,7 @@ export default class Recording {
   channel: Eris.StageChannel | Eris.VoiceChannel;
   user: Eris.User;
   active = false;
+  closing = false;
   autorecorded = false;
   state: RecordingState = RecordingState.IDLE;
   warningState: WarningState | null = null;
@@ -256,6 +257,7 @@ export default class Recording {
     this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
 
     // Close the output files
+    this.closing = true;
     this.headerEncoder1?.end();
     this.headerEncoder2?.end();
     this.dataEncoder?.end();
@@ -422,9 +424,7 @@ export default class Recording {
         delete this.stateDescription;
         this.pushToActivity('I was undeafened.');
       }
-      this.logStream?.write(
-        `${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(member.voiceState)} -> ${JSON.stringify(oldState)}\n`
-      );
+      this.logWrite(`${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(member.voiceState)} -> ${JSON.stringify(oldState)}\n`);
     }
   }
 
@@ -483,6 +483,10 @@ export default class Recording {
         stream.write(granulePos, streamNo, packetNo, chunk, flags);
       } catch (ex) {}
     }
+  }
+
+  private logWrite(message: string) {
+    if (this.logStream && !this.logStream.destroyed && !this.closing) this.logStream.write(message);
   }
 
   encodeChunk(user: RecordingUser, oggStream: OggEncoder, streamNo: number, packetNo: number, chunk: Chunk) {
@@ -620,12 +624,12 @@ export default class Recording {
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       this.logs.push(`\`${dayjs.duration(time).format('HH:mm:ss')}\`: ${log}`);
     } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
-    this.logStream?.write(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
+    this.logWrite(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
     if (update) this.updateMessage();
   }
 
   writeToLog(log: string, type?: string) {
-    this.logStream?.write(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
+    if (this.logStream && !this.logStream.destroyed) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
   }
 
   messageContent() {
