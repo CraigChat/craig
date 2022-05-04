@@ -54,10 +54,9 @@ export default class ShardInfoCommand extends DexareCommand {
             `${shard.id === parseInt(process.env.SHARD_ID!) ? '>' : ' '} [${shard.id.toString().padStart(3, ' ')}]: ${shard.status.padStart(
               12,
               ' '
-            )} | ${shard.guilds.toLocaleString().padEnd(10, ' ')} | ${`${shard.latency}ms`.padEnd(11, ' ')} | ${this.format(shard.uptime).padEnd(
-              12,
-              ' '
-            )} | ${shard.recordings.toLocaleString().padEnd(12, ' ')} |`
+            )} | ${shard.guilds.toLocaleString().padEnd(10, ' ')} | ${`${Math.round(shard.latency)}ms`.padEnd(11, ' ')} | ${this.format(
+              shard.uptime
+            ).padEnd(12, ' ')} | ${shard.recordings.toLocaleString().padEnd(12, ' ')} |`
         )
         .join('\n');
 
