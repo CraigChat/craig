@@ -106,12 +106,6 @@ process.on('uncaughtException', (e) => {
   client.emit('logger', 'error', 'sys', ['Uncaught exception:', e]);
 });
 
-process.once('unhandledExceptrion', async () => {
-  client.emit('logger', 'warn', 'sys', ['Exiting....']);
-  await client.disconnect();
-  process.exit(0);
-});
-
 export async function connect() {
   client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
