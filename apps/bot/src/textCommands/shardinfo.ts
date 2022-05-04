@@ -46,7 +46,7 @@ export default class ShardInfoCommand extends DexareCommand {
       `Your Shard ID: ${process.env.SHARD_ID}\n\n` +
       `      --- SUMMARY --- | ${totalGuilds.toLocaleString().padEnd(10, ' ')} | ${`${averageLatency}ms avg`.padEnd(11, ' ')} | ${`${this.format(
         averageUptime
-      ).padEnd(12, ' ')} avg`.padEnd(11, ' ')} | ${totalRecordings.toLocaleString().padEnd(12, ' ')} |\n` +
+      )} avg`.padEnd(12, ' ')} | ${totalRecordings.toLocaleString().padEnd(12, ' ')} |\n` +
       `       |       Status |   Guilds   |   Latency   |    Uptime    |  Recordings  |\n` +
       res
         .map(
