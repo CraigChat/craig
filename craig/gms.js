@@ -42,9 +42,9 @@ var blessG2U = {};
 
 // Leave this guild on all clients
 function guildLeave(guild) {
-    var g = client.guilds.get(guild.id);
-    if (g)
-        g.leave().catch(logex);
+    //var g = client.guilds.get(guild.id);
+    //if (g)
+    //    g.leave().catch(logex);
 }
 
 const guildRefreshStmt = db.prepare("INSERT OR REPLACE INTO guildMembershipStatus (id, refreshed) VALUES (@id, @refreshed);");
@@ -103,7 +103,7 @@ function checkGMS() {
             }
 
             // Time's up!
-            guildDelete(guild);
+            // guildDelete(guild);
         }
     });
 }
