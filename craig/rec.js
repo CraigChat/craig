@@ -1581,6 +1581,16 @@ slashCommands['join'] = async function(interaction) {
             rl.pending = false;
         }
     }
+    
+    // Tell user if they can't record
+    var f = await cf.features(interaction.member.user.id, interaction.channel.guild.id);
+    if (f.limits.record === 0) {
+        interaction.createMessage({
+            content: "Sorry, but this bot is only for patrons. Please use Craig ( https://craig.chat/ )",
+            flags: 64
+        });
+        return;
+    }
 
     return joinChannel(interaction.member.user, interaction.channel.guild, channel, false, { interaction });
 }
