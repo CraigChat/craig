@@ -91,6 +91,10 @@ async function collect() {
 
   const writeApi = client!.getWriteApi(influxOpts.org, influxOpts.bucket, 's');
   const recorder = dexareClient.modules.get('recorder') as any as RecorderModule<DexareClient<CraigBotConfig>>;
+
+  // Update active guilds with guilds currently recording
+  if (recorder) activeGuilds = [...new Set([...Object.keys(recorder.recordings), ...activeGuilds])];
+
   const points = [
     new Point('craig_stats')
       .tag('server', influxOpts.server || hostname())
