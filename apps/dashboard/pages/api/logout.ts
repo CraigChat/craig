@@ -12,5 +12,5 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     })
   );
 
-  res.redirect('/');
+  res.redirect('/login');
 };

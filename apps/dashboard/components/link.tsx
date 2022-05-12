@@ -10,7 +10,7 @@ export default function Link({ href, children, ...props }: LinkProps) {
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className="text-teal-500 outline-teal-300/50 outline-offset-2 outline-2 rounded focus:outline"
+      className="text-teal-500 outline-teal-300/50 outline-offset-2 outline-2 rounded focus:outline hover:underline"
       {...props}
     >
       {children}

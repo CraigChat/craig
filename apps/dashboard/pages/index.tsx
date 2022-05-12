@@ -227,6 +227,11 @@ export default function Index(props: Props) {
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#2dd4bf" />
+        <meta name="og:site_name" content="Craig" />
+        <meta name="og:title" content="Craig Dashboard" />
+        <meta name="og:description" content="The multi-track recording bot for Discord." />
+        <meta name="og:locale" content="en_US" />
+        <meta name="og:image" content="/icon-512x512.png" />
         <meta name="msapplication-TileColor" content="#2dd4bf" />
         <meta name="theme-color" content="#2dd4bf" />
       </Head>
@@ -368,7 +373,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
   if (!user)
     return {
       redirect: {
-        destination: '/api/login',
+        destination: '/login',
         permanent: false
       }
     };
