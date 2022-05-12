@@ -34,7 +34,7 @@ export default class ShardInfoCommand extends DexareCommand {
     const {
       d: { res }
     } = await sharding.sendAndRecieve<{
-      res: { id: number; status: string; guilds: number; latency: number; uptime: number; recordings: number }[];
+      res: { id: number; status: string; guilds: number; latency: number; uptime: number; recordings: number; respawnWhenAvailable: boolean }[];
     }>('getShardInfo');
 
     const totalGuilds = res.reduce((acc, cur) => acc + cur.guilds, 0);
@@ -46,8 +46,10 @@ export default class ShardInfoCommand extends DexareCommand {
       `Your Shard ID: ${process.env.SHARD_ID}\n\n` +
       `      --- SUMMARY --- | ${totalGuilds.toLocaleString().padEnd(10, ' ')} | ${`${averageLatency}ms avg`.padEnd(11, ' ')} | ${`${this.format(
         averageUptime
-      )} avg`.padEnd(12, ' ')} | ${totalRecordings.toLocaleString().padEnd(12, ' ')} |\n` +
-      `       |       Status |   Guilds   |   Latency   |    Uptime    |  Recordings  |\n` +
+      )} avg`.padEnd(12, ' ')} | ${totalRecordings.toLocaleString().padEnd(12, ' ')} | ${res
+        .filter((shard) => shard.respawnWhenAvailable)
+        .length.toLocaleString()} shards\n` +
+      `       |       Status |   Guilds   |   Latency   |    Uptime    |  Recordings  | RWA\n` +
       res
         .map(
           (shard) =>
@@ -56,7 +58,7 @@ export default class ShardInfoCommand extends DexareCommand {
               ' '
             )} | ${shard.guilds.toLocaleString().padEnd(10, ' ')} | ${`${Math.round(shard.latency)}ms`.padEnd(11, ' ')} | ${this.format(
               shard.uptime
-            ).padEnd(12, ' ')} | ${shard.recordings.toLocaleString().padEnd(12, ' ')} |`
+            ).padEnd(12, ' ')} | ${shard.recordings.toLocaleString().padEnd(12, ' ')} | ${shard.respawnWhenAvailable}`
         )
         .join('\n');
 

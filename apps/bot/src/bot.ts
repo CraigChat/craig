@@ -15,6 +15,7 @@ import SlashModule from './modules/slash';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 import { close as closeSentry } from './sentry';
+import { version } from './util';
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -73,6 +74,10 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
 
   get prisma() {
     return prisma;
+  }
+
+  get version() {
+    return version;
   }
 }
 

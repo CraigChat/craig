@@ -1,14 +1,21 @@
+import { CronJob } from 'cron';
+
+import { wait } from '../../util';
 import * as logger from '../logger';
 import ShardManagerModule from '../module';
 
 export default class ShardUtilModule extends ShardManagerModule {
+  cron: CronJob;
+  checkingRWA = false;
+
   constructor(client: any) {
     super(client, {
       name: 'shardutil',
-      description: 'Shard utility commands'
+      description: 'Shard utility'
     });
 
     this.filePath = __filename;
+    this.cron = new CronJob('*/10 * * * *', this.onCron.bind(this), null, false, 'America/New_York');
   }
 
   load() {
@@ -38,6 +45,7 @@ export default class ShardUtilModule extends ShardManagerModule {
       logger.info(`Shard ${shard.id}: Triggered restart on shard ${onShard.id}`);
       await onShard.respawn();
       logger.info(`Shard ${shard.id}: Restarted shard ${onShard.id}.`);
+      return respond({ ok: true });
     });
     this.registerCommand('checkMaintenance', async (shard) => {
       logger.info(`Shard ${shard.id}: Told shards to check maintenance`);
@@ -53,22 +61,77 @@ export default class ShardUtilModule extends ShardManagerModule {
     });
     this.registerCommand('getShardInfo', async (shard, msg, respond) => {
       logger.debug(`Shard ${shard.id}: Getting shard info`);
-      const res = await this.manager.broadcastEval(`
-        let res = {
-          id: this.shard ? this.shard.id : parseInt(process.env.SHARD_ID),
-          status: this.shard.status,
-          guilds: this.bot.guilds.size,
-          latency: Number.isFinite(this.shard.latency) ? this.shard.latency : -1,
-          uptime: process.uptime(),
-          recordings: this.modules.get("recorder").recordings.size
-        };
-        res
-      `);
+      const res = [];
+      for (const shard of this.manager.shards.values()) {
+        const shardRes = await shard
+          .eval(
+            `
+          let res = {
+            id: this.shard ? this.shard.id : parseInt(process.env.SHARD_ID),
+            status: this.shard.status,
+            guilds: this.bot.guilds.size,
+            latency: Number.isFinite(this.shard.latency) ? this.shard.latency : -1,
+            uptime: process.uptime(),
+            recordings: this.modules.get("recorder").recordings.size
+          };
+          res
+        `
+          )
+          .catch(() => null);
+        res.push({
+          id: shard.id,
+          ...(shardRes ?? {}),
+          respawnWhenAvailable: shard.respawnWhenAvailable,
+          lastActivity: shard.lastActivity
+        });
+      }
+
       return respond({ res });
     });
+    this.registerCommand('setRWA', async (shard, msg, respond) => {
+      if (msg.d.id === 'all') {
+        logger.info(`Shard ${shard.id}: Setting RWA state for all shards to ${msg.d.value}`);
+        for (const shard of this.manager.shards.values()) shard.respawnWhenAvailable = msg.d.value;
+        return respond({ ok: true });
+      }
+      logger.info(`Shard ${shard.id}: Setting RWA state on shard ${msg.d.id} to ${msg.d.value}`);
+      const onShard = this.manager.shards.get(msg.d.id);
+      if (!onShard) return respond({ result: null, error: 'Shard not found' });
+      if (typeof msg.d.value !== 'boolean') return respond({ result: null, error: 'value not a boolean' });
+      onShard.respawnWhenAvailable = msg.d.value;
+      return respond({ ok: true });
+    });
+    this.cron.start();
   }
 
   unload() {
+    this.cron.stop();
     this.unregisterAllCommands();
+  }
+
+  async onCron() {
+    if (this.checkingRWA) return;
+    this.checkingRWA = true;
+    try {
+      for (const shard of this.manager.shards.values()) {
+        if (shard.respawnWhenAvailable) {
+          const recordings = await shard.eval('this.modules.get("recorder").recordings.size').catch(() => null);
+          if (recordings === 0) {
+            logger.info(`Shard ${shard.id}: Respawning since RWA is set`);
+            shard.respawnWhenAvailable = false;
+            const ok = await shard
+              .respawnWithRetry()
+              .then(() => true)
+              .catch(() => false);
+            if (ok) logger.info(`Shard ${shard.id}: Respawned with RWA`);
+            else logger.info(`Shard ${shard.id}: Failed to respawn with RWA`);
+            await wait(1000);
+          } else if (recordings === null) logger.warn(`Shard ${shard.id}: Could not fetch recordings size for RWA check!`);
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to check RWA', error);
+    }
+    this.checkingRWA = false;
   }
 }

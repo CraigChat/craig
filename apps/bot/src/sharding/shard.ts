@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import path from 'path';
 
 import { makeError, makePlainError, wait } from '../util';
+import * as logger from './logger';
 import ShardManager from './manager';
 import { ManagerResponseMessage, ShardEvalResponse } from './types';
 
@@ -15,6 +16,7 @@ export default class Shard extends EventEmitter {
   guildCount = 0;
   status = 'idle';
   lastActivity = 0;
+  respawnWhenAvailable = false;
   process: ChildProcess | null = null;
   _awaitedPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: unknown) => void }>();
   _exitListener: any;
@@ -59,6 +61,27 @@ export default class Shard extends EventEmitter {
     this.kill();
     if (delay > 0) return wait(delay).then(() => this.spawn());
     return this.spawn();
+  }
+
+  async respawnWithRetry(delay = 500, respawnDelay = 1000) {
+    let retries = 0;
+    let ok = false;
+    let lastError: any;
+    while (retries < 5) {
+      logger.info(`Respawning shard ${this.id}... (attempt ${retries + 1})`);
+      try {
+        retries++;
+        await this.respawn(respawnDelay);
+        ok = true;
+        break;
+      } catch (e) {
+        logger.error(`Failed to respawn shard ${this.id}`, e);
+        lastError = e;
+      }
+      await wait(delay);
+    }
+
+    if (!ok) throw lastError;
   }
 
   kill() {

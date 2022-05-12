@@ -9,7 +9,9 @@ import type Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-export const userAgent = `CraigBot (https://craig.chat ${require('../package.json').version}) Node.js/${process.version}`;
+export const version = require('../package.json').version;
+
+export const userAgent = `CraigBot (https://craig.chat ${version}) Node.js/${process.version}`;
 
 export function wait(ms: number) {
   return new Promise((resolve) => {
