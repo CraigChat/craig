@@ -51,7 +51,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     this.creator.on('error', (error) => this.logger.error(error.stack || error.toString()));
     this.creator.on('commandRun', (command, _, ctx) => {
       onCommandRun(ctx.user.id, command.commandName, ctx.guildID);
-      this.logger.debug(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
+      this.logger.info(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
     });
     this.creator.on('commandError', (command, error) => {
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString());
