@@ -2,13 +2,21 @@ import { PrismaPromise } from '@prisma/client';
 import axios from 'axios';
 import config from 'config';
 import isEqual from 'lodash.isequal';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { prisma } from '../prisma';
 import { TaskJob } from '../types';
 
+interface Credentials {
+  accessToken: string;
+  refreshToken: string;
+}
+
 const patreonConfig = config.get('patreon') as {
   campaignId: string;
-  accessToken: string;
+  clientId: string;
+  clientSecret: string;
   tiers: { [tier: string]: number };
   skipUsers: string[];
 };
@@ -18,7 +26,40 @@ export default class RefreshPatrons extends TaskJob {
     super('refreshPatrons', '0 * * * *');
   }
 
-  async getPatrons(cursor?: string) {
+  async getCredentials() {
+    const credentials = JSON.parse(await readFile(join(__dirname, '../../config/.patreon-credentials.json'), 'utf-8')) as Credentials;
+
+    // Test if access token is valid
+    const { status } = await axios.get('https://www.patreon.com/api/oauth2/v2/identity', {
+      headers: {
+        Authorization: `Bearer ${credentials.accessToken}`
+      },
+      validateStatus: () => true
+    });
+
+    if (status !== 200) {
+      const { data } = await axios.post('https://www.patreon.com/api/oauth2/token', {
+        grant_type: 'refresh_token',
+        refresh_token: credentials.refreshToken,
+        client_id: patreonConfig.clientId,
+        client_secret: patreonConfig.clientSecret
+      });
+
+      this.logger.info('Refreshing Patreon access token');
+
+      credentials.accessToken = data.access_token;
+      credentials.refreshToken = data.refresh_token;
+
+      await writeFile(
+        join(__dirname, '../../config/.patreon-credentials.json'),
+        JSON.stringify({ accessToken: data.access_token, refreshToken: data.refresh_token })
+      );
+    }
+
+    return credentials;
+  }
+
+  async getPatrons(credentials: Credentials, cursor?: string) {
     const query = new URLSearchParams({
       include: 'currently_entitled_tiers,user',
       'fields[member]': 'full_name,currently_entitled_amount_cents,patron_status,email',
@@ -27,7 +68,7 @@ export default class RefreshPatrons extends TaskJob {
     });
     const response = await axios.get(`https://patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
       headers: {
-        Authorization: `Bearer ${patreonConfig.accessToken}`,
+        Authorization: `Bearer ${credentials.accessToken}`,
         'User-Agent': this.userAgent
       }
     });
@@ -62,7 +103,8 @@ export default class RefreshPatrons extends TaskJob {
   async run() {
     this.logger.log('Collecting patrons...');
 
-    const initialData = await this.getPatrons();
+    const credentials = await this.getCredentials();
+    const initialData = await this.getPatrons(credentials);
 
     if (initialData.total === 0) return void this.logger.info('No patrons found.');
 
@@ -73,7 +115,7 @@ export default class RefreshPatrons extends TaskJob {
     let nextCursor = initialData.next;
     if (initialData.next)
       while (patrons.length < initialData.total) {
-        const nextData = await this.getPatrons(nextCursor);
+        const nextData = await this.getPatrons(credentials, nextCursor);
         let newPatrons = 0;
         for (const patron of nextData.patrons) {
           if (!patrons.find((p) => p.id === patron.id)) {

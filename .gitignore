@@ -50,3 +50,4 @@ nohup.out
 .env
 config.json
 apps/*/config/default.js
+.patreon-credentials.json
