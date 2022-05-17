@@ -11,6 +11,7 @@ export default class Join extends GeneralCommand {
     super(creator, {
       name: 'join',
       description: 'Start recording in a channel.',
+      dmPermission: false,
       options: [
         {
           type: CommandOptionType.CHANNEL,

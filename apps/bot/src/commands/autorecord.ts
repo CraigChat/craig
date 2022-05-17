@@ -11,6 +11,7 @@ export default class AutoRecord extends GeneralCommand {
       name: 'autorecord',
       description: 'Manage auto-record settings.',
       deferEphemeral: true,
+      dmPermission: false,
       options: [
         {
           type: CommandOptionType.SUB_COMMAND,

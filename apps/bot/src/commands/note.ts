@@ -7,7 +7,8 @@ export default class Note extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'note',
-      description: 'Note something within a recording.',
+      description: 'Note something within the recording.',
+      dmPermission: false,
       options: [
         {
           type: CommandOptionType.STRING,

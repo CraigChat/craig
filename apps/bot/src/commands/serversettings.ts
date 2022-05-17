@@ -10,6 +10,7 @@ export default class ServerSettings extends GeneralCommand {
       name: 'server-settings',
       description: 'Manage server settings.',
       deferEphemeral: true,
+      dmPermission: false,
       options: [
         {
           type: CommandOptionType.SUB_COMMAND,

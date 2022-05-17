@@ -9,7 +9,8 @@ export default class Bless extends GeneralCommand {
     super(creator, {
       name: 'bless',
       description: 'Bless this server, giving it your perks.',
-      deferEphemeral: true
+      deferEphemeral: true,
+      dmPermission: false
     });
 
     this.filePath = __filename;

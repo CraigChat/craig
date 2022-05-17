@@ -7,7 +7,8 @@ export default class Stop extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'stop',
-      description: 'Stop your current recording.'
+      description: 'Stop your current recording.',
+      dmPermission: false
     });
 
     this.filePath = __filename;

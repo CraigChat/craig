@@ -29,7 +29,7 @@ export default class Features extends GeneralCommand {
     const featureNames: { [key: string]: string } = {
       mix: 'Smart Mix',
       auto: 'Auto-recording',
-      drive: 'Google Drive Integration',
+      drive: 'Cloud Backup',
       glowers: 'Glowers',
       eccontinuous: 'Continuous Mode via Webapp',
       ecflac: 'FLAC via Webapp',
