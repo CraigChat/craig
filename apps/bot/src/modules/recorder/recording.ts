@@ -471,6 +471,10 @@ export default class Recording {
   }
 
   write(stream: OggEncoder, granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags?: number) {
+    if (this.closing)
+      return void this.recorder.logger.error(
+        `Tried to write to stream while closing! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`
+      );
     this.bytesWritten += chunk.length;
     if (this.sizeLimit && this.bytesWritten >= this.sizeLimit) {
       if (!this.hardLimitHit) {
@@ -486,7 +490,8 @@ export default class Recording {
   }
 
   private logWrite(message: string) {
-    if (this.logStream && !this.logStream.destroyed && !this.closing) this.logStream.write(message);
+    if (this.closing) return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
+    if (this.logStream && !this.logStream.destroyed) this.logStream.write(message);
   }
 
   encodeChunk(user: RecordingUser, oggStream: OggEncoder, streamNo: number, packetNo: number, chunk: Chunk) {
@@ -629,7 +634,7 @@ export default class Recording {
   }
 
   writeToLog(log: string, type?: string) {
-    if (this.logStream && !this.logStream.destroyed) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
+    if (this.logStream && !this.logStream.destroyed && !this.closing) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
   }
 
   messageContent() {
