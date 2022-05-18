@@ -2,7 +2,7 @@ import { CommandContext, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { stripIndentsAndLines } from '../util';
+import { checkBan, stripIndentsAndLines } from '../util';
 
 export default class Recordings extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -16,6 +16,12 @@ export default class Recordings extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
+
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true)
       return {

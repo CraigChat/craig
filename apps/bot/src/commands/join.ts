@@ -4,7 +4,7 @@ import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCre
 import Recording from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards } from '../util';
+import { checkBan, checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards } from '../util';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -28,6 +28,12 @@ export default class Join extends GeneralCommand {
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
     const guild = this.client.bot.guilds.get(ctx.guildID)!;
+
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true)

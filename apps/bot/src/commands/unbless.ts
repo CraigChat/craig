@@ -2,7 +2,7 @@ import { CommandContext, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { unblessServer } from '../util';
+import { checkBan, unblessServer } from '../util';
 
 export default class Bless extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -18,6 +18,12 @@ export default class Bless extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
+
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true)

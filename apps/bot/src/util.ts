@@ -1,4 +1,4 @@
-import { Guild } from '@prisma/client';
+import { Ban, Guild } from '@prisma/client';
 import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import Eris from 'eris';
@@ -12,6 +12,21 @@ import { prisma } from './prisma';
 export const version = require('../package.json').version;
 
 export const userAgent = `CraigBot (https://craig.chat ${version}) Node.js/${process.version}`;
+
+let lastBanUpdate = 0;
+let bans: Ban[] = [];
+
+export async function checkBan(userId: string) {
+  if (Date.now() - lastBanUpdate > 30 * 1000) {
+    const nextBans = await prisma.ban.findMany().catch(() => null);
+    if (nextBans) {
+      bans = nextBans;
+      lastBanUpdate = Date.now();
+    }
+  }
+
+  return bans.some((ban) => ban.id === userId && ban.type === 0);
+}
 
 export function wait(ms: number) {
   return new Promise((resolve) => {

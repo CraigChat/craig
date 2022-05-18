@@ -3,7 +3,7 @@ import { ButtonStyle, ChannelType, CommandContext, CommandOptionType, ComponentT
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission, parseRewards } from '../util';
+import { checkBan, checkRecordingPermission, parseRewards } from '../util';
 
 export default class AutoRecord extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -81,6 +81,12 @@ export default class AutoRecord extends GeneralCommand {
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
     const guild = this.client.bot.guilds.get(ctx.guildID)!;
+
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true)

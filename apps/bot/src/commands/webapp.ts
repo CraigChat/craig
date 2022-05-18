@@ -2,6 +2,7 @@ import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
+import { checkBan } from '../util';
 
 export default class Webapp extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -30,6 +31,12 @@ export default class Webapp extends GeneralCommand {
     if (!this.recorder.client.config.craig.webapp.on)
       return {
         content: 'This instance of Craig does not have a webapp.',
+        ephemeral: true
+      };
+
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
 

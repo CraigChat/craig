@@ -4,6 +4,7 @@ import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-
 import type { RewardTier } from '../bot';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
+import { checkBan } from '../util';
 
 export default class Features extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -46,6 +47,12 @@ export default class Features extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
+
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true)
       return {

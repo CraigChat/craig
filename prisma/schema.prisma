@@ -27,6 +27,15 @@ model User {
   updatedAt      DateTime @db.Timestamptz(6) @updatedAt
 }
 
+model Ban {
+  id             String  @id
+  type           Int     @default(0)
+  name           String?
+  reason         String?
+  createdAt      DateTime @db.Timestamptz(6) @default(now())
+  updatedAt      DateTime @db.Timestamptz(6) @updatedAt
+}
+
 model Guild {
   id          String   @id
   accessRoles String[]

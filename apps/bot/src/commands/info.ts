@@ -1,19 +1,35 @@
 import { stripIndents } from 'common-tags';
-import { ButtonStyle, ComponentType, SlashCreator } from 'slash-create';
+import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
 
+import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
+import { checkBan } from '../util';
 
 export default class Info extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'info',
-      description: 'Get information and statistics about this bot.'
+      description: 'Get information and statistics about this bot.',
+      deferEphemeral: true
     });
 
     this.filePath = __filename;
   }
 
-  async run() {
+  async run(ctx: CommandContext) {
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
+
+    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    if (userCooldown !== true)
+      return {
+        content: 'You are running commands too often! Try again in a few seconds.',
+        ephemeral: true
+      };
+
     const [guildCount, recordings] = await this.sharding.getCounts();
 
     return {

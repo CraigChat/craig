@@ -1,7 +1,7 @@
 import { CommandContext, SlashCreator } from 'slash-create';
 
 import GeneralCommand from '../slashCommand';
-import { checkRecordingPermission } from '../util';
+import { checkBan, checkRecordingPermission } from '../util';
 
 export default class Stop extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -16,6 +16,13 @@ export default class Stop extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
+
+    if (await checkBan(ctx.user.id))
+      return {
+        content: 'You are not allowed to use the bot at this time.',
+        ephemeral: true
+      };
+
     const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findFirst({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return {
