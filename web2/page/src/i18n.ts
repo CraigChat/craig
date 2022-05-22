@@ -9,7 +9,7 @@ import ar from '../../locale/ar/download.json';
 import tok from '../../locale/tok/download.json';
 import ru from '../../locale/ru/download.json';
 import uk from '../../locale/uk/download.json';
-import bel from '../../locale/bel/download.json';
+import be from '../../locale/be/download.json';
 
 import enFlag from '@iconify-icons/twemoji/flag-for-united-states';
 import esFlag from '@iconify-icons/twemoji/flag-for-spain';
@@ -17,7 +17,7 @@ import deFlag from '@iconify-icons/twemoji/flag-for-germany';
 import arFlag from '@iconify-icons/twemoji/flag-for-saudi-arabia';
 import ruFlag from '@iconify-icons/twemoji/flag-for-russia';
 import ukFlag from '@iconify-icons/twemoji/flag-for-ukraine';
-import belFlag from '@iconify-icons/twemoji/flag-for-belarus';
+import beFlag from '@iconify-icons/twemoji/flag-for-belarus';
 const tokFlag: IconifyIcon = {
   width: 468,
   height: 617,
@@ -39,7 +39,7 @@ const langList: [string, any, IconifyIcon][] = [
   ['tok', { download: tok }, tokFlag],
   ['ru', { download: ru }, ruFlag],
   ['uk', { download: uk }, ukFlag],
-  ['bel', { download: bel }, belFlag]
+  ['be', { download: be }, beFlag]
 ];
 
 function langExists(lang: string) {
