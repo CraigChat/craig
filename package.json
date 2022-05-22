@@ -1,7 +1,7 @@
 {
   "name": "craig",
-  "homepage": "http://craig.chat/home/",
-  "license": "MIT",
+  "homepage": "http://craig.chat/",
+  "license": "ISC",
   "private": true,
   "author": {
     "name": "Snazzah",
