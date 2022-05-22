@@ -1,8 +1,12 @@
 import { IconifyIcon } from '@iconify/react';
+import belFlag from '@iconify-icons/twemoji/flag-for-belarus';
 import deFlag from '@iconify-icons/twemoji/flag-for-germany';
+import ruFlag from '@iconify-icons/twemoji/flag-for-russia';
 import arFlag from '@iconify-icons/twemoji/flag-for-saudi-arabia';
 import esFlag from '@iconify-icons/twemoji/flag-for-spain';
+import ukFlag from '@iconify-icons/twemoji/flag-for-ukraine';
 import enFlag from '@iconify-icons/twemoji/flag-for-united-states';
+import testFlag from '@iconify-icons/twemoji/test-tube';
 import unknownFlag from '@iconify-icons/twemoji/white-question-mark';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
@@ -14,6 +18,10 @@ const langFlagMap: { [key: string]: IconifyIcon } = {
   es: esFlag,
   de: deFlag,
   ar: arFlag,
+  test: testFlag,
+  ru: ruFlag,
+  uk: ukFlag,
+  bel: belFlag,
   tok: {
     width: 468,
     height: 617,
