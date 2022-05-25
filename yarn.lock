@@ -2942,11 +2942,6 @@ dotenv@*, dotenv@^16.0.0:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.0.0.tgz#c619001253be89ebb638d027b609c75c26e47411"
   integrity sha512-qD9WU0MPM4SWLPJy/r2Be+2WgQj8plChsyrCNQzW/0WjvcJQiKQJ9mH3ZgB3fxbUUxgc/11ZJ0Fi5KiimWGz2Q==
 
-dotenv@^14.1.0:
-  version "14.3.2"
-  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-14.3.2.tgz#7c30b3a5f777c79a3429cb2db358eef6751e8369"
-  integrity sha512-vwEppIphpFdvaMCaHfCEv9IgwcxMljMw2TnAQBB4VWPvzXQLTb82jwmdOKzlEVUL3gNFT4l4TPKO+Bn+sqcrVQ==
-
 duplexer3@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/duplexer3/-/duplexer3-0.1.4.tgz#ee01dd1cac0ed3cbc7fdbea37dc0a8f1ce002ce2"
@@ -7879,10 +7874,10 @@ simple-swizzle@^0.2.2:
   dependencies:
     is-arrayish "^0.3.1"
 
-slash-create@^5.0.1:
-  version "5.2.1"
-  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-5.2.1.tgz#d8930cfa4b23f272025d43f66869f7bf9ba54207"
-  integrity sha512-xxdQsbEjjlfQbvkmDCsYoCi8Isq1n4dMySm1zejsX3w3wE4znv40Q3u2XzEpUllDGMz2xmEYhDC616ZQiOx1PQ==
+slash-create@^5.5.3:
+  version "5.6.1"
+  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-5.6.1.tgz#5fd3822285df962b6dbc4945e0e7067085ae3047"
+  integrity sha512-XlnVw7FleyUa4ruaXFmGeKMVYHnVH9xKVjtIDX9bKONnQXeRiHFNEU6pn+Jgn6/ft49Tu5VBBytJ0on4sg4MZA==
   dependencies:
     eventemitter3 "^4.0.7"
     lodash.isequal "^4.5.0"
@@ -7897,20 +7892,20 @@ slash-create@^5.6.0:
     lodash.isequal "^4.5.0"
     tweetnacl "^1.0.3"
 
-slash-up@^1.0.11:
-  version "1.0.11"
-  resolved "https://registry.yarnpkg.com/slash-up/-/slash-up-1.0.11.tgz#09301cfe666a878911b00dde383d1706340c0568"
-  integrity sha512-MAscCTc7nduHdcuPmXtNakx0fyWtmZhV0UPAWtBYM3454LGze7sUPLCY+B4CsDWdVlv7reoxewuBcTvaVIXR3Q==
+slash-up@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/slash-up/-/slash-up-1.1.2.tgz#a2b0a67312be82580f115e68b15363aecc4899f2"
+  integrity sha512-CngjwwkAfz3I/apmemyCwM7cM1QUgzwL9R/HbaQkUj/Y4hgnRYv18Goxt2KlXX9HDB7C7xQZbQzq2k6l5gtuiA==
   dependencies:
     ansi-colors "^4.1.1"
     common-tags "^1.8.2"
     cross-spawn "^7.0.3"
     degit "^2.8.4"
-    dotenv "^14.1.0"
+    dotenv "^16.0.0"
     enquirer "^2.3.6"
     find-up "5.0.0"
     log-symbols "4.1.0"
-    slash-create "^5.0.1"
+    slash-create "^5.5.3"
     ts-node "^10.4.0"
     yargs "^17.3.0"
 
