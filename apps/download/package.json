@@ -25,18 +25,18 @@
     "@fontsource/red-hat-text": "^4.5.4",
     "@fontsource/ubuntu-mono": "^4.5.0",
     "@influxdata/influxdb-client": "^1.24.0",
-    "@sentry/integrations": "^6.17.4",
-    "@sentry/node": "^6.17.4",
-    "@sentry/tracing": "^6.17.3",
-    "cron": "^1.8.2",
-    "dotenv": "^16.0.0",
+    "@sentry/integrations": "^7.0.0",
+    "@sentry/node": "^7.0.0",
+    "@sentry/tracing": "^7.0.0",
+    "cron": "^2.0.0",
+    "dotenv": "^16.0.1",
     "execa": "5",
     "fastify": "^3.25.3",
     "fastify-helmet": "^5.0.3",
     "fastify-rate-limit": "^5.7.0",
     "fastify-static": "^4.5.0",
-    "ioredis": "^4.28.5",
-    "nanoid": "^3.3.1"
+    "ioredis": "^5.0.6",
+    "nanoid": "^3.3.4"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^4.1.3",
@@ -65,11 +65,14 @@
     "autoprefixer": "^10.4.4",
     "clsx": "^1.1.1",
     "eslint-config-preact": "^1.3.0",
-    "i18next": "^21.6.14",
+    "i18next": "^21.8.8",
     "node-sass": "^7.0.1",
     "parse-ms": "^3.0.0",
+    "postcss": "^8.4.14",
     "preact": "^10.6.6",
+    "react": "17",
     "react-color": "^2.19.3",
+    "react-dom": "17",
     "react-i18next": "^11.15.3",
     "react-modal": "^3.14.4",
     "react-tippy": "^1.4.0",
@@ -79,6 +82,7 @@
     "rollup-plugin-terser": "^7.0.2",
     "tailwindcss": "^3.0.23",
     "ts-devscript": "^3.0.6",
-    "typescript": "^4.5.4"
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.3"
   }
 }
