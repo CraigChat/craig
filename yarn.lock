@@ -2872,14 +2872,13 @@ detective@^5.2.0:
     defined "^1.0.0"
     minimist "^1.1.1"
 
-dexare@^2.2.2:
-  version "2.2.3"
-  resolved "https://registry.yarnpkg.com/dexare/-/dexare-2.2.3.tgz#848cce4606548c9c893f184ebb87bf3fc10207b4"
-  integrity sha512-eGkLLbttVTG4WOJ+dMrNpVPF3cljWlA0Pzi8e/AkmnerEuvcbDGKEyVZ65MFBg+FJeOFwAkqFN1t2hL0gZT6QA==
+dexare@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/dexare/-/dexare-3.0.0.tgz#b9c567a5fc61d258f9637389e6e52dc67f5c11c7"
+  integrity sha512-cDDFdEzqcocx7TX4gg3Fxy5QYdgMNsY+tBQ7SocaCcTuF9d2w8ycBAC1aHhnM1pu+Rrp5vibeLmohtVJBrWb0w==
   dependencies:
     "@discordjs/collection" "0.1.6"
     common-tags "^1.8.2"
-    eris "^0.16.1"
     eventemitter3 "^4.0.7"
     lodash "^4.17.21"
 
@@ -3099,10 +3098,10 @@ eol@^0.9.1:
   resolved "https://registry.yarnpkg.com/eol/-/eol-0.9.1.tgz#f701912f504074be35c6117a5c4ade49cd547acd"
   integrity sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==
 
-eris@^0.16.1:
-  version "0.16.1"
-  resolved "https://registry.yarnpkg.com/eris/-/eris-0.16.1.tgz#44b0a9220944fc73dd74538cd614826bfbfcde61"
-  integrity sha512-fqjgaddSvUlUjA7s85OvZimLrgCwX58Z6FXOIxdNFJdT6XReJ/LOWZKdew2CaalM8BvN2JKzn98HmKYb3zMhKg==
+eris@^0.17.0:
+  version "0.17.0"
+  resolved "https://registry.yarnpkg.com/eris/-/eris-0.17.0.tgz#8d8caa9715eccf27951c9b16ce4249c559ccbb13"
+  integrity sha512-ba7fpe104uw86z8fbX7V1ORMblB7jMJoDsRpiy8BKDQo+kNCRuUXB5xfg/VKGtZ944QroBTEZDuyXCBhKOBplQ==
   dependencies:
     ws "^8.2.3"
   optionalDependencies:
