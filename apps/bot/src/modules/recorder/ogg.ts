@@ -61,7 +61,9 @@ export default class OggEncoder {
     chunk.writeInt32LE(crc32(chunk), 22);
 
     // And write it out
-    this.stream.write(chunk);
+    try {
+      this.stream.write(chunk);
+    } catch (e) {}
   }
 
   end() {

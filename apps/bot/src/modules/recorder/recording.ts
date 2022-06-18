@@ -14,7 +14,7 @@ import { ButtonStyle, ComponentType } from 'slash-create';
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
-import { ParsedRewards, stripIndentsAndLines } from '../../util';
+import { ParsedRewards, stripIndentsAndLines, wait } from '../../util';
 import type RecorderModule from '.';
 import OggEncoder, { BOS } from './ogg';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
@@ -254,10 +254,11 @@ export default class Recording {
       const user = this.users[userID];
       this.flush(user, this.userPackets[userID].length);
     }
-    this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
 
-    // Close the output files
+    // Close the output files and connection
     this.closing = true;
+    await wait(200);
+    this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
     this.headerEncoder1?.end();
     this.headerEncoder2?.end();
     this.dataEncoder?.end();

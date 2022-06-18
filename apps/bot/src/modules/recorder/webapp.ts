@@ -310,6 +310,8 @@ export class WebappClient {
 
     const cmd = message.readUInt32LE(0);
 
+    if (this.disconnecting || this.recording.closing) return;
+
     switch (cmd) {
       case EnnuicastrId.INFO: {
         if (message.length != EnnuicastrParts.info.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
