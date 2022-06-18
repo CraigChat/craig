@@ -257,8 +257,8 @@ export default class Recording {
 
     // Close the output files and connection
     this.closing = true;
-    await wait(200);
     this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
+    await wait(200);
     this.headerEncoder1?.end();
     this.headerEncoder2?.end();
     this.dataEncoder?.end();
