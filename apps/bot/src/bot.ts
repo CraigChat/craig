@@ -31,6 +31,7 @@ export interface CraigBotConfig extends BaseConfig {
     homepage: string;
     recordingFolder: string;
     removeNickname: boolean;
+    alistair?: boolean;
     sizeLimit: number;
     sizeLimitWeb: number;
     sizeLimitWebOpus: number;
@@ -120,7 +121,10 @@ export async function connect() {
     'prefixer',
     'messageCreate',
     (event, message) => {
-      if (/^<a?:craig:\d+>,?/.test(message.content)) event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
+      if (client.config.craig.alistair && /^<a?:alistair:\d+>,?/.test(message.content))
+        event.set('prefix', message.content.match(/^<a?:alistair:\d+>,?/)![0]);
+      else if (!client.config.craig.alistair && /^<a?:craig:\d+>,?/.test(message.content))
+        event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
     },
     { after: ['commands'] }
   );
