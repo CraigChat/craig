@@ -1,23 +1,40 @@
 {
-    "name": "craig",
-    "homepage": "http://craig.chat/home/",
-    "license": "ISC",
-    "private": true,
-    "workspaces": ["web2"],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/Yahweasel/craig"
-    },
-    "dependencies": {
-        "@discordjs/opus": "^0.7.0",
-        "better-sqlite3": "^7.1.2",
-        "bufferutil": "^4.0.1",
-        "cyclic-32": "^1.1.0",
-        "discord.js": "^11.6.4",
-        "eris": "^0.16.1",
-        "googleapis": "^58.0.0",
-        "request": "^2.88.2",
-        "sqlite3": "^5.0.1",
-        "ws": "^7.4.5"
-    }
+  "name": "craig",
+  "homepage": "http://craig.chat/",
+  "license": "ISC",
+  "private": true,
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "workspaces": [
+    "apps/bot",
+    "apps/dashboard",
+    "apps/download",
+    "apps/tasks"
+  ],
+  "scripts": {
+    "build": "yarn workspaces run build",
+    "test": "yarn workspaces run test",
+    "lint": "yarn workspaces run lint",
+    "lint:fix": "yarn workspaces run lint:fix",
+    "lint:monorepo": "yarn manypkg check",
+    "sync": "yarn manypkg run bot sync",
+    "sync:dev": "yarn manypkg run bot sync:dev",
+    "run-job": "yarn manypkg run tasks run-job",
+    "prisma:generate": "prisma generate && yarn manypkg run bot prisma:generate && yarn manypkg run dashboard prisma:generate && yarn manypkg run tasks prisma:generate",
+    "prisma:deploy": "prisma migrate deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CraigChat/craig"
+  },
+  "dependencies": {
+    "@manypkg/cli": "^0.19.1",
+    "eslint": "^8.13.0",
+    "eslint-config-snazzah": "^1.1.0",
+    "prisma": "^3.14.0",
+    "rimraf": "^3.0.2"
+  }
 }

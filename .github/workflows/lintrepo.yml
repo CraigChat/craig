@@ -1,0 +1,26 @@
+name: Manypkg
+on:
+  push:
+    paths:
+      - ".github/workflows/lintrepo.yml"
+      - "package.json"
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Lint monorepo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install Node v14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run Manypkg
+        run: yarn lint:monorepo

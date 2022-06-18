@@ -1,0 +1,22 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "outDir": "../dist/page",
+    "module": "esnext",
+    "target": "es6",
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
+    "lib": [
+      "esnext",
+      "dom"
+    ],
+    "paths": {
+      "react": ["../../../node_modules/preact/compat/"],
+      "react-dom": ["../../../node_modules/preact/compat/"]
+    }
+  },
+  "include": ["./src/**/*"]
+}
