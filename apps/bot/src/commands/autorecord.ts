@@ -103,32 +103,6 @@ export default class AutoRecord extends GeneralCommand {
         ephemeral: true
       };
 
-    // Get rewards
-    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
-    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
-
-    // Check if user can manage auto-recordings
-    if (!parsedRewards.rewards.features.includes('auto'))
-      return {
-        content: 'Sorry, but this feature is only for patrons.',
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Patreon',
-                url: 'https://patreon.com/CraigRec'
-              }
-            ]
-          }
-        ],
-        ephemeral: true
-      };
-
     switch (ctx.subcommands[0]) {
       case 'view': {
         if (ctx.options.view.channel) {
@@ -189,6 +163,31 @@ export default class AutoRecord extends GeneralCommand {
         };
       }
       case 'on': {
+        // Get rewards
+        const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
+        const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
+        const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+        const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
+        // Check if user can manage auto-recordings
+        if (!parsedRewards.rewards.features.includes('auto'))
+          return {
+            content: 'Sorry, but this feature is only for patrons.',
+            components: [
+              {
+                type: ComponentType.ACTION_ROW,
+                components: [
+                  {
+                    type: ComponentType.BUTTON,
+                    style: ButtonStyle.LINK,
+                    label: 'Patreon',
+                    url: 'https://patreon.com/CraigRec'
+                  }
+                ]
+              }
+            ],
+            ephemeral: true
+          };
+
         const channel = ctx.options.on.channel as string;
         const min = ctx.options.on.mininum || 1;
         const triggerUsers = ctx.users.map((u) => u.id);
