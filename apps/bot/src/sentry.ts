@@ -1,18 +1,19 @@
-import '@sentry/tracing';
-
 import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
+import { Integrations } from '@sentry/tracing';
 import config from 'config';
 
-const sentryOpts: any = config.get('sentry');
+import { prisma } from './prisma';
 
+const sentryOpts: any = config.get('sentry');
 Sentry.init({
   dsn: sentryOpts.dsn,
   integrations: [
     new Sentry.Integrations.Http({ tracing: true }),
     new RewriteFrames({
       root: __dirname
-    })
+    }),
+    new Integrations.Prisma({ client: prisma })
   ],
 
   environment: sentryOpts.env || process.env.NODE_ENV || 'development',
