@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - ".github/workflows/lintrepo.yml"
+      - "apps/*/package.json"
       - "package.json"
   workflow_dispatch:
 
