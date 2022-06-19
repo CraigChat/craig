@@ -1,7 +1,6 @@
 import typescript from '@rollup/plugin-typescript';
 import { terser } from 'rollup-plugin-terser';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import json from '@rollup/plugin-json';
 import buble from '@rollup/plugin-buble';
 import postcss from 'rollup-plugin-postcss';
 import purgecss from '@fullhuman/postcss-purgecss';
@@ -77,7 +76,6 @@ export default ({ watch }) => [
         extract: true,
         minimize: !watch
       }),
-      json({ compact: true }),
       commonjs(),
       typescript({
         tsconfig: './page/tsconfig.json'

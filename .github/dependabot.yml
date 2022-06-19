@@ -16,3 +16,4 @@ updates:
       - dependency-name: "react"
       - dependency-name: "react-dom"
       - dependency-name: "execa"
+      - dependency-name: "@headlessui/react"
