@@ -32,7 +32,7 @@
     "dotenv": "^16.0.1",
     "execa": "5",
     "fastify": "^3.25.3",
-    "fastify-helmet": "^5.0.3",
+    "fastify-helmet": "^7.1.0",
     "fastify-rate-limit": "^5.7.0",
     "fastify-static": "^4.5.0",
     "ioredis": "^5.0.6",

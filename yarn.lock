@@ -3316,13 +3316,21 @@ fastify-error@^0.3.0:
   resolved "https://registry.yarnpkg.com/fastify-error/-/fastify-error-0.3.1.tgz#8eb993e15e3cf57f0357fc452af9290f1c1278d2"
   integrity sha512-oCfpcsDndgnDVgiI7bwFKAun2dO+4h84vBlkWsWnz/OUK9Reff5UFoFl241xTiLeHWX/vU9zkDVXqYUxjOwHcQ==
 
-fastify-helmet@^5.0.3:
-  version "5.3.2"
-  resolved "https://registry.yarnpkg.com/fastify-helmet/-/fastify-helmet-5.3.2.tgz#eda259b8a9ad5ccc6dacc1b7ed358c03f59a7f7f"
-  integrity sha512-X9lKZa7wjvMe79eUP0Fo+3GMMmbxKC92ddJGdmSIEZxn0JwSw+Fw5mlOiM9RABRQGphdLDSHIL/29ywH7GUusQ==
+"fastify-helmet-deprecated@npm:fastify-helmet@7.0.1":
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/fastify-helmet/-/fastify-helmet-7.0.1.tgz#506c288dc5a5bea4d7332c1b5aed8f69a3fe383b"
+  integrity sha512-/PSKDJZkBhJ0ioY1swOUfYNYQRfRnXD5X2eKD9TSVBuPKbH+OYg/IYBxad33uaOGlWn28MNOd+kw5sQKSWY1yA==
   dependencies:
     fastify-plugin "^3.0.0"
-    helmet "^4.0.0"
+    helmet "^5.0.1"
+
+fastify-helmet@^7.1.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/fastify-helmet/-/fastify-helmet-7.1.0.tgz#7c2a0d9039566dd03cd58cb2535b827bf37ee04f"
+  integrity sha512-rgSYdx42+Rq4EETbJXMCWtsvYtZdstEuaDBiwFAiNJhjjqgf2AllrdDYEUb5nUA/FXSrfP4MKnpa3ZgyLd/nRQ==
+  dependencies:
+    fastify-helmet-deprecated "npm:fastify-helmet@7.0.1"
+    process-warning "^1.0.0"
 
 fastify-plugin@^3.0.0:
   version "3.0.1"
@@ -4011,10 +4019,10 @@ has@^1.0.3:
   dependencies:
     function-bind "^1.1.1"
 
-helmet@^4.0.0:
-  version "4.6.0"
-  resolved "https://registry.yarnpkg.com/helmet/-/helmet-4.6.0.tgz#579971196ba93c5978eb019e4e8ec0e50076b4df"
-  integrity sha512-HVqALKZlR95ROkrnesdhbbZJFi/rIVSoNq6f3jA/9u6MIbTsPh3xZwihjeI5+DO/2sOV6HMHooXcEOuwskHpTg==
+helmet@^5.0.1:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/helmet/-/helmet-5.1.0.tgz#e98a5d4bf89ab8119c856018a3bcc82addadcd47"
+  integrity sha512-klsunXs8rgNSZoaUrNeuCiWUxyc+wzucnEnFejUg3/A+CaF589k9qepLZZ1Jehnzig7YbD4hEuscGXuBY3fq+g==
 
 hoist-non-react-statics@^3.3.2:
   version "3.3.2"
