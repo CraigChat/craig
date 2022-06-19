@@ -279,7 +279,7 @@ export default class Recording {
     // Reset nickname
     if (this.recorder.client.config.craig.removeNickname) {
       const selfUser = (await this.channel.guild.fetchMembers({ userIDs: [this.recorder.client.bot.user.id] }))[0];
-      if (selfUser.nick && recIndicator.test(selfUser.nick))
+      if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick))
         try {
           await this.recorder.client.bot.editGuildMember(
             this.channel.guild.id,
