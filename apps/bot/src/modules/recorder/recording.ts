@@ -86,6 +86,7 @@ export default class Recording {
   startTime: [number, number] = [0, 0];
   startedAt: Date | null = null;
   logs: string[] = [];
+  rewards: ParsedRewards | null = null;
 
   users: { [key: string]: RecordingUser } = {};
   userPackets: { [key: string]: Chunk[] } = {};
@@ -128,7 +129,7 @@ export default class Recording {
   async start(parsedRewards: ParsedRewards, webapp = false) {
     await this.sanityCheckIdClashing();
 
-    this.recorder.logger.debug(`Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`);
+    this.recorder.logger.info(`Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`);
     this.state = RecordingState.CONNECTING;
 
     try {
@@ -145,6 +146,7 @@ export default class Recording {
 
     const fileBase = path.join(this.recorder.recordingPath, `${this.id}.ogg`);
     const { tier, rewards } = parsedRewards;
+    this.rewards = { tier, rewards };
     await writeFile(
       fileBase + '.info',
       JSON.stringify({
@@ -244,6 +246,11 @@ export default class Recording {
     clearTimeout(this.timeout);
     clearInterval(this.usageInterval);
     this.active = false;
+    this.recorder.logger.info(
+      `Stopping recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})${internal ? ' internally' : ''}${
+        userID ? ` by ${userID}` : ''
+      }`
+    );
     if (!internal) {
       this.state = RecordingState.ENDED;
       if (userID) this.pushToActivity(`Recording stopped by <@${userID}>.`);
@@ -267,10 +274,27 @@ export default class Recording {
 
     this.recorder.recordings.delete(this.channel.guild.id);
 
-    await prisma.recording.update({
-      where: { id: this.id },
-      data: { endedAt: new Date() }
-    });
+    await prisma.recording
+      .upsert({
+        where: { id: this.id },
+        update: { endedAt: new Date() },
+        create: {
+          id: this.id,
+          accessKey: this.accessKey,
+          deleteKey: this.deleteKey,
+          userId: this.user.id,
+          channelId: this.channel.id,
+          guildId: this.channel.guild.id,
+          clientId: this.recorder.client.bot.user.id,
+          shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
+          rewardTier: this.rewards!.tier,
+          autorecorded: this.autorecorded,
+          expiresAt: new Date(this.startedAt!.valueOf() + this.rewards!.rewards.downloadExpiryHours * 60 * 60 * 1000),
+          createdAt: this.startedAt!,
+          endedAt: new Date()
+        }
+      })
+      .catch((e) => this.recorder.logger.error('Error writing end date to recording', e));
 
     const timestamp = process.hrtime(this.startTime);
     const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
