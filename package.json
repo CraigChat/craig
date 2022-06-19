@@ -34,7 +34,7 @@
     "@manypkg/cli": "^0.19.1",
     "eslint": "^8.13.0",
     "eslint-config-snazzah": "^1.1.0",
-    "prisma": "^3.14.0",
+    "prisma": "^3.15.2",
     "rimraf": "^3.0.2"
   }
 }
