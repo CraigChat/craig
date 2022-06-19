@@ -24,7 +24,7 @@ const tasksConfig: {
     const jobModule = await import(jobPath);
     const jobClass = jobModule.default;
 
-    if (tasksConfig && jobName in tasksConfig.ignore) {
+    if (tasksConfig && tasksConfig.ignore.includes(jobName)) {
       logger.info('Ignoring job %s', jobName);
       continue;
     }
