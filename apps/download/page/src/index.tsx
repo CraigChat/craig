@@ -10,7 +10,7 @@ import './index.sass';
 import './i18n';
 
 import * as Sentry from '@sentry/react';
-import { Integrations } from '@sentry/tracing';
+// import { Integrations } from '@sentry/tracing';
 import { h } from 'preact';
 import { render } from 'preact/compat';
 
@@ -19,7 +19,7 @@ import App from './components/app';
 if (process.env.SENTRY_DSN)
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    integrations: [new Integrations.BrowserTracing()],
+    // integrations: [new Integrations.BrowserTracing()],
     environment: process.env.NODE_ENV,
     release: process.env.VERSION,
     tracesSampleRate: process.env.SENTRY_SAMPLE_RATE ? parseFloat(process.env.SENTRY_SAMPLE_RATE) : 1.0
