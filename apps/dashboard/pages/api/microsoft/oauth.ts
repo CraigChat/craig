@@ -6,7 +6,7 @@ import { config } from '../../../utils/config';
 import { MicrosoftOAuthResponse, MicrosoftUser } from '../../../utils/types';
 
 const REDIRECT_URI = `${config.appUri}/api/microsoft/oauth`;
-const scopes = ['Files.ReadWrite.AppFolder', 'offline_access', 'openid', 'profile'];
+const scopes = ['Files.ReadWrite.AppFolder', 'offline_access', 'openid', 'profile', 'User.Read'];
 
 const OAUTH_URI = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${new URLSearchParams({
   client_id: config.microsoftClientId,
