@@ -1,9 +1,9 @@
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 
-import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
+import TextCommand, { replyOrSend } from '../util';
 
-export default class ShardInfoCommand extends DexareCommand {
+export default class ShardInfoCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'shardinfo',
@@ -27,10 +27,9 @@ export default class ShardInfoCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    const client = this.client as unknown as CraigBot;
-    const sharding = client.modules.get('sharding') as ShardingModule;
+    const sharding = this.client.modules.get('sharding') as ShardingModule;
 
-    if (!sharding.on) return void (await ctx.reply('Sharding is not enabled.'));
+    if (!sharding.on) return void (await replyOrSend(ctx, 'Sharding is not enabled.'));
     const {
       d: { res }
     } = await sharding.sendAndRecieve<{
@@ -38,7 +37,7 @@ export default class ShardInfoCommand extends DexareCommand {
     }>('getShardInfo');
 
     const totalGuilds = res.reduce((acc, cur) => acc + cur.guilds, 0);
-    const averageLatency = res.reduce((acc, cur) => acc + cur.latency, 0) / res.length;
+    const averageLatency = Math.round(res.reduce((acc, cur) => acc + cur.latency, 0) / res.length);
     const averageUptime = res.reduce((acc, cur) => acc + cur.uptime, 0) / res.length;
     const totalRecordings = res.reduce((acc, cur) => acc + cur.recordings, 0);
 
@@ -62,7 +61,7 @@ export default class ShardInfoCommand extends DexareCommand {
         )
         .join('\n');
 
-    await ctx.reply('', {
+    await replyOrSend(ctx, '', {
       name: 'shards.txt',
       file: Buffer.from(message)
     });

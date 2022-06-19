@@ -1,10 +1,11 @@
 import { Ban, Guild } from '@prisma/client';
 import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
+import { CommandContext, DexareCommand } from 'dexare';
 import Eris from 'eris';
 import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
 
-import type { CraigBotConfig, RewardTier } from './bot';
+import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
 
@@ -243,4 +244,24 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
     content: 'Removed your blessing from this server.',
     ephemeral: true
   };
+}
+
+export async function replyOrSend(
+  ctx: CommandContext,
+  content: Eris.MessageContent,
+  file?: Eris.FileContent | Eris.FileContent[]
+): Promise<Eris.Message> {
+  if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory'))
+    return ctx.replyMention(content, file);
+  else return ctx.reply(content, file);
+}
+
+export default abstract class TextCommand extends DexareCommand {
+  // @ts-ignore
+  client!: CraigBot;
+
+  finalize(response: any, ctx: CommandContext) {
+    if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object'))
+      return replyOrSend(ctx, response);
+  }
 }

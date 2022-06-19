@@ -1,11 +1,11 @@
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 
-import { CraigBot } from '../bot';
 import RecorderModule from '../modules/recorder';
 import ShardingModule from '../modules/sharding';
 import { removeMaintenance, setMaintenance } from '../redis';
+import TextCommand, { replyOrSend } from '../util';
 
-export default class MaintenanceCommand extends DexareCommand {
+export default class MaintenanceCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'maintenance',
@@ -23,9 +23,8 @@ export default class MaintenanceCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    const client = this.client as unknown as CraigBot;
-    const sharding = client.modules.get('sharding') as ShardingModule;
-    const recorder = client.modules.get('recorder') as RecorderModule<any>;
+    const sharding = this.client.modules.get('sharding') as ShardingModule;
+    const recorder = this.client.modules.get('recorder') as RecorderModule<any>;
     const message = ctx.event
       .get('commands/strippedContent')
       .slice(ctx.event.get('commands/commandName').length + 1)
@@ -33,13 +32,13 @@ export default class MaintenanceCommand extends DexareCommand {
 
     if (!message) {
       await removeMaintenance(this.client.bot.user.id);
-      await ctx.reply('Maintenance mode has been removed.');
+      await replyOrSend(ctx, 'Maintenance mode has been removed.');
       return;
     }
 
     await setMaintenance(this.client.bot.user.id, { message });
     if (sharding.on) sharding.send('checkMaintenence');
     else await recorder.checkForMaintenence();
-    await ctx.reply('Maintenance mode has been set.');
+    await replyOrSend(ctx, 'Maintenance mode has been set.');
   }
 }

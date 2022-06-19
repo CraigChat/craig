@@ -1,10 +1,10 @@
 import { stripIndents } from 'common-tags';
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 
-import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
+import TextCommand, { replyOrSend } from '../util';
 
-export default class RestartCommand extends DexareCommand {
+export default class RestartCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'restart',
@@ -22,19 +22,18 @@ export default class RestartCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    const client = this.client as unknown as CraigBot;
-    const sharding = client.modules.get('sharding') as ShardingModule;
+    const sharding = this.client.modules.get('sharding') as ShardingModule;
 
     if (!sharding.on) return 'Sharding is not enabled.';
 
     if (!ctx.args[0]) {
-      await ctx.reply('Restarting this shard.');
+      await replyOrSend(ctx, 'Restarting this shard.');
       sharding.send('restartMe');
       return;
     }
 
     const shards = [...new Set(ctx.args.map((arg) => parseInt(arg, 10)))];
-    const message = await ctx.reply(`Restarting shards ${shards.join(', ')}...`);
+    const message = await replyOrSend(ctx, `Restarting shards ${shards.join(', ')}...`);
 
     const errors: [number, string][] = [];
     for (const shard of shards) {

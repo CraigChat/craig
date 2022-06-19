@@ -1,8 +1,10 @@
 import { stripIndents } from 'common-tags';
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 import { ButtonStyle, ComponentType } from 'slash-create';
 
-export default class JoinCommand extends DexareCommand {
+import TextCommand, { replyOrSend } from '../util';
+
+export default class JoinCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'join'
@@ -12,7 +14,7 @@ export default class JoinCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    ctx.reply({
+    await replyOrSend(ctx, {
       content: stripIndents`
         **${ctx.client.bot.user.username}** now uses slash commands for recordings!
         Please make sure that my commands are showing up when typing \`/\` in your chat box.

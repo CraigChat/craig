@@ -1,9 +1,9 @@
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 
-import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
+import TextCommand, { replyOrSend } from '../util';
 
-export default class GracefulRestartCommand extends DexareCommand {
+export default class GracefulRestartCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'gracefulrestart',
@@ -20,11 +20,10 @@ export default class GracefulRestartCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    const client = this.client as unknown as CraigBot;
-    const sharding = client.modules.get('sharding') as ShardingModule;
+    const sharding = this.client.modules.get('sharding') as ShardingModule;
 
     if (!sharding.on) return 'Sharding is not enabled.';
-    await ctx.reply('Restarting all shards.');
+    await replyOrSend(ctx, 'Restarting all shards.');
     sharding.send('gracefulRestart');
     return;
   }

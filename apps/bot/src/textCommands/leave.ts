@@ -1,12 +1,12 @@
 import { stripIndents } from 'common-tags';
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 import { ButtonStyle, ComponentType } from 'slash-create';
 
 import RecorderModule from '../modules/recorder';
 import { prisma } from '../prisma';
-import { checkRecordingPermissionEris } from '../util';
+import TextCommand, { checkRecordingPermissionEris, replyOrSend } from '../util';
 
-export default class LeaveCommand extends DexareCommand {
+export default class LeaveCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'leave',
@@ -26,9 +26,9 @@ export default class LeaveCommand extends DexareCommand {
       }
     }
 
-    ctx.reply({
+    await replyOrSend(ctx, {
       content: stripIndents`
-        **${ctx.client.bot.user.username}** now uses slash commands for recordings!
+        **${this.client.bot.user.username}** now uses slash commands for recordings!
         Please make sure that my commands are showing up when typing \`/\` in your chat box.
 
         *If you had any recordings in progress, they have been stopped.*

@@ -1,10 +1,10 @@
 import { stripIndents } from 'common-tags';
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 
-import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
+import TextCommand, { replyOrSend } from '../util';
 
-export default class SetRWACommand extends DexareCommand {
+export default class SetRWACommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'setrwa',
@@ -22,8 +22,7 @@ export default class SetRWACommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    const client = this.client as unknown as CraigBot;
-    const sharding = client.modules.get('sharding') as ShardingModule;
+    const sharding = this.client.modules.get('sharding') as ShardingModule;
 
     if (!sharding.on) return 'Sharding is not enabled.';
 
@@ -33,15 +32,15 @@ export default class SetRWACommand extends DexareCommand {
     if (!ctx.args[1]) return 'Specify a shard ID or use "this" or "all".';
 
     if (ctx.args[1] === 'this') {
-      const message = await ctx.reply(`Setting RWA state to \`${value}\` of this shard...`);
+      const message = await replyOrSend(ctx, `Setting RWA state to \`${value}\` of this shard...`);
       const result = await sharding
-        .sendAndRecieve<{ error?: string }>('setRWA', { id: client.shard?.id ?? parseInt(process.env.SHARD_ID!), value })
+        .sendAndRecieve<{ error?: string }>('setRWA', { id: this.client.shard?.id ?? parseInt(process.env.SHARD_ID!), value })
         .catch((e) => ({ error: e.toString() }));
       if ('error' in result) await message.edit(`Failed to set RWA state: ${result.error}`);
       else await message.edit(`Set RWA state to \`${value}\` for this shard.`);
       return;
     } else if (ctx.args[1] === 'all') {
-      const message = await ctx.reply(`Setting RWA state to \`${value}\` of all shards...`);
+      const message = await replyOrSend(ctx, `Setting RWA state to \`${value}\` of all shards...`);
       const result = await sharding.sendAndRecieve<{ error?: string }>('setRWA', { id: 'all', value }).catch((e) => ({ error: e.toString() }));
       if ('error' in result) await message.edit(`Failed to set RWA state: ${result.error}`);
       else await message.edit(`Set RWA state to \`${value}\` for all shards.`);
@@ -49,7 +48,7 @@ export default class SetRWACommand extends DexareCommand {
     }
 
     const shards = [...new Set(ctx.args.slice(1).map((arg) => parseInt(arg, 10)))];
-    const message = await ctx.reply(`Setting RWA state to \`${value}\` for shards ${shards.join(', ')}...`);
+    const message = await replyOrSend(ctx, `Setting RWA state to \`${value}\` for shards ${shards.join(', ')}...`);
 
     const errors: [number, string][] = [];
     for (const shard of shards) {

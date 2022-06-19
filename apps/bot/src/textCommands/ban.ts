@@ -1,8 +1,9 @@
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 
 import { prisma } from '../prisma';
+import TextCommand, { replyOrSend } from '../util';
 
-export default class BanCommand extends DexareCommand {
+export default class BanCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
       name: 'ban',
@@ -19,10 +20,10 @@ export default class BanCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.args[0]) return void (await ctx.reply('You need to specify a user to ban.'));
+    if (!ctx.args[0]) return void (await replyOrSend(ctx, 'You need to specify a user to ban.'));
 
     const userId = ctx.args[0].match(/^\d+$/) ? ctx.args[0] : ctx.args[0].match(/^<@!?(\d+)>$/)?.[1];
-    if (!userId) return void (await ctx.reply('You need to specify a user to ban.'));
+    if (!userId) return void (await replyOrSend(ctx, 'You need to specify a user to ban.'));
 
     await prisma.ban.upsert({
       where: { id: userId },
@@ -38,6 +39,6 @@ export default class BanCommand extends DexareCommand {
       }
     });
 
-    await ctx.reply(`Successfully banned ${ctx.args[0]}.`);
+    await replyOrSend(ctx, `Successfully banned ${ctx.args[0]}.`);
   }
 }

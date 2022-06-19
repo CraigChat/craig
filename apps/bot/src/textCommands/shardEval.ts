@@ -1,16 +1,15 @@
-import { CommandContext, DexareClient, DexareCommand } from 'dexare';
+import { CommandContext, DexareClient } from 'dexare';
 import { escapeRegex } from 'dexare/lib/util';
 import Eris from 'eris';
 import util from 'util';
 
-import { CraigBot } from '../bot';
 import ShardingModule from '../modules/sharding';
-import { makeError } from '../util';
+import TextCommand, { makeError, replyOrSend } from '../util';
 
 const nl = '!!NL!!';
 const nlPattern = new RegExp(nl, 'g');
 
-export default class ShardEvalCommand extends DexareCommand {
+export default class ShardEvalCommand extends TextCommand {
   private _sensitivePattern?: RegExp;
 
   constructor(client: DexareClient<any>) {
@@ -35,8 +34,7 @@ export default class ShardEvalCommand extends DexareCommand {
   }
 
   async run(ctx: CommandContext) {
-    const client = this.client as unknown as CraigBot;
-    const sharding = client.modules.get('sharding') as ShardingModule;
+    const sharding = this.client.modules.get('sharding') as ShardingModule;
 
     if (!sharding.on) return 'Sharding is not enabled.';
 
@@ -54,7 +52,7 @@ export default class ShardEvalCommand extends DexareCommand {
     const res = await sharding.sendAndRecieve<{ result: any; error: any }>('shardEval', { script, id: shard });
     const hrDiff = process.hrtime(hrStart);
     if (res.d.error) return `Error while evaluating: \`${makeError(res.d.error)}\``;
-    return void (await ctx.reply(...this.makeResultMessages(res.d.result, hrDiff, script)));
+    return void (await replyOrSend(ctx, ...this.makeResultMessages(res.d.result, hrDiff, script)));
   }
 
   makeResultMessages(result: any, hrDiff: [number, number], input?: string): [string, Eris.FileContent | undefined] {
