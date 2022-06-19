@@ -15,7 +15,8 @@
     "module": "esnext",
     "jsx": "preserve",
     "allowJs": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "incremental": true
   },
   "include": [
     "next-env.d.ts",
