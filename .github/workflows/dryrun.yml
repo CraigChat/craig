@@ -67,10 +67,10 @@ jobs:
         run: cd apps/bot && yarn build
 
       - name: Build Dashboard
-        run: cd ../dashboard && yarn build
+        run: cd apps/dashboard && yarn build
 
       - name: Build Download
-        run: cd ../download && yarn build
+        run: cd apps/download && yarn build
 
       - name: Build Tasks
-        run: cd ../tasks && yarn build
+        run: cd apps/tasks && yarn build
