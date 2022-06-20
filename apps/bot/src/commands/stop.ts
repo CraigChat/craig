@@ -8,7 +8,8 @@ export default class Stop extends GeneralCommand {
     super(creator, {
       name: 'stop',
       description: 'Stop your current recording.',
-      dmPermission: false
+      dmPermission: false,
+      deferEphemeral: true
     });
 
     this.filePath = __filename;
@@ -16,6 +17,7 @@ export default class Stop extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
+    await ctx.defer(true);
 
     if (await checkBan(ctx.user.id))
       return {
