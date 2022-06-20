@@ -21,13 +21,7 @@ jobs:
           node-version: 16.x
 
       - name: Install dependencies
-        run: |
-          yarn &&
-          cd apps/bot && yarn prisma:generate &&
-          cd ../dashboard && yarn prisma:generate &&
-          cd ../tasks && yarn prisma:generate &&
-          cd ../..
-
+        run: yarn
       - name: Write .env
         uses: DamianReeves/write-file-action@v1.0
         with:
@@ -64,13 +58,13 @@ jobs:
           write-mode: overwrite
 
       - name: Build Bot
-        run: cd apps/bot && yarn build
+        run: cd apps/bot && yarn prisma:generate && yarn build
 
       - name: Build Dashboard
-        run: cd apps/dashboard && yarn build
+        run: cd apps/dashboard && yarn prisma:generate && yarn build
 
       - name: Build Download
         run: cd apps/download && yarn build
 
       - name: Build Tasks
-        run: cd apps/tasks && yarn build
+        run: cd apps/tasks && yarn prisma:generate && yarn build
