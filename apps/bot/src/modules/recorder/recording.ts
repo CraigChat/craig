@@ -274,27 +274,28 @@ export default class Recording {
 
     this.recorder.recordings.delete(this.channel.guild.id);
 
-    await prisma.recording
-      .upsert({
-        where: { id: this.id },
-        update: { endedAt: new Date() },
-        create: {
-          id: this.id,
-          accessKey: this.accessKey,
-          deleteKey: this.deleteKey,
-          userId: this.user.id,
-          channelId: this.channel.id,
-          guildId: this.channel.guild.id,
-          clientId: this.recorder.client.bot.user.id,
-          shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
-          rewardTier: this.rewards!.tier,
-          autorecorded: this.autorecorded,
-          expiresAt: new Date(this.startedAt!.valueOf() + this.rewards!.rewards.downloadExpiryHours * 60 * 60 * 1000),
-          createdAt: this.startedAt!,
-          endedAt: new Date()
-        }
-      })
-      .catch((e) => this.recorder.logger.error('Error writing end date to recording', e));
+    if (this.rewards && this.startedAt)
+      await prisma.recording
+        .upsert({
+          where: { id: this.id },
+          update: { endedAt: new Date() },
+          create: {
+            id: this.id,
+            accessKey: this.accessKey,
+            deleteKey: this.deleteKey,
+            userId: this.user.id,
+            channelId: this.channel.id,
+            guildId: this.channel.guild.id,
+            clientId: this.recorder.client.bot.user.id,
+            shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
+            rewardTier: this.rewards.tier,
+            autorecorded: this.autorecorded,
+            expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
+            createdAt: this.startedAt,
+            endedAt: new Date()
+          }
+        })
+        .catch((e) => this.recorder.logger.error('Error writing end date to recording', e));
 
     const timestamp = process.hrtime(this.startTime);
     const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
