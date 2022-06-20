@@ -29,7 +29,7 @@ jobs:
           cd ../..
 
       - name: Write .env
-        uses: DamianReeves/write-file-action
+        uses: DamianReeves/write-file-action@v1.0
         with:
           path: .env
           contents: |
@@ -40,7 +40,7 @@ jobs:
           write-mode: overwrite
 
       - name: Write apps/dashboard/.env
-        uses: DamianReeves/write-file-action
+        uses: DamianReeves/write-file-action@v1.0
         with:
           path: apps/dashboard/.env
           contents: |
