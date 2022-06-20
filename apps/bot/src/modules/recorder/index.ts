@@ -140,7 +140,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
 
     // Delete errored recordings
     for (const recording of badRecordings) {
-      await prisma.recording.delete({ where: { id: recording.id } });
+      await prisma.recording.delete({ where: { id: recording.id } }).catch(() => {});
       await onRecordingEnd(
         recording.userId,
         recording.guildId,
@@ -149,7 +149,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         recording.autorecorded,
         false,
         true
-      );
+      ).catch(() => {});
     }
   }
 
