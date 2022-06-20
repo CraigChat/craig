@@ -31,6 +31,20 @@ const recIndicator = / *!?\[RECORDING\] */g;
 const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 
+const BAD_MESSAGE_CODES = [
+  404,
+  10008, //	Unknown message
+  20009, // Explicit content cannot be sent to the desired recipient(s)
+  40004, // Send messages has been temporarily disabled
+  50001, // Missing access
+  50005, // Cannot edit a message authored by another user
+  50006, // Cannot send an empty message
+  50008, // Cannot send messages in a non-text channel
+  50013, // You lack permissions to perform that action
+  50014, // Invalid authentication token provided
+  50021 // Cannot execute action on a system message
+];
+
 export enum RecordingState {
   IDLE,
   CONNECTING,
@@ -544,7 +558,7 @@ export default class Recording {
         opus.decode(chunk.data);
       } catch (ex) {
         if (!(user.id in this.usersWarned)) {
-          this.pushToActivity(`⚠️ User ${user.id} has corrupt data! I will not be able to correctly process their audio!`);
+          this.pushToActivity(`⚠️ User <@${user.id}> has corrupt data! I will not be able to correctly process their audio!`);
           this.usersWarned.push(user.id);
         }
       }
@@ -583,7 +597,7 @@ export default class Recording {
         this.write(this.headerEncoder1!, 0, recordingUser.track, 0, OPUS_HEADERS[0], BOS);
         this.write(this.headerEncoder2!, 0, recordingUser.track, 1, OPUS_HEADERS[1]);
       } catch (e) {
-        this.recorder.logger.debug(`Failed to write headers for recording ${this.id}`, e);
+        this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
       }
 
       if (recordingUser.unknown) {
@@ -614,7 +628,7 @@ export default class Recording {
           packet: undefined
         })}\n`
       );
-      this.writeToLog(`New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id})`);
+      this.writeToLog(`New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id})`, 'recording');
       this.pushToActivity(`<@${userID}> joined the recording.`);
       this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
     }
@@ -734,7 +748,10 @@ export default class Recording {
                   value: this.logs.slice(0, 10).join('\n')
                 }
               ]
-            : []
+            : [],
+          footer: {
+            text: 'Is this panel stuck? Try running "/join" again for a new recording panel.'
+          }
         }
       ],
       components: [
@@ -769,9 +786,12 @@ export default class Recording {
     try {
       await this.recorder.client.bot.editMessage(this.messageChannelID!, this.messageID!, this.messageContent());
     } catch (e) {
-      this.recorder.logger.debug(`Failed to update message ${this.messageID} for recording ${this.id}`, e);
-      this.messageChannelID = null;
-      this.messageID = null;
+      this.recorder.logger.error(`Failed to update message ${this.messageID} for recording ${this.id}`, e);
+      this.writeToLog(`Failed to update message ${this.messageID} for recording ${this.id}`, 'message');
+      if ((e instanceof Eris.DiscordRESTError && BAD_MESSAGE_CODES.includes(e.code)) || e instanceof Eris.DiscordHTTPError) {
+        this.messageChannelID = null;
+        this.messageID = null;
+      }
     }
   }
 }
