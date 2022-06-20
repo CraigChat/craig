@@ -4,7 +4,7 @@ import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCre
 import Recording from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards } from '../util';
+import { checkBan, checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -209,6 +209,45 @@ export default class Join extends GeneralCommand {
                 label: 'Jump to DM',
                 url: `https://discord.com/channels/@me/${dmChannel.id}/${dmMessage.id}`,
                 emoji: { id: '949782524131942460' }
+              }
+            ]
+          }
+        ]
+      });
+    else
+      await ctx.sendFollowUp({
+        content: stripIndentsAndLines`
+          Started recording in <#${channel!.id}>.
+          I was unable to send you a DM with the download link. I need to be able to DM you to send you the download link in the future.
+
+          **Recording ID:** \`${recording.id}\`
+          **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
+          ${
+            recording.webapp
+              ? `**Webapp URL:** ${this.client.config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
+              : ''
+          }
+
+          To bring up the recording link again, use the \`/recordings\` command.
+        `,
+        ephemeral: true,
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Download',
+                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                emoji: { id: '949825704923639828' }
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Delete recording',
+                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                emoji: { id: '949825704596500481' }
               }
             ]
           }
