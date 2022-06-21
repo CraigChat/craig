@@ -2,20 +2,20 @@ import { CommandContext, DexareClient } from 'dexare';
 
 import RecorderModule from '../modules/recorder';
 import ShardingModule from '../modules/sharding';
-import { removeMaintenence, setMaintenence } from '../redis';
+import { removeMaintenance, setMaintenance } from '../redis';
 import TextCommand, { replyOrSend } from '../util';
 
-export default class MaintenenceCommand extends TextCommand {
+export default class MaintenanceCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
     super(client, {
-      name: 'maintenence',
-      description: 'Set/remove maintenence mode.',
+      name: 'maintenance',
+      description: 'Set/remove maintenance mode.',
       aliases: ['mt'],
       category: 'Developer',
       userPermissions: ['dexare.elevated'],
       metadata: {
         usage: '[message]',
-        examples: ['maintenence', 'maintenence Maintenence mode is currently active.']
+        examples: ['maintenance', 'maintenance Maintenance mode is currently active.']
       }
     });
 
@@ -31,14 +31,14 @@ export default class MaintenenceCommand extends TextCommand {
       .trim();
 
     if (!message) {
-      await removeMaintenence(this.client.bot.user.id);
-      await replyOrSend(ctx, 'Maintenence mode has been removed.');
+      await removeMaintenance(this.client.bot.user.id);
+      await replyOrSend(ctx, 'Maintenance mode has been removed.');
       return;
     }
 
-    await setMaintenence(this.client.bot.user.id, { message });
-    if (sharding.on) sharding.send('checkMaintenence');
-    else await recorder.checkForMaintenence();
-    await replyOrSend(ctx, 'Maintenence mode has been set.');
+    await setMaintenance(this.client.bot.user.id, { message });
+    if (sharding.on) sharding.send('checkMaintenance');
+    else await recorder.checkForMaintenance();
+    await replyOrSend(ctx, 'Maintenance mode has been set.');
   }
 }

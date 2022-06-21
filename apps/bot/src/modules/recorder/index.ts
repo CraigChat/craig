@@ -11,7 +11,7 @@ import path from 'path';
 import type { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
-import { checkMaintenence } from '../../redis';
+import { checkMaintenance } from '../../redis';
 import Recording, { RecordingState } from './recording';
 
 type TRPCRouter = Router<
@@ -153,15 +153,15 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     }
   }
 
-  async checkForMaintenence() {
-    const maintenence = await checkMaintenence(this.client.bot.user.id);
-    if (maintenence) {
+  async checkForMaintenance() {
+    const maintenance = await checkMaintenance(this.client.bot.user.id);
+    if (maintenance) {
       const recordings = Array.from(this.recordings.values());
       for (const recording of recordings) {
         if (recording.state === RecordingState.RECORDING) {
           recording.maintenceWarned = true;
-          recording.pushToActivity('⚠️ The bot is undergoing maintenence, recording will be stopped.', false);
-          recording.stateDescription = `__The bot is undergoing maintenence.__${maintenence.message ? `\n\n${maintenence.message}` : ''}`;
+          recording.pushToActivity('⚠️ The bot is undergoing maintenance, recording will be stopped.', false);
+          recording.stateDescription = `__The bot is undergoing maintenance.__${maintenance.message ? `\n\n${maintenance.message}` : ''}`;
           await recording.stop().catch(() => null);
         }
       }
