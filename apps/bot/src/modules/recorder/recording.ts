@@ -788,7 +788,7 @@ export default class Recording {
     } catch (e) {
       this.recorder.logger.error(`Failed to update message ${this.messageID} for recording ${this.id}`, e);
       this.writeToLog(`Failed to update message ${this.messageID} for recording ${this.id}`, 'message');
-      if ((e instanceof Eris.DiscordRESTError && BAD_MESSAGE_CODES.includes(e.code)) || e instanceof Eris.DiscordHTTPError) {
+      if (e instanceof Eris.DiscordRESTError && BAD_MESSAGE_CODES.includes(e.code)) {
         this.messageChannelID = null;
         this.messageID = null;
       }
