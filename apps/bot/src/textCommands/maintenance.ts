@@ -10,7 +10,7 @@ export default class MaintenanceCommand extends TextCommand {
     super(client, {
       name: 'maintenance',
       description: 'Set/remove maintenance mode.',
-      aliases: ['mt'],
+      aliases: ['mt', 'maintenence'],
       category: 'Developer',
       userPermissions: ['dexare.elevated'],
       metadata: {
