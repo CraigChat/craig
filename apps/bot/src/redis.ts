@@ -14,7 +14,7 @@ interface Cooldown {
   expires: number;
 }
 
-interface Maintenance {
+interface Maintenence {
   message: string;
 }
 
@@ -29,16 +29,16 @@ export async function processCooldown(key: string, duration: number, uses: numbe
   return true;
 }
 
-export async function checkMaintenance(clientId: string): Promise<Maintenance | false> {
-  const maintenanceString = await client.get(`maintenance:${clientId}`);
-  if (!maintenanceString) return false;
-  return JSON.parse(maintenanceString);
+export async function checkMaintenence(clientId: string): Promise<Maintenence | false> {
+  const maintenenceString = await client.get(`maintenence:${clientId}`);
+  if (!maintenenceString) return false;
+  return JSON.parse(maintenenceString);
 }
 
-export async function setMaintenance(clientId: string, data: Maintenance): Promise<void> {
-  await client.set(`maintenance:${clientId}`, JSON.stringify(data));
+export async function setMaintenence(clientId: string, data: Maintenence): Promise<void> {
+  await client.set(`maintenence:${clientId}`, JSON.stringify(data));
 }
 
-export async function removeMaintenance(clientId: string): Promise<void> {
-  await client.del(`maintenance:${clientId}`);
+export async function removeMaintenence(clientId: string): Promise<void> {
+  await client.del(`maintenence:${clientId}`);
 }

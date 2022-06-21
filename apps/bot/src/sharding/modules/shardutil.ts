@@ -47,7 +47,7 @@ export default class ShardUtilModule extends ShardManagerModule {
       logger.info(`Shard ${shard.id}: Restarted shard ${onShard.id}.`);
       return respond({ ok: true });
     });
-    this.registerCommand('checkMaintenance', async (shard) => {
+    this.registerCommand('checkMaintenence', async (shard) => {
       logger.info(`Shard ${shard.id}: Told shards to check maintenance`);
       await this.manager.broadcastEval('this.modules.get("recorder").checkMaintenance()');
     });
