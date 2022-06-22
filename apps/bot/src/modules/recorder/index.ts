@@ -100,7 +100,10 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       })
     ).filter((br) => !this.find(br.id));
 
-    this.logger.info(`Found ${badRecordings.length} errored recordings.`);
+    this.logger.info(
+      `Found ${badRecordings.length} errored recordings.`,
+      badRecordings.map((br) => br.id)
+    );
     if (!badRecordings.length) return;
 
     // Make craig leave from dead channels
