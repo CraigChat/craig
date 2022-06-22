@@ -37,11 +37,13 @@ export default class ShardingModule extends DexareModule<CraigBot> {
 
     if (typeof message === 'object') {
       // Respond to requests
-      if (message.r && this._awaitedPromises.has(message.r)) {
-        const { resolve, timeout } = this._awaitedPromises.get(message.r)!;
-        clearTimeout(timeout);
-        this._awaitedPromises.delete(message.r);
-        resolve(message);
+      if (message.r) {
+        if (this._awaitedPromises.has(message.r)) {
+          const { resolve, timeout } = this._awaitedPromises.get(message.r)!;
+          clearTimeout(timeout);
+          this._awaitedPromises.delete(message.r);
+          resolve(message);
+        }
         return;
       }
 
@@ -64,6 +66,16 @@ export default class ShardingModule extends DexareModule<CraigBot> {
           } catch (e) {
             this.respond(message.n, { result: null, error: makePlainError(e as any) });
           }
+          return;
+        }
+        case 'setStatus': {
+          if (message.d.status === 'default') this.client.bot.editStatus('online', this.client.config.status);
+          else if (['online', 'idle', 'dnd'].includes(message.d.status) && message.d.message)
+            this.client.bot.editStatus(message.d.status, {
+              type: 0,
+              name: message.d.message
+            });
+          if (message.n) this.respond(message.n, { ok: true });
           return;
         }
       }

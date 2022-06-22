@@ -101,6 +101,15 @@ export default class ShardUtilModule extends ShardManagerModule {
       onShard.respawnWhenAvailable = msg.d.value;
       return respond({ ok: true });
     });
+    this.registerCommand('setStatus', async (shard, msg, respond) => {
+      logger.info(`Shard ${shard.id}: Setting status`, msg.d);
+      for (const shard of this.manager.shards.values())
+        shard.process?.send({
+          t: 'setStatus',
+          d: msg.d
+        });
+      return respond({ ok: true });
+    });
     this.cron.start();
   }
 
