@@ -4,7 +4,7 @@ import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCre
 import Recording from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
+import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -161,11 +161,11 @@ export default class Join extends GeneralCommand {
     }
 
     // Nickname the bot
-    const selfUser = (await guild.fetchMembers({ userIDs: [this.client.bot.user.id] }))[0];
-    const recNick = cutoffText(`![RECORDING] ${selfUser.nick ?? selfUser.username}`, 32);
+    const selfUser = await getSelfMember(guild, this.client.bot);
+    const recNick = cutoffText(`![RECORDING] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
     await ctx.defer();
     let nickChanged = false;
-    if (!selfUser.nick || !selfUser.nick.includes('[RECORDING]'))
+    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
       try {
         const nickWarnTimeout = setTimeout(() => {
           if (!nickChanged)
@@ -179,7 +179,10 @@ export default class Join extends GeneralCommand {
         clearTimeout(nickWarnTimeout);
       } catch (e) {
         nickChanged = true;
-        this.client.commands.logger.error('Failed to change nickname', e);
+        this.client.commands.logger.warn(
+          `Failed to change nickname for ${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) to record`,
+          e
+        );
         return `An error occurred while changing my nickname: ${e}`;
       }
 

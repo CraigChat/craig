@@ -14,7 +14,7 @@ import { ButtonStyle, ComponentType } from 'slash-create';
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
-import { ParsedRewards, stripIndentsAndLines, wait } from '../../util';
+import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
 import type RecorderModule from '.';
 import OggEncoder, { BOS } from './ogg';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
@@ -26,7 +26,7 @@ dayjs.extend(duration);
 const opus = new OpusEncoder(48000, 2);
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const recNanoid = customAlphabet(alphabet, 10);
-const recIndicator = / *!?\[RECORDING\] */g;
+const recIndicator = / *!?\[RECORDING\] */;
 
 const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
@@ -86,6 +86,7 @@ export default class Recording {
   channel: Eris.StageChannel | Eris.VoiceChannel;
   user: Eris.User;
   active = false;
+  started = false;
   closing = false;
   autorecorded = false;
   state: RecordingState = RecordingState.IDLE;
@@ -100,6 +101,7 @@ export default class Recording {
   startTime: [number, number] = [0, 0];
   startedAt: Date | null = null;
   logs: string[] = [];
+  lastMessageError: Error | null = null;
   rewards: ParsedRewards | null = null;
 
   users: { [key: string]: RecordingUser } = {};
@@ -149,10 +151,18 @@ export default class Recording {
     try {
       await this.connect();
     } catch (e) {
+      this.recorder.logger.error(
+        `Failed to connect to ${this.channel.name} (${this.channel.id}) in ${this.channel.guild.name} (${this.channel.guild.id}) by ${this.user.username}#${this.user.discriminator} (${this.user.id})`,
+        e
+      );
       this.state = RecordingState.ERROR;
       this.stateDescription = `Failed to connect to your channel: ${e}`;
-      this.pushToActivity('Failed to connect!');
-      return await this.stop(true);
+      await this.stop(true);
+      await this.pushToActivity('Failed to connect!');
+
+      // If the last message update errored & we can still use the message, retry once
+      if (this.lastMessageError && this.messageID) await this.updateMessage();
+      return;
     }
 
     this.startTime = process.hrtime();
@@ -231,6 +241,7 @@ export default class Recording {
     }, 60000);
 
     this.active = true;
+    this.started = true;
     await this.playNowRecording();
     this.updateMessage();
 
@@ -257,81 +268,88 @@ export default class Recording {
   }
 
   async stop(internal = false, userID?: string) {
-    clearTimeout(this.timeout);
-    clearInterval(this.usageInterval);
-    this.active = false;
-    this.recorder.logger.info(
-      `Stopping recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})${internal ? ' internally' : ''}${
-        userID ? ` by ${userID}` : ''
-      }`
-    );
-    if (!internal) {
-      this.state = RecordingState.ENDED;
-      if (userID) this.pushToActivity(`Recording stopped by <@${userID}>.`);
-      else this.updateMessage();
-    }
-    this.channel.leave();
-    for (const userID in this.userPackets) {
-      const user = this.users[userID];
-      this.flush(user, this.userPackets[userID].length);
-    }
+    try {
+      clearTimeout(this.timeout);
+      clearInterval(this.usageInterval);
+      this.active = false;
+      this.recorder.logger.info(
+        `Stopping recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})${internal ? ' internally' : ''}${
+          userID ? ` by ${userID}` : ''
+        }`
+      );
+      if (!internal) {
+        this.state = RecordingState.ENDED;
+        if (userID) this.pushToActivity(`Recording stopped by <@${userID}>.`);
+        else this.updateMessage();
+      }
+      this.channel.leave();
+      for (const userID in this.userPackets) {
+        const user = this.users[userID];
+        this.flush(user, this.userPackets[userID].length);
+      }
 
-    // Close the output files and connection
-    this.closing = true;
-    this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
-    await wait(200);
-    this.headerEncoder1?.end();
-    this.headerEncoder2?.end();
-    this.dataEncoder?.end();
-    this.usersStream?.end();
-    this.logStream?.end();
+      // Close the output files and connection
+      this.closing = true;
+      this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
+      await wait(200);
+      this.headerEncoder1?.end();
+      this.headerEncoder2?.end();
+      this.dataEncoder?.end();
+      this.usersStream?.end();
+      this.logStream?.end();
 
-    this.recorder.recordings.delete(this.channel.guild.id);
+      this.recorder.recordings.delete(this.channel.guild.id);
 
-    if (this.rewards && this.startedAt)
-      await prisma.recording
-        .upsert({
-          where: { id: this.id },
-          update: { endedAt: new Date() },
-          create: {
-            id: this.id,
-            accessKey: this.accessKey,
-            deleteKey: this.deleteKey,
-            userId: this.user.id,
-            channelId: this.channel.id,
-            guildId: this.channel.guild.id,
-            clientId: this.recorder.client.bot.user.id,
-            shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
-            rewardTier: this.rewards.tier,
-            autorecorded: this.autorecorded,
-            expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
-            createdAt: this.startedAt,
-            endedAt: new Date()
+      if (this.rewards && this.startedAt && this.started)
+        await prisma.recording
+          .upsert({
+            where: { id: this.id },
+            update: { endedAt: new Date() },
+            create: {
+              id: this.id,
+              accessKey: this.accessKey,
+              deleteKey: this.deleteKey,
+              userId: this.user.id,
+              channelId: this.channel.id,
+              guildId: this.channel.guild.id,
+              clientId: this.recorder.client.bot.user.id,
+              shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
+              rewardTier: this.rewards.tier,
+              autorecorded: this.autorecorded,
+              expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
+              createdAt: this.startedAt,
+              endedAt: new Date()
+            }
+          })
+          .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
+
+      const timestamp = process.hrtime(this.startTime);
+      const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
+      await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt!, time, this.autorecorded, !!this.webapp, false);
+
+      // Reset nickname
+      if (this.recorder.client.config.craig.removeNickname) {
+        const selfUser = await getSelfMember(this.channel.guild, this.recorder.client.bot);
+        if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick))
+          try {
+            await this.recorder.client.bot.editGuildMember(
+              this.channel.guild.id,
+              '@me',
+              { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
+              'Removing recording status'
+            );
+          } catch (e) {
+            this.recorder.logger.error('Failed to change nickname', e);
           }
-        })
-        .catch((e) => this.recorder.logger.error('Error writing end date to recording', e));
+      }
 
-    const timestamp = process.hrtime(this.startTime);
-    const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-    await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt!, time, this.autorecorded, !!this.webapp, false);
-
-    // Reset nickname
-    if (this.recorder.client.config.craig.removeNickname) {
-      const selfUser = (await this.channel.guild.fetchMembers({ userIDs: [this.recorder.client.bot.user.id] }))[0];
-      if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick))
-        try {
-          await this.recorder.client.bot.editGuildMember(
-            this.channel.guild.id,
-            '@me',
-            { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
-            'Removing recording status'
-          );
-        } catch (e) {
-          this.recorder.logger.error('Failed to change nickname', e);
-        }
+      if (this.started)
+        await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id} to ${this.user.id}`, e));
+    } catch (e) {
+      // This is pretty bad, make sure to clean up any reference
+      this.recorder.logger.error(`Failed to stop recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`, e);
+      this.recorder.recordings.delete(this.channel.guild.id);
     }
-
-    await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id}`, e));
   }
 
   async uploadToDrive() {
@@ -663,14 +681,14 @@ export default class Recording {
 
   // Message handling //
 
-  pushToActivity(log: string, update = true) {
+  async pushToActivity(log: string, update = true) {
     if (this.startTime) {
       const timestamp = process.hrtime(this.startTime);
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       this.logs.push(`\`${dayjs.duration(time).format('HH:mm:ss')}\`: ${log}`);
     } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
     this.logWrite(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
-    if (update) this.updateMessage();
+    if (update) return this.updateMessage();
   }
 
   writeToLog(log: string, type?: string) {
@@ -781,17 +799,21 @@ export default class Recording {
   }
 
   async updateMessage() {
-    if (!this.messageChannelID || !this.messageID) return;
+    if (!this.messageChannelID || !this.messageID) return false;
 
     try {
+      this.lastMessageError = null;
       await this.recorder.client.bot.editMessage(this.messageChannelID!, this.messageID!, this.messageContent());
+      return true;
     } catch (e) {
       this.recorder.logger.error(`Failed to update message ${this.messageID} for recording ${this.id}`, e);
       this.writeToLog(`Failed to update message ${this.messageID} for recording ${this.id}`, 'message');
+      this.lastMessageError = e as Error;
       if (e instanceof Eris.DiscordRESTError && BAD_MESSAGE_CODES.includes(e.code)) {
         this.messageChannelID = null;
         this.messageID = null;
       }
+      return false;
     }
   }
 }

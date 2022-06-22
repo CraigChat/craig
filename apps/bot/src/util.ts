@@ -265,3 +265,7 @@ export default abstract class TextCommand extends DexareCommand {
       return replyOrSend(ctx, response);
   }
 }
+
+export async function getSelfMember(guild: Eris.Guild, client: Eris.Client) {
+  return (await guild.fetchMembers({ userIDs: [client.user.id] }).catch(() => []))[0] ?? null;
+}
