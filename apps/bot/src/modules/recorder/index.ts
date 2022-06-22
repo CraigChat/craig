@@ -46,6 +46,7 @@ type TRPCRouter = Router<
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
   recordingPath: string;
+  recordingsChecked = false;
   trpc = createTRPCClient<TRPCRouter>({
     fetch: fetch as any,
     links: [httpLink({ url: 'http://localhost:2022' })]
@@ -88,7 +89,9 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     }
   }
 
-  async checkForErroredRecordings() {
+  async checkForErroredRecordings(force = false) {
+    if (this.recordingsChecked && !force) return;
+    this.recordingsChecked = true;
     const badRecordings = (
       await prisma.recording.findMany({
         where: {
