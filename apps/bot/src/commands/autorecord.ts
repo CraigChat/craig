@@ -195,7 +195,7 @@ export default class AutoRecord extends GeneralCommand {
 
         if (min === 0 && triggerUsers.length <= 0)
           return {
-            content: "You can't set the minimum to zero, without any triggers.",
+            content: "You can't set the minimum to 0 without any triggers.",
             ephemeral: true
           };
 
