@@ -142,6 +142,33 @@ export default class Recording {
     }
   }
 
+  async sendWarning(text: string, pushToActivity = true) {
+    if (pushToActivity) this.pushToActivity(`⚠️ ${text}`);
+
+    if (this.messageChannelID && this.messageID) {
+      const okay = await this.recorder.client.bot
+        .createMessage(this.messageChannelID, {
+          messageReference: {
+            channelID: this.messageChannelID,
+            messageID: this.messageID
+          },
+          content: `⚠️ <@${this.user.id}>: ${text}`,
+          allowedMentions: {
+            users: [this.user.id],
+            roles: false,
+            everyone: false
+          }
+        })
+        .then(() => true)
+        .catch(() => false);
+
+      if (okay) return;
+    }
+
+    const dmChannel = await this.user.getDMChannel().catch(() => null);
+    if (dmChannel) await dmChannel.createMessage(`⚠️ Warning for recording \`${this.id}\`: ${text}`).catch(() => null);
+  }
+
   async start(parsedRewards: ParsedRewards, webapp = false) {
     await this.sanityCheckIdClashing();
 
@@ -231,12 +258,16 @@ export default class Recording {
       this.unusedMinutes++;
       if (this.usedMinutes === 0) {
         this.stateDescription = "⚠️ I haven't received any audio from anyone!";
+        this.sendWarning(
+          "I haven't received any audio from anyone in this recording, try switching to a different voice region if this problem persists.",
+          false
+        );
         await this.stop();
       } else if (this.unusedMinutes === 5 && !this.silenceWarned) {
-        this.pushToActivity(
-          "⚠️ Hello? I haven't heard anything for five minutes. Make sure to stop the recording if you are done! If you are taking a break, disregard this message."
-        );
         this.silenceWarned = true;
+        this.sendWarning(
+          "Hello? I haven't heard anything for five minutes. Make sure to stop the recording if you are done! If you are taking a break, disregard this message."
+        );
       }
     }, 60000);
 
