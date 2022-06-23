@@ -767,9 +767,11 @@ export default class Recording {
                 }
               ]
             : [],
-          footer: {
-            text: 'Is this panel stuck? Try running "/join" again for a new recording panel.'
-          }
+          footer: ![RecordingState.ENDED, RecordingState.ERROR].includes(this.state)
+            ? {
+                text: 'Is this panel stuck? Try running "/join" again for a new recording panel.'
+              }
+            : null
         }
       ],
       components: [
