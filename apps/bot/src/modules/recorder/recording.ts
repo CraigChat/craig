@@ -243,6 +243,7 @@ export default class Recording {
       if (this.state !== RecordingState.RECORDING) return;
       this.writeToLog('Timeout reached, stopping recording');
       this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
+      this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
       await this.stop();
     }, rewards.recordHours * 60 * 60 * 1000);
 
@@ -569,6 +570,7 @@ export default class Recording {
       if (!this.hardLimitHit) {
         this.hardLimitHit = true;
         this.stateDescription = '⚠️ The recording has reached the size limit and has been automatically stopped.';
+        this.sendWarning('The recording has reached the size limit and has been automatically stopped.', false);
         this.stop();
       }
     } else {
