@@ -50,10 +50,13 @@ export default class Recordings extends GeneralCommand {
     return {
       embeds: [
         {
-          title: 'Your last 5 recordings',
+          author: {
+            icon_url: this.client.bot.user.dynamicAvatarURL(),
+            name: `Your last 5 recordings on ${this.client.bot.user.username}`
+          },
           fields: recordings.map((r) => {
             return {
-              name: `Recording ${r.id} - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
+              name: `Recording \`${r.id}\` - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
               value: stripIndentsAndLines`
                 ${r.autorecorded ? 'Auto-recorded' : 'Recorded'} in <#${r.channelId}>
                 Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:F>)
