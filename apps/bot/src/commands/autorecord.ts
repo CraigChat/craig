@@ -41,8 +41,8 @@ export default class AutoRecord extends GeneralCommand {
             {
               type: CommandOptionType.INTEGER,
               name: 'mininum',
-              description: 'The minimum amount of members to auto-record on.',
-              min_value: 1,
+              description: 'The minimum amount of members to auto-record on. Set this to 0 to only auto-record by triggers.',
+              min_value: 0,
               max_value: 99
             },
             {
@@ -123,7 +123,7 @@ export default class AutoRecord extends GeneralCommand {
                 description: stripIndents`
                   **Channel:** <#${ctx.options.view.channel}>
                   **Created by:** <@${autoRecording.userId}>
-                  **Minimum members:** ${autoRecording.minimum.toLocaleString()}
+                  **Minimum members:** ${autoRecording.minimum === 0 ? 'N/A' : autoRecording.minimum.toLocaleString()}
                   **Trigger users:** ${autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || '*None*'}
                   **Updated at:** <t:${Math.round(autoRecording.updatedAt.valueOf() / 1000)}:F>
                 `
@@ -150,7 +150,7 @@ export default class AutoRecord extends GeneralCommand {
               description: autoRecordings
                 .map((ar) => {
                   const extra = [
-                    ar.minimum !== 1 ? `${ar.minimum} minimum` : null,
+                    ar.minimum !== 0 ? `${ar.minimum} minimum` : null,
                     ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} trigger users` : null,
                     ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
                   ].filter((e) => !!e) as string[];
@@ -189,9 +189,15 @@ export default class AutoRecord extends GeneralCommand {
           };
 
         const channel = ctx.options.on.channel as string;
-        const min = ctx.options.on.mininum || 1;
+        const min = ctx.options.on.mininum ?? 1;
         const triggerUsers = ctx.users.map((u) => u.id);
         const postChannel = ctx.options.on['post-channel'] as string;
+
+        if (min === 0 && triggerUsers.length <= 0)
+          return {
+            content: "You can't set the minimum to zero, without any triggers.",
+            ephemeral: true
+          };
 
         const autoRecordingCount = await this.prisma.autoRecord.count({
           where: { guildId: ctx.guildID, clientId: this.client.bot.user.id }

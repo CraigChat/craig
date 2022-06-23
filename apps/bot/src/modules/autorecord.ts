@@ -72,7 +72,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     const channel = guild.channels.get(channelId)! as Eris.StageChannel | Eris.VoiceChannel;
 
     const memberCount = channel.voiceMembers.filter((m) => !m.bot).length;
-    let shouldRecord = memberCount >= autoRecording.minimum;
+    let shouldRecord = autoRecording.minimum === 0 ? false : memberCount >= autoRecording.minimum;
     if (autoRecording.triggerUsers.length > 0 && channel.voiceMembers.some((member) => autoRecording.triggerUsers.includes(member.id) && !member.bot))
       shouldRecord = true;
 
