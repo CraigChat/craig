@@ -503,7 +503,7 @@ export default class Recording {
       this.pushToActivity('An error has disconnected me, reconnecting...');
       await this.connect();
     } else {
-      this.pushToActivity('The voice connection was closed, disconnecting...', false);
+      this.pushToActivity(`The voice connection was closed, disconnecting... ([why?](https://link.snaz.in/craigstopped))`, false);
       try {
         await this.stop();
       } catch (e) {
