@@ -148,14 +148,14 @@ export default class RefreshPatrons extends TaskJob {
     for (const dbPatron of dbPatrons) {
       const patron = patrons.find((p) => p.id === dbPatron.id);
       if (!patron || patron.status !== 'active_patron') {
-        this.logger.log(`Removing patron ${dbPatron.id}`);
+        this.logger.info(`Removing patron ${dbPatron.id}`);
         operations.push(prisma.patreon.delete({ where: { id: dbPatron.id } }));
         processedPatrons.push(dbPatron.id);
 
         // Reset rewards tier
         const user = await prisma.user.findFirst({ where: { patronId: dbPatron.id } });
         if (user && !patreonConfig.skipUsers.includes(user.id)) {
-          this.logger.log(`Resetting rewards for user ${user.id}`);
+          this.logger.info(`Resetting rewards for user ${user.id}`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } }));
         }
       }
@@ -209,7 +209,7 @@ export default class RefreshPatrons extends TaskJob {
       if (patron.discordId && !patreonConfig.skipUsers.includes(patron.id)) {
         const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
         if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id)) {
-          this.logger.log(`Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
+          this.logger.info(`Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } }));
         }
 

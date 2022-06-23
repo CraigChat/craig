@@ -140,6 +140,8 @@ export async function driveUpload({
   if (user.rewardTier === 0) return { error: 'user_not_allowed', notify: false };
   if (!user.driveEnabled) return { error: 'not_enabled', notify: false };
 
+  logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${user.driveFormat || 'flac'}.${user.driveContainer || 'zip'})`);
+
   let child: ChildProcessWithoutNullStreams | null = null;
 
   try {
