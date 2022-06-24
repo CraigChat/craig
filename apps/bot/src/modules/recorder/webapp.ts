@@ -78,7 +78,7 @@ export class WebappClient {
         channelName: recording.channel.name,
         channelType: recording.channel.type
       });
-      const ret = Buffer.alloc(payload.length + 4);
+      const ret = Buffer.alloc(Buffer.from(payload).length + 4);
       ret.writeUInt32LE(WebappOp.IDENTIFY, 0);
       Buffer.from(payload).copy(ret, 4);
       this.ws.send(ret);
