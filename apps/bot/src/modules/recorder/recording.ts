@@ -473,14 +473,17 @@ export default class Recording {
     connection.on('connect', this.onConnectionConnect.bind(this));
     connection.on('disconnect', this.onConnectionDisconnect.bind(this));
     connection.on('error', (err) => {
-      this.writeToLog(`Connection error: ${err}`, 'debug');
+      this.writeToLog(`Error: ${err}`, 'connection');
       this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
     });
     connection.on('warn', (m) => {
-      this.writeToLog(`Connection warning: ${m}`, 'debug');
+      this.writeToLog(`Warning: ${m}`, 'connection');
       this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
     });
-    connection.on('debug', (m) => this.recorder.logger.debug(`Recording ${this.id}`, m));
+    connection.on('debug', (m) => {
+      this.writeToLog(`Debug: ${m}`, 'connection');
+      this.recorder.logger.debug(`Recording ${this.id}`, m);
+    });
     connection.on('error', (err) => {
       this.writeToLog(`Connection error: ${err}`, 'error');
       this.recorder.logger.error(`Recording ${this.id}: Connection error`, err);
@@ -520,7 +523,7 @@ export default class Recording {
 
   async onConnectionConnect() {
     if (!this.active) return;
-    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
+    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint} (state=${this.connection?.ws?.readyState})`);
     if (this.connection!.channelID !== this.channel.id) {
       this.stateDescription = '⚠️ I was moved to another channel! If you want me to leave, please press the stop button.';
       return await this.stop();
