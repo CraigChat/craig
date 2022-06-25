@@ -43,7 +43,7 @@ export default function DiscordElement({ id, avatar, icon, name, username, discr
       </svg>
     );
   // Regular Icon
-  else if (image) elementIcon = <img src={image} class="w-6 h-6 rounded-full" />;
+  else if (image) elementIcon = <img crossOrigin="anonymous" src={image} class="w-6 h-6 rounded-full" />;
 
   return (
     <div class="inline-flex flex-row items-center gap-1 justify-center">

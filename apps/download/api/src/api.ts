@@ -1,7 +1,7 @@
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import staticPlugin from '@fastify/static';
 import fastify, { FastifyInstance } from 'fastify';
-import helmet from 'fastify-helmet';
-import rateLimit from 'fastify-rate-limit';
-import staticPlugin from 'fastify-static';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
 
