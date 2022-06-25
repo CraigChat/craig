@@ -579,7 +579,9 @@ export default class Recording {
     } else {
       try {
         stream.write(granulePos, streamNo, packetNo, chunk, flags);
-      } catch (ex) {}
+      } catch (ex) {
+        this.recorder.logger.error(`Tried to write to stream! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`);
+      }
     }
   }
 
@@ -652,6 +654,9 @@ export default class Recording {
         this.write(this.headerEncoder2!, 0, recordingUser.track, 1, OPUS_HEADERS[1]);
       } catch (e) {
         this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
+        this.writeToLog(
+          `Failed to write headers for recording ${this.id} on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`
+        );
       }
 
       if (recordingUser.unknown) {
@@ -682,7 +687,10 @@ export default class Recording {
           packet: undefined
         })}\n`
       );
-      this.writeToLog(`New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id})`, 'recording');
+      this.writeToLog(
+        `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
+        'recording'
+      );
       this.pushToActivity(`<@${userID}> joined the recording.`);
       this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
     }
