@@ -51,7 +51,7 @@ export default class Shard extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       this.once('ready', resolve);
-      this.once('disconnect', () => reject(new Error(`Shard ${this.id}'s Client disconnected before becoming ready.`)));
+      // this.once('disconnect', () => reject(new Error(`Shard ${this.id}'s Client disconnected before becoming ready.`)));
       this.once('death', () => reject(new Error(`Shard ${this.id}'s process exited before its Client became ready.`)));
       setTimeout(() => reject(new Error(`Shard ${this.id}'s Client took too long to become ready.`)), this.manager.options.readyTimeout);
     }).then(() => this.process);
