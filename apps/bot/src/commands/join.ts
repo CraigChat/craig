@@ -134,7 +134,11 @@ export default class Join extends GeneralCommand {
     // Check if user can record
     if (parsedRewards.rewards.recordHours <= 0)
       return {
-        content: 'Sorry, but this bot is only for patrons. Please use Craig.',
+        content: stripIndentsAndLines`
+          Sorry, but this bot is only for patrons. Please use Craig.
+          If you have recently became a patron, login to the [dashboard](https://my.craig.chat/).
+          Your benefits may take up to an hour to become active.
+        `,
         components: [
           {
             type: ComponentType.ACTION_ROW,
@@ -144,6 +148,12 @@ export default class Join extends GeneralCommand {
                 style: ButtonStyle.LINK,
                 label: 'craig.chat',
                 url: 'https://craig.chat/'
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Patreon',
+                url: 'https://patreon.com/CraigRec'
               }
             ]
           }

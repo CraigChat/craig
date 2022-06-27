@@ -171,7 +171,11 @@ export default class AutoRecord extends GeneralCommand {
         // Check if user can manage auto-recordings
         if (!parsedRewards.rewards.features.includes('auto'))
           return {
-            content: 'Sorry, but this feature is only for patrons.',
+            content: stripIndents`
+              Sorry, but this feature is only for patrons.
+              If you have recently became a patron, login to the [dashboard](https://my.craig.chat/).
+              Your benefits may take up to an hour to become active.
+            `,
             components: [
               {
                 type: ComponentType.ACTION_ROW,
