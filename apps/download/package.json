@@ -45,7 +45,7 @@
     "@iconify-icons/cib": "^1.1.0",
     "@iconify-icons/file-icons": "^1.1.7",
     "@iconify-icons/ic": "^1.1.17",
-    "@iconify-icons/mdi": "^1.1.42",
+    "@iconify-icons/mdi": "^1.2.22",
     "@iconify-icons/twemoji": "^1.2.5",
     "@iconify/react": "^3.1.1",
     "@rollup/plugin-alias": "^3.1.9",
