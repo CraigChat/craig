@@ -101,6 +101,7 @@ export default class RecordingWriter {
       case 'writeChunk': {
         const { streamNo, packetNo, chunk, buffer } = task;
         try {
+          if (this.recording.increaseBytesWritten(buffer.length)) return;
           this.dataEncoder.write(chunk.time, streamNo, packetNo, buffer);
           // Then the timestamp for reference
           this.dataEncoder.write(chunk.timestamp ? chunk.timestamp : 0, streamNo, packetNo + 1, EMPTY_BUFFER);
@@ -114,6 +115,7 @@ export default class RecordingWriter {
       case 'writeData': {
         const { granulePos, streamNo, packetNo, buffer } = task;
         try {
+          if (this.recording.increaseBytesWritten(buffer.length)) return;
           this.dataEncoder.write(granulePos, streamNo, packetNo, buffer);
         } catch (e) {
           this.recording.recorder.logger.error(

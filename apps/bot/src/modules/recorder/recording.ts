@@ -15,7 +15,6 @@ import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
 import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
 import type RecorderModule from '.';
-import OggEncoder from './ogg';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { WebappClient } from './webapp';
 import RecordingWriter from './writer';
@@ -548,12 +547,8 @@ export default class Recording {
     user.packet = packetNo;
   }
 
-  write(stream: OggEncoder, granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags?: number) {
-    if (this.closing)
-      return void this.recorder.logger.error(
-        `Tried to write to stream while closing! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`
-      );
-    this.bytesWritten += chunk.length;
+  increaseBytesWritten(size: number) {
+    this.bytesWritten += size;
     if (this.sizeLimit && this.bytesWritten >= this.sizeLimit) {
       if (!this.hardLimitHit) {
         this.hardLimitHit = true;
@@ -561,13 +556,9 @@ export default class Recording {
         this.sendWarning('The recording has reached the size limit and has been automatically stopped.', false);
         this.stop();
       }
-    } else {
-      try {
-        stream.write(granulePos, streamNo, packetNo, chunk, flags);
-      } catch (ex) {
-        this.recorder.logger.error(`Tried to write to stream! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`);
-      }
+      return true;
     }
+    return false;
   }
 
   private logWrite(message: string) {
