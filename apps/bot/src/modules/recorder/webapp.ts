@@ -2,7 +2,6 @@ import { WebSocket } from 'ws';
 
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import type { ParsedRewards } from '../../util';
-import { BOS } from './ogg';
 import {
   ConnectionType,
   ConnectionTypeMask,
@@ -17,18 +16,9 @@ import {
   WebappOpCloseReason
 } from './protocol';
 import Recording from './recording';
-import {
-  FLAC_HEADER_44k,
-  FLAC_HEADER_44k_VAD,
-  FLAC_HEADER_48k,
-  FLAC_HEADER_48k_VAD,
-  FLAC_TAGS,
-  OPUS_HEADERS_MONO,
-  OPUS_MONO_HEADER_VAD,
-  toBuffer
-} from './util';
+import { toBuffer } from './util';
 
-interface WebUser {
+export interface WebUser {
   connected: boolean;
   dataType: DataTypeFlag;
   continuous: boolean;
@@ -145,17 +135,10 @@ export class WebappClient {
       this.monitorSetConnected(userTrackNo, `${userData.username}#${userData.discriminator}`, true, clientId);
 
       // Put a valid Opus header at the beginning if we're Opus
-      if (dataType === DataTypeFlag.OPUS) {
-        try {
-          this.recording.write(this.recording.headerEncoder1!, 0, userTrackNo, 0, continuous ? OPUS_MONO_HEADER_VAD : OPUS_HEADERS_MONO[0], BOS);
-          this.recording.write(this.recording.headerEncoder2!, 0, userTrackNo, 1, OPUS_HEADERS_MONO[1]);
-        } catch (e) {
-          this.recording.recorder.logger.debug(`Failed to write webapp headers for recording ${this.recording.id}`, e);
-        }
-      }
+      if (dataType === DataTypeFlag.OPUS) this.recording.writer?.q.push({ type: 'writeWebappOpusHeader', trackNo: userTrackNo, continuous });
 
       // Write their username etc to the recording data
-      this.recording.usersStream!.write(',"' + userTrackNo + '":' + JSON.stringify(userData) + '\n');
+      this.recording.writer?.q.push({ type: 'writeWebappUser', trackNo: userTrackNo, data: userData });
 
       user = {
         connected: true,
@@ -318,18 +301,9 @@ export class WebappClient {
 
         const key = message.readUInt32LE(EnnuicastrParts.info.key);
         const value = message.readUInt32LE(EnnuicastrParts.info.value);
-        if (key === EnnuicastrInfo.SAMPLE_RATE) {
-          // Now we can write our header
-          this.recording.write(
-            this.recording.headerEncoder1!,
-            0,
-            userTrackNo,
-            0,
-            value === 44100 ? (user.continuous ? FLAC_HEADER_44k_VAD : FLAC_HEADER_44k) : user.continuous ? FLAC_HEADER_48k_VAD : FLAC_HEADER_48k,
-            BOS
-          );
-          this.recording.write(this.recording.headerEncoder2!, 0, userTrackNo, 1, FLAC_TAGS);
-        }
+        // Now we can write our header
+        if (key === EnnuicastrInfo.SAMPLE_RATE)
+          this.recording.writer?.q.push({ type: 'writeWebappFlacHeader', sampleRate: value, user, trackNo: userTrackNo });
         break;
       }
       case EnnuicastrId.DATA: {
@@ -345,7 +319,13 @@ export class WebappClient {
 
         // Accept the data
         const data = message.slice(EnnuicastrParts.data.length);
-        this.recording.write(this.recording.dataEncoder!, granulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
+        this.recording.writer?.q.push({
+          type: 'writeData',
+          granulePos,
+          streamNo: userTrackNo,
+          packetNo: this.userPacketNos[webUserID]++,
+          buffer: data
+        });
 
         // And inform the monitor
         const user = this.findWebUserFromClientId(clientId);

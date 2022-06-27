@@ -3411,7 +3411,7 @@ fastify@^4.1.0:
     semver "^7.3.7"
     tiny-lru "^8.0.2"
 
-fastq@^1.6.0, fastq@^1.6.1:
+fastq@^1.13.0, fastq@^1.6.0, fastq@^1.6.1:
   version "1.13.0"
   resolved "https://registry.yarnpkg.com/fastq/-/fastq-1.13.0.tgz#616760f88a7526bdfc596b7cab8c18938c36b98c"
   integrity sha512-YpkpUnK8od0o1hmeSc7UUs/eB/vIPWJYjKck2QKIzAf71Vm1AAQ3EbuZB3g2JIy+pg+ERD0vqI79KyZiB2e2Nw==
