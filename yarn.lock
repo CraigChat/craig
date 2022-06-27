@@ -436,12 +436,12 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@iconify-icons/bi@^1.1.13":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/bi/-/bi-1.2.1.tgz#b341ae3445f8679195e01afd826c507b5c4a508f"
-  integrity sha512-1yguyClIN3zIHOrUwjcZg6JuzYRrmw2JaXkrM2g3O2UMNxvcSY8mTardyzeqzX+Ryx2b1ZKob+0Ykdt4CgvR8w==
+"@iconify-icons/bi@^1.2.5":
+  version "1.2.5"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/bi/-/bi-1.2.5.tgz#ef0e4783e0ea98cd4f58da99fc9981551d07a5a7"
+  integrity sha512-kMcRxNJ7hO3j+KPhzrapGqQseTqGWYmdnJWIpWPTcA+yYm06nERzutIZApvqrSYItsFel00Tbhbw8qoqXlwzAw==
   dependencies:
-    "@iconify/types" "^1.0.12"
+    "@iconify/types" "*"
 
 "@iconify-icons/cib@^1.1.0":
   version "1.2.1"
@@ -464,12 +464,12 @@
   dependencies:
     "@iconify/types" "^1.0.12"
 
-"@iconify-icons/mdi@^1.1.42":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/mdi/-/mdi-1.2.1.tgz#89571ad12f8264ed03931abcf6f6f76a60ed8718"
-  integrity sha512-7D75jtW+QZsrhKwUnrnx4W+eoUz1MoasIQz6KiPn9xjn2LENBJbPpDUPrs37YafcARnQ+wBaROizIP4eCAjgaQ==
+"@iconify-icons/mdi@^1.2.22":
+  version "1.2.22"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/mdi/-/mdi-1.2.22.tgz#1bff778370820a082b32774b2fc180b92193438d"
+  integrity sha512-dk1QJd/jQ6R/5YTg7mOqyrDdSk5g+KuWp59N9o5DAuOLtBPCOWZooW6Sj+Vil3wRA0EsF9Vk8Ythyrlwb75stw==
   dependencies:
-    "@iconify/types" "^1.0.12"
+    "@iconify/types" "*"
 
 "@iconify-icons/twemoji@^1.2.5":
   version "1.2.5"
@@ -6927,10 +6927,10 @@ rollup-pluginutils@^2.8.2:
   dependencies:
     estree-walker "^0.6.1"
 
-rollup@^2.75.6:
-  version "2.75.6"
-  resolved "https://registry.yarnpkg.com/rollup/-/rollup-2.75.6.tgz#ac4dc8600f95942a0180f61c7c9d6200e374b439"
-  integrity sha512-OEf0TgpC9vU6WGROJIk1JA3LR5vk/yvqlzxqdrE2CzzXnqKXNzbAwlWUXis8RS3ZPe7LAq+YUxsRa0l3r27MLA==
+rollup@^2.75.7:
+  version "2.75.7"
+  resolved "https://registry.yarnpkg.com/rollup/-/rollup-2.75.7.tgz#221ff11887ae271e37dcc649ba32ce1590aaa0b9"
+  integrity sha512-VSE1iy0eaAYNCxEXaleThdFXqZJ42qDBatAwrfnPlENEZ8erQ+0LYX4JXOLPceWfZpV1VtZwZ3dFCuOZiSyFtQ==
   optionalDependencies:
     fsevents "~2.3.2"
 
