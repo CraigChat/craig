@@ -46,7 +46,9 @@ export default class Note extends GeneralCommand {
 
     try {
       recording.note(ctx.options.message || '');
-      recording.pushToActivity(`${ctx.user.mention} added a note.${ctx.options.message ? ` - ${cutoffText(ctx.options.message, 100)}` : ''}`);
+      recording.pushToActivity(
+        `${ctx.user.mention} added a note.${ctx.options.message ? ` - ${cutoffText(ctx.options.message.replace(/\n/g, ' '), 100)}` : ''}`
+      );
       return {
         content: 'Added the note to the recording!',
         ephemeral: true

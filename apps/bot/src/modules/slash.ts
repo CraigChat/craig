@@ -122,7 +122,9 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
             });
           try {
             recording.note(modalCtx.values.note || '');
-            recording.pushToActivity(`${ctx.user.mention} added a note.${modalCtx.values.note ? ` - ${cutoffText(modalCtx.values.note, 100)}` : ''}`);
+            recording.pushToActivity(
+              `${ctx.user.mention} added a note.${modalCtx.values.note ? ` - ${cutoffText(modalCtx.values.note.replace(/\n/g, ' '), 100)}` : ''}`
+            );
             return modalCtx.send({
               content: 'Added the note to the recording!',
               ephemeral: true
