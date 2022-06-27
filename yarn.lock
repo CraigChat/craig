@@ -464,12 +464,12 @@
   dependencies:
     "@iconify/types" "^1.0.12"
 
-"@iconify-icons/mdi@^1.1.42":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/mdi/-/mdi-1.2.1.tgz#89571ad12f8264ed03931abcf6f6f76a60ed8718"
-  integrity sha512-7D75jtW+QZsrhKwUnrnx4W+eoUz1MoasIQz6KiPn9xjn2LENBJbPpDUPrs37YafcARnQ+wBaROizIP4eCAjgaQ==
+"@iconify-icons/mdi@^1.2.22":
+  version "1.2.22"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/mdi/-/mdi-1.2.22.tgz#1bff778370820a082b32774b2fc180b92193438d"
+  integrity sha512-dk1QJd/jQ6R/5YTg7mOqyrDdSk5g+KuWp59N9o5DAuOLtBPCOWZooW6Sj+Vil3wRA0EsF9Vk8Ythyrlwb75stw==
   dependencies:
-    "@iconify/types" "^1.0.12"
+    "@iconify/types" "*"
 
 "@iconify-icons/twemoji@^1.2.5":
   version "1.2.5"
@@ -3674,6 +3674,17 @@ gaxios@^4.0.0:
     is-stream "^2.0.0"
     node-fetch "^2.6.1"
 
+gaxios@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/gaxios/-/gaxios-5.0.0.tgz#df11e5d0a45831dd39eb5fbbba0d6a6b09815e70"
+  integrity sha512-VD/yc5ln6XU8Ch1hyYY6kRMBE0Yc2np3fPyeJeYHhrPs1i8rgnsApPMWyrugkl7LLoSqpOJVBWlQIa87OAvt8Q==
+  dependencies:
+    abort-controller "^3.0.0"
+    extend "^3.0.2"
+    https-proxy-agent "^5.0.0"
+    is-stream "^2.0.0"
+    node-fetch "^2.6.7"
+
 gaze@^1.0.0:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/gaze/-/gaze-1.1.3.tgz#c441733e13b927ac8c0ff0b4c3b033f28812924a"
@@ -3681,12 +3692,12 @@ gaze@^1.0.0:
   dependencies:
     globule "^1.0.0"
 
-gcp-metadata@^4.2.0:
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/gcp-metadata/-/gcp-metadata-4.3.1.tgz#fb205fe6a90fef2fd9c85e6ba06e5559ee1eefa9"
-  integrity sha512-x850LS5N7V1F3UcV7PoupzGsyD6iVwTVvsh3tbXfkctZnBnjW5yu5z1/3k3SehF7TyoTIe78rJs02GMMy+LF+A==
+gcp-metadata@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/gcp-metadata/-/gcp-metadata-5.0.0.tgz#a00f999f60a4461401e7c515f8a3267cfb401ee7"
+  integrity sha512-gfwuX3yA3nNsHSWUL4KG90UulNiq922Ukj3wLTrcnX33BB7PwB1o0ubR8KVvXu9nJH+P5w1j2SQSNNqto+H0DA==
   dependencies:
-    gaxios "^4.0.0"
+    gaxios "^5.0.0"
     json-bigint "^1.0.0"
 
 generic-names@^4.0.0:
@@ -3883,47 +3894,47 @@ globule@^1.0.0:
     lodash "~4.17.10"
     minimatch "~3.0.2"
 
-google-auth-library@^7.0.2, google-auth-library@^7.14.0:
-  version "7.14.0"
-  resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-7.14.0.tgz#9d6a20592f7b4d4c463cd3e93934c4b1711d5dc6"
-  integrity sha512-or8r7qUqGVI3W8lVSdPh0ZpeFyQHeE73g5c0p+bLNTTUFXJ+GSeDQmZRZ2p4H8cF/RJYa4PNvi/A1ar1uVNLFA==
+google-auth-library@^8.0.2:
+  version "8.0.3"
+  resolved "https://registry.yarnpkg.com/google-auth-library/-/google-auth-library-8.0.3.tgz#1e780430632d03df36dc22a3f5c89dbc251f2105"
+  integrity sha512-1eC6yaCrPfkv3bwtb3e0AOct7E7xR/uikDyXNo/j8Wd6a1ldRgAey5FmaDGNJnHNDPLtDiENQLYsA69eXOF5sA==
   dependencies:
     arrify "^2.0.0"
     base64-js "^1.3.0"
     ecdsa-sig-formatter "^1.0.11"
     fast-text-encoding "^1.0.0"
-    gaxios "^4.0.0"
-    gcp-metadata "^4.2.0"
-    gtoken "^5.0.4"
+    gaxios "^5.0.0"
+    gcp-metadata "^5.0.0"
+    gtoken "^6.0.0"
     jws "^4.0.0"
     lru-cache "^6.0.0"
 
-google-p12-pem@^3.1.3:
-  version "3.1.3"
-  resolved "https://registry.yarnpkg.com/google-p12-pem/-/google-p12-pem-3.1.3.tgz#5497998798ee86c2fc1f4bb1f92b7729baf37537"
-  integrity sha512-MC0jISvzymxePDVembypNefkAQp+DRP7dBE+zNUPaIjEspIlYg0++OrsNr248V9tPbz6iqtZ7rX1hxWA5B8qBQ==
+google-p12-pem@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/google-p12-pem/-/google-p12-pem-4.0.0.tgz#f46581add1dc6ea0b96160cda6ce37ee35ab8ca3"
+  integrity sha512-lRTMn5ElBdDixv4a86bixejPSRk1boRtUowNepeKEVvYiFlkLuAJUVpEz6PfObDHYEKnZWq/9a2zC98xu62A9w==
   dependencies:
-    node-forge "^1.0.0"
+    node-forge "^1.3.1"
 
-googleapis-common@^5.0.2:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/googleapis-common/-/googleapis-common-5.1.0.tgz#845a79471c787e522e03c50d415467140e9e356a"
-  integrity sha512-RXrif+Gzhq1QAzfjxulbGvAY3FPj8zq/CYcvgjzDbaBNCD6bUl+86I7mUs4DKWHGruuK26ijjR/eDpWIDgNROA==
+googleapis-common@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/googleapis-common/-/googleapis-common-6.0.0.tgz#cd3f811f18dbc82191530aedaafa6224333a758e"
+  integrity sha512-ieZouiuoyTHCckOgu7NU+n5UvA8kAzGTRRMQD+3bobCX9npnRvYDmTHZjM5lQLzf0cGz1xQ1ABCxGQ+xSsMkCw==
   dependencies:
     extend "^3.0.2"
     gaxios "^4.0.0"
-    google-auth-library "^7.14.0"
+    google-auth-library "^8.0.2"
     qs "^6.7.0"
     url-template "^2.0.8"
     uuid "^8.0.0"
 
-googleapis@^97.0.0:
-  version "97.0.0"
-  resolved "https://registry.yarnpkg.com/googleapis/-/googleapis-97.0.0.tgz#488d2ba6e33c87e4acdcac1d031e2a00c6bb5b6c"
-  integrity sha512-npfVjA4unKsyKvlBC7nhKq6ReH/lsSkSl+0AcW9/TrjT4Uc5QUyJCd1vhH54k5SGDpVQ0xMyyC06dVRMsNarRw==
+googleapis@^104.0.0:
+  version "104.0.0"
+  resolved "https://registry.yarnpkg.com/googleapis/-/googleapis-104.0.0.tgz#5ab4987aff7b968e59cd893dc6cef1e84e78ab54"
+  integrity sha512-5UItkob9BgC2S1Ekm16ZMiCxaD0bU0n3EauiNAMB7KejmlACDIfNnHiC0GUYUL9/fU2jrJx1ngY89oQP9ZAPeA==
   dependencies:
-    google-auth-library "^7.0.2"
-    googleapis-common "^5.0.2"
+    google-auth-library "^8.0.2"
+    googleapis-common "^6.0.0"
 
 got@^9.6.0:
   version "9.6.0"
@@ -3952,13 +3963,13 @@ graceful-fs@^4.1.5:
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.10.tgz#147d3a006da4ca3ce14728c7aefc287c367d7a6c"
   integrity sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==
 
-gtoken@^5.0.4:
-  version "5.3.2"
-  resolved "https://registry.yarnpkg.com/gtoken/-/gtoken-5.3.2.tgz#deb7dc876abe002178e0515e383382ea9446d58f"
-  integrity sha512-gkvEKREW7dXWF8NV8pVrKfW7WqReAmjjkMBh6lNCCGOM4ucS0r0YyXXl0r/9Yj8wcW/32ISkfc8h5mPTDbtifQ==
+gtoken@^6.0.0:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/gtoken/-/gtoken-6.0.1.tgz#1276371d51e93c4eface76e3f30f9e8f1cad3f1a"
+  integrity sha512-J0vebk6u6i4rLTM0lQq25SdusCLMvujYNZeAouyPvSbGlcjw7P8L3W9INIFnlXUx+AUD7TDoM1mgdhzH+XX7DQ==
   dependencies:
     gaxios "^4.0.0"
-    google-p12-pem "^3.1.3"
+    google-p12-pem "^4.0.0"
     jws "^4.0.0"
 
 har-schema@^2.0.0:
@@ -5471,14 +5482,14 @@ node-addon-api@^4.2.0:
   resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-4.3.0.tgz#52a1a0b475193e0928e98e0426a0d1254782b77f"
   integrity sha512-73sE9+3UaLYYFmDsFZnqCInzPyh3MqIwZO9cw58yIqAZhONrrabrYyYe3TuIqtIiOuTXVhsGau8hcrhhwSsDIQ==
 
-node-fetch@2.6.7, node-fetch@^2.6.1, node-fetch@^2.6.5:
+node-fetch@2.6.7, node-fetch@^2.6.1, node-fetch@^2.6.5, node-fetch@^2.6.7:
   version "2.6.7"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.7.tgz#24de9fba827e3b4ae44dc8b20256a379160052ad"
   integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
   dependencies:
     whatwg-url "^5.0.0"
 
-node-forge@^1.0.0:
+node-forge@^1.3.1:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-1.3.1.tgz#be8da2af243b2417d5f646a770663a92b7e9ded3"
   integrity sha512-dPEtOeMvF9VMcYV/1Wb8CPoVAXtp6MKMlcbAt4ddqmGqUJ6fQZFXkNZNkNlfevtNkGtaSoXf/vNNNSvgrdXwtA==
@@ -6927,10 +6938,10 @@ rollup-pluginutils@^2.8.2:
   dependencies:
     estree-walker "^0.6.1"
 
-rollup@^2.75.6:
-  version "2.75.6"
-  resolved "https://registry.yarnpkg.com/rollup/-/rollup-2.75.6.tgz#ac4dc8600f95942a0180f61c7c9d6200e374b439"
-  integrity sha512-OEf0TgpC9vU6WGROJIk1JA3LR5vk/yvqlzxqdrE2CzzXnqKXNzbAwlWUXis8RS3ZPe7LAq+YUxsRa0l3r27MLA==
+rollup@^2.75.7:
+  version "2.75.7"
+  resolved "https://registry.yarnpkg.com/rollup/-/rollup-2.75.7.tgz#221ff11887ae271e37dcc649ba32ce1590aaa0b9"
+  integrity sha512-VSE1iy0eaAYNCxEXaleThdFXqZJ42qDBatAwrfnPlENEZ8erQ+0LYX4JXOLPceWfZpV1VtZwZ3dFCuOZiSyFtQ==
   optionalDependencies:
     fsevents "~2.3.2"
 

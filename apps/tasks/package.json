@@ -28,7 +28,7 @@
     "config": "^3.3.7",
     "cron": "^2.0.0",
     "dayjs": "^1.11.3",
-    "googleapis": "^97.0.0",
+    "googleapis": "^104.0.0",
     "lodash.isequal": "^4.5.0",
     "winston": "^3.8.0",
     "zod": "^3.17.3"
