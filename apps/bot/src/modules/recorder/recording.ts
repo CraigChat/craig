@@ -5,7 +5,6 @@ import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { DexareClient } from 'dexare';
 import Eris from 'eris';
-import { createWriteStream, WriteStream } from 'fs';
 import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
 import path from 'path';
@@ -16,10 +15,9 @@ import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
 import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
 import type RecorderModule from '.';
-import OggEncoder, { BOS } from './ogg';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
-import { EMPTY_BUFFER, OPUS_HEADERS } from './util';
 import { WebappClient } from './webapp';
+import RecordingWriter from './writer';
 
 dayjs.extend(duration);
 
@@ -28,7 +26,7 @@ const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 const recNanoid = customAlphabet(alphabet, 10);
 const recIndicator = / *!?\[RECORDING\] */;
 
-const NOTE_TRACK_NUMBER = 65536;
+export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 
 const BAD_MESSAGE_CODES = [
@@ -111,11 +109,7 @@ export default class Recording {
   notePacketNo = 0;
   bytesWritten = 0;
   hardLimitHit = false;
-  dataEncoder: OggEncoder | null = null;
-  usersStream: WriteStream | null = null;
-  logStream: WriteStream | null = null;
-  headerEncoder1: OggEncoder | null = null;
-  headerEncoder2: OggEncoder | null = null;
+  writer: RecordingWriter | null = null;
 
   timeout: any;
   usageInterval: any;
@@ -230,13 +224,7 @@ export default class Recording {
       }),
       { encoding: 'utf8' }
     );
-    this.dataEncoder = new OggEncoder(createWriteStream(fileBase + '.data'));
-    this.headerEncoder1 = new OggEncoder(createWriteStream(fileBase + '.header1'));
-    this.headerEncoder2 = new OggEncoder(createWriteStream(fileBase + '.header2'));
-    this.usersStream = createWriteStream(fileBase + '.users');
-    this.logStream = createWriteStream(fileBase + '.log');
-
-    this.usersStream.write('"0":{}\n');
+    this.writer = new RecordingWriter(this, fileBase);
     this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
 
     this.timeout = setTimeout(async () => {
@@ -324,11 +312,7 @@ export default class Recording {
       this.closing = true;
       this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
       await wait(200);
-      this.headerEncoder1?.end();
-      this.headerEncoder2?.end();
-      this.dataEncoder?.end();
-      this.usersStream?.end();
-      this.logStream?.end();
+      await this.writer?.end();
 
       this.recorder.recordings.delete(this.channel.guild.id);
 
@@ -554,7 +538,7 @@ export default class Recording {
     for (let i = 0; i < ct; i++) {
       const chunk = this.userPackets[user.id].shift();
       try {
-        this.encodeChunk(user, this.dataEncoder!, user.track, packetNo, chunk!);
+        this.encodeChunk(user, user.track, packetNo, chunk!);
         packetNo += 2;
       } catch (ex) {
         this.recorder.logger.error(`Failed to encode packet ${packetNo} for user ${user.id}`, ex);
@@ -563,12 +547,8 @@ export default class Recording {
     user.packet = packetNo;
   }
 
-  write(stream: OggEncoder, granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags?: number) {
-    if (this.closing)
-      return void this.recorder.logger.error(
-        `Tried to write to stream while closing! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`
-      );
-    this.bytesWritten += chunk.length;
+  increaseBytesWritten(size: number) {
+    this.bytesWritten += size;
     if (this.sizeLimit && this.bytesWritten >= this.sizeLimit) {
       if (!this.hardLimitHit) {
         this.hardLimitHit = true;
@@ -576,21 +556,17 @@ export default class Recording {
         this.sendWarning('The recording has reached the size limit and has been automatically stopped.', false);
         this.stop();
       }
-    } else {
-      try {
-        stream.write(granulePos, streamNo, packetNo, chunk, flags);
-      } catch (ex) {
-        this.recorder.logger.error(`Tried to write to stream! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`);
-      }
+      return true;
     }
+    return false;
   }
 
   private logWrite(message: string) {
     if (this.closing) return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
-    if (this.logStream && !this.logStream.destroyed) this.logStream.write(message);
+    this.writer?.q.push({ type: 'writeLog', message });
   }
 
-  encodeChunk(user: RecordingUser, oggStream: OggEncoder, streamNo: number, packetNo: number, chunk: Chunk) {
+  encodeChunk(user: RecordingUser, streamNo: number, packetNo: number, chunk: Chunk) {
     let buffer = chunk.data;
 
     if (buffer.length > 4 && buffer[0] === 0xbe && buffer[1] === 0xde) {
@@ -621,9 +597,7 @@ export default class Recording {
     }
 
     // Write out the chunk itself
-    this.write(oggStream, chunk.time, streamNo, packetNo, buffer);
-    // Then the timestamp for reference
-    this.write(oggStream, chunk.timestamp ? chunk.timestamp : 0, streamNo, packetNo + 1, EMPTY_BUFFER);
+    this.writer?.q.push({ type: 'writeChunk', streamNo, packetNo, chunk, buffer });
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {
@@ -650,8 +624,7 @@ export default class Recording {
       this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
 
       try {
-        this.write(this.headerEncoder1!, 0, recordingUser.track, 0, OPUS_HEADERS[0], BOS);
-        this.write(this.headerEncoder2!, 0, recordingUser.track, 1, OPUS_HEADERS[1]);
+        this.writer?.q.push({ type: 'writeUserHeader', user: recordingUser });
       } catch (e) {
         this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
         this.writeToLog(
@@ -680,13 +653,7 @@ export default class Recording {
         if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
       }
 
-      this.usersStream?.write(
-        `,"${recordingUser.track}":${JSON.stringify({
-          ...recordingUser,
-          track: undefined,
-          packet: undefined
-        })}\n`
-      );
+      this.writer?.q.push({ type: 'writeUser', user: recordingUser });
       this.writeToLog(
         `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
         'recording'
@@ -715,12 +682,12 @@ export default class Recording {
 
   note(note?: string) {
     if (this.notePacketNo === 0) {
-      this.write(this.headerEncoder1!, 0, NOTE_TRACK_NUMBER, 0, Buffer.from('STREAMNOTE'), BOS);
+      this.writer?.q.push({ type: 'writeNoteHeader' });
       this.notePacketNo++;
     }
     const chunkTime = process.hrtime(this.startTime);
     const chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-    this.write(this.dataEncoder!, chunkGranule, NOTE_TRACK_NUMBER, this.notePacketNo++, Buffer.from('NOTE' + note));
+    this.writer?.q.push({ type: 'writeNote', chunkGranule, packetNo: this.notePacketNo++, buffer: Buffer.from('NOTE' + note) });
   }
 
   // Message handling //
@@ -736,7 +703,7 @@ export default class Recording {
   }
 
   writeToLog(log: string, type?: string) {
-    if (this.logStream && !this.logStream.destroyed && !this.closing) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
+    if (!this.closing) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
   }
 
   messageContent() {
