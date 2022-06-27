@@ -390,10 +390,10 @@
   resolved "https://registry.yarnpkg.com/@fontsource/lexend/-/lexend-4.5.5.tgz#53b6b6dedb5bcb2d634e33eb31e48f8d1bb24df8"
   integrity sha512-FUIPeK1aB85elx62/gwxsQGODSychVNt/5ark1HhVKhewRJHDX4BrzFsQ/H8A7jxWQeVjycoNyVCtdCsIygbzw==
 
-"@fontsource/red-hat-text@^4.5.4":
-  version "4.5.4"
-  resolved "https://registry.yarnpkg.com/@fontsource/red-hat-text/-/red-hat-text-4.5.4.tgz#2225572b382b0e3ec74330d463da5ac4f1d1292b"
-  integrity sha512-iw6byeslGtM9KJO320jHncOA3IReFhLip32wfHst3qt56MtjekkSTbUwaO1h+cDq1k7aaprS176E+5+3fyWfwA==
+"@fontsource/red-hat-text@^4.5.9":
+  version "4.5.9"
+  resolved "https://registry.yarnpkg.com/@fontsource/red-hat-text/-/red-hat-text-4.5.9.tgz#08c095082ddc5bdd638c99d7b770717b4af6de8e"
+  integrity sha512-7jBq3vSTtZt1kJpwRt04EFfAGepY2E9eq7p09zyD4Ibx0rItBy/uoF/6Wmx/1heJurbUxxcBHY/6dKNxBRpb4g==
 
 "@fontsource/roboto@^4.5.5":
   version "4.5.5"
