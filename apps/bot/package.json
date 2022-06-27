@@ -55,7 +55,7 @@
     "@types/dotenv": "^8.2.0",
     "@types/i18next-fs-backend": "^1.1.2",
     "@types/ioredis": "^4.28.10",
-    "@types/node": "^17.0.7",
+    "@types/node": "^18.0.0",
     "@types/qs": "^6.9.7",
     "@types/ws": "^8.2.2",
     "slash-up": "^1.1.2",
