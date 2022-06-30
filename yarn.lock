@@ -2801,9 +2801,10 @@ eol@^0.9.1:
   resolved "https://registry.yarnpkg.com/eol/-/eol-0.9.1.tgz#f701912f504074be35c6117a5c4ade49cd547acd"
   integrity sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==
 
-eris@abalabahaha/eris#a9ad12f426e3db2b6e163e5d592ad6b44c4b5e34:
-  version "0.17.1-dev"
-  resolved "https://codeload.github.com/abalabahaha/eris/tar.gz/a9ad12f426e3db2b6e163e5d592ad6b44c4b5e34"
+eris@^0.17.1:
+  version "0.17.1"
+  resolved "https://registry.yarnpkg.com/eris/-/eris-0.17.1.tgz#c2ddc44ae5bc876ea20d251ae7fafcae0fbecd86"
+  integrity sha512-PexpHusPxViuzcsSM0GQEAgZRJbziFfeeLifc8+ZrvS88UusPieQlUD7pRm28E7m7rN+p+Rt6bf9jGLwD725Zg==
   dependencies:
     ws "^8.2.3"
   optionalDependencies:

@@ -36,7 +36,7 @@
     "dbots": "^11.0.0",
     "dexare": "^3.0.0",
     "dotenv": "^16.0.1",
-    "eris": "abalabahaha/eris#a9ad12f426e3db2b6e163e5d592ad6b44c4b5e34",
+    "eris": "^0.17.1",
     "eventemitter3": "^4.0.7",
     "fastq": "^1.13.0",
     "i18next": "^21.8.8",
