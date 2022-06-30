@@ -103,9 +103,19 @@ export default class Join extends GeneralCommand {
         content: `I do not have permission to connect to <#${channel!.id}>.`,
         ephemeral: true
       };
-    if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname'))
+
+    const nicknamePermission = ctx.appPermissions
+      ? ctx.appPermissions.has('CHANGE_NICKNAME')
+      : guild.permissionsOf(this.client.bot.user.id).has('changeNickname');
+    if (!nicknamePermission)
       return {
         content: 'I do not have permission to change my nickname. I will not record without this permission.',
+        ephemeral: true
+      };
+
+    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+      return {
+        content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
         ephemeral: true
       };
 
