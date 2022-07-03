@@ -200,15 +200,15 @@ export async function blessServer(userID: string, guildID: string): Promise<Mess
       ]
     };
 
-  if (guildTier === -1 || (guildTier >= userTier && userTier !== -1))
-    return {
-      content: 'This server has already been blessed by a similar or greater tier.',
-      ephemeral: true
-    };
-
   if (userTier === 0)
     return {
       content: "You don't have any perks to bless this server with.",
+      ephemeral: true
+    };
+
+  if (guildTier === -1 || (guildTier >= userTier && userTier !== -1))
+    return {
+      content: 'This server has already been blessed by a similar or greater tier.',
       ephemeral: true
     };
 
