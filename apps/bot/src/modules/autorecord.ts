@@ -77,14 +77,14 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       shouldRecord = true;
 
     if (!shouldRecord && recording) {
-      this.logger.debug(`Stoppping autorecord for ${channelId} (${autoRecording.id})...`, false);
+      this.logger.info(`Stopping autorecord for ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`, false);
       recording.pushToActivity('Autorecord stopped due to lack of users.');
       await recording.stop();
       return;
     }
 
     if (shouldRecord && !recording) {
-      this.logger.debug(`Starting to autorecord for ${channelId} (${autoRecording.id})...`);
+      this.logger.info(`Starting to autorecord ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`);
       // Check permissions
       if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
         return void this.logger.debug(`Could not connect to ${channelId}: Missing voice connect permissions`);
