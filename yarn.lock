@@ -422,12 +422,12 @@
   dependencies:
     "@iconify/types" "*"
 
-"@iconify-icons/cib@^1.1.0":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/cib/-/cib-1.2.1.tgz#735e0c3ed95afc7faf35958eecd55e9834572bb1"
-  integrity sha512-OATZGfCVfNBezHTmwwEwappQGyRXMm1TcNkDKZvPTztKcLhID9BjeOC63e7haSB/SgqyOP2pHrgWnp+oFYCJzg==
+"@iconify-icons/cib@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/cib/-/cib-1.2.3.tgz#f67c78a3b42859578fe4392bfd515f6b44477fec"
+  integrity sha512-4M3ZCpipSZO3I6zl0eRMVhUua+bvvWSR0WxZGiR/DbLunJPek2SIrxsVWbpEC1UYMJwDiJy0pzJdLRCblInDOw==
   dependencies:
-    "@iconify/types" "^1.0.12"
+    "@iconify/types" "*"
 
 "@iconify-icons/file-icons@^1.1.7":
   version "1.2.1"
