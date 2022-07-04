@@ -15,9 +15,7 @@ import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
 import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
 import type RecorderModule from '.';
-import OggEncoder, { BOS } from './ogg';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
-import { EMPTY_BUFFER } from './util';
 import { WebappClient } from './webapp';
 import RecordingWriter from './writer';
 
@@ -541,7 +539,7 @@ export default class Recording {
     for (let i = 0; i < ct; i++) {
       const chunk = this.userPackets[user.id].shift();
       try {
-        this.encodeChunk(user, this.writer!.dataEncoder, user.track, packetNo, chunk!);
+        this.encodeChunk(user, user.track, packetNo, chunk!);
         packetNo += 2;
       } catch (ex) {
         this.recorder.logger.error(`Failed to encode packet ${packetNo} for user ${user.id}`, ex);
@@ -564,31 +562,12 @@ export default class Recording {
     return false;
   }
 
-  write(stream: OggEncoder, granulePos: number, streamNo: number, packetNo: number, chunk: Buffer, flags?: number) {
-    if (this.closing)
-      return void this.recorder.logger.error(
-        `Tried to write to stream while closing! (stream: ${streamNo}, packet: ${packetNo}, recording: ${this.id})`
-      );
-    this.bytesWritten += chunk.length;
-    if (this.sizeLimit && this.bytesWritten >= this.sizeLimit) {
-      if (!this.hardLimitHit) {
-        this.hardLimitHit = true;
-        this.stateDescription = '⚠️ The recording has reached the size limit and has been automatically stopped.';
-        this.stop();
-      }
-    } else {
-      try {
-        stream.write(granulePos, streamNo, packetNo, chunk, flags);
-      } catch (ex) {}
-    }
-  }
-
   private logWrite(message: string) {
     if (this.closing) return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
     this.writer?.q.push({ type: 'writeLog', message });
   }
 
-  encodeChunk(user: RecordingUser, oggStream: OggEncoder, streamNo: number, packetNo: number, chunk: Chunk) {
+  encodeChunk(user: RecordingUser, streamNo: number, packetNo: number, chunk: Chunk) {
     let buffer = chunk.data;
 
     if (buffer.length > 4 && buffer[0] === 0xbe && buffer[1] === 0xde) {
@@ -619,9 +598,7 @@ export default class Recording {
     }
 
     // Write out the chunk itself
-    this.write(oggStream, chunk.time, streamNo, packetNo, buffer);
-    // Then the timestamp for reference
-    this.write(oggStream, chunk.timestamp ? chunk.timestamp : 0, streamNo, packetNo + 1, EMPTY_BUFFER);
+    this.writer?.q.push({ type: 'writeChunk', streamNo, packetNo, chunk, buffer });
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {
@@ -706,12 +683,12 @@ export default class Recording {
 
   note(note?: string) {
     if (this.notePacketNo === 0) {
-      this.write(this.writer!.headerEncoder1, 0, NOTE_TRACK_NUMBER, 0, Buffer.from('STREAMNOTE'), BOS);
+      this.writer?.q.push({ type: 'writeNoteHeader' });
       this.notePacketNo++;
     }
     const chunkTime = process.hrtime(this.startTime);
     const chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-    this.write(this.writer!.dataEncoder, chunkGranule, NOTE_TRACK_NUMBER, this.notePacketNo++, Buffer.from('NOTE' + note));
+    this.writer?.q.push({ type: 'writeNote', chunkGranule, packetNo: this.notePacketNo++, buffer: Buffer.from('NOTE' + note) });
   }
 
   // Message handling //

@@ -319,7 +319,13 @@ export class WebappClient {
 
         // Accept the data
         const data = message.slice(EnnuicastrParts.data.length);
-        this.recording.write(this.recording.writer!.dataEncoder, granulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
+        this.recording.writer?.q.push({
+          type: 'writeData',
+          granulePos,
+          streamNo: userTrackNo,
+          packetNo: this.userPacketNos[webUserID]++,
+          buffer: data
+        });
 
         // And inform the monitor
         const user = this.findWebUserFromClientId(clientId);
