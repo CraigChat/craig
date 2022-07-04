@@ -26,7 +26,7 @@
     "@fastify/static": "^6.4.0",
     "@fontsource/lexend": "^4.5.5",
     "@fontsource/red-hat-text": "^4.5.9",
-    "@fontsource/ubuntu-mono": "^4.5.0",
+    "@fontsource/ubuntu-mono": "^4.5.10",
     "@influxdata/influxdb-client": "^1.24.0",
     "@sentry/integrations": "^7.2.0",
     "@sentry/node": "^7.2.0",

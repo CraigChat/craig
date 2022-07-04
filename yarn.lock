@@ -379,10 +379,10 @@
   resolved "https://registry.yarnpkg.com/@fontsource/roboto/-/roboto-4.5.5.tgz#4ecc38e690469378e2ec2a97f9c12282c654cc93"
   integrity sha512-Pe1p+gAO6K0aLxBXlLoJRHVx352tVc/v/7DOnvM3t+FYXb+KUga9aCD1NpnDfd0kKnWXqrZyAXguyyFWDDuphw==
 
-"@fontsource/ubuntu-mono@^4.5.0":
-  version "4.5.3"
-  resolved "https://registry.yarnpkg.com/@fontsource/ubuntu-mono/-/ubuntu-mono-4.5.3.tgz#6ab8740234c53bf369c1f5125adb435bfae2ef00"
-  integrity sha512-UqMuin+iWP5ZvP0EYUTZFUI8puVOFL0qzgDvSMifNYN50efVUBSOs6IRYuEoUgpCKp1Bzj9Bp3tkChJAb85FxQ==
+"@fontsource/ubuntu-mono@^4.5.10":
+  version "4.5.10"
+  resolved "https://registry.yarnpkg.com/@fontsource/ubuntu-mono/-/ubuntu-mono-4.5.10.tgz#beeac83a53beb501a5ec66086658cd2d4366aa3a"
+  integrity sha512-r6RDlPjlFoBz8cH1+qUQ8Rkx1FI0L/sk4NchWjc5RTYT5rroDIUnI420oK+EhDo3f01gU38DJvL1phPKDw3A3Q==
 
 "@fullhuman/postcss-purgecss@^4.1.3":
   version "4.1.3"
