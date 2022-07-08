@@ -40,6 +40,9 @@ export async function start(): Promise<void> {
         'style-src': ["'self'", 'https:', "'unsafe-inline'"],
         'connect-src': ["'self'", process.env.SENTRY_HOST]
       }
+    },
+    crossOriginResourcePolicy: {
+      policy: 'cross-origin'
     }
   });
 
