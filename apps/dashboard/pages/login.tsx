@@ -29,7 +29,7 @@ export default function Login() {
       <div className="min-h-screen bg-gradient-to-t from-neutral-800 to-zinc-900 text-white font-body flex items-center justify-center flex-col py-12 sm:px-12">
         <div className="bg-zinc-700 sm:rounded flex justify-center items-center sm:shadow-md w-full flex-col sm:w-4/5 sm:max-w-4xl">
           <h1 className="text-3xl flex justify-center p-3 gap-4 items-center relative bg-black bg-opacity-20 w-full font-body">
-            <img src="https://craig.horse/craig.png" className="w-12 h-12 rounded-full" />
+            <img crossOrigin="anonymous" src="https://craig.chat/craig.svg" className="w-12 h-12 rounded-full" />
             <span>Craig Dashboard</span>
           </h1>
           <div className="flex flex-col justify-center items-center p-6 gap-4 w-full">
