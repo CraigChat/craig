@@ -602,6 +602,7 @@ export default class Recording {
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {
+    if (!this.active) return;
     data = Buffer.from(data);
     if (!userID) return;
 
