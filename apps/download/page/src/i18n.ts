@@ -1,5 +1,6 @@
 import { IconifyIcon } from '@iconify/react';
 import beFlag from '@iconify-icons/twemoji/flag-for-belarus';
+import frFlag from '@iconify-icons/twemoji/flag-for-france';
 import deFlag from '@iconify-icons/twemoji/flag-for-germany';
 import ruFlag from '@iconify-icons/twemoji/flag-for-russia';
 import arFlag from '@iconify-icons/twemoji/flag-for-saudi-arabia';
@@ -22,6 +23,7 @@ const langFlagMap: { [key: string]: IconifyIcon } = {
   ru: ruFlag,
   uk: ukFlag,
   be: beFlag,
+  fr: frFlag,
   tok: {
     width: 468,
     height: 617,
