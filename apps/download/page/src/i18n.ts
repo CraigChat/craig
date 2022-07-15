@@ -5,6 +5,7 @@ import deFlag from '@iconify-icons/twemoji/flag-for-germany';
 import ruFlag from '@iconify-icons/twemoji/flag-for-russia';
 import arFlag from '@iconify-icons/twemoji/flag-for-saudi-arabia';
 import esFlag from '@iconify-icons/twemoji/flag-for-spain';
+import trFlag from '@iconify-icons/twemoji/flag-for-turkey';
 import ukFlag from '@iconify-icons/twemoji/flag-for-ukraine';
 import enFlag from '@iconify-icons/twemoji/flag-for-united-states';
 import testFlag from '@iconify-icons/twemoji/test-tube';
@@ -24,6 +25,7 @@ const langFlagMap: { [key: string]: IconifyIcon } = {
   uk: ukFlag,
   be: beFlag,
   fr: frFlag,
+  tr: trFlag,
   tok: {
     width: 468,
     height: 617,
