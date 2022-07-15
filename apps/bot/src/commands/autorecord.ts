@@ -213,27 +213,14 @@ export default class AutoRecord extends GeneralCommand {
             ephemeral: true
           };
 
-        const autoRecording = await this.prisma.autoRecord.findFirst({
-          where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: channel }
+        await this.autoRecord.upsert({
+          guildId: ctx.guildID,
+          channelId: channel,
+          userId: ctx.user.id,
+          postChannelId: postChannel || null,
+          minimum: min,
+          triggerUsers: triggerUsers
         });
-
-        if (autoRecording)
-          await this.prisma.autoRecord.update({
-            where: { id: autoRecording.id },
-            data: { userId: ctx.user.id, minimum: min, triggerUsers: triggerUsers, postChannelId: postChannel || null }
-          });
-        else
-          await this.prisma.autoRecord.create({
-            data: {
-              clientId: this.client.bot.user.id,
-              guildId: ctx.guildID,
-              channelId: channel,
-              userId: ctx.user.id,
-              postChannelId: postChannel || null,
-              minimum: min,
-              triggerUsers: triggerUsers
-            }
-          });
 
         return {
           content: `Auto-recording on <#${channel}> has been activated. Please make sure you can receive DMs from me.`,
@@ -247,10 +234,7 @@ export default class AutoRecord extends GeneralCommand {
           where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: channel }
         });
 
-        if (autoRecording)
-          await this.prisma.autoRecord.delete({
-            where: { id: autoRecording.id }
-          });
+        if (autoRecording) await this.autoRecord.delete(autoRecording);
         else
           return {
             content: `No auto-recording found on <#${channel}>.`,

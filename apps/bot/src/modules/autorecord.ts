@@ -1,3 +1,4 @@
+import { AutoRecord } from '@prisma/client';
 import { DexareClient, DexareModule } from 'dexare';
 import Eris from 'eris';
 
@@ -8,9 +9,22 @@ import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '..
 import type RecorderModule from './recorder';
 import Recording from './recorder/recording';
 
+const TTL = 1000 * 60 * 60; // 1 hour
+
+interface AutoRecordUpsert {
+  guildId: string;
+  channelId: string;
+  userId: string;
+  postChannelId: string | null;
+  minimum: number;
+  triggerUsers: string[];
+}
+
 // @ts-ignore
 export default class AutorecordModule extends DexareModule<DexareClient<CraigBotConfig>> {
   debounceTimeouts = new Map<string, any>();
+  autorecords = new Map<string, AutoRecord>();
+  lastRefresh = 0;
 
   constructor(client: any) {
     super(client, {
@@ -38,17 +52,70 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     return this.client.modules.get('recorder') as RecorderModule<DexareClient<CraigBotConfig>>;
   }
 
+  async fetchAll() {
+    const autorecords = (
+      await prisma.autoRecord.findMany({
+        where: {
+          clientId: this.client.bot.user.id
+        }
+      })
+    ).filter((autorecord) => this.client.bot.guilds.has(autorecord.guildId));
+
+    this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
+
+    Array.from(this.autorecords.keys()).forEach((channelId) => {
+      if (!autorecords.find((autorecord) => autorecord.channelId === channelId)) this.autorecords.delete(channelId);
+    });
+    autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
+    this.lastRefresh = Date.now();
+  }
+
+  async upsert(data: AutoRecordUpsert) {
+    const autoRecording = await prisma.autoRecord.findFirst({
+      where: { guildId: data.guildId, clientId: this.client.bot.user.id, channelId: data.channelId }
+    });
+    let newAutoRecording: AutoRecord | null = null;
+
+    if (autoRecording)
+      newAutoRecording = await prisma.autoRecord.update({
+        where: { id: autoRecording.id },
+        data: { userId: data.userId, minimum: data.minimum, triggerUsers: data.triggerUsers, postChannelId: data.postChannelId || null }
+      });
+    else
+      newAutoRecording = await prisma.autoRecord.create({
+        data: {
+          clientId: this.client.bot.user.id,
+          guildId: data.guildId,
+          channelId: data.channelId,
+          userId: data.userId,
+          postChannelId: data.postChannelId || null,
+          minimum: data.minimum,
+          triggerUsers: data.triggerUsers
+        }
+      });
+
+    if (newAutoRecording) this.autorecords.set(newAutoRecording.channelId, newAutoRecording);
+  }
+
+  async delete(autoRecording: AutoRecord) {
+    await prisma.autoRecord.delete({
+      where: { id: autoRecording.id }
+    });
+
+    this.autorecords.delete(autoRecording.channelId);
+  }
+
+  async find(channelId: string) {
+    if (Date.now() - this.lastRefresh > TTL) await this.fetchAll();
+
+    return this.autorecords.get(channelId);
+  }
+
   async checkAutorecord(channelId: string, guildId: string) {
     const recording = this.recorder.recordings.get(guildId);
     if (recording && (!recording.autorecorded || recording.channel.id !== channelId)) return;
 
-    const autoRecording = await prisma.autoRecord.findFirst({
-      where: {
-        guildId,
-        channelId,
-        clientId: this.client.bot.user.id
-      }
-    });
+    const autoRecording = await this.find(channelId);
     if (!autoRecording) return;
 
     // Get rewards
