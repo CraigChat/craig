@@ -625,12 +625,14 @@ export default class Recording {
       this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
 
       try {
+        this.writeToLog(
+          `Writing headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}, ${recordingUser.id})`,
+          'recording'
+        );
         this.writer?.q.push({ type: 'writeUserHeader', user: recordingUser });
       } catch (e) {
         this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
-        this.writeToLog(
-          `Failed to write headers for recording ${this.id} on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`
-        );
+        this.writeToLog(`Failed to write headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`);
       }
 
       if (recordingUser.unknown) {
