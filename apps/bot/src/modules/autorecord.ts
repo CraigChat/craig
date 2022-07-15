@@ -125,10 +125,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Remove auto-recording if they lost the ability to autorecord
-    if (!parsedRewards.rewards.features.includes('auto'))
-      return void (await prisma.autoRecord.delete({
-        where: { id: autoRecording.id }
-      }));
+    if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));
 
     // Check maintenence
     const maintenence = await checkMaintenance(this.client.bot.user.id);
@@ -160,16 +157,10 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
       // Find member
       const member = guild.members.get(autoRecording.userId) || (await guild.fetchMembers({ userIDs: [autoRecording.userId] }))[0];
-      if (!member)
-        return void (await prisma.autoRecord.delete({
-          where: { id: autoRecording.id }
-        }));
+      if (!member) return void (await this.delete(autoRecording));
 
       // Check if user can record (sanity check)
-      if (parsedRewards.rewards.recordHours <= 0)
-        return void (await prisma.autoRecord.delete({
-          where: { id: autoRecording.id }
-        }));
+      if (parsedRewards.rewards.recordHours <= 0) return void (await this.delete(autoRecording));
 
       // Check guild-wide cooldown, skip if hit
       const guildCooldown = await processCooldown(`join:guild:${guildId}`, 30, 2);
