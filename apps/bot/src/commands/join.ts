@@ -36,11 +36,15 @@ export default class Join extends GeneralCommand {
       };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
-    if (userCooldown !== true)
+    if (userCooldown !== true) {
+      this.client.commands.logger.warn(
+        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was ratelimited.`
+      );
       return {
         content: 'You are running commands too often! Try again in a few seconds.',
         ephemeral: true
       };
+    }
 
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
@@ -129,11 +133,15 @@ export default class Join extends GeneralCommand {
 
     // Check guild-wide cooldown
     const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}`, 30, 2);
-    if (guildCooldown !== true)
+    if (guildCooldown !== true) {
+      this.client.commands.logger.warn(
+        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was server-ratelimited. (${ctx.guildID})`
+      );
       return {
         content: 'This server is recording too often! Try again in a few seconds.',
         ephemeral: true
       };
+    }
 
     // Get rewards
     const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });

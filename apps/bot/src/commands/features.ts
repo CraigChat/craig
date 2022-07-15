@@ -54,11 +54,15 @@ export default class Features extends GeneralCommand {
       };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
-    if (userCooldown !== true)
+    if (userCooldown !== true) {
+      this.client.commands.logger.warn(
+        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the features command, but was ratelimited.`
+      );
       return {
         content: 'You are running commands too often! Try again in a few seconds.',
         ephemeral: true
       };
+    }
 
     const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
     const blessing = ctx.guildID ? await this.prisma.blessing.findFirst({ where: { guildId: ctx.guildID } }) : null;

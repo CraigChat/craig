@@ -23,11 +23,15 @@ export default class Recordings extends GeneralCommand {
       };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
-    if (userCooldown !== true)
+    if (userCooldown !== true) {
+      this.client.commands.logger.warn(
+        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the recordings command, but was ratelimited.`
+      );
       return {
         content: 'You are running commands too often! Try again in a few seconds.',
         ephemeral: true
       };
+    }
 
     // Get the last 5 recordings that arent expired
     const recordings = await this.prisma.recording.findMany({

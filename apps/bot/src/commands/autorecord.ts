@@ -89,11 +89,15 @@ export default class AutoRecord extends GeneralCommand {
       };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
-    if (userCooldown !== true)
+    if (userCooldown !== true) {
+      this.client.commands.logger.warn(
+        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the autorecord command, but was ratelimited.`
+      );
       return {
         content: 'You are running commands too often! Try again in a few seconds.',
         ephemeral: true
       };
+    }
 
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
