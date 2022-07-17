@@ -5,6 +5,7 @@ import prisma from '../../../lib/prisma';
 import { parseUser } from '../../../utils';
 import { config } from '../../../utils/config';
 import { PatreonUser } from '../../../utils/types';
+import { determineRewardTier } from './webhook';
 
 const REDIRECT_URI = `${config.appUri}/api/patreon/oauth`;
 
@@ -52,10 +53,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });
   if (otherUser) await prisma.user.update({ where: { id: otherUser.id }, data: { patronId: null } });
 
+  const patron = await prisma.patreon.findUnique({ where: { id: me.data.id } });
+  const rewardTier = patron ? determineRewardTier(patron.tiers) : undefined;
+
   await prisma.user.upsert({
     where: { id: user.id },
-    update: { patronId: me.data.id },
-    create: { id: user.id, patronId: me.data.id }
+    update: { patronId: me.data.id, rewardTier },
+    create: { id: user.id, patronId: me.data.id, rewardTier }
   });
 
   res.redirect('/?r=patreon_linked');

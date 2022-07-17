@@ -23,7 +23,7 @@ const webhookPayloadParser = (req: NextApiRequest) =>
     });
   }) as Promise<string>;
 
-const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
+export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
 const formatPatron = (body: any) => {
   const id = body.data.relationships.user?.data?.id;
   if (!id) return null;
