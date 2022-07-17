@@ -289,7 +289,10 @@ export default function Index(props: Props) {
                       </time>{' '}
                       (your time zone).
                     </li>
-                    <li>If you linked your Discord through Patreon itself, it should give you benefits automatically.</li>
+                    <li>
+                      If you linked your Discord through Patreon itself <b>when you started to become a patron</b>, it should give you benefits
+                      automatically.
+                    </li>
                     <li>
                       Make sure you are logging in with <b>the same Discord account you record with</b> and connecting to{' '}
                       <b>the same Patreon account you are a patron with</b>.
