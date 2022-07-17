@@ -50,7 +50,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   if (!('id' in me)) return res.redirect(OAUTH_URI);
 
-  const token = sign(me, config.jwtSecret, { expiresIn: '24h' });
+  const token = sign(me, config.jwtSecret, { expiresIn: '7d' });
 
   res.setHeader(
     'Set-Cookie',
