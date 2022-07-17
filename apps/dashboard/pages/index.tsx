@@ -111,6 +111,11 @@ export default function Index(props: Props) {
 
   const driveCanEnable = (driveService === 'google' && props.googleDrive) || (driveService === 'onedrive' && props.microsoft);
 
+  const benefitDate = new Date(Date.now() + 1000 * 60 * 60);
+  benefitDate.setMinutes(0);
+  benefitDate.setSeconds(0);
+  benefitDate.setMilliseconds(0);
+
   // Use modal
   useEffect(() => {
     if (modalParsed) return;
@@ -270,9 +275,29 @@ export default function Index(props: Props) {
             </Row>
             <Section title="Cloud Backup" big>
               {props.rewardTier === 0 ? (
-                <div className="w-full">
-                  To enable cloud backup to services like Google Drive, you must be a patron. <br />
-                  <Link href="https://patreon.com/CraigRec">Become a patron</Link>
+                <div className="flex flex-col w-full">
+                  <span>To enable cloud backup to services like Google Drive, you must be a patron.</span>
+                  <Link href="https://patreon.com/CraigRec">Become a patron</Link> <br />
+                  <h2 className="font-display text-lg">Have you recently became a patron?</h2>
+                  <ul className="list-disc list-inside">
+                    <li>
+                      Benefits are checked at the start of every hour, so you should get your benefits at{' '}
+                      <time dateTime={benefitDate.toISOString()} className="bg-white/20 px-1 rounded-md">
+                        {typeof Intl !== 'undefined'
+                          ? Intl.DateTimeFormat('en-US', { hour: 'numeric', timeZoneName: 'short' }).format(benefitDate)
+                          : benefitDate.toLocaleString()}
+                      </time>{' '}
+                      (your time zone).
+                    </li>
+                    <li>If you linked your Discord through Patreon itself, it should give you benefits automatically.</li>
+                    <li>
+                      Make sure you are logging in with <b>the same Discord account you record with</b> and connecting to{' '}
+                      <b>the same Patreon account you are a patron with</b>.
+                    </li>
+                    <li>
+                      <i>Still</i> didn't get your benefits? Join the <Link href="https://craig.chat/support">support server</Link> for help.
+                    </li>
+                  </ul>
                 </div>
               ) : (
                 <>
