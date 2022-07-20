@@ -38,12 +38,15 @@ export default class RefreshPatrons extends TaskJob {
     });
 
     if (status !== 200) {
-      const { data } = await axios.post('https://www.patreon.com/api/oauth2/token', {
-        grant_type: 'refresh_token',
-        refresh_token: credentials.refreshToken,
-        client_id: patreonConfig.clientId,
-        client_secret: patreonConfig.clientSecret
-      });
+      const { data } = await axios.post(
+        'https://www.patreon.com/api/oauth2/token?' +
+          new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: credentials.refreshToken,
+            client_id: patreonConfig.clientId,
+            client_secret: patreonConfig.clientSecret
+          }).toString()
+      );
 
       this.logger.info('Refreshing Patreon access token');
 
