@@ -120,6 +120,8 @@ export default class Recording {
   silenceWarned = false;
   maintenceWarned = false;
 
+  firstTimestamp = 0;
+
   constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
     this.channel = channel;
@@ -564,7 +566,7 @@ export default class Recording {
 
   private logWrite(message: string) {
     if (this.closing) return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
-    this.writer?.q.push({ type: 'writeLog', message });
+    this.writer?.writeLog(message);
   }
 
   encodeChunk(user: RecordingUser, streamNo: number, packetNo: number, chunk: Chunk) {
@@ -598,7 +600,7 @@ export default class Recording {
     }
 
     // Write out the chunk itself
-    this.writer?.q.push({ type: 'writeChunk', streamNo, packetNo, chunk, buffer });
+    this.writer?.writeChunk(streamNo, packetNo, chunk, buffer);
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {
@@ -630,7 +632,7 @@ export default class Recording {
           `Writing headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}, ${recordingUser.id})`,
           'recording'
         );
-        this.writer?.q.push({ type: 'writeUserHeader', user: recordingUser });
+        this.writer?.writeUserHeader(recordingUser);
       } catch (e) {
         this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
         this.writeToLog(`Failed to write headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`);
@@ -657,7 +659,7 @@ export default class Recording {
         if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
       }
 
-      this.writer?.q.push({ type: 'writeUser', user: recordingUser });
+      this.writer?.writeUser(recordingUser);
       this.writeToLog(
         `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
         'recording'
@@ -686,12 +688,12 @@ export default class Recording {
 
   note(note?: string) {
     if (this.notePacketNo === 0) {
-      this.writer?.q.push({ type: 'writeNoteHeader' });
+      this.writer?.writeNoteHeader();
       this.notePacketNo++;
     }
     const chunkTime = process.hrtime(this.startTime);
     const chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-    this.writer?.q.push({ type: 'writeNote', chunkGranule, packetNo: this.notePacketNo++, buffer: Buffer.from('NOTE' + note) });
+    this.writer?.writeNote(chunkGranule, this.notePacketNo++, Buffer.from('NOTE' + note));
   }
 
   // Message handling //

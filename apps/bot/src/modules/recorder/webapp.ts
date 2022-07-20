@@ -135,10 +135,10 @@ export class WebappClient {
       this.monitorSetConnected(userTrackNo, `${userData.username}#${userData.discriminator}`, true, clientId);
 
       // Put a valid Opus header at the beginning if we're Opus
-      if (dataType === DataTypeFlag.OPUS) this.recording.writer?.q.push({ type: 'writeWebappOpusHeader', trackNo: userTrackNo, continuous });
+      if (dataType === DataTypeFlag.OPUS) this.recording.writer?.writeWebappOpusHeader(userTrackNo, continuous);
 
       // Write their username etc to the recording data
-      this.recording.writer?.q.push({ type: 'writeWebappUser', trackNo: userTrackNo, data: userData });
+      this.recording.writer?.writeWebappUser(userTrackNo, userData);
 
       user = {
         connected: true,
@@ -302,8 +302,7 @@ export class WebappClient {
         const key = message.readUInt32LE(EnnuicastrParts.info.key);
         const value = message.readUInt32LE(EnnuicastrParts.info.value);
         // Now we can write our header
-        if (key === EnnuicastrInfo.SAMPLE_RATE)
-          this.recording.writer?.q.push({ type: 'writeWebappFlacHeader', sampleRate: value, user, trackNo: userTrackNo });
+        if (key === EnnuicastrInfo.SAMPLE_RATE) this.recording.writer?.writeWebappFlacHeader(userTrackNo, value, user);
         break;
       }
       case EnnuicastrId.DATA: {
@@ -319,13 +318,7 @@ export class WebappClient {
 
         // Accept the data
         const data = message.slice(EnnuicastrParts.data.length);
-        this.recording.writer?.q.push({
-          type: 'writeData',
-          granulePos,
-          streamNo: userTrackNo,
-          packetNo: this.userPacketNos[webUserID]++,
-          buffer: data
-        });
+        this.recording.writer?.writeData(granulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
 
         // And inform the monitor
         const user = this.findWebUserFromClientId(clientId);
