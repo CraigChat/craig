@@ -120,8 +120,6 @@ export default class Recording {
   silenceWarned = false;
   maintenceWarned = false;
 
-  firstTimestamp = 0;
-
   constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
     this.channel = channel;
