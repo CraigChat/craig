@@ -39,7 +39,7 @@ export default class RefreshPatrons extends TaskJob {
 
     if (status !== 200) {
       const { data } = await axios.post('https://www.patreon.com/api/oauth2/token', {
-        grant_type: 'refresh_token',
+        grant_type: 'authorization_code',
         refresh_token: credentials.refreshToken,
         client_id: patreonConfig.clientId,
         client_secret: patreonConfig.clientSecret
