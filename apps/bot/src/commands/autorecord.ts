@@ -104,6 +104,19 @@ export default class AutoRecord extends GeneralCommand {
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage auto-recordings.',
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'How do I fix this?',
+                url: 'https://craig.chat/docs/#setting-up-access-roles'
+              }
+            ]
+          }
+        ],
         ephemeral: true
       };
 

@@ -51,6 +51,19 @@ export default class Join extends GeneralCommand {
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'How do I fix this?',
+                url: 'https://craig.chat/docs/#setting-up-access-roles'
+              }
+            ]
+          }
+        ],
         ephemeral: true
       };
     const member = guild.members.get(ctx.user.id) || (await guild.fetchMembers({ userIDs: [ctx.user.id] }))[0];
