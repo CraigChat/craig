@@ -199,7 +199,7 @@ export class WebappClient {
         buf.writeUInt32LE(EnnuicastrId.USER_EXTRA, 0);
         buf.writeUInt32LE(user.track, EnnuicastrParts.user.index);
         buf.writeUInt32LE(UserExtraType.AVATAR, EnnuicastrParts.user.status);
-        avyBuf.copy(buf, EnnuicastrParts.user.nick);
+        avyBuf.copy(buf, EnnuicastrParts.userExtra.data);
         this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
       }
     }
