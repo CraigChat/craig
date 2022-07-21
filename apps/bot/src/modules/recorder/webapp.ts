@@ -365,7 +365,9 @@ export class WebappClient {
         const continuous = !!(flags & Feature.CONTINUOUS);
 
         this.recording.writeToLog(
-          `Webapp client connected. type=${ConnectionType[connectionType]}, clientId=${clientId}, nick=${nick}, dataType=${DataTypeFlag[dataType]}, continuous=${continuous}`,
+          `Webapp client connected. type=${ConnectionType[connectionType]}, clientId=${clientId}, nick=${nick}, dataType=${
+            DataTypeFlag[dataType]
+          }, continuous=${continuous} (userCount=${Object.keys(this.recording.users).length}, webUsersCount=${Object.keys(this.webUsers).length})`,
           'webapp'
         );
         this.clients.set(clientId, connectionType);
