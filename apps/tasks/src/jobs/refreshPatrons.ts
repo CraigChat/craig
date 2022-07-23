@@ -206,7 +206,7 @@ export default class RefreshPatrons extends TaskJob {
             }
           })
         );
-      }
+      } else this.logger.log(`Processing patron ${patron.id} (${patron.name} - ${patron.email})`);
 
       // Upsert in user table
       if (patron.discordId && !patreonConfig.skipUsers.includes(patron.id)) {
@@ -225,6 +225,19 @@ export default class RefreshPatrons extends TaskJob {
             where: { id: patron.discordId },
             update: { patronId: patron.id, rewardTier: tier },
             create: { id: patron.discordId, patronId: patron.id, rewardTier: tier }
+          })
+        );
+      } else if (!patreonConfig.skipUsers.includes(patron.id)) {
+        // Find if this person is a patron, and give them a tier if so
+        const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
+        if (!user) continue;
+        const tier = this.determineRewardTier(patron);
+        if (user.rewardTier === tier) continue;
+        this.logger.log(`Updating user ${user.id} reward tier for patron ${patron.id} (${patron.name}, tier=${tier})`);
+        operations.push(
+          prisma.user.update({
+            where: { id: user.id },
+            data: { rewardTier: tier }
           })
         );
       }
