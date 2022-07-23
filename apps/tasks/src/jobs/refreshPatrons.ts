@@ -187,7 +187,7 @@ export default class RefreshPatrons extends TaskJob {
           }
         )
       ) {
-        this.logger.log(`Upserting patron ${patron.id} (${patron.name} - ${patron.email})`);
+        this.logger.log(`Upserting patron ${patron.id} (${patron.name} - ${patron.email} - ${patron.discordId || 'N/A'})`);
         operations.push(
           prisma.patreon.upsert({
             where: { id: patron.id },
@@ -206,7 +206,7 @@ export default class RefreshPatrons extends TaskJob {
             }
           })
         );
-      } else this.logger.log(`Processing patron ${patron.id} (${patron.name} - ${patron.email})`);
+      } else this.logger.log(`Processing patron ${patron.id} (${patron.name} - ${patron.email} - ${patron.discordId || 'N/A'})`);
 
       // Upsert in user table
       if (patron.discordId && !patreonConfig.skipUsers.includes(patron.id)) {
