@@ -379,10 +379,10 @@
   resolved "https://registry.yarnpkg.com/@fontsource/red-hat-text/-/red-hat-text-4.5.9.tgz#08c095082ddc5bdd638c99d7b770717b4af6de8e"
   integrity sha512-7jBq3vSTtZt1kJpwRt04EFfAGepY2E9eq7p09zyD4Ibx0rItBy/uoF/6Wmx/1heJurbUxxcBHY/6dKNxBRpb4g==
 
-"@fontsource/roboto@^4.5.5":
-  version "4.5.5"
-  resolved "https://registry.yarnpkg.com/@fontsource/roboto/-/roboto-4.5.5.tgz#4ecc38e690469378e2ec2a97f9c12282c654cc93"
-  integrity sha512-Pe1p+gAO6K0aLxBXlLoJRHVx352tVc/v/7DOnvM3t+FYXb+KUga9aCD1NpnDfd0kKnWXqrZyAXguyyFWDDuphw==
+"@fontsource/roboto@^4.5.7":
+  version "4.5.7"
+  resolved "https://registry.yarnpkg.com/@fontsource/roboto/-/roboto-4.5.7.tgz#292740a52fa2bac61b89f92e1c588037defe65cb"
+  integrity sha512-m57UMER23Mk6Drg9OjtHW1Y+0KPGyZfE5XJoPTOsLARLar6013kJj4X2HICt+iFLJqIgTahA/QAvSn9lwF1EEw==
 
 "@fontsource/ubuntu-mono@^4.5.10":
   version "4.5.10"
