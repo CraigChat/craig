@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@manypkg/cli": "^0.19.1",
-    "eslint": "^8.18.0",
+    "eslint": "^8.20.0",
     "eslint-config-snazzah": "^1.1.0",
     "prisma": "^3.15.2",
     "rimraf": "^3.0.2"
