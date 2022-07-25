@@ -369,10 +369,10 @@
     readable-stream "^3.4.0"
     send "^0.18.0"
 
-"@fontsource/lexend@^4.5.5":
-  version "4.5.5"
-  resolved "https://registry.yarnpkg.com/@fontsource/lexend/-/lexend-4.5.5.tgz#53b6b6dedb5bcb2d634e33eb31e48f8d1bb24df8"
-  integrity sha512-FUIPeK1aB85elx62/gwxsQGODSychVNt/5ark1HhVKhewRJHDX4BrzFsQ/H8A7jxWQeVjycoNyVCtdCsIygbzw==
+"@fontsource/lexend@^4.5.10":
+  version "4.5.10"
+  resolved "https://registry.yarnpkg.com/@fontsource/lexend/-/lexend-4.5.10.tgz#a2ec4a7c251bf0162b6fdf9cad480c54587daabe"
+  integrity sha512-5FSyCRQ2ylL9aoxdjasNvEvTeaVStPuq1wHjOStvrKenv7XDpjEPr/TfW3jJyJ+yhOeZPl4qR96y7bFBX+uBzQ==
 
 "@fontsource/red-hat-text@^4.5.9":
   version "4.5.9"
