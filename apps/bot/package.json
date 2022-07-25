@@ -26,7 +26,7 @@
     "@sentry/integrations": "^7.2.0",
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
-    "@trpc/client": "^9.20.3",
+    "@trpc/client": "^9.26.2",
     "axios": "^0.27.2",
     "chalk": "4",
     "common-tags": "^1.8.2",
