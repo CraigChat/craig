@@ -189,9 +189,11 @@ export default class AutoRecord extends GeneralCommand {
         if (!parsedRewards.rewards.features.includes('auto'))
           return {
             content: stripIndents`
-              Sorry, but this feature is only for patrons.
+              Sorry, but this feature is only for $4 patrons.
               If you have recently became a patron, login to the [dashboard](https://my.craig.chat/).
               Your benefits may take up to an hour to become active.
+
+              > **Note:** You can still record regularly with the \`/join\` command.
             `,
             components: [
               {
