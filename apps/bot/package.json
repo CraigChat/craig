@@ -59,7 +59,7 @@
     "@types/node": "^18.0.0",
     "@types/qs": "^6.9.7",
     "@types/ws": "^8.2.2",
-    "slash-up": "^1.1.2",
+    "slash-up": "^1.2.0",
     "typescript": "^4.7.3"
   }
 }
