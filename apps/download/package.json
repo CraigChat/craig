@@ -41,7 +41,7 @@
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^4.1.3",
     "@headlessui/react": "1.4.3",
-    "@iconify-icons/bi": "^1.2.5",
+    "@iconify-icons/bi": "^1.2.7",
     "@iconify-icons/cib": "^1.2.3",
     "@iconify-icons/file-icons": "^1.1.7",
     "@iconify-icons/ic": "^1.1.17",
