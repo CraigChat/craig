@@ -7,6 +7,17 @@ const lastActivity = new Map<number, number>();
 
 export const cron = new CronJob('*/5 * * * *', clean, null, false, 'America/New_York');
 
+function killProcessTree(p: ChildProcessWithoutNullStreams) {
+  if (p.killed || !p.pid) return true;
+  try {
+    const result = process.kill(p.pid);
+    return result;
+  } catch (e) {
+    if ((e as Error).message.startsWith('kill ESRCH')) return true;
+    return false;
+  }
+}
+
 export function registerProcess(p: ChildProcessWithoutNullStreams, onClose: () => any) {
   const started = Date.now();
   processes.set(p.pid, { process: p, onClose, started });
@@ -32,7 +43,7 @@ export function removeProcess(pid: number) {
   if (processes.has(pid)) {
     const { process, onClose } = processes.get(pid)!;
     processes.delete(pid);
-    const success = process.kill(-process.pid);
+    const success = killProcessTree(process);
     console.log(`Process ${process.pid} ${success ? 'successfully killed' : 'killed unsuccessfully'}`);
     onClose();
   }

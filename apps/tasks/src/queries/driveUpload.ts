@@ -34,6 +34,17 @@ async function fileExists(file: string) {
   }
 }
 
+function killProcessTree(p: ChildProcessWithoutNullStreams) {
+  if (p.killed || !p.pid) return true;
+  try {
+    const result = process.kill(p.pid);
+    return result;
+  } catch (e) {
+    if ((e as Error).message.startsWith('kill ESRCH')) return true;
+    return false;
+  }
+}
+
 async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
   try {
     await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
@@ -201,7 +212,7 @@ export async function driveUpload({
         });
 
         await clearReadyState(recordingId);
-        if (child.pid) process.kill(-child.pid);
+        killProcessTree(child);
         return {
           error: null,
           notify: true,
@@ -229,7 +240,7 @@ export async function driveUpload({
         });
 
         await clearReadyState(recordingId);
-        if (child.pid) process.kill(-child.pid);
+        killProcessTree(child);
 
         // Set file description
         await axios.patch(
@@ -261,7 +272,7 @@ export async function driveUpload({
   } catch (e) {
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`, e);
     await clearReadyState(recordingId);
-    if (child && child.pid) process.kill(-child.pid);
+    if (child) killProcessTree(child);
     return { error: (e as any).toString() || 'unknown_error', notify: true };
   }
 }
