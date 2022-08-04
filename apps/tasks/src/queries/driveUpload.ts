@@ -39,7 +39,7 @@ async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm =
     await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
-    const child = spawn(cookingPath, args);
+    const child = spawn(cookingPath, args, { detached: true });
     logger.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
 
     // Prevent the stream from ending prematurely (for some reason)
@@ -201,7 +201,7 @@ export async function driveUpload({
         });
 
         await clearReadyState(recordingId);
-        child.kill();
+        if (child.pid) process.kill(-child.pid);
         return {
           error: null,
           notify: true,
@@ -229,7 +229,7 @@ export async function driveUpload({
         });
 
         await clearReadyState(recordingId);
-        child.kill();
+        if (child.pid) process.kill(-child.pid);
 
         // Set file description
         await axios.patch(
@@ -261,7 +261,7 @@ export async function driveUpload({
   } catch (e) {
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`, e);
     await clearReadyState(recordingId);
-    child?.kill();
+    if (child && child.pid) process.kill(-child.pid);
     return { error: (e as any).toString() || 'unknown_error', notify: true };
   }
 }

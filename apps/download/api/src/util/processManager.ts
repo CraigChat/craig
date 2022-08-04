@@ -32,7 +32,7 @@ export function removeProcess(pid: number) {
   if (processes.has(pid)) {
     const { process, onClose } = processes.get(pid)!;
     processes.delete(pid);
-    const success = process.kill();
+    const success = process.kill(-process.pid);
     console.log(`Process ${process.pid} ${success ? 'successfully killed' : 'killed unsuccessfully'}`);
     onClose();
   }

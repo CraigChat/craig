@@ -138,7 +138,7 @@ export async function cook(id: string, format = 'flac', container = 'zip', dynau
     await writeState({ message: 'Starting...' });
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
     const args = [id, format, container, ...(dynaudnorm ? ['dynaudnorm'] : [])];
-    const child = spawn(cookingPath, args);
+    const child = spawn(cookingPath, args, { detached: true });
     console.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
     registerProcess(child, deleteState);
 
@@ -161,7 +161,7 @@ export async function cookAvatars(id: string, format = 'png', container = 'zip',
     await writeState({ message: 'Starting...' });
     const cookingPath = path.join(cookPath, 'avatars.sh');
     const args = [id, format, container, transparent ? '1' : '0', bg, fg];
-    const child = spawn(cookingPath, args);
+    const child = spawn(cookingPath, args, { detached: true });
     console.log(`Cooking avatars ${id} (${format}.${container}) with process ${child.pid}`);
     registerProcess(child, deleteState);
 
