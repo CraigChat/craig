@@ -195,6 +195,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   }
 
   async onGuildUnavailable(_: any, guild: Eris.UnavailableGuild) {
+    this.logger.warn(`Guild ${guild.id} is now unavailable...`);
     if (this.recordings.has(guild.id)) {
       const recording = this.recordings.get(guild.id)!;
       this.logger.warn(`Guild ${guild.id} went unavailable during a recording... (${recording.id})`);
