@@ -1,8 +1,9 @@
-import { oneLine } from 'common-tags';
+import { oneLine, stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
 import Recording from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
+import { reportRecordingError } from '../sentry';
 import GeneralCommand from '../slashCommand';
 import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
 
@@ -234,7 +235,50 @@ export default class Join extends GeneralCommand {
     const { id: messageID } = await ctx.fetch();
     recording.messageID = messageID;
     recording.messageChannelID = ctx.channelID;
-    await recording.start(parsedRewards, userData?.webapp ?? false);
+    const error = await recording
+      .start(parsedRewards, userData?.webapp ?? false)
+      .then(() => false)
+      .catch((e) => e);
+
+    if (error !== false) {
+      this.client.commands.logger.error(
+        `Failed to start recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
+        error
+      );
+      reportRecordingError(ctx, error, recording);
+
+      await recording.stop(true).catch(() => {});
+      await ctx
+        .editOriginal({
+          embeds: [
+            {
+              color: 0xe74c3c,
+              title: 'An error occurred.',
+              description: stripIndents`
+                An error occurred while trying to start the recording. Try again in a few minutes.
+                If this problem persists, please join the support server with the button below.
+
+                **Recording ID:** \`${recording.id}\`
+              `
+            }
+          ],
+          components: [
+            {
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.LINK,
+                  label: 'Support Server',
+                  url: 'https://craig.chat/support'
+                }
+              ]
+            }
+          ]
+        })
+        .catch(() => {});
+      return;
+    }
 
     // Send DM
     const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);

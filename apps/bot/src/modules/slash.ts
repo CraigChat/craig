@@ -5,6 +5,7 @@ import { ComponentActionRow, ComponentContext, ComponentType, GatewayServer, Sla
 import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
 import { prisma } from '../prisma';
+import { reportErrorFromCommand } from '../sentry';
 import { blessServer, checkRecordingPermission, cutoffText, disableComponents, unblessServer } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
@@ -53,7 +54,8 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       onCommandRun(ctx.user.id, command.commandName, ctx.guildID);
       this.logger.info(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
     });
-    this.creator.on('commandError', (command, error) => {
+    this.creator.on('commandError', (command, error, ctx) => {
+      reportErrorFromCommand(ctx, error, command.commandName, 'command');
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString());
     });
     this.creator.on('componentInteraction', async (ctx) => {

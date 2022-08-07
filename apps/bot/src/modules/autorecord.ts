@@ -1,10 +1,13 @@
 import { AutoRecord } from '@prisma/client';
+import { stripIndents } from 'common-tags';
 import { DexareClient, DexareModule } from 'dexare';
 import Eris from 'eris';
+import { ButtonStyle, ComponentType } from 'slash-create';
 
 import type { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
 import { checkMaintenance, processCooldown } from '../redis';
+import { reportAutorecordingError } from '../sentry';
 import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
 import type RecorderModule from './recorder';
 import Recording from './recorder/recording';
@@ -193,7 +196,52 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           }
         }
       }
-      await recording.start(parsedRewards, userData?.webapp ?? false);
+
+      const error = await recording
+        .start(parsedRewards, userData?.webapp ?? false)
+        .then(() => false)
+        .catch((e) => e);
+
+      if (error !== false) {
+        this.client.commands.logger.error(
+          `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
+          error
+        );
+        reportAutorecordingError(member, guildId, channelId, error, recording);
+
+        await recording.stop(true).catch(() => {});
+        if (recording.messageID && recording.messageChannelID)
+          await this.client.bot
+            .editMessage(recording.messageChannelID, recording.messageID, {
+              embeds: [
+                {
+                  color: 0xe74c3c,
+                  title: 'An error occurred.',
+                  description: stripIndents`
+                    An error occurred while trying to start the recording. Try again in a few minutes.
+                    If this problem persists, please join the support server with the button below.
+
+                    **Recording ID:** \`${recording.id}\`
+                  `
+                }
+              ],
+              components: [
+                {
+                  type: ComponentType.ACTION_ROW,
+                  components: [
+                    {
+                      type: ComponentType.BUTTON,
+                      style: ButtonStyle.LINK,
+                      label: 'Support Server',
+                      url: 'https://craig.chat/support'
+                    }
+                  ]
+                }
+              ]
+            })
+            .catch(() => {});
+        return;
+      }
 
       // Try to DM user
       const dmChannel = await member.user.getDMChannel().catch(() => null);
