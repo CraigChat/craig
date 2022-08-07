@@ -1,7 +1,7 @@
 import { oneLine, stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
-import Recording from '../modules/recorder/recording';
+import Recording, { RecordingState } from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import { reportRecordingError } from '../sentry';
 import GeneralCommand from '../slashCommand';
@@ -247,6 +247,7 @@ export default class Join extends GeneralCommand {
       );
       reportRecordingError(ctx, error, recording);
 
+      recording.state = RecordingState.ERROR;
       await recording.stop(true).catch(() => {});
       await ctx
         .editOriginal({

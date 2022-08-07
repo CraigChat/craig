@@ -10,7 +10,7 @@ import { checkMaintenance, processCooldown } from '../redis';
 import { reportAutorecordingError } from '../sentry';
 import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
 import type RecorderModule from './recorder';
-import Recording from './recorder/recording';
+import Recording, { RecordingState } from './recorder/recording';
 
 const TTL = 1000 * 60 * 60; // 1 hour
 
@@ -209,6 +209,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         );
         reportAutorecordingError(member, guildId, channelId, error, recording);
 
+        recording.state = RecordingState.ERROR;
         await recording.stop(true).catch(() => {});
         if (recording.messageID && recording.messageChannelID)
           await this.client.bot
