@@ -65,6 +65,8 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   async load() {
     this.registerEvent('ready', this.onReady.bind(this));
     this.registerEvent('voiceStateUpdate', this.onVoiceStateUpdate.bind(this));
+    this.registerEvent('guildDelete', this.onGuildLeave.bind(this));
+    this.registerEvent('guildUnavailable', this.onGuildUnavailable.bind(this));
 
     try {
       await access(this.recordingPath);
@@ -179,5 +181,27 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     if (!recording) return;
 
     recording.onVoiceStateUpdate(member, oldState);
+  }
+
+  async onGuildLeave(_: any, guild: Eris.PossiblyUncachedGuild) {
+    if (this.recordings.has(guild.id)) {
+      const recording = this.recordings.get(guild.id)!;
+      this.logger.warn(`Left guild ${guild.id} during a recording... (${recording.id})`);
+      recording.state = RecordingState.ERROR;
+      recording.stateDescription = '⚠️ This guild went unavailable during recording! To prevent further errors, this recording has ended.';
+      await recording.stop(true).catch(() => {});
+      await recording.updateMessage();
+    }
+  }
+
+  async onGuildUnavailable(_: any, guild: Eris.UnavailableGuild) {
+    if (this.recordings.has(guild.id)) {
+      const recording = this.recordings.get(guild.id)!;
+      this.logger.warn(`Guild ${guild.id} went unavailable during a recording... (${recording.id})`);
+      recording.state = RecordingState.ERROR;
+      recording.stateDescription = '⚠️ This guild went unavailable during recording! To prevent further errors, this recording has ended.';
+      await recording.stop(true).catch(() => {});
+      await recording.updateMessage();
+    }
   }
 }
