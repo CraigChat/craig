@@ -47,7 +47,7 @@
     "@iconify-icons/ic": "^1.1.17",
     "@iconify-icons/mdi": "^1.2.27",
     "@iconify-icons/twemoji": "^1.2.5",
-    "@iconify/react": "^3.1.1",
+    "@iconify/react": "^3.2.2",
     "@rollup/plugin-alias": "^3.1.9",
     "@rollup/plugin-buble": "^0.21.3",
     "@rollup/plugin-commonjs": "^22.0.0",
