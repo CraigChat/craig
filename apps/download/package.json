@@ -30,7 +30,7 @@
     "@influxdata/influxdb-client": "^1.24.0",
     "@sentry/integrations": "^7.2.0",
     "@sentry/node": "^7.2.0",
-    "@sentry/tracing": "^7.2.0",
+    "@sentry/tracing": "^7.11.1",
     "cron": "^2.0.0",
     "dotenv": "^16.0.1",
     "execa": "5",
