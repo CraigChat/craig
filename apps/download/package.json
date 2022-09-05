@@ -28,7 +28,7 @@
     "@fontsource/red-hat-text": "^4.5.9",
     "@fontsource/ubuntu-mono": "^4.5.10",
     "@influxdata/influxdb-client": "^1.24.0",
-    "@sentry/integrations": "^7.2.0",
+    "@sentry/integrations": "^7.12.1",
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
     "cron": "^2.0.0",
