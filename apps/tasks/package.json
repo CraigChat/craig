@@ -20,7 +20,7 @@
   "dependencies": {
     "@prisma/client": "^3.15.2",
     "@sentry/integrations": "^7.2.0",
-    "@sentry/node": "^7.2.0",
+    "@sentry/node": "^7.13.0",
     "@sentry/tracing": "^7.2.0",
     "@trpc/server": "^9.20.3",
     "axios": "^0.27.2",
