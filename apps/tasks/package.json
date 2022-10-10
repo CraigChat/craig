@@ -25,7 +25,7 @@
     "@trpc/server": "^9.20.3",
     "axios": "^0.27.2",
     "chalk": "4",
-    "config": "^3.3.7",
+    "config": "^3.3.8",
     "cron": "^2.0.0",
     "dayjs": "^1.11.3",
     "googleapis": "^104.0.0",
