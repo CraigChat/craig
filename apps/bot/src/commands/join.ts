@@ -137,6 +137,12 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
+    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
+      return {
+        content: `I need the \`View Channel\` permission to be able to display my recording panel.`,
+        ephemeral: true
+      };
+
     // Check for maintenence
     const maintenence = await checkMaintenance(this.client.bot.user.id);
     if (maintenence)
