@@ -94,6 +94,19 @@ export default class Join extends GeneralCommand {
             ]
           };
       }
+
+      if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+        return {
+          content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
+          ephemeral: true
+        };
+
+      if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
+        return {
+          content: `I need the \`View Channel\` permission to be able to display my recording panel.`,
+          ephemeral: true
+        };
+
       await ctx.send(recording.messageContent() as any);
       const { id: messageID } = await ctx.fetch();
       recording.messageID = messageID;
