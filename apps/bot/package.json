@@ -39,7 +39,7 @@
     "eris": "^0.17.1",
     "eventemitter3": "^4.0.7",
     "fastq": "^1.13.0",
-    "i18next": "^21.8.12",
+    "i18next": "^21.10.0",
     "i18next-fs-backend": "^1.1.4",
     "ioredis": "^5.0.6",
     "nanoid": "^3.3.4",
