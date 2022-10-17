@@ -7143,10 +7143,10 @@ simple-swizzle@^0.2.2:
   dependencies:
     is-arrayish "^0.3.1"
 
-slash-create@^5.6.1, slash-create@^5.7.0:
-  version "5.7.1"
-  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-5.7.1.tgz#125e5f69442b26a7bc0d0d3e135dec71d4a9694a"
-  integrity sha512-UTuOMW3D4f2k2t5aheO0abnuPLvLgj8M5pYYhaEfgKmUTJsQraTdWeMrh4syD9ZQV0qNgQTU9MCEOnhd6N8mGQ==
+slash-create@^5.10.0, slash-create@^5.6.1:
+  version "5.10.0"
+  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-5.10.0.tgz#0211bd58ba59d00ae0cb50864131a8f5e93ce0c4"
+  integrity sha512-rQQa3xuI6Q2Pi0NJ8/3hhMKT7Dqh1izGEV2+4ZCh3uO8W+RhQV2zMfcQ8XfNxuSMxD+wH7rB8FQaoCSARU2H6A==
   dependencies:
     eventemitter3 "^4.0.7"
     lodash.isequal "^4.5.0"
