@@ -441,12 +441,12 @@
   dependencies:
     "@iconify/types" "^1.0.12"
 
-"@iconify-icons/ic@^1.1.17":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/ic/-/ic-1.2.1.tgz#4fd500f6d7a7cbbb6602445a76474aea3495ba2c"
-  integrity sha512-8DoHDB1v/6npR3t/sSJS6Vpls2UTKhDcP6hgVAX70aPyg7+e9z9A7yhluuhU5vyHhoWGD9JQ0hbNCYOMgU1kng==
+"@iconify-icons/ic@^1.2.10":
+  version "1.2.10"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/ic/-/ic-1.2.10.tgz#af8668e11d1236320e0728c97a2decfa96f89a63"
+  integrity sha512-OSYYQJP+qgvSa6kx/LqYgOsRBL/XxTj2NZAlcpJEQDIcDg0XQWFVRGVxGYFEbIQxSsKMASLdFGfgbKHwU/WIdg==
   dependencies:
-    "@iconify/types" "^1.0.12"
+    "@iconify/types" "*"
 
 "@iconify-icons/mdi@^1.2.27":
   version "1.2.27"
