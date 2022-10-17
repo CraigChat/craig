@@ -31,7 +31,7 @@
     "@sentry/integrations": "^7.2.0",
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
-    "cron": "^2.0.0",
+    "cron": "^2.1.0",
     "dotenv": "^16.0.1",
     "execa": "5",
     "fastify": "^4.8.1",
