@@ -448,10 +448,10 @@
   dependencies:
     "@iconify/types" "*"
 
-"@iconify-icons/mdi@^1.2.27":
-  version "1.2.27"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/mdi/-/mdi-1.2.27.tgz#490ebb6dd63d5b4a9eb2d9cd16b8b089963de841"
-  integrity sha512-yzKEn3mDgae5Ip2FyQ/NwAHA8076FA6n74tJiRfTnzVtNgUWtP+hhqptBPevPatHQTaXKfci5pBq3KNJ6v/B5w==
+"@iconify-icons/mdi@^1.2.32":
+  version "1.2.32"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/mdi/-/mdi-1.2.32.tgz#44176b921daddf7a9afd6007add88d0e61bdd3a4"
+  integrity sha512-LLXgR3qQVJdoXbv48d3iMWeQvMZOuSNRVdM/8tQeuepoGdmZXxgbPuLSPoe1s+DTP2N4aKRgsFKmz+Y9GyNAYg==
   dependencies:
     "@iconify/types" "*"
 
