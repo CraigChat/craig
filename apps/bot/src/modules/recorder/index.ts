@@ -96,8 +96,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     const now = Date.now();
     for (const [guildID, recording] of this.recordings.entries()) {
       if (
-        recording.state === RecordingState.IDLE ||
-        recording.state === RecordingState.CONNECTING ||
+        (recording.state === RecordingState.IDLE || recording.state === RecordingState.CONNECTING) &&
         now - recording.createdAt.valueOf() > RECORDING_TTL
       ) {
         this.logger.warn(
