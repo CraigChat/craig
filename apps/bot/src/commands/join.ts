@@ -1,5 +1,5 @@
 import { oneLine, stripIndents } from 'common-tags';
-import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
+import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMessageOptions, SlashCreator } from 'slash-create';
 
 import Recording, { RecordingState } from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
@@ -24,6 +24,45 @@ export default class Join extends GeneralCommand {
     });
 
     this.filePath = __filename;
+  }
+
+  async reportError(ctx: CommandContext, error: Error, recording: Recording) {
+    reportRecordingError(ctx, error, recording);
+
+    const errorMessage: EditMessageOptions = {
+      embeds: [
+        {
+          color: 0xe74c3c,
+          title: 'An error occurred.',
+          description: stripIndents`
+            An error occurred while trying to start the recording. Try again in a few minutes.
+            If this problem persists, please join the support server by clicking button below.
+
+            **Recording ID:** \`${recording.id}\`
+          `
+        }
+      ],
+      components: [
+        {
+          type: ComponentType.ACTION_ROW,
+          components: [
+            {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: 'Support Server',
+              url: 'https://discord.com/invite/PEc4QBE45f'
+            }
+          ]
+        }
+      ]
+    };
+
+    recording.state = RecordingState.ERROR;
+    await recording.stop(true).catch(() => {});
+    await ctx
+      .editOriginal(errorMessage)
+      .catch(() => ctx.send({ ...errorMessage, ephemeral: true }))
+      .catch(() => {});
   }
 
   async run(ctx: CommandContext) {
@@ -250,8 +289,19 @@ export default class Join extends GeneralCommand {
     // Start recording
     const recording = new Recording(this.recorder, channel as any, member.user);
     this.recorder.recordings.set(ctx.guildID, recording);
-    await ctx.editOriginal(recording.messageContent() as any);
-    const { id: messageID } = await ctx.fetch();
+    const { messageID, err } = await ctx
+      .editOriginal(recording.messageContent() as any)
+      .then((m) => ({ err: null, messageID: m.id }))
+      .catch((e) => ({ err: e, messageID: null }));
+    if (err) {
+      this.client.commands.logger.error(
+        `Failed to edit message while starting recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
+        err
+      );
+      await this.reportError(ctx, err, recording).catch(() => {});
+      return;
+    }
+
     recording.messageID = messageID;
     recording.messageChannelID = ctx.channelID;
     const error = await recording
@@ -264,39 +314,7 @@ export default class Join extends GeneralCommand {
         `Failed to start recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
         error
       );
-      reportRecordingError(ctx, error, recording);
-
-      recording.state = RecordingState.ERROR;
-      await recording.stop(true).catch(() => {});
-      await ctx
-        .editOriginal({
-          embeds: [
-            {
-              color: 0xe74c3c,
-              title: 'An error occurred.',
-              description: stripIndents`
-                An error occurred while trying to start the recording. Try again in a few minutes.
-                If this problem persists, please join the support server with the button below.
-
-                **Recording ID:** \`${recording.id}\`
-              `
-            }
-          ],
-          components: [
-            {
-              type: ComponentType.ACTION_ROW,
-              components: [
-                {
-                  type: ComponentType.BUTTON,
-                  style: ButtonStyle.LINK,
-                  label: 'Support Server',
-                  url: 'https://craig.chat/support'
-                }
-              ]
-            }
-          ]
-        })
-        .catch(() => {});
+      await this.reportError(ctx, err, recording).catch(() => {});
       return;
     }
 
