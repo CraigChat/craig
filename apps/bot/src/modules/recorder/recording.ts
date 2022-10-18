@@ -98,6 +98,7 @@ export default class Recording {
   messageID: string | null = null;
   startTime: [number, number] = [0, 0];
   startedAt: Date | null = null;
+  createdAt = new Date();
   logs: string[] = [];
   lastMessageError: Error | null = null;
   rewards: ParsedRewards | null = null;

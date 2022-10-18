@@ -2,6 +2,7 @@ import { createTRPCClient } from '@trpc/client';
 import { httpLink } from '@trpc/client/links/httpLink';
 import type { Procedure } from '@trpc/server/dist/declarations/src/internals/procedure';
 import type { DefaultErrorShape, Router } from '@trpc/server/dist/declarations/src/router';
+import { CronJob } from 'cron';
 import { DexareClient, DexareModule } from 'dexare';
 import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
@@ -43,6 +44,8 @@ type TRPCRouter = Router<
   DefaultErrorShape
 >;
 
+const RECORDING_TTL = 5 * 60 * 1000;
+
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
   recordingPath: string;
@@ -51,6 +54,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     fetch: fetch as any,
     links: [httpLink({ url: 'http://localhost:2022' })]
   });
+  cron: CronJob;
 
   constructor(client: T) {
     super(client, {
@@ -60,6 +64,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
 
     this.recordingPath = path.resolve(__dirname, '../../..', this.client.config.craig.recordingFolder);
     this.filePath = __filename;
+    this.cron = new CronJob('* * * * *', this.onCron.bind(this), null, false, 'America/New_York');
   }
 
   async load() {
@@ -67,6 +72,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     this.registerEvent('voiceStateUpdate', this.onVoiceStateUpdate.bind(this));
     this.registerEvent('guildDelete', this.onGuildLeave.bind(this));
     this.registerEvent('guildUnavailable', this.onGuildUnavailable.bind(this));
+    this.cron.start();
 
     try {
       await access(this.recordingPath);
@@ -83,6 +89,25 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
 
   unload() {
     this.unregisterAllEvents();
+    this.cron.stop();
+  }
+
+  onCron() {
+    const now = Date.now();
+    for (const [guildID, recording] of this.recordings.entries()) {
+      if (
+        recording.state === RecordingState.IDLE ||
+        recording.state === RecordingState.CONNECTING ||
+        now - recording.createdAt.valueOf() > RECORDING_TTL
+      ) {
+        this.logger.warn(
+          `Recording ${recording.id} seems to be a dead recording, removing from map... (${guildID}:${recording.state}, by ${
+            recording.user.id
+          }, created ${recording.createdAt.toISOString()})`
+        );
+        this.recordings.delete(guildID);
+      }
+    }
   }
 
   find(id: string) {
