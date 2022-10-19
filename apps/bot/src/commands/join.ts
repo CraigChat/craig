@@ -142,7 +142,7 @@ export default class Join extends GeneralCommand {
 
       if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
         return {
-          content: `I need the \`View Channel\` permission to be able to display my recording panel.`,
+          content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
           ephemeral: true
         };
 
@@ -191,7 +191,7 @@ export default class Join extends GeneralCommand {
 
     if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
       return {
-        content: `I need the \`View Channel\` permission to be able to display my recording panel.`,
+        content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
         ephemeral: true
       };
 
