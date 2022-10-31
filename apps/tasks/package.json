@@ -31,7 +31,7 @@
     "googleapis": "^104.0.0",
     "lodash.isequal": "^4.5.0",
     "winston": "^3.8.1",
-    "zod": "^3.17.3"
+    "zod": "^3.19.1"
   },
   "devDependencies": {
     "@types/config": "^3.3.0",
