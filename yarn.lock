@@ -427,10 +427,10 @@
   dependencies:
     "@iconify/types" "*"
 
-"@iconify-icons/cib@^1.2.3":
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/@iconify-icons/cib/-/cib-1.2.3.tgz#f67c78a3b42859578fe4392bfd515f6b44477fec"
-  integrity sha512-4M3ZCpipSZO3I6zl0eRMVhUua+bvvWSR0WxZGiR/DbLunJPek2SIrxsVWbpEC1UYMJwDiJy0pzJdLRCblInDOw==
+"@iconify-icons/cib@^1.2.4":
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/@iconify-icons/cib/-/cib-1.2.4.tgz#6651889b20fec99b87def51c982c051dcd377a0c"
+  integrity sha512-o6HlNUMWiOGBgqxT0du1beQr4EaVK1wRvms2UOFN40JE97DaZMx1cxBYfPcnkbd1n4wI3HhXGrcJL9MdQ9KHCA==
   dependencies:
     "@iconify/types" "*"
 
