@@ -59,6 +59,7 @@ export interface RewardTier {
   recordHours: number;
   downloadExpiryHours: number;
   features: string[];
+  sizeLimitMult?: number;
 }
 
 export class CraigBot extends DexareClient<CraigBotConfig> {

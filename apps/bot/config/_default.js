@@ -104,25 +104,29 @@ module.exports = {
           // Supporters / I'm chipping in!
           recordHours: 6,
           downloadExpiryHours: 336,
-          features: ['drive', 'glowers']
+          features: ['drive', 'glowers'],
+          sizeLimitMult: 2
         },
         [20]: {
           // Supporterers / More power!
           recordHours: 24,
           downloadExpiryHours: 720,
-          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous']
+          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous'],
+          sizeLimitMult: 2
         },
         [30]: {
           // Supporterests / I DEMAND FLAC
           recordHours: 24,
           downloadExpiryHours: 720,
-          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac']
+          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac'],
+          sizeLimitMult: 2
         },
         [100]: {
           // MP3 God
           recordHours: 24,
           downloadExpiryHours: 720,
-          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3']
+          features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3'],
+          sizeLimitMult: 5
         }
       }
     },

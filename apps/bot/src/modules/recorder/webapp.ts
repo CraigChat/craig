@@ -160,8 +160,12 @@ export class WebappClient {
     );
 
     // We switch to a web size limit, depending on which features are enabled
-    if (dataType !== DataTypeFlag.OPUS || continuous) this.recording.sizeLimit = Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWeb);
-    else this.recording.sizeLimit = Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWebOpus);
+    if (dataType !== DataTypeFlag.OPUS || continuous)
+      this.recording.sizeLimit =
+        Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWeb) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
+    else
+      this.recording.sizeLimit =
+        Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWebOpus) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
 
     // Send them their own ID
     const idMessage = Buffer.alloc(EnnuicastrParts.info.length);

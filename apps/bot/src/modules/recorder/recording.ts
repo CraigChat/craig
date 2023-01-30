@@ -193,6 +193,7 @@ export default class Recording {
     const fileBase = path.join(this.recorder.recordingPath, `${this.id}.ogg`);
     const { tier, rewards } = parsedRewards;
     this.rewards = { tier, rewards };
+    if (rewards.sizeLimitMult) this.sizeLimit *= rewards.sizeLimitMult;
     await writeFile(
       fileBase + '.info',
       JSON.stringify({
