@@ -30,14 +30,14 @@ export default class JoinCommand extends TextCommand {
               url: `https://discord.com/oauth2/authorize?client_id=${
                 this.client.config.craig.inviteID ?? this.client.config.applicationID
               }&permissions=0&scope=applications.commands&guild_id=${ctx.guild?.id}`,
-              emoji: { id: this.client.config.craig.emoji }
+              emoji: { name: 'craig', id: this.client.config.craig.emoji }
             },
             {
               type: ComponentType.BUTTON,
               style: ButtonStyle.LINK,
               label: 'What are slash commands?',
               url: 'https://support.discord.com/hc/en-us/articles/1500000368501-Slash-Commands-FAQ',
-              emoji: { name: '❔' }
+              emoji: { name: '❔', id: null }
             }
           ]
         }

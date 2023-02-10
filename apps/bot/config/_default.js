@@ -1,3 +1,5 @@
+const Eris = require('eris');
+
 module.exports = {
   // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
   redis: {},
@@ -40,6 +42,7 @@ module.exports = {
     // Application ID
     applicationID: '',
 
+    /** @type {Eris.ClientOptions} */
     erisOptions: {
       autoreconnect: true,
       allowedMentions: {
@@ -49,9 +52,11 @@ module.exports = {
       },
       defaultImageFormat: 'png',
       defaultImageSize: 256,
-      maxShards: 1,
       messageLimit: 0,
-      intents: ['guilds', 'guildMessages', 'guildVoiceStates']
+      gateway: {
+        maxShards: 1,
+        intents: ['guilds', 'guildMessages', 'guildVoiceStates']
+      }
     },
 
     // Users who can eval

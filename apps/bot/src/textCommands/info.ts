@@ -39,6 +39,7 @@ export default class InfoCommand extends TextCommand {
                 this.client.config.craig.inviteID ?? this.client.config.applicationID
               }&permissions=0&scope=bot%20applications.commands`,
               emoji: {
+                name: 'craig',
                 id: this.client.config.craig.emoji
               }
             }

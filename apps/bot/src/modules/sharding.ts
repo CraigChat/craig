@@ -88,8 +88,8 @@ export default class ShardingModule extends DexareModule<CraigBot> {
     this.send('ready');
   }
 
-  onDisconnect(_: any, error: Error) {
-    this.send('disconnect', { error });
+  onDisconnect(_: any, err?: Error) {
+    this.send('disconnect', { error: err });
   }
 
   onResume() {
