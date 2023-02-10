@@ -456,30 +456,50 @@ export default class Recording {
   }
 
   async connect() {
+    const alreadyConnected = this.recorder.client.bot.voiceConnections.has(this.channel.guild.id);
+
+    if (!alreadyConnected) {
+      if (this.connection) {
+        this.connection.removeAllListeners('connect');
+        this.connection.removeAllListeners('disconnect');
+        this.connection.removeAllListeners('error');
+        this.connection.removeAllListeners('warn');
+        this.connection.removeAllListeners('debug');
+        this.connection.removeAllListeners('ready');
+      }
+
+      if (this.receiver) {
+        this.receiver.removeAllListeners('data');
+      }
+    }
+
     const connection = await this.channel.join({ opusOnly: true });
-    connection.on('connect', this.onConnectionConnect.bind(this));
-    connection.on('disconnect', this.onConnectionDisconnect.bind(this));
-    connection.on('error', (err) => {
-      this.writeToLog(`Error: ${err}`, 'connection');
-      this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
-    });
-    connection.on('warn', (m) => {
-      this.writeToLog(`Warning: ${m}`, 'connection');
-      this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
-    });
-    connection.on('debug', (m) => {
-      this.writeToLog(`Debug: ${m}`, 'connection');
-      this.recorder.logger.debug(`Recording ${this.id}`, m);
-    });
-    connection.on('error', (err) => {
-      this.writeToLog(`Connection error: ${err}`, 'error');
-      this.recorder.logger.error(`Recording ${this.id}: Connection error`, err);
-    });
-    const receiver = connection.receive('opus');
-    receiver.on('data', this.onData.bind(this));
+    // If we've already connected, Eris will use the same connection, so we don't need to re-add listeners
+    if (!alreadyConnected) {
+      connection.on('ready', this.onConnectionReady.bind(this));
+      connection.on('connect', this.onConnectionConnect.bind(this));
+      connection.on('disconnect', this.onConnectionDisconnect.bind(this));
+      connection.on('error', (err) => {
+        this.writeToLog(`Error: ${err}`, 'connection');
+        this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
+      });
+      connection.on('warn', (m) => {
+        this.writeToLog(`Warning: ${m}`, 'connection');
+        this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
+      });
+      connection.on('debug', (m) => {
+        this.writeToLog(`Debug: ${m}`, 'connection');
+        this.recorder.logger.debug(`Recording ${this.id}`, m);
+      });
+      const receiver = connection.receive('opus');
+      receiver.on('data', this.onData.bind(this));
+      this.receiver = receiver;
+      this.connection = connection;
+    }
+
+    const reconnected = this.state === RecordingState.RECONNECTING;
     this.state = RecordingState.RECORDING;
-    this.receiver = receiver;
-    this.connection = connection;
+    if (reconnected) this.pushToActivity('Reconnected.');
   }
 
   async playNowRecording() {
@@ -510,21 +530,38 @@ export default class Recording {
 
   async onConnectionConnect() {
     if (!this.active) return;
-    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint} (state=${this.connection?.ws?.readyState})`);
+    this.writeToLog(
+      `Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint} (state=${this.connection?.ws?.readyState})`,
+      'connection'
+    );
+    this.recorder.logger.debug(`Recording ${this.id} connected`);
     if (this.connection!.channelID !== this.channel.id) {
       this.stateDescription = '⚠️ I was moved to another channel! If you want me to leave, please press the stop button.';
       return await this.stop();
-    } else this.pushToActivity('Reconnected.');
+    } else if (this.state === RecordingState.RECONNECTING) {
+      this.state = RecordingState.RECORDING;
+      this.pushToActivity('Reconnected.');
+    }
+  }
+
+  async onConnectionReady() {
+    if (!this.active) return;
+    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} ready`);
+    this.pushToActivity('Reconnected.');
   }
 
   async onConnectionDisconnect(err?: Error) {
     if (!this.active) return;
     this.writeToLog(`Got disconnected, ${err}`);
+    this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
     if (err) {
       this.state = RecordingState.RECONNECTING;
-      this.pushToActivity('An error has disconnected me, reconnecting...');
+      if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
+      else this.pushToActivity('An error has disconnected me, reconnecting...');
+      this.channel.leave();
       await this.connect();
-    } else {
+    } else if (this.state !== RecordingState.RECONNECTING) {
       this.pushToActivity(`The voice connection was closed, disconnecting... ([why?](https://link.snaz.in/craigstopped))`, false);
       try {
         await this.stop();
@@ -814,7 +851,7 @@ export default class Recording {
           ]
         }
       ]
-    } as Eris.AdvancedMessageContent;
+    } as Eris.AdvancedMessageContent<'isMessageEdit'>;
   }
 
   async updateMessage() {
