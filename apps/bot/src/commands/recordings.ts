@@ -8,7 +8,7 @@ export default class Recordings extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'recordings',
-      description: 'Get links to your last 5 recordings.',
+      description: 'Get links to your last 10 recordings.',
       deferEphemeral: true
     });
 
@@ -41,12 +41,12 @@ export default class Recordings extends GeneralCommand {
         expiresAt: { gt: new Date() }
       },
       orderBy: { createdAt: 'desc' },
-      take: 5
+      take: 10
     });
 
     if (recordings.length === 0)
       return {
-        content: "You haven't done any recordings recently.",
+        content: `You haven't done any recordings recently on ${this.client.bot.user.username}.`,
         ephemeral: true
       };
 
@@ -56,11 +56,11 @@ export default class Recordings extends GeneralCommand {
         {
           author: {
             icon_url: this.client.bot.user.dynamicAvatarURL(),
-            name: `Your last 5 recordings on ${this.client.bot.user.username}`
+            name: `Your last 10 recordings on ${this.client.bot.user.username}`
           },
           fields: recordings.map((r) => {
             return {
-              name: `Recording \`${r.id}\` - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
+              name: `🎙️ Recording \`${r.id}\` - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
               value: stripIndentsAndLines`
                 ${r.autorecorded ? 'Auto-recorded' : 'Recorded'} in <#${r.channelId}>
                 Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:F>)
