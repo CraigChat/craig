@@ -49,7 +49,7 @@ export default class ShardUtilModule extends ShardManagerModule {
     });
     this.registerCommand('checkMaintenance', async (shard) => {
       logger.info(`Shard ${shard.id}: Told shards to check maintenance`);
-      await this.manager.broadcastEval('this.modules.get("recorder").checkMaintenance()');
+      await this.manager.broadcastEval('this.modules.get("recorder").checkForMaintenance()');
     });
     this.registerCommand('getCounts', async (shard, msg, respond) => {
       logger.debug(`Shard ${shard.id}: Getting counts`);
