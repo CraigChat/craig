@@ -55,7 +55,8 @@ module.exports = {
       messageLimit: 0,
       gateway: {
         maxShards: 1,
-        intents: ['guilds', 'guildMessages', 'guildVoiceStates']
+        intents: ['guilds', 'guildMessages', 'guildVoiceStates'],
+        requestTimeout: 15000
       }
     },
 
