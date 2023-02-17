@@ -2572,9 +2572,9 @@ eol@^0.9.1:
   resolved "https://registry.yarnpkg.com/eol/-/eol-0.9.1.tgz#f701912f504074be35c6117a5c4ade49cd547acd"
   integrity sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==
 
-"eris@github:projectdysnomia/dysnomia#e50d99c2635cf3535e958d1e9b33cf106f325aea":
+"eris@github:projectdysnomia/dysnomia#0df1369a822dba8851c667b22d5bac34f4e849e6":
   version "0.1.0-dev"
-  resolved "https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/e50d99c2635cf3535e958d1e9b33cf106f325aea"
+  resolved "https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/0df1369a822dba8851c667b22d5bac34f4e849e6"
   dependencies:
     ws "^8.2.3"
   optionalDependencies:
