@@ -31,7 +31,9 @@ export async function start(): Promise<void> {
   server = fastify({
     logger: process.env.NODE_ENV !== 'production',
     ignoreTrailingSlash: true,
-    bodyLimit: 1024
+    bodyLimit: 1024,
+    trustProxy:
+      process.env.TRUST_PROXY === 'true' ? true : !process.env.TRUST_PROXY || process.env.TRUST_PROXY === 'false' ? false : process.env.TRUST_PROXY
   });
 
   await server.register(helmet, {
