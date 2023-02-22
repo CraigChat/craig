@@ -62,9 +62,6 @@ export async function start(): Promise<void> {
   await server.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
-    keyGenerator(req) {
-      return (req.headers['cf-connecting-ip'] as string) || req.ip;
-    },
     errorResponseBuilder() {
       return {
         ok: false,
