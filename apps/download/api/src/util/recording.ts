@@ -43,8 +43,10 @@ export interface RecordingInfo {
 
 export interface RecordingUser {
   id: string;
-  name: string;
-  discrim: string;
+  name?: string;
+  discrim?: string;
+  username: string;
+  discriminator: string;
   avatar?: string;
 }
 

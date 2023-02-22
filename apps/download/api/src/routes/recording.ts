@@ -76,7 +76,7 @@ export const textRoute: RouteOptions = {
             `Start time:\t${info.startTime}`,
             '',
             'Tracks:',
-            ...users.map((track) => `\t${track.name}#${track.discrim} (${track.id})`),
+            ...users.map((track) => `\t${track.name || track.username}#${track.discrim || track.discriminator} (${track.id})`),
             ...(notes.length > 0 ? ['', 'Notes:', ...notes.map((n) => `\t${formatTime(parseInt(n.time))}: ${n.note}`)] : [])
           ]
             .filter((x) => x !== null)
