@@ -1,6 +1,7 @@
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticPlugin from '@fastify/static';
+import websocketPlugin from '@fastify/websocket';
 import fastify, { FastifyInstance } from 'fastify';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
@@ -8,6 +9,7 @@ import path from 'path';
 import { client as redisClient } from './cache';
 import { cron as influxCron } from './influx';
 import * as cookRoute from './routes/cook';
+import { ennuizelWebsocketRoute } from './routes/ennuizel';
 import * as pageRoute from './routes/page';
 import * as recordingRoute from './routes/recording';
 import { close as closeSentry } from './sentry';
@@ -51,6 +53,10 @@ export async function start(): Promise<void> {
     prefix: '/'
   });
 
+  await server.register(websocketPlugin, {
+    options: { maxPayload: 1024 }
+  });
+
   await server.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
@@ -87,6 +93,7 @@ export async function start(): Promise<void> {
     return reply.header('content-disposition', `attachment; filename=${file}`).sendFile(file, downloadPath);
   });
 
+  server.route(ennuizelWebsocketRoute);
   server.route(recordingRoute.headRoute);
   server.route(recordingRoute.getRoute);
   server.route(recordingRoute.deleteRoute);
