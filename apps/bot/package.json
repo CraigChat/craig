@@ -36,7 +36,7 @@
     "dbots": "^11.0.0",
     "dexare": "^3.0.1",
     "dotenv": "^16.0.3",
-    "eris": "github:projectdysnomia/dysnomia#0df1369a822dba8851c667b22d5bac34f4e849e6",
+    "eris": "github:CraigChat/dysnomia#278fe10798e32a5674765c42c0acb407ff009647",
     "eventemitter3": "^4.0.7",
     "fastq": "^1.13.0",
     "i18next": "^21.10.0",
