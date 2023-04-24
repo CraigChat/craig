@@ -926,10 +926,10 @@
   dependencies:
     "@babel/runtime" "^7.9.0"
 
-"@trpc/server@^9.20.3":
-  version "9.20.3"
-  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-9.20.3.tgz#0b9895fa344675057f782d9f393ccc32a0ff6173"
-  integrity sha512-sVzqRsBeXqBeMU/bU5pnM/2YdEMRcebKlpDffFMvft5vkjA62eutLJAqseCtfkHBY0scUEGqg84RTS9gLYVxsw==
+"@trpc/server@^10.21.1":
+  version "10.21.1"
+  resolved "https://registry.yarnpkg.com/@trpc/server/-/server-10.21.1.tgz#42a321d8199b4ad800b9e786b4249a9b6df45d6c"
+  integrity sha512-4E4upTD2/Aq0Dm9HW4nbKSoIlqbV/ajRqNl1MCFBd9FjTv47qq2ncmAWMbb0AIVh2UV87PJlTjpPNNecRm6g9Q==
 
 "@trysound/sax@0.2.0":
   version "0.2.0"
