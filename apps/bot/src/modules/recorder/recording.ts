@@ -514,7 +514,11 @@ export default class Recording {
       }
     }
     if (this.state !== RecordingState.RECORDING) {
-      this.pushToActivity(`Failed to reconnect properly. Please restart the recording.`, false);
+      this.pushToActivity('Failed to reconnect after 3 tries.', false);
+      this.sendWarning(
+        'I could not reconnect properly to the voice channel after 3 tries. Please restart the recording, and if this problem persists, please join the support server.',
+        false
+      );
       this.recorder.logger.warn(`Recording ${this.id} could not properly reconnect`);
       try {
         await this.stop();
