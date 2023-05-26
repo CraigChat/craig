@@ -56,7 +56,7 @@ export default function DiscordElement({ id, avatar, icon, name, username, discr
       )}
       <span>
         {username || name}
-        {elementDiscrim ? <span class="text-zinc-400">#{elementDiscrim}</span> : ''}
+        {elementDiscrim && elementDiscrim !== '0' ? <span class="text-zinc-400">#{elementDiscrim}</span> : ''}
       </span>
     </div>
   );
