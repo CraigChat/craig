@@ -246,7 +246,7 @@ export default function Index(props: Props) {
             <img src={getAvatarUrl(props.user)} className="w-12 h-12 rounded-full" />
             <span>
               Hello, <span className="font-medium">{props.user.username}</span>
-              <span className="opacity-50">#{props.user.discriminator}</span>
+              {!!props.user.discriminator && props.user.discriminator !== '0' ? <span className="opacity-50">#{props.user.discriminator}</span> : ''}
             </span>
           </h1>
           <div className="flex flex-col justify-center items-center p-6 gap-4 w-full">
