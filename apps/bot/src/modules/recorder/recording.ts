@@ -502,6 +502,28 @@ export default class Recording {
     if (reconnected) this.pushToActivity('Reconnected.');
   }
 
+  async retryConnect() {
+    for (let i = 1; i < 4; i++) {
+      this.writeToLog(`Trying to reconnect (attempt ${i})`, 'connection');
+      try {
+        await wait(500);
+        await this.connect();
+        break;
+      } catch (e) {
+        this.writeToLog(`Reconnection attempt ${i} failed: ${e}`, 'connection');
+      }
+    }
+    if (this.state !== RecordingState.RECORDING) {
+      this.pushToActivity(`Failed to reconnect properly. Please restart the recording.`, false);
+      this.recorder.logger.warn(`Recording ${this.id} could not properly reconnect`);
+      try {
+        await this.stop();
+      } catch (e) {
+        this.recorder.logger.debug(`Recording ${this.id} failed to stop after failed reconnect`, e);
+      }
+    }
+  }
+
   async playNowRecording() {
     const filePath = path.join(__dirname, '../../../data/nowrecording.opus');
 
@@ -560,13 +582,13 @@ export default class Recording {
       if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
       else this.pushToActivity('An error has disconnected me, reconnecting...');
       this.channel.leave();
-      await this.connect();
+      await this.retryConnect();
     } else if (this.state !== RecordingState.RECONNECTING) {
       this.pushToActivity(`The voice connection was closed, disconnecting... ([why?](https://link.snaz.in/craigstopped))`, false);
       try {
         await this.stop();
       } catch (e) {
-        console.log(e);
+        this.recorder.logger.debug(`Recording ${this.id} failed to stop after disconnect`, e);
       }
     }
   }
