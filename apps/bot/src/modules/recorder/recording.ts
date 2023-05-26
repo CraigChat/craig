@@ -213,7 +213,7 @@ export default class Recording {
           id: this.channel.id,
           type: this.channel.type
         },
-        requester: this.user.username + '#' + this.user.discriminator,
+        requester: this.user.discriminator === '0' ? this.user.username : this.user.username + '#' + this.user.discriminator,
         requesterExtra: {
           username: this.user.username,
           discriminator: this.user.discriminator,
@@ -798,7 +798,7 @@ export default class Recording {
       embeds: [
         {
           author: {
-            name: `${this.user.username}#${this.user.discriminator}`,
+            name: this.user.discriminator === '0' ? this.user.username : `${this.user.username}#${this.user.discriminator}`,
             icon_url: this.user.dynamicAvatarURL()
           },
           color,
