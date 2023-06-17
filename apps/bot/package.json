@@ -58,7 +58,7 @@
     "@types/ioredis": "^4.28.10",
     "@types/node": "^18.0.0",
     "@types/qs": "^6.9.7",
-    "@types/ws": "^8.5.3",
+    "@types/ws": "^8.5.4",
     "slash-up": "^1.2.0",
     "typescript": "^4.7.3"
   }
