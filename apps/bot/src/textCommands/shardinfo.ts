@@ -61,9 +61,13 @@ export default class ShardInfoCommand extends TextCommand {
         )
         .join('\n');
 
-    await replyOrSend(ctx, '', {
-      name: 'shards.txt',
-      file: Buffer.from(message)
+    await replyOrSend(ctx, {
+      attachments: [
+        {
+          filename: 'shards.txt',
+          file: Buffer.from(message)
+        }
+      ]
     });
   }
 

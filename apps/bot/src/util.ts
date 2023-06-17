@@ -246,14 +246,10 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
   };
 }
 
-export async function replyOrSend(
-  ctx: CommandContext,
-  content: Eris.MessageContent,
-  file?: Eris.FileContent | Eris.FileContent[]
-): Promise<Eris.Message> {
+export async function replyOrSend(ctx: CommandContext, content: Eris.MessageContent): Promise<Eris.Message> {
   if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory'))
-    return ctx.replyMention(content, file);
-  else return ctx.reply(content, file);
+    return ctx.replyMention(content);
+  else return ctx.reply(content);
 }
 
 export default abstract class TextCommand extends DexareCommand {

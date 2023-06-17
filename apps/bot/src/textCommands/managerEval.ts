@@ -48,26 +48,26 @@ export default class ManagerEvalCommand extends TextCommand {
     const res = await sharding.sendAndRecieve<{ result: any; error: any }>('managerEval', { script });
     const hrDiff = process.hrtime(hrStart);
     if (res.d.error) return `Error while evaluating: \`${makeError(res.d.error)}\``;
-    return void (await replyOrSend(ctx, ...this.makeResultMessages(res.d.result, hrDiff, script)));
+    return void (await replyOrSend(ctx, this.makeResultMessages(res.d.result, hrDiff, script)));
   }
 
-  makeResultMessages(result: any, hrDiff: [number, number], input?: string): [string, Eris.FileContent | undefined] {
+  makeResultMessages(result: any, hrDiff: [number, number], input?: string): Eris.AdvancedMessageContent {
     const inspected = util.inspect(result, { depth: 0 }).replace(nlPattern, '\n').replace(this.sensitivePattern, '--snip--');
     if (input) {
       if (input.length > 1900)
-        return [
-          '',
-          {
-            name: 'eval.js',
-            file: Buffer.from(`// Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.\n\n${inspected}`)
-          }
-        ];
-      return [
-        `*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*\n\`\`\`js\n` + inspected.slice(0, 1900) + `\`\`\``,
-        undefined
-      ];
+        return {
+          attachments: [
+            {
+              filename: 'eval.js',
+              file: Buffer.from(`// Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.\n\n${inspected}`)
+            }
+          ]
+        };
+      return {
+        content: `*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*\n\`\`\`js\n` + inspected.slice(0, 1900) + `\`\`\``
+      };
     }
-    return ['No input.', undefined];
+    return { content: 'No input.' };
   }
 
   get sensitivePattern() {
