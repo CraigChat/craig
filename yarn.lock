@@ -2594,7 +2594,7 @@ eol@^0.9.1:
 
 "eris@github:CraigChat/dysnomia#craig-master":
   version "0.2.0-dev"
-  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/81ce88cb38c7bc01c5f3da49a5b83acabe0f4207"
+  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/e09830de73930094bacc3480f6306cef4c97c533"
   dependencies:
     ws "^8.2.3"
   optionalDependencies:
