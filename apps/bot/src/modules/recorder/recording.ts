@@ -62,6 +62,7 @@ export interface RecordingUser {
   id: string;
   username: string;
   discriminator: string;
+  globalName?: string | null;
   avatar?: string;
   avatarUrl?: string;
   unknown: boolean;
@@ -216,6 +217,7 @@ export default class Recording {
         requester: this.user.discriminator === '0' ? this.user.username : this.user.username + '#' + this.user.discriminator,
         requesterExtra: {
           username: this.user.username,
+          globalName: this.user.globalName,
           discriminator: this.user.discriminator,
           avatar: this.user.dynamicAvatarURL('png', 256)
         },
@@ -677,6 +679,7 @@ export default class Recording {
         id: userID,
         username: user?.username ?? 'Unknown',
         discriminator: user?.discriminator ?? '0000',
+        globalName: null,
         unknown: !user,
         track: this.trackNo++,
         packet: 2
@@ -700,6 +703,7 @@ export default class Recording {
         const member = (await this.channel.guild.fetchMembers({ userIDs: [userID] }))?.[0];
         recordingUser.username = member?.username ?? 'Unknown';
         recordingUser.discriminator = member?.discriminator ?? '0000';
+        recordingUser.globalName = member?.user?.globalName;
         recordingUser.unknown = !member;
         if (member) user = member.user;
       }

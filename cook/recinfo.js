@@ -19,6 +19,10 @@ info.tracks = users;
 delete info.key;
 delete info['delete'];
 delete info.features;
+function getUsername(d, id) {
+  const username = d.discriminator === 0 ? d.username : `${d.username}#${d.discriminator}`;
+  return (d.globalName ? `${d.globalName} (${username})` : username) + ` (${d.id || id})`;
+}
 if (process.argv[3] === 'text') {
   process.stdout.write(
     'Recording ' +
@@ -32,9 +36,7 @@ if (process.argv[3] === 'text') {
       (info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel) +
       '\r\n' +
       'Requester:\t' +
-      (info.requesterExtra
-        ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})`
-        : info.requester) +
+      getUsername(info.requesterExtra, info.requesterId) +
       '\r\n' +
       'Start time:\t' +
       info.startTime +
@@ -42,8 +44,7 @@ if (process.argv[3] === 'text') {
       '\r\n' +
       'Tracks:\r\n'
   );
-  for (var ui = 1; users[ui]; ui++)
-    process.stdout.write('\t' + users[ui].username + '#' + users[ui].discriminator + '\r\n');
+  for (var ui = 1; users[ui]; ui++) process.stdout.write('\t' + getUsername(users[ui]) + '\r\n');
 } else {
   process.stdout.write(JSON.stringify(info) + '\n');
 }
