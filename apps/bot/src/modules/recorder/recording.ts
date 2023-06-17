@@ -459,18 +459,13 @@ export default class Recording {
     const alreadyConnected = this.recorder.client.bot.voiceConnections.has(this.channel.guild.id);
 
     if (!alreadyConnected) {
-      if (this.connection) {
-        this.connection.removeAllListeners('connect');
-        this.connection.removeAllListeners('disconnect');
-        this.connection.removeAllListeners('error');
-        this.connection.removeAllListeners('warn');
-        this.connection.removeAllListeners('debug');
-        this.connection.removeAllListeners('ready');
-      }
-
-      if (this.receiver) {
-        this.receiver.removeAllListeners('data');
-      }
+      this.connection?.removeAllListeners('connect');
+      this.connection?.removeAllListeners('disconnect');
+      this.connection?.removeAllListeners('error');
+      this.connection?.removeAllListeners('warn');
+      this.connection?.removeAllListeners('debug');
+      this.connection?.removeAllListeners('ready');
+      this.receiver?.removeAllListeners('data');
     }
 
     const connection = await this.channel.join({ opusOnly: true });
@@ -574,7 +569,7 @@ export default class Recording {
     if (!this.active) return;
     this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState})`, 'connection');
     this.recorder.logger.debug(`Recording ${this.id} ready`);
-    this.pushToActivity('Reconnected.');
+    this.pushToActivity('Automatically reconnected.');
   }
 
   async onConnectionDisconnect(err?: Error) {
