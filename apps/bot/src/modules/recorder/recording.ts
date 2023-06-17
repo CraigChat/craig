@@ -872,7 +872,7 @@ export default class Recording {
           ]
         }
       ]
-    } as Eris.AdvancedMessageContent<'isMessageEdit'>;
+    } as Eris.AdvancedMessageContent;
   }
 
   async updateMessage() {
