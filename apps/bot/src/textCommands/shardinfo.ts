@@ -66,4 +66,9 @@ export default class ShardInfoCommand extends TextCommand {
       file: Buffer.from(message)
     });
   }
+
+  onError(err: Error, ctx: CommandContext) {
+    console.log(err);
+    return ctx.reply(`An error occurred while running the \`${this.name}\` command.`);
+  }
 }
