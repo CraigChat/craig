@@ -679,7 +679,7 @@ export default class Recording {
         id: userID,
         username: user?.username ?? 'Unknown',
         discriminator: user?.discriminator ?? '0000',
-        globalName: null,
+        globalName: user?.globalName,
         unknown: !user,
         track: this.trackNo++,
         packet: 2
