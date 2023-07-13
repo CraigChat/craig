@@ -196,12 +196,19 @@ export default class Join extends GeneralCommand {
       };
 
     // Check for maintenence
-    const maintenence = await checkMaintenance(this.client.bot.user.id);
-    if (maintenence)
-      return {
-        content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
-        ephemeral: true
-      };
+    const isElevated = this.client.config.elevated
+      ? Array.isArray(this.client.config.elevated)
+        ? this.client.config.elevated.includes(ctx.user.id)
+        : this.client.config.elevated === ctx.user.id
+      : false;
+    if (!isElevated) {
+      const maintenence = await checkMaintenance(this.client.bot.user.id);
+      if (maintenence)
+        return {
+          content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
+          ephemeral: true
+        };
+    }
 
     // Check guild-wide cooldown
     const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}`, 30, 2);
