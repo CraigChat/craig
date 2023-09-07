@@ -113,43 +113,53 @@ export default function Dropdown({
                   'absolute z-10 my-1 bg-zinc-700 shadow-lg max-h-56 rounded-md text-sm sm:text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none'
                 )}
               >
-                {items.map((item) => (
-                  <Listbox.Option
-                    key={item.value}
-                    className={({ active }) => clsx(active ? 'text-white bg-teal-600' : '', 'cursor-default select-none relative py-2 pl-3 pr-12')}
-                    value={item}
-                    disabled={item.disabled || (tier !== undefined && item.tierRequired !== undefined && tier !== -1 && item.tierRequired > tier)}
-                  >
-                    {({ selected, active }) => (
-                      <Fragment>
-                        <div className="flex items-center gap-1 text-sm sm:text-base">
-                          <span className="block truncate font-medium">
-                            {item.title}
-                            {item.suffix ? <span className="font-normal"> {item.suffix}</span> : ''}
-                          </span>
-                        </div>
+                {items.map((item) => {
+                  const itemDisabled =
+                    item.disabled || (tier !== undefined && item.tierRequired !== undefined && tier !== -1 && item.tierRequired > tier);
+                  return (
+                    <Listbox.Option
+                      key={item.value}
+                      className={({ active }) =>
+                        clsx(
+                          itemDisabled ? 'bg-black bg-opacity-25 opacity-50' : '',
+                          active ? 'text-white bg-teal-600' : '',
+                          'cursor-default select-none relative py-2 pl-3 pr-12'
+                        )
+                      }
+                      value={item}
+                      disabled={itemDisabled}
+                    >
+                      {({ selected, active }) => (
+                        <Fragment>
+                          <div className="flex items-center gap-1 text-sm sm:text-base">
+                            <span className="block truncate font-medium">
+                              {item.title}
+                              {item.suffix ? <span className="font-normal"> {item.suffix}</span> : ''}
+                            </span>
+                          </div>
 
-                        {selected ? (
-                          <span className={clsx(active ? 'text-white' : 'text-teal-600', 'absolute inset-y-0 right-0 flex items-center pr-4')}>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              xmlnsXlink="http://www.w3.org/1999/xlink"
-                              aria-hidden="true"
-                              role="img"
-                              className="h-5 w-5"
-                              width="1em"
-                              height="1em"
-                              preserveAspectRatio="xMidYMid meet"
-                              viewBox="0 0 24 24"
-                            >
-                              <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19L21 7l-1.41-1.41z" />
-                            </svg>
-                          </span>
-                        ) : null}
-                      </Fragment>
-                    )}
-                  </Listbox.Option>
-                ))}
+                          {selected ? (
+                            <span className={clsx(active ? 'text-white' : 'text-teal-600', 'absolute inset-y-0 right-0 flex items-center pr-4')}>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                xmlnsXlink="http://www.w3.org/1999/xlink"
+                                aria-hidden="true"
+                                role="img"
+                                className="h-5 w-5"
+                                width="1em"
+                                height="1em"
+                                preserveAspectRatio="xMidYMid meet"
+                                viewBox="0 0 24 24"
+                              >
+                                <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19L21 7l-1.41-1.41z" />
+                              </svg>
+                            </span>
+                          ) : null}
+                        </Fragment>
+                      )}
+                    </Listbox.Option>
+                  );
+                })}
               </Listbox.Options>
             </Transition>
           </div>
