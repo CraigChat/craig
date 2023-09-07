@@ -368,6 +368,7 @@ export default function Index(props: Props) {
                     full
                     selected={driveFormat}
                     onSelect={setDriveFormat}
+                    tier={props.rewardTier}
                   />
                 </>
               )}

@@ -23,7 +23,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (format !== 'flac' && container === 'aupzip') return res.status(400).send({ error: 'Invalid combination' });
 
   if (container === 'mix' && !['flac', 'vorbis', 'aac'].includes(format)) return res.status(400).send({ error: 'Invalid combination' });
-  if (container === 'mix' && !(dbUser.rewardTier >= 20 || dbUser.rewardTier === -1)) return res.status(400).send({ error: 'User is not a Better Supporter ($4 tier)' });
+  if (container === 'mix' && !(dbUser.rewardTier >= 20 || dbUser.rewardTier === -1))
+    return res.status(400).send({ error: 'User is not a Better Supporter ($4 tier)' });
 
   if (typeof enabled !== 'boolean') return res.status(400).send({ error: 'Invalid enabled state' });
 
