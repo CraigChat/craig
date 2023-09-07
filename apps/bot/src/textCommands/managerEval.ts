@@ -54,7 +54,7 @@ export default class ManagerEvalCommand extends TextCommand {
   makeResultMessages(result: any, hrDiff: [number, number], input?: string): Eris.AdvancedMessageContent {
     const inspected = util.inspect(result, { depth: 0 }).replace(nlPattern, '\n').replace(this.sensitivePattern, '--snip--');
     if (input) {
-      if (input.length > 1900)
+      if (inspected.length > 1900)
         return {
           attachments: [
             {
