@@ -6,6 +6,8 @@ export interface DropdownItem extends Record<string, any> {
   title: string;
   suffix?: string;
   value: string;
+  disabled?: boolean;
+  tierRequired?: number;
 }
 
 interface DropdownProps {
@@ -17,10 +19,22 @@ interface DropdownProps {
   right?: boolean;
   bottom?: boolean;
   disabled?: boolean;
+  tier?: number;
   onSelect?(item: DropdownItem): any;
 }
 
-export default function Dropdown({ className, label, items, selected: defaultSelected, full, right, bottom, disabled, onSelect }: DropdownProps) {
+export default function Dropdown({
+  className,
+  label,
+  items,
+  selected: defaultSelected,
+  full,
+  right,
+  bottom,
+  disabled,
+  onSelect,
+  tier
+}: DropdownProps) {
   const [selected, setSelected] = useState(defaultSelected || items[0]);
 
   function onSelectItem(item: DropdownItem) {
@@ -104,7 +118,7 @@ export default function Dropdown({ className, label, items, selected: defaultSel
                     key={item.value}
                     className={({ active }) => clsx(active ? 'text-white bg-teal-600' : '', 'cursor-default select-none relative py-2 pl-3 pr-12')}
                     value={item}
-                    disabled={item.disabled}
+                    disabled={item.disabled || (tier !== undefined && item.tierRequired !== undefined && tier !== -1 && item.tierRequired > tier)}
                   >
                     {({ selected, active }) => (
                       <Fragment>

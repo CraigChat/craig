@@ -61,6 +61,21 @@ const formats: DropdownItem[] = [
     value: 'aac-zip'
   },
   {
+    title: 'FLAC Single-Track Mix (Better Supporter / $4 tier)',
+    value: 'flac-mix',
+    tierRequired: 20
+  },
+  {
+    title: 'AAC Single-Track Mix (Better Supporter / $4 tier)',
+    value: 'aac-mix',
+    tierRequired: 20
+  },
+  {
+    title: 'Ogg Vorbis Single-Track Mix (Better Supporter / $4 tier)',
+    value: 'vorbis-mix',
+    tierRequired: 20
+  },
+  {
     title: 'Ogg FLAC',
     value: 'oggflac-zip'
   },

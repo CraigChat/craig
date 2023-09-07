@@ -129,6 +129,18 @@ function getRecordingDescription(recordingId: string, info: any, joiner = '\n') 
   ].join(joiner);
 }
 
+const FormatToMime: Record<string, string> = {
+  flac: 'audio/flac',
+  vorbis: 'audio/ogg',
+  aac: 'audio/aac'
+};
+
+const FormatToExt: Record<string, string> = {
+  flac: 'flac',
+  vorbis: 'ogg',
+  aac: 'aac'
+};
+
 export async function driveUpload({
   recordingId,
   userId
@@ -150,10 +162,22 @@ export async function driveUpload({
   if (!user) return { error: 'user_not_found', notify: false };
   if (user.rewardTier === 0) return { error: 'user_not_allowed', notify: false };
   if (!user.driveEnabled) return { error: 'not_enabled', notify: false };
+  if (user.rewardTier !== -1 && user.rewardTier < 20 && user.driveContainer === 'mix')
+    return { error: 'mix_unavailable_with_current_tier', notify: false };
 
   logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${user.driveFormat || 'flac'}.${user.driveContainer || 'zip'})`);
 
   let child: ChildProcessWithoutNullStreams | null = null;
+
+  const format = user.driveFormat || 'flac';
+  const container = user.driveContainer || 'zip';
+  const mime =
+    container === 'mix'
+      ? FormatToMime[format] || 'audio/flac'
+      : container === 'exe'
+      ? 'application/vnd.microsoft.portable-executable'
+      : 'application/zip';
+  const ext = container === 'mix' ? FormatToExt[format] || 'flac' : container === 'exe' ? 'exe' : 'zip';
 
   try {
     switch (user.driveService) {
@@ -178,11 +202,6 @@ export async function driveUpload({
 
         const folderId = await findCraigDirectoryInGoogleDrive(drive);
         if (!folderId) return { error: 'google_token_expired', notify: true };
-
-        const format = user.driveFormat || 'flac';
-        const container = user.driveContainer || 'zip';
-        const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
-        const ext = container === 'exe' ? 'exe' : 'zip';
         child = await cook(recordingId, format, container);
 
         // TODO server icon as contentHints.thumbnail ?
@@ -228,11 +247,6 @@ export async function driveUpload({
           await prisma.microsoftUser.delete({ where: { id: userId } });
           return { error: 'microsoft_token_expired', notify: true };
         }
-
-        const format = user.driveFormat || 'flac';
-        const container = user.driveContainer || 'zip';
-        const mime = container === 'exe' ? 'application/vnd.microsoft.portable-executable' : 'application/zip';
-        const ext = container === 'exe' ? 'exe' : 'zip';
         child = await cook(recordingId, format, container);
 
         const file = await axios.put(`https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/content`, child.stdout, {
