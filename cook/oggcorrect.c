@@ -53,6 +53,7 @@ struct PacketList {
     struct PacketList *next;
     int flags;
     int framesInPacket; // Number of audio frames in this packet
+    int frameSize; // Size of frame
     int preSkip; // Number of frames to insert before this
     uint64_t inputGranulePos;
     uint64_t outputGranulePos;
@@ -320,7 +321,9 @@ int main(int argc, char **argv)
         tail->inputGranulePos = (oggHeader.granulePos > granuleOffset) ? oggHeader.granulePos - granuleOffset : 0;
 
         // Figure out how many frames are in this packet
+        tail->frameSize = 960;
         if (!flacRate) {
+            // Update frame in packet
             tail->framesInPacket = buf[skip] & 0x3;
             switch (tail->framesInPacket) {
                 case 0:
@@ -340,9 +343,51 @@ int main(int argc, char **argv)
                     tail->framesInPacket = 1;
             }
 
+            // Plot out each frame time and set it
+            // https://datatracker.ietf.org/doc/html/rfc6716#section-3.1
+            tail->frameSize = 960;
+            // fprintf(stderr, "lol %d\n", buf[skip]);
+            switch (buf[skip] >> 3) {
+                case 0:
+                case 4:
+                case 8:
+                case 12:
+                case 14:
+                case 18:
+                case 22:
+                case 27:
+                case 30:
+                    tail->frameSize = 480; // 10ms
+                    break;
+                case 2:
+                case 6:
+                case 10:
+                    tail->frameSize = 1920; // 40ms
+                    break;
+                case 3:
+                case 7:
+                case 11:
+                    tail->frameSize = 2880; // 60ms
+                    break;
+                case 17:
+                case 21:
+                case 25:
+                case 29:
+                    tail->frameSize = 240; // 5ms
+                    break;
+                case 16:
+                case 20:
+                case 24:
+                case 28:
+                    tail->frameSize = 120; // 2.5ms
+                    break;
+                default:
+                    tail->frameSize = 960; // 20ms
+                    break;
+            }
         } else {
             tail->framesInPacket = 1;
-
+            tail->frameSize = 960;
         }
 
         // Check if it's silent
@@ -408,20 +453,20 @@ int main(int argc, char **argv)
 
         // Check the difference between the expected range and the actual range
         double expected = granulePos + ct * packetTime;
-        double actual = end->inputGranulePos + end->framesInPacket * packetTime;
+        double actual = end->inputGranulePos + end->framesInPacket * end->frameSize;
         if (actual < expected && (begin->flags & FLAG_SILENT)) {
             // Cut out silence from the beginning
             while (actual < expected) {
                 if (begin->preSkip) {
                     begin->preSkip--;
-                    expected -= packetTime;
-                    if (granulePos > packetTime)
-                        granulePos -= packetTime;
+                    expected -= begin->frameSize;
+                    if (granulePos > begin->frameSize)
+                        granulePos -= begin->frameSize;
                     else
                         granulePos = 0;
                 } else if (begin != end) {
                     begin->flags |= FLAG_DROP;
-                    expected -= begin->framesInPacket * packetTime;
+                    expected -= begin->framesInPacket * begin->frameSize;
                     begin = begin->next;
                 } else break;
             }
@@ -439,17 +484,15 @@ int main(int argc, char **argv)
                 granulePos += mid->framesInPacket * packetTime;
 
             } else if (granulePos >
-                mid->inputGranulePos + packetTime * 25) {
+                mid->inputGranulePos + mid->frameSize * 25) {
                 // Too much data, drop a packet
                 mid->flags |= FLAG_DROP;
 
             } else {
                 // Just right!
                 mid->outputGranulePos = granulePos;
-                granulePos += mid->framesInPacket * packetTime;
-
+                granulePos += mid->framesInPacket * mid->frameSize;
             }
-
         }
 
         // And adjust for any skip at the end
