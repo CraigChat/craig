@@ -345,8 +345,6 @@ int main(int argc, char **argv)
 
             // Plot out each frame time and set it
             // https://datatracker.ietf.org/doc/html/rfc6716#section-3.1
-            tail->frameSize = 960;
-            // fprintf(stderr, "lol %d\n", buf[skip]);
             switch (buf[skip] >> 3) {
                 case 0:
                 case 4:
