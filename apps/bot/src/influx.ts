@@ -23,6 +23,7 @@ export let autorecordingsStarted = 0;
 export let pointQueue: Point[] = [];
 
 export function onCommandRun(userID: string, commandName: string, guildID?: string) {
+  if (!influxOpts || !influxOpts.url || !client) return;
   const commandCount = commandCounts.get(commandName) || { users: [], used: 0 };
 
   if (!commandCount.users.includes(userID)) commandCount.users.push(userID);
@@ -37,6 +38,7 @@ export function onCommandRun(userID: string, commandName: string, guildID?: stri
 }
 
 export function onRecordingStart(userID: string, guildID: string, auto = false) {
+  if (!influxOpts || !influxOpts.url || !client) return;
   recordingsStarted++;
   if (!activeUsers.includes(userID)) activeUsers.push(userID);
   if (!activeGuilds.includes(guildID)) activeGuilds.push(guildID);
@@ -52,6 +54,7 @@ export async function onRecordingEnd(
   webapp = false,
   errored = false
 ) {
+  if (!influxOpts || !influxOpts.url || !client) return;
   if (!activeUsers.includes(userID)) activeUsers.push(userID);
   if (!activeGuilds.includes(guildID)) activeGuilds.push(guildID);
 
@@ -87,7 +90,7 @@ export async function onRecordingEnd(
 }
 
 async function collect() {
-  if (!influxOpts || !influxOpts.url) return;
+  if (!influxOpts || !influxOpts.url || !client) return;
   const timestamp = cron.lastDate();
 
   const writeApi = client!.getWriteApi(influxOpts.org, influxOpts.bucket, 's');
