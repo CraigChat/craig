@@ -165,12 +165,12 @@ export async function driveUpload({
   if (user.rewardTier !== -1 && user.rewardTier < 20 && user.driveContainer === 'mix')
     return { error: 'mix_unavailable_with_current_tier', notify: false };
 
-  logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${user.driveFormat || 'flac'}.${user.driveContainer || 'zip'})`);
+  const format = user.driveFormat || 'flac';
+  const container = user.driveContainer || 'zip';
+  logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${format}.${container})`);
 
   let child: ChildProcessWithoutNullStreams | null = null;
 
-  const format = user.driveFormat || 'flac';
-  const container = user.driveContainer || 'zip';
   const mime =
     container === 'mix'
       ? FormatToMime[format] || 'audio/flac'
