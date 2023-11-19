@@ -69,7 +69,7 @@ export default class RefreshPatrons extends TaskJob {
       'fields[user]': 'social_connections',
       ...(cursor ? { 'page[cursor]': cursor } : {})
     });
-    const response = await axios.get(`https://patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
+    const response = await axios.get(`https://www.patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
       headers: {
         Authorization: `Bearer ${credentials.accessToken}`,
         'User-Agent': this.userAgent
