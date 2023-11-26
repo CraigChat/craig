@@ -17,12 +17,12 @@ ffmpeg-worker-craig.js.
 
 The audio processing scripts require the following command-line tools:
 
-ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
-flac ( https://xiph.org/flac/ )
-oggenc ( https://xiph.org/vorbis/ )
-opusenc ( http://opus-codec.org/ )
-fdkaac ( https://github.com/nu774/fdkaac )
-zip and unzip ( http://infozip.org/ )
+- ffmpeg ( http://ffmpeg.org/ ) compiled with libopus support
+- flac ( https://xiph.org/flac/ )
+- oggenc ( https://xiph.org/vorbis/ )
+- opusenc ( http://opus-codec.org/ )
+- fdkaac ( https://github.com/nu774/fdkaac )
+- zip and unzip ( http://infozip.org/ )
 
 Various components of the audio processing scripts require compilation or
 translation:
