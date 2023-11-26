@@ -1,3 +1,4 @@
+# What is Craig?
 Craig is a multi-track voice recorder for Discord. Craig is divided into three
 components: The actual recording bot, the web page (for downloading
 recordings), and the audio processing scripts.
@@ -25,13 +26,17 @@ zip and unzip ( http://infozip.org/ )
 
 Various components of the audio processing scripts require compilation or
 translation:
+```sh
 cd cook
 for i in *.c; do gcc -O3 -o ${i%.c} $i; done
-for i in *.svg; do inkscape -e ${i%.svg}.png $i; done
+for i in *.svg; do inkscape -o ${i%.svg}.png $i; done
+```
 
 The self extractors require compilation if you want them:
+```sh
 cd windows; make
 cd macosx; make
+```
 
 Finally, the avatar stuff requires ImageMagick.
 
