@@ -21,6 +21,12 @@ module.exports = {
     skipUsers: []
   },
 
+  microsoft: {
+    clientId: '',
+    clientSecret: '', 
+    redirect: ''
+  },
+
   downloads: {
     expiration: 24 * 60 * 60 * 1000,
     path: '../download/downloads'
