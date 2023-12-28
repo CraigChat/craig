@@ -2,12 +2,16 @@ import axios from 'axios';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import config from 'config';
 import { drive_v3, google } from 'googleapis';
+import { createReadStream } from 'node:fs';
 import * as fs from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { createLogger } from '../logger';
 import { prisma } from '../prisma';
 import { clearReadyState, setReadyState } from '../redis';
+
+const CHUNKS_PER_ONEDRIVE_UPLOAD = 20;
 
 const driveConfig = config.get('drive') as {
   clientId: string;
@@ -170,6 +174,8 @@ export async function driveUpload({
   logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${format}.${container})`);
 
   let child: ChildProcessWithoutNullStreams | null = null;
+  let tempFile: string | null = null;
+  let uploadUrl: string | null = null;
 
   const mime =
     container === 'mix'
@@ -249,21 +255,70 @@ export async function driveUpload({
         }
         child = await cook(recordingId, format, container);
 
-        const file = await axios.put(`https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/content`, child.stdout, {
-          headers: { 'Content-Type': mime, Authorization: `Bearer ${accessToken}` }
-        });
+        tempFile = path.join(tmpdir(), `${fileName}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
+        await fs.writeFile(tempFile, child.stdout);
 
         await clearReadyState(recordingId);
         killProcessTree(child);
 
-        // Set file description
-        await axios.patch(
-          `https://graph.microsoft.com/v1.0/drive/items/${file.data.id}/`,
-          JSON.stringify({ description: getRecordingDescription(recordingId, info, ' - ') }),
+        const uploadSession = await axios.post(
+          `https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/createUploadSession`,
+          JSON.stringify({
+            '@odata.type': 'microsoft.graph.driveItemUploadableProperties',
+            '@microsoft.graph.conflictBehavior': 'rename',
+            name: `${fileName}.${ext}`,
+            item: {
+              description: getRecordingDescription(recordingId, info, ' - ')
+            }
+          }),
           {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }
           }
         );
+
+        uploadUrl = uploadSession.data.uploadUrl as string;
+
+        const fileSize = (await fs.stat(tempFile)).size;
+        let uploadedBytes = 0;
+        let chunksToUploadSize = 0;
+        let chunks: Buffer[] = [];
+        const readStream = createReadStream(tempFile);
+
+        const file: any = await new Promise((resolve, reject) => {
+          readStream.on('data', async (chunk) => {
+            chunks.push(chunk as Buffer);
+            chunksToUploadSize += chunk.length;
+
+            // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
+            if (chunks.length === CHUNKS_PER_ONEDRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
+              readStream.pause();
+
+              const response = await axios.put(uploadUrl!, Buffer.concat(chunks, chunksToUploadSize), {
+                headers: {
+                  'Content-Length': String(chunksToUploadSize),
+                  'Content-Range': 'bytes ' + uploadedBytes + '-' + (uploadedBytes + chunksToUploadSize - 1) + '/' + fileSize
+                },
+                validateStatus: () => true
+              });
+
+              if (response.status >= 400) {
+                readStream.close();
+                return reject(`OneDrive Error (${response.status}): ${response.data?.error?.message || 'UnexpectedError'}`);
+              }
+
+              // update uploaded bytes
+              uploadedBytes += chunksToUploadSize;
+
+              // reset for next chunks
+              chunks = [];
+              chunksToUploadSize = 0;
+
+              if (response.status === 201 || response.status === 203 || response.status === 200) resolve(response.data);
+
+              readStream.resume();
+            }
+          });
+        });
 
         // // Set file icon
         // if (info.guildExtra.icon) {
@@ -273,11 +328,13 @@ export async function driveUpload({
         //   });
         // }
 
+        await fs.unlink(tempFile).catch(() => {});
+
         return {
           error: null,
           notify: true,
-          id: file.data.id,
-          url: file.data.webUrl
+          id: file.id,
+          url: file.webUrl
         };
       }
       default:
@@ -287,6 +344,7 @@ export async function driveUpload({
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`, e);
     await clearReadyState(recordingId);
     if (child) killProcessTree(child);
+    if (tempFile) await fs.unlink(tempFile).catch(() => {});
     return { error: (e as any).toString() || 'unknown_error', notify: true };
   }
 }
