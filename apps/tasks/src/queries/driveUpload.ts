@@ -264,7 +264,6 @@ export async function driveUpload({
         const uploadSession = await axios.post(
           `https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/createUploadSession`,
           JSON.stringify({
-            '@odata.type': 'microsoft.graph.driveItemUploadableProperties',
             '@microsoft.graph.conflictBehavior': 'rename',
             name: `${fileName}.${ext}`,
             item: {
