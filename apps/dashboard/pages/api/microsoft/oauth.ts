@@ -46,7 +46,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     return res.redirect(`/?error=${encodeURIComponent('Could not get an access token, please sign in again.')}&from=microsoft`);
   if (!response.refresh_token || typeof response.refresh_token !== 'string')
     return res.redirect(`/?error=${encodeURIComponent('Could not get a refresh token, please sign in again.')}&from=microsoft`);
-  if (response.scope !== scopes.filter((s) => s !== 'offline_access').join(' ')) return res.redirect(`/?error=invalid_scope&from=microsoft`);
+  const scopesRecieved = response.scope.split(' ');
+  if (scopes.find((s) => s !== 'offline_access' && !scopesRecieved.includes(s))) return res.redirect(`/?error=invalid_scope&from=microsoft`);
 
   const me: MicrosoftUser = await fetch('https://graph.microsoft.com/v1.0/me', {
     headers: { Authorization: `${response.token_type} ${response.access_token}` }
