@@ -1,7 +1,8 @@
-import axios from 'axios';
+import axios, { type AxiosError } from 'axios';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import config from 'config';
 import { drive_v3, google } from 'googleapis';
+import type { ClientRequest } from 'http';
 import { createReadStream } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -340,10 +341,21 @@ export async function driveUpload({
         return { error: 'unknown_service', notify: false };
     }
   } catch (e) {
-    logger.error(`Error in uploading recording ${recordingId} for user ${userId}`, e);
+    logger.error(`Error in uploading recording ${recordingId} for user ${userId}`);
     await clearReadyState(recordingId);
     if (child) killProcessTree(child);
     if (tempFile) await fs.unlink(tempFile).catch(() => {});
+    if ((e as AxiosError).isAxiosError === true) {
+      const response = (e as AxiosError).response;
+      const request: ClientRequest = (e as AxiosError).request;
+      if (response)
+        logger.error(
+          `AxiosError (${response.status}) ${request ? `${request.method} ${request.host}${request.path}` : '<unknown request>'}`,
+          response.data
+        );
+      else if (request) logger.error(`AxiosError <unknown response> ${request.method} ${request.host}${request.path}`);
+      else console.error(e);
+    }
     return { error: (e as any).toString() || 'unknown_error', notify: true };
   }
 }
