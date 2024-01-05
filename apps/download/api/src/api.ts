@@ -120,7 +120,7 @@ export async function start(): Promise<void> {
     return;
   });
 
-  const port = parseInt(process.env.API_PORT, 10) || 3000;
+  const port = parseInt(process.env.API_PORT, 10) || 5029;
   const host = process.env.API_HOST || 'localhost';
   const addr = await server.listen({ host, port });
   console.info(`Running webhook on ${addr}, env: ${process.env.NODE_ENV || 'development'}`);

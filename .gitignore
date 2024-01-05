@@ -33,6 +33,7 @@ cook/*.macosx
 apps/download/downloads/
 
 # Database
+*.rdb
 *.db
 *.db-shm
 *.db-wal
@@ -51,3 +52,5 @@ nohup.out
 config.json
 apps/*/config/default.js
 .patreon-credentials.json
+install.config
+
