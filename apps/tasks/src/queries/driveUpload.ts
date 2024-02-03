@@ -386,7 +386,7 @@ export async function driveUpload({
         const fileSize = (await fs.stat(tempFile)).size;
         const readStream = createReadStream(tempFile);
         const file: DropboxResponse<files.FileMetadata> = fileSize < DROPBOX_UPLOAD_FILE_SIZE_LIMIT
-        ? await dbx.filesUpload({path: '/' + fileName, autorename: true, contents: readStream })
+        ? await dbx.filesUpload({path: `/${fileName}.${ext}`, autorename: true, contents: readStream })
         : await new Promise((resolve, reject) => {
             let sessionId = '';
             let uploadedBytes = 0;
@@ -411,7 +411,7 @@ export async function driveUpload({
                   } else if (finished) {
                     const file = await dbx.filesUploadSessionFinish({
                       cursor: { session_id: sessionId, offset: uploadedBytes },
-                      commit: { path: '/' + fileName, autorename: true },
+                      commit: { path: `/${fileName}.${ext}`, autorename: true },
                       contents: chunkBuffer
                     });
                     return resolve(file);
