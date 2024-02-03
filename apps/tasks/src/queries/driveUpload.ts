@@ -354,6 +354,7 @@ export async function driveUpload({
       case 'dropbox': {
         const driveUser = await prisma.dropboxUser.findFirst({ where: { id: userId } });
         if (!driveUser) return { error: 'data_not_found', notify: false };
+        const DROPBOX_UPLOAD_FILE_SIZE_LIMIT = 150 * 1024 * 1024;
 
         const auth = new DropboxAuth({
           clientId: dropboxConfig.clientId,
@@ -368,8 +369,8 @@ export async function driveUpload({
         try {
           await dbx.usersGetCurrentAccount();
         } catch (e) {
-          const err: DropboxError<never> = e as any;
-          logger.error(`Error in uploading recording ${recordingId} for user ${userId} due to dropbox: ${err?.error_summary || String(e)}`);
+          const err: DropboxError<{ error_summary: string }> = e as any;
+          logger.error(`Error in uploading recording ${recordingId} for user ${userId} due to dropbox`, err.error);
           await prisma.dropboxUser.delete({ where: { id: userId } });
           return { error: 'dropbox_token_invalid', notify: true };
         }
@@ -384,66 +385,58 @@ export async function driveUpload({
 
         const fileSize = (await fs.stat(tempFile)).size;
         const readStream = createReadStream(tempFile);
-        const file: DropboxResponse<files.FileMetadata> = await new Promise((resolve, reject) => {
-          let sessionId = '';
-          let uploadedBytes = 0;
-          let chunksToUploadSize = 0;
-          let chunks: Buffer[] = [];
+        const file: DropboxResponse<files.FileMetadata> = fileSize < DROPBOX_UPLOAD_FILE_SIZE_LIMIT
+        ? await dbx.filesUpload({path: '/' + fileName, autorename: true, contents: readStream })
+        : await new Promise((resolve, reject) => {
+            let sessionId = '';
+            let uploadedBytes = 0;
+            let chunksToUploadSize = 0;
+            let chunks: Buffer[] = [];
 
-          readStream.on('data', async (chunk) => {
-            chunks.push(chunk as Buffer);
-            chunksToUploadSize += chunk.length;
+            readStream.on('data', async (chunk) => {
+              chunks.push(chunk as Buffer);
+              chunksToUploadSize += chunk.length;
 
-            const finished = chunksToUploadSize + uploadedBytes === fileSize;
+              const finished = chunksToUploadSize + uploadedBytes === fileSize;
 
-            // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-            if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
-              readStream.pause();
-              const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
+              // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
+              if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
+                readStream.pause();
+                const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
 
-              try {
-                if (uploadedBytes === 0) {
-                  const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
-                  sessionId = response.result.session_id;
-
-                  // Small files could be finished quickly
-                  if (finished) {
+                try {
+                  if (uploadedBytes === 0) {
+                    const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
+                    sessionId = response.result.session_id;
+                  } else if (finished) {
                     const file = await dbx.filesUploadSessionFinish({
                       cursor: { session_id: sessionId, offset: uploadedBytes },
                       commit: { path: '/' + fileName, autorename: true },
                       contents: chunkBuffer
                     });
                     return resolve(file);
+                  } else {
+                    await dbx.filesUploadSessionAppendV2({
+                      cursor: { session_id: sessionId, offset: uploadedBytes },
+                      close: false,
+                      contents: chunkBuffer
+                    });
                   }
-                } else if (finished) {
-                  const file = await dbx.filesUploadSessionFinish({
-                    cursor: { session_id: sessionId, offset: uploadedBytes },
-                    commit: { path: '/' + fileName, autorename: true },
-                    contents: chunkBuffer
-                  });
-                  return resolve(file);
-                } else {
-                  await dbx.filesUploadSessionAppendV2({
-                    cursor: { session_id: sessionId, offset: uploadedBytes },
-                    close: false,
-                    contents: chunkBuffer
-                  });
+                } catch (e) {
+                  return reject(e);
                 }
-              } catch (e) {
-                return reject(e);
+
+                // update uploaded bytes
+                uploadedBytes += chunksToUploadSize;
+
+                // reset for next chunks
+                chunks = [];
+                chunksToUploadSize = 0;
+
+                readStream.resume();
               }
-
-              // update uploaded bytes
-              uploadedBytes += chunksToUploadSize;
-
-              // reset for next chunks
-              chunks = [];
-              chunksToUploadSize = 0;
-
-              readStream.resume();
-            }
+            });
           });
-        });
 
         await fs.unlink(tempFile).catch(() => {});
 
@@ -480,9 +473,9 @@ export async function driveUpload({
       else if (request) logger.error(`AxiosError <unknown response> ${request.method} ${request.host}${request.path}`);
       else console.error(e);
     } else if ((e as Error).name === 'DropboxResponseError') {
-      const err: DropboxError<never> = e as any;
-      logger.error(`DropboxError [${err.error_summary}]`, err.user_message?.text || err);
-      return { error: `DropboxError [${err.error_summary}]`, notify: true };
+      const err: DropboxError<{ error_summary: string }> = e as any;
+      logger.error(`DropboxError [${err.error.error_summary}]`, err.error);
+      return { error: `DropboxError [${err.error.error_summary}]`, notify: true };
     }
     return { error: (e as any).toString() || 'unknown_error', notify: true };
   }
