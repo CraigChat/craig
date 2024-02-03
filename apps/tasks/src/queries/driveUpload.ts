@@ -394,8 +394,10 @@ export async function driveUpload({
             chunks.push(chunk as Buffer);
             chunksToUploadSize += chunk.length;
 
+            const finished = chunksToUploadSize + uploadedBytes === fileSize;
+
             // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-            if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
+            if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
               readStream.pause();
               const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
 
@@ -403,7 +405,17 @@ export async function driveUpload({
                 if (uploadedBytes === 0) {
                   const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
                   sessionId = response.result.session_id;
-                } else if (chunksToUploadSize + uploadedBytes === fileSize) {
+
+                  // Small files could be finished quickly
+                  if (finished) {
+                    const file = await dbx.filesUploadSessionFinish({
+                      cursor: { session_id: sessionId, offset: uploadedBytes },
+                      commit: { path: '/' + fileName, autorename: true },
+                      contents: chunkBuffer
+                    });
+                    return resolve(file);
+                  }
+                } else if (finished) {
                   const file = await dbx.filesUploadSessionFinish({
                     cursor: { session_id: sessionId, offset: uploadedBytes },
                     commit: { path: '/' + fileName, autorename: true },
