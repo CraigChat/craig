@@ -7,10 +7,24 @@ module.exports = {
   //   keyPrefix: 'craig:'
   // },
 
-  // For the drive upload query
+  // For drive upload in Google Drive
   drive: {
     clientId: '',
     clientSecret: ''
+  },
+
+  // For drive upload in Microsoft OneDrive
+  microsoft: {
+    clientId: '',
+    clientSecret: '',
+    redirect: ''
+  },
+
+  // For drive upload in Dropbox
+  dropbox: {
+    clientId: '',
+    clientSecret: '',
+    folderName: 'CraigChat'
   },
 
   // for refresh patrons job
@@ -19,12 +33,6 @@ module.exports = {
     accessToken: '',
     tiers: {},
     skipUsers: []
-  },
-
-  microsoft: {
-    clientId: '',
-    clientSecret: '', 
-    redirect: ''
   },
 
   downloads: {

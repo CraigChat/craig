@@ -3,7 +3,7 @@ import { User } from '@prisma/client';
 import prisma from '../lib/prisma';
 
 export async function setNextAvailableService(user: User, exclude: string) {
-  const services = ['google', 'onedrive'].filter((s) => s !== exclude);
+  const services = ['google', 'onedrive', 'dropbox'].filter((s) => s !== exclude);
 
   for (const service of services) {
     let serviceData;
@@ -13,6 +13,9 @@ export async function setNextAvailableService(user: User, exclude: string) {
         break;
       case 'onedrive':
         serviceData = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
+        break;
+      case 'dropbox':
+        serviceData = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
         break;
     }
 

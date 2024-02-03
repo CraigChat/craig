@@ -93,6 +93,13 @@ model MicrosoftUser {
   username     String
 }
 
+model DropboxUser {
+  id           String  @id
+  refreshToken String
+  token        String
+  name         String
+}
+
 model Patreon {
   id          String    @id
   name        String

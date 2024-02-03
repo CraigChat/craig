@@ -380,7 +380,8 @@ export default class Recording {
     const services: { [key: string]: string } = {
       google: 'Google Drive',
       dropbox: 'Dropbox',
-      onedrive: 'OneDrive'
+      onedrive: 'OneDrive',
+      box: 'Box'
     };
     const service = services[user.driveService] ?? user.driveService;
 

@@ -5,7 +5,7 @@ import { parseUser } from '../../../utils';
 
 const formats = ['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', 'wav8'];
 const containers = ['aupzip', 'zip', 'mix'];
-const services = ['google', 'onedrive'];
+const services = ['google', 'onedrive', 'dropbox'];
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'PUT') return res.status(405).send({ error: 'Method not allowed' });

@@ -13,7 +13,7 @@ interface SelectableRowProps {
 export default function SelectableRow({ title, children, icon, selected, disabled, hidden, onClick }: SelectableRowProps) {
   return (
     <div className="flex justify-between bg-zinc-600 rounded-md px-3 py-2 shadow-md w-full">
-      <div className="flex group justify-center items-center gap-2 font-medium select-none" onClick={!disabled ? onClick : undefined}>
+      <div className="flex group justify-center items-center gap-2 font-medium select-none" onClick={!disabled && !hidden ? onClick : undefined}>
         {!hidden && (
           <svg
             viewBox="0 0 24 24"

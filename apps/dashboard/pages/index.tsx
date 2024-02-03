@@ -13,6 +13,7 @@ import { Modal } from '../components/modal';
 import Row from '../components/row';
 import Section from '../components/section';
 import SelectableRow from '../components/selectableRow';
+import DropboxLogo from '../components/svg/dropbox';
 import GoogleDriveLogo from '../components/svg/googleDrive';
 import OneDriveLogo from '../components/svg/oneDrive';
 import PatreonLogo from '../components/svg/patreon';
@@ -20,6 +21,7 @@ import Toggle from '../components/toggle';
 import prisma from '../lib/prisma';
 import { getAvatarUrl, parseUser } from '../utils';
 import { DiscordUser } from '../utils/types';
+import DropboxButton from '../components/dropboxButton';
 
 interface Props {
   user: DiscordUser;
@@ -29,6 +31,7 @@ interface Props {
   drive: DriveProps;
   googleDrive: boolean;
   microsoft: boolean;
+  dropbox: boolean;
 }
 
 interface DriveProps {
@@ -148,6 +151,7 @@ export default function Index(props: Props) {
       else if (from === 'patreon') title = 'An error occurred while connecting to Patreon.';
       else if (from === 'discord') title = 'An error occurred while connecting to Discord.';
       else if (from === 'microsoft') title = 'An error occurred while connecting to Microsoft.';
+      else if (from === 'dropbox') title = 'An error occurred while connecting to Dropbox.';
       else title = 'An error occurred.';
 
       if (error === 'access_denied') content = 'You denied access to your account.';
@@ -178,6 +182,14 @@ export default function Index(props: Props) {
         <span>
           You have unlinked your Microsoft account, but you can revoke app permissions in your{' '}
           <Link href="https://microsoft.com/consent">Microsoft settings</Link>.
+        </span>
+      );
+    } else if (r === 'dropbox_unlinked') {
+      title = 'Dropbox unlinked.';
+      content = (
+        <span>
+          You have unlinked your Dropbox account, but you can revoke app permissions in your{' '}
+          <Link href="https://www.dropbox.com/account/connected_apps">Dropbox settings</Link>.
         </span>
       );
     }
@@ -363,6 +375,22 @@ export default function Index(props: Props) {
                       <MicrosoftButton onClick={() => (location.href = '/api/microsoft/oauth')} />
                     )}
                   </SelectableRow>
+                  <SelectableRow
+                    title="Dropbox"
+                    icon={<DropboxLogo className="w-8 h-8" />}
+                    selected={drive.service === 'dropbox'}
+                    disabled={loading}
+                    hidden={!props.dropbox}
+                    onClick={() => setDriveService('dropbox')}
+                  >
+                    {props.dropbox ? (
+                      <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/dropbox/disconnect')}>
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <DropboxButton onClick={() => (location.href = '/api/dropbox/oauth')} />
+                    )}
+                  </SelectableRow>
                   <Dropdown
                     disabled={loading}
                     items={formats}
@@ -429,6 +457,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
   const patron = dbUser && dbUser.patronId ? await prisma.patreon.findUnique({ where: { id: dbUser.patronId } }) : null;
   const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
   const microsoft = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
+  const dropbox = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
 
   return {
     props: {
@@ -443,7 +472,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
         container: dbUser?.driveContainer || 'zip'
       },
       googleDrive: !!googleDrive,
-      microsoft: !!microsoft
+      microsoft: !!microsoft,
+      dropbox: !!dropbox
     }
   };
 };

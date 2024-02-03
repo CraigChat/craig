@@ -1,6 +1,7 @@
 import axios, { type AxiosError } from 'axios';
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import config from 'config';
+import { Dropbox, DropboxAuth, DropboxResponse, Error as DropboxError, files } from 'dropbox';
 import { drive_v3, google } from 'googleapis';
 import type { ClientRequest } from 'http';
 import { createReadStream } from 'node:fs';
@@ -12,7 +13,7 @@ import { createLogger } from '../logger';
 import { prisma } from '../prisma';
 import { clearReadyState, setReadyState } from '../redis';
 
-const CHUNKS_PER_ONEDRIVE_UPLOAD = 20;
+const CHUNKS_PER_DRIVE_UPLOAD = 20;
 
 const driveConfig = config.get<{
   clientId: string;
@@ -24,6 +25,12 @@ const microsoftConfig = config.get<{
   clientSecret: string;
   redirect: string;
 }>('microsoft');
+
+const dropboxConfig = config.get<{
+  clientId: string;
+  clientSecret: string;
+  folderName: string;
+}>('dropbox');
 
 const logger = createLogger('drive');
 
@@ -297,7 +304,7 @@ export async function driveUpload({
             chunksToUploadSize += chunk.length;
 
             // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-            if (chunks.length === CHUNKS_PER_ONEDRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
+            if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
               readStream.pause();
 
               const response = await axios.put(uploadUrl!, Buffer.concat(chunks, chunksToUploadSize), {
@@ -344,6 +351,104 @@ export async function driveUpload({
           url: file.webUrl
         };
       }
+      case 'dropbox': {
+        const driveUser = await prisma.dropboxUser.findFirst({ where: { id: userId } });
+        if (!driveUser) return { error: 'data_not_found', notify: false };
+
+        const auth = new DropboxAuth({
+          clientId: dropboxConfig.clientId,
+          clientSecret: dropboxConfig.clientSecret,
+          accessToken: driveUser.token,
+          refreshToken: driveUser.refreshToken
+        });
+
+        const dbx = new Dropbox({ auth });
+
+        // Test authorization access before we start uploading
+        try {
+          await dbx.usersGetCurrentAccount();
+        } catch (e) {
+          const err: DropboxError<never> = e as any;
+          logger.error(`Error in uploading recording ${recordingId} for user ${userId} due to dropbox: ${err?.error_summary || String(e)}`);
+          await prisma.dropboxUser.delete({ where: { id: userId } });
+          return { error: 'dropbox_token_invalid', notify: true };
+        }
+
+        child = await cook(recordingId, format, container);
+
+        tempFile = path.join(tmpdir(), `${fileName}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
+        await fs.writeFile(tempFile, child.stdout);
+
+        await clearReadyState(recordingId);
+        killProcessTree(child);
+
+        const fileSize = (await fs.stat(tempFile)).size;
+        const readStream = createReadStream(tempFile);
+        const file: DropboxResponse<files.FileMetadata> = await new Promise((resolve, reject) => {
+          let sessionId = '';
+          let uploadedBytes = 0;
+          let chunksToUploadSize = 0;
+          let chunks: Buffer[] = [];
+
+          readStream.on('data', async (chunk) => {
+            chunks.push(chunk as Buffer);
+            chunksToUploadSize += chunk.length;
+
+            // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
+            if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
+              readStream.pause();
+              const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
+
+              try {
+                if (uploadedBytes === 0) {
+                  const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
+                  sessionId = response.result.session_id;
+                } else if (chunksToUploadSize + uploadedBytes === fileSize) {
+                  const file = await dbx.filesUploadSessionFinish({
+                    cursor: { session_id: sessionId, offset: uploadedBytes },
+                    commit: { path: '/' + fileName, autorename: true },
+                    contents: chunkBuffer
+                  });
+                  return resolve(file);
+                } else {
+                  await dbx.filesUploadSessionAppendV2({
+                    cursor: { session_id: sessionId, offset: uploadedBytes },
+                    close: false,
+                    contents: chunkBuffer
+                  });
+                }
+              } catch (e) {
+                return reject(e);
+              }
+
+              // update uploaded bytes
+              uploadedBytes += chunksToUploadSize;
+
+              // reset for next chunks
+              chunks = [];
+              chunksToUploadSize = 0;
+
+              readStream.resume();
+            }
+          });
+        });
+
+        await fs.unlink(tempFile).catch(() => {});
+
+        const accessToken = auth.getAccessToken();
+        if (accessToken !== driveUser.token)
+          await prisma.dropboxUser.update({
+            where: { id: userId },
+            data: { token: accessToken }
+          });
+
+        return {
+          error: null,
+          notify: true,
+          id: file.result.id,
+          url: `https://www.dropbox.com/home/Apps/${encodeURIComponent(dropboxConfig.folderName)}?preview=${encodeURIComponent(file.result.name)}`
+        };
+      }
       default:
         return { error: 'unknown_service', notify: false };
     }
@@ -362,6 +467,10 @@ export async function driveUpload({
         );
       else if (request) logger.error(`AxiosError <unknown response> ${request.method} ${request.host}${request.path}`);
       else console.error(e);
+    } else if ((e as Error).name === 'DropboxResponseError') {
+      const err: DropboxError<never> = e as any;
+      logger.error(`DropboxError [${err.error_summary}]`, err.user_message?.text || err);
+      return { error: `DropboxError [${err.error_summary}]`, notify: true };
     }
     return { error: (e as any).toString() || 'unknown_error', notify: true };
   }
