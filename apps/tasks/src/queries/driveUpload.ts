@@ -14,21 +14,25 @@ import { clearReadyState, setReadyState } from '../redis';
 
 const CHUNKS_PER_ONEDRIVE_UPLOAD = 20;
 
-const driveConfig = config.get('drive') as {
+const driveConfig = config.get<{
   clientId: string;
   clientSecret: string;
-};
+}>('drive');
 
-const microsoftConfig = config.get('microsoft') as {
+const microsoftConfig = config.get<{
   clientId: string;
   clientSecret: string;
   redirect: string;
-};
+}>('microsoft');
 
 const logger = createLogger('drive');
 
-const recPath = path.join(__dirname, '..', '..', '..', '..', 'rec');
-const cookPath = path.join(__dirname, '..', '..', '..', '..', 'cook');
+const recPath = config.has('recording.path')
+  ? path.join(__dirname, '..', '..', config.get<string>('recording.path'))
+  : path.join(__dirname, '..', '..', '..', '..', 'rec');
+const cookPath = config.has('cookPath')
+  ? path.join(__dirname, '..', '..', config.get<string>('cookPath'))
+  : path.join(__dirname, '..', '..', '..', '..', 'cook');
 
 async function fileExists(file: string) {
   try {
@@ -51,6 +55,8 @@ function killProcessTree(p: ChildProcessWithoutNullStreams) {
 }
 
 async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
+  if (!/^[a-zA-Z0-9]+$/.test(id) || !/^[a-z38]+$/.test(format) || !/^[a-z]+$/.test(container)) throw new Error('An invalid argument was passed.');
+
   try {
     await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
     const cookingPath = path.join(cookPath, '..', 'cook.sh');
@@ -279,12 +285,13 @@ export async function driveUpload({
         uploadUrl = uploadSession.data.uploadUrl as string;
 
         const fileSize = (await fs.stat(tempFile)).size;
-        let uploadedBytes = 0;
-        let chunksToUploadSize = 0;
-        let chunks: Buffer[] = [];
         const readStream = createReadStream(tempFile);
 
         const file: any = await new Promise((resolve, reject) => {
+          let uploadedBytes = 0;
+          let chunksToUploadSize = 0;
+          let chunks: Buffer[] = [];
+
           readStream.on('data', async (chunk) => {
             chunks.push(chunk as Buffer);
             chunksToUploadSize += chunk.length;
@@ -303,7 +310,7 @@ export async function driveUpload({
 
               if (response.status >= 400) {
                 readStream.close();
-                return reject(`OneDrive Error (${response.status}): ${response.data?.error?.message || 'UnexpectedError'}`);
+                return reject(new Error(`OneDrive Error (${response.status}): ${response.data?.error?.message || 'UnexpectedError'}`));
               }
 
               // update uploaded bytes
@@ -313,7 +320,7 @@ export async function driveUpload({
               chunks = [];
               chunksToUploadSize = 0;
 
-              if (response.status === 201 || response.status === 203 || response.status === 200) resolve(response.data);
+              if (response.status === 201 || response.status === 203 || response.status === 200) return resolve(response.data);
 
               readStream.resume();
             }
