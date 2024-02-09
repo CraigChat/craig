@@ -222,9 +222,7 @@ export default class Recording {
           avatar: this.user.dynamicAvatarURL('png', 256)
         },
         requesterId: this.user.id,
-        client: {
-          id: this.recorder.client.bot.user.id
-        },
+        clientId: this.recorder.client.bot.user.id,
         startTime: this.startedAt.toISOString(),
         expiresAfter: rewards.downloadExpiryHours,
         features: rewards.features.reduce((acc, cur) => ({ ...acc, [cur]: true }), {} as { [key: string]: boolean })
