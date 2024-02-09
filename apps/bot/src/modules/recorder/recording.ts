@@ -222,6 +222,9 @@ export default class Recording {
           avatar: this.user.dynamicAvatarURL('png', 256)
         },
         requesterId: this.user.id,
+        client: {
+          id: this.recorder.client.bot.user.id
+        },
         startTime: this.startedAt.toISOString(),
         expiresAfter: rewards.downloadExpiryHours,
         features: rewards.features.reduce((acc, cur) => ({ ...acc, [cur]: true }), {} as { [key: string]: boolean })
@@ -400,7 +403,7 @@ export default class Recording {
           embeds: [
             {
               title: `Failed to upload to ${service}`,
-              description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording to your ${service}.`,
+              description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording to ${service}.`,
               color: 0xe74c3c
             }
           ]
@@ -417,7 +420,7 @@ export default class Recording {
             embeds: [
               {
                 title: `Failed to upload to ${service}`,
-                description: `Failed to upload recording \`${this.id}\` to ${service}. You may need to manually upload it to your ${service}, or possibly re-connect your ${service}.\n\n- **\`${response.error}\`**`,
+                description: `Failed to upload recording \`${this.id}\` to ${service}. You may need to manually upload it to ${service}, or possibly re-connect to ${service}.\n\n- **\`${response.error}\`**`,
                 color: 0xe74c3c
               }
             ]
