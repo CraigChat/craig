@@ -100,7 +100,7 @@ export default class ShardManager extends EventEmitter {
     const batches = split(range(this.options.shardCount), concurrency);
     for (const batchNum in batches) {
       const batch = batches[batchNum];
-      logger.info(`Spawning shards ${batch[0]}-${[...batch].reverse()[0]} in a batch (#${batchNum})`);
+      if (concurrency !== 1) logger.info(`Spawning shards ${batch[0]}-${[...batch].reverse()[0]} in a batch (#${batchNum})`);
       await Promise.all(batch.map(spawnShard));
     }
   }
