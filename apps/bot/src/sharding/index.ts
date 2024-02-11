@@ -17,7 +17,7 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
 
 (async () => {
   logger.info('Starting to spawn...');
-  await manager.spawnAll();
+  await manager.spawnAllWithConcurrency();
   logger.info(
     `Spawned ${manager.shards.size} shards in ${Array.from(manager.shards.values())
       .map((shard) => shard.guildCount)

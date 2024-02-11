@@ -1,4 +1,6 @@
 import EventEmitter from 'eventemitter3';
+import range from 'just-range';
+import split from 'just-split';
 
 import { wait } from '../util';
 import * as logger from './logger';
@@ -9,6 +11,7 @@ import { ManagerRequestMessage } from './types';
 export interface ManagerOptions {
   file: string;
   shardCount: number;
+  concurrency?: number;
   readyTimeout?: number;
   respawn?: boolean;
   args?: string[];
@@ -29,6 +32,7 @@ export default class ShardManager extends EventEmitter {
       {
         readyTimeout: options.readyTimeout ?? 30000,
         respawn: options.respawn ?? true,
+        concurrency: options.concurrency ?? 1,
         args: options.args ?? [],
         execArgv: options.execArgv ?? []
       },
@@ -71,6 +75,33 @@ export default class ShardManager extends EventEmitter {
         const res = await shard.eval(`this.guilds.has('${guildID}')`);
         if (res) return shard;
       } catch (e) {}
+    }
+  }
+
+  async spawnAllWithConcurrency(concurrency = this.options.concurrency, delay = 500) {
+    const spawnShard = async (id: number) => {
+      let retries = 0;
+      while (retries < 5) {
+        logger.info(`Spawning shard ${id}... (attempt ${retries + 1})`);
+        try {
+          retries++;
+          if (this.shards.has(id)) {
+            const shard = this.shards.get(id)!;
+            await shard.respawn(0);
+          } else await this.spawn(id);
+          break;
+        } catch (e) {
+          logger.error(`Failed to spawn shard ${id}`, e);
+        }
+        await wait(delay);
+      }
+    };
+
+    const batches = split(range(this.options.shardCount), concurrency);
+    for (const batchNum in batches) {
+      const batch = batches[batchNum];
+      logger.info(`Spawning shards ${batch[0]}-${[...batch].reverse()[0]} in a batch (#${batchNum})`);
+      await Promise.all(batch.map(spawnShard));
     }
   }
 
