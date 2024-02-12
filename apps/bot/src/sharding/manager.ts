@@ -1,6 +1,6 @@
 import EventEmitter from 'eventemitter3';
+import groupBy from 'just-group-by';
 import range from 'just-range';
-import split from 'just-split';
 
 import { wait } from '../util';
 import * as logger from './logger';
@@ -78,7 +78,7 @@ export default class ShardManager extends EventEmitter {
     }
   }
 
-  async spawnAllWithConcurrency(concurrency = this.options.concurrency, delay = 500) {
+  async spawnAllWithConcurrency(concurrency = this.options.concurrency || 1, delay = 500) {
     const spawnShard = async (id: number) => {
       let retries = 0;
       while (retries < 5) {
@@ -97,12 +97,16 @@ export default class ShardManager extends EventEmitter {
       }
     };
 
-    const batches = split(range(this.options.shardCount), concurrency);
-    for (const batchNum in batches) {
-      const batch = batches[batchNum];
-      if (concurrency !== 1) logger.info(`Spawning shards ${batch[0]}-${[...batch].reverse()[0]} in a batch (#${batchNum})`);
-      await Promise.all(batch.map(spawnShard));
-    }
+    const spawnBucket = async (ids: number[]) => {
+      for (const id of ids) {
+        await spawnShard(id);
+        await wait(5_000);
+      }
+      logger.info(`Concurrency bucket #${ids[0] % concurrency} finished`);
+    };
+
+    const buckets = Object.values(groupBy(range(this.options.shardCount), (n) => n % concurrency));
+    await Promise.all(buckets.map(spawnBucket));
   }
 
   async spawnAll(delay = 500) {

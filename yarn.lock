@@ -4305,15 +4305,15 @@ jsonwebtoken@^8.5.1:
     array-includes "^3.1.3"
     object.assign "^4.1.2"
 
+just-group-by@^2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/just-group-by/-/just-group-by-2.2.0.tgz#814be9b4ab55b1bed07c3df6587b7fbbfe0f9c9c"
+  integrity sha512-brZocDSmkvDYc+FOr07GiTar4cp7K6OB9huVOrj5LX+iXfCe3hTvn2KGM811LE/SBQkCzuYDDEcG8HA/dKDrnw==
+
 just-range@^4.2.0:
   version "4.2.0"
   resolved "https://registry.yarnpkg.com/just-range/-/just-range-4.2.0.tgz#34d901f76b2d0ce3a0d2c98cb691b06303945122"
   integrity sha512-z2Ip8H2j7a9Vr8rKFi0IZf4IXn2Yuq2lGZFS41GjfPwksoHWTaTx1xIjU6C0HyQ1jBXEoz/FzjS5eyVXeW19tg==
-
-just-split@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/just-split/-/just-split-3.2.0.tgz#14552b426e4f4c48bfbd7a716d97844ff73ea774"
-  integrity sha512-hh57dN5koTBkmg3T6gBFISVVaW5bgZ6Ct1W5KODD5M7hQJKqGzTKkfMwOil8MBxyztLQEjh/v6UGXE8cP5tnqQ==
 
 jwa@^1.4.1:
   version "1.4.1"
