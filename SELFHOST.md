@@ -4,7 +4,7 @@ Craig can be installed and ran locally. Some use cases for this are:
 - Creating multiple instances of Craig
 
 ## Pre-requisites/dependencies
-Craig can only be ran on a Linux machine. The installation has been tested on a fresh install of **Ubuntu 22.04**.
+Craig can only be ran on a Linux machine. The installation has been tested on a fresh install of **Ubuntu 22.04** and **Kubuntu 23.10**.
 
 The following `apt` packages will be automatically installed by the install script [install.sh](install.sh):
 
@@ -128,6 +128,31 @@ https://localhost:5029/rec/RECORDING_ID
 Most if not all browsers won't serve this because `localhost` doesn't have a signed certificate for `https://`. You can simply change the protocol to `http://` by removing the `s` and then you will be able to access your recording download:
 
 http://localhost:5029/rec/RECORDING_ID
+
+### Error that Redis package is not signed
+
+When testing with Kubuntu 23.10, the following error stops `sudo apt update` from working, which prematurely exits the install script:
+
+```
+E: Failed to fetch https://packages.redis.io/deb/dists/mantic/InRelease  403  Forbidden [IP: 18.173.121.98 443]
+E: The repository 'https://packages.redis.io/deb mantic InRelease' is not signed.
+```
+
+This occurs because Redis does not have a signature for the Kubuntu 23.10 release (Mantic). 
+
+A workaround is to comment out the first line in `/etc/apt/sources.list.d/redis.list`, i.e.:
+
+```sh
+#deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb mantic main
+```
+
+To avoid having to continually comment this out every time the install script is ran, you can add the `#` directly in [install.sh](install.sh):
+
+```sh
+echo "#deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+```
+
+This might need to be done for other distributions as well.
 
 ### Restarting Craig after reboot
 

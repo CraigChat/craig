@@ -99,7 +99,7 @@ install_apt_packages() {
   # for more info, see: https://redis.io/docs/install/install-redis/install-redis-on-linux/
   curl -fsSL https://packages.redis.io/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
   echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-  sudo apt-get update
+  sudo apt-get update || true
   sudo apt-get -y install redis
 }
 
@@ -107,7 +107,11 @@ install_node() {
   # Install and run node (must come before npm install because npm is included with node)
   # we have to source nvm first otherwise in this non-interactive script it will not be available
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-  source ~/.nvm/nvm.sh
+  
+  # There is a version error raised somewhere in "nvm.sh"
+  # because of set -e at the top of this script, we need to add the || true
+  source ~/.nvm/nvm.sh || true
+
   nvm install $NODE_VERSION
   nvm use $NODE_VERSION
 
@@ -123,7 +127,7 @@ start_redis() {
 
   # otherwise 'redis-server' will not be found if this function
   # is ran separately
-  source ~/.nvm/nvm.sh
+  source ~/.nvm/nvm.sh || true
   nvm use $NODE_VERSION
 
   # start redis and check if it is running, timeout if it hasn't started
@@ -203,6 +207,10 @@ start_postgresql() {
   fi
 
   sudo -u postgres -i psql -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -c "GRANT ALL ON SCHEMA public TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -c "GRANT USAGE ON SCHEMA public TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -c "ALTER DATABASE $DATABASE_NAME OWNER TO $POSTGRESQL_USER;"
+  
   sudo -u postgres -i psql -c "\l" # unnecessary but just for debugging
 }
 
@@ -245,6 +253,8 @@ config_env() {
     "GOOGLE_CLIENT_SECRET"
     "MICROSOFT_CLIENT_ID"
     "MICROSOFT_CLIENT_SECRET"
+    "DROPBOX_CLIENT_ID"
+    "DROPBOX_CLIENT_SECRET"
     "APP_URI"
     "JWT_SECRET"
   )
@@ -340,7 +350,7 @@ start_app(){
 
   # otherwise 'pm2' will not be found if this function
   # is ran separately
-  source ~/.nvm/nvm.sh
+  source ~/.nvm/nvm.sh || true
   nvm use $NODE_VERSION
 
   info "Starting Craig..."
