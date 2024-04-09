@@ -129,10 +129,16 @@ async function collect() {
 
   // Insert shard data
   const serverMap: { [key: string]: number } = {};
+  const unavailableServerMap: { [key: string]: number } = {};
   dexareClient.bot.guilds.map((guild) => {
     const shardID = String(guild.shard.id);
     if (serverMap[shardID]) serverMap[shardID] += 1;
     else serverMap[shardID] = 1;
+  });
+  dexareClient.bot.unavailableGuilds.map((guild) => {
+    const shardID = String(guild.shard.id);
+    if (unavailableServerMap[shardID]) unavailableServerMap[shardID] += 1;
+    else unavailableServerMap[shardID] = 1;
   });
   dexareClient.bot.shards.map((shard) =>
     points.push(
@@ -143,6 +149,7 @@ async function collect() {
         .intField('ms', isFinite(shard.latency) ? shard.latency : 0)
         .stringField('status', shard.status || 'unknown')
         .intField('guilds', serverMap[String(shard.id)] ?? 0)
+        .intField('unavailableGuilds', unavailableServerMap[String(shard.id)] ?? 0)
         .timestamp(timestamp)
     )
   );
