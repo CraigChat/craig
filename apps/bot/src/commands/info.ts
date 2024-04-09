@@ -66,6 +66,12 @@ export default class Info extends GeneralCommand {
               emoji: {
                 id: this.client.config.craig.emoji
               }
+            },
+            {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: 'Support Server',
+              url: 'https://discord.gg/craig'
             }
           ]
         }

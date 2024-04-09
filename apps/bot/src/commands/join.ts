@@ -67,7 +67,26 @@ export default class Join extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
-    const guild = this.client.bot.guilds.get(ctx.guildID)!;
+    const guild = this.client.bot.guilds.get(ctx.guildID);
+
+    if (!guild)
+      return {
+        content: 'There is a rare issue occuring with this server, try re-inviting this bot. If the issue persists, join the support server.',
+        ephemeral: true,
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Join Support Server',
+                url: 'https://discord.gg/craig'
+              }
+            ]
+          }
+        ]
+      };
 
     if (await checkBan(ctx.user.id))
       return {
