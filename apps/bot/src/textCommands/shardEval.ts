@@ -41,6 +41,8 @@ export default class ShardEvalCommand extends TextCommand {
     if (!ctx.args[0]) return 'You need to specify a shard.';
 
     const shard = parseInt(ctx.args[0]);
+    if (shard >= parseInt(process.env.SHARD_COUNT!) || shard < 0) return `That shard is out of range. (${process.env.SHARD_COUNT})`;
+
     let script = ctx.event
       .get('commands/strippedContent')
       .slice(ctx.event.get('commands/commandName').length + 1 + ctx.args[0].length)
