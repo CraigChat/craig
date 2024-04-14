@@ -140,6 +140,25 @@ export async function connect() {
   await prisma.$connect();
   influxCron.start();
   client.bot.editStatus('online', client.config.status);
+
+  let botName = 'Craig';
+  if (process.env.pm_pid_path && process.env.pm_id) {
+    try {
+      const pm2Name = process.env.pm_pid_path
+        .split('\\')
+        .reverse()[0]
+        .split('/')
+        .reverse()[0]
+        .slice(0, -`-${process.env.pm_id}.pid`.length)
+        .split('-')
+        .join(' ');
+      botName = `${pm2Name} [${process.env.pm_id}]`;
+    } catch (e) {}
+  }
+
+  process.title = `${botName} - ${
+    process.env.SHARD_ID ? `Shard ${process.env.SHARD_ID}/${process.env.SHARD_COUNT}` : `${client.bot.shards.size} shard(s)`
+  }`;
 }
 
 export async function disconnect() {
