@@ -4,8 +4,8 @@ import Eris from 'eris';
 import ShardingModule from '../modules/sharding';
 import TextCommand, { replyOrSend } from '../util';
 
-type AllowedType = Eris.SelfStatus & 'default';
-const ALLOWED_TYPES = ['online', 'idle', 'dnd', 'default'] as AllowedType[];
+type AllowedType = Eris.SelfStatus & 'default' & 'custom';
+const ALLOWED_TYPES = ['online', 'idle', 'dnd', 'default', 'custom'] as AllowedType[];
 
 export default class SetStatusCommand extends TextCommand {
   constructor(client: DexareClient<any>) {
@@ -33,6 +33,13 @@ export default class SetStatusCommand extends TextCommand {
 
     if (sharding.on) sharding.send('setStatus', { status: ctx.args[0], message: ctx.args[1] });
     else if (type === 'default') this.client.bot.editStatus('online', this.client.config.status);
+    else if (type === 'custom')
+      // @ts-ignore
+      this.client.bot.editStatus({
+        type: 4,
+        name: 'craig',
+        state: ctx.args[1]
+      });
     else
       this.client.bot.editStatus(type, {
         type: 0,

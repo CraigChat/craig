@@ -70,6 +70,13 @@ export default class ShardingModule extends DexareModule<CraigBot> {
         }
         case 'setStatus': {
           if (message.d.status === 'default') this.client.bot.editStatus('online', this.client.config.status);
+          else if (message.d.status === 'custom' && message.d.message)
+            // @ts-ignore
+            this.client.bot.editStatus({
+              type: 4,
+              name: 'craig',
+              state: message.d.message
+            });
           else if (['online', 'idle', 'dnd'].includes(message.d.status) && message.d.message)
             this.client.bot.editStatus(message.d.status, {
               type: 0,
