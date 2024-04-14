@@ -10,8 +10,8 @@
     "url": "https://snazzah.com/"
   },
   "scripts": {
-    "start": "node dist/index.js",
-    "start:sharding": "node dist/sharding/index.js",
+    "start": "dotenv -e ../../.env -c -- node dist/index.js",
+    "start:sharding": "dotenv -e ../../.env -c -- node dist/sharding/index.js",
     "build": "rimraf dist && tsc",
     "sync": "slash-up sync",
     "sync:dev": "slash-up sync -e development",

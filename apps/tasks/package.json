@@ -10,7 +10,7 @@
     "url": "https://snazzah.com/"
   },
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "dotenv -e ../../.env -c -- node dist/index.js",
     "build": "rimraf dist && tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
