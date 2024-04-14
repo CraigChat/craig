@@ -135,8 +135,8 @@ async function collect() {
     if (serverMap[shardID]) serverMap[shardID] += 1;
     else serverMap[shardID] = 1;
   });
-  dexareClient.bot.unavailableGuilds.map((guild) => {
-    const shardID = String(guild.shard.id);
+  dexareClient.bot.unavailableGuilds.map(() => {
+    const shardID = process.env.SHARD_ID!;
     if (unavailableServerMap[shardID]) unavailableServerMap[shardID] += 1;
     else unavailableServerMap[shardID] = 1;
   });
