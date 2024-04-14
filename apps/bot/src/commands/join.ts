@@ -71,7 +71,7 @@ export default class Join extends GeneralCommand {
 
     if (!guild)
       return {
-        content: 'There is a rare issue occuring with this server, try re-inviting this bot. If the issue persists, join the support server.',
+        content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
         ephemeral: true,
         components: [
           {
@@ -225,7 +225,20 @@ export default class Join extends GeneralCommand {
       if (maintenence)
         return {
           content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
-          ephemeral: true
+          ephemeral: true,
+          components: [
+            {
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.LINK,
+                  label: 'Join Support Server',
+                  url: 'https://discord.gg/craig'
+                }
+              ]
+            }
+          ]
         };
     }
 
