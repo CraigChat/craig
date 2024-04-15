@@ -83,6 +83,7 @@ export class WebappClient {
 
       recording.recorder.logger.log(`Disconnected from webapp for recording ${recording.id}: ${WebappOpCloseReason[reason[0]]}`, 'webapp');
     });
+    this.ws.on('error', (e) => recording.recorder.logger.log(`Websocket Error: ${String(e)}`, 'webapp'));
   }
 
   findWebUserFromClientId(id: string) {
