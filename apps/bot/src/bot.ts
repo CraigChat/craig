@@ -112,7 +112,7 @@ process.on('unhandledRejection', (r) => {
 });
 
 process.on('uncaughtException', (e) => {
-  client.emit('logger', 'error', 'sys', ['Uncaught exception:', e, ...('errors' in e ? (e.errors as Error[]) : [])]);
+  client.emit('logger', 'error', 'sys', ['Uncaught exception:', e, ...('errors' in e ? ((e as any).errors as Error[]) : [])]);
 });
 
 export async function connect() {
