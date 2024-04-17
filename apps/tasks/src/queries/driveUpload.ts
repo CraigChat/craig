@@ -186,6 +186,7 @@ export async function driveUpload({
   const format = user.driveFormat || 'flac';
   const container = user.driveContainer || 'zip';
   logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${format}.${container})`);
+  const start = Date.now();
 
   let child: ChildProcessWithoutNullStreams | null = null;
   let tempFile: string | null = null;
@@ -257,6 +258,7 @@ export async function driveUpload({
         });
 
         await fs.unlink(tempFile).catch(() => {});
+        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
 
         return {
           error: null,
@@ -349,6 +351,7 @@ export async function driveUpload({
         // }
 
         await fs.unlink(tempFile).catch(() => {});
+        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
 
         return {
           error: null,
@@ -445,6 +448,7 @@ export async function driveUpload({
           });
 
         await fs.unlink(tempFile).catch(() => {});
+        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
 
         const accessToken = auth.getAccessToken();
         if (accessToken !== driveUser.token)
