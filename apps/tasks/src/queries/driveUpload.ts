@@ -230,6 +230,7 @@ export async function driveUpload({
 
         await clearReadyState(recordingId);
         killProcessTree(child);
+        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
 
         // TODO server icon as contentHints.thumbnail ?
 
@@ -258,7 +259,7 @@ export async function driveUpload({
         });
 
         await fs.unlink(tempFile).catch(() => {});
-        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
+        logger.info(`Uploaded ${recordingId} on Google Drive`);
 
         return {
           error: null,
@@ -282,6 +283,7 @@ export async function driveUpload({
 
         await clearReadyState(recordingId);
         killProcessTree(child);
+        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
 
         const uploadSession = await axios.post(
           `https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/createUploadSession`,
@@ -351,7 +353,7 @@ export async function driveUpload({
         // }
 
         await fs.unlink(tempFile).catch(() => {});
-        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
+        logger.info(`Uploaded ${recordingId} on OneDrive`);
 
         return {
           error: null,
@@ -391,6 +393,7 @@ export async function driveUpload({
 
         await clearReadyState(recordingId);
         killProcessTree(child);
+        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
 
         const fileSize = (await fs.stat(tempFile)).size;
         const readStream = createReadStream(tempFile);
@@ -448,7 +451,7 @@ export async function driveUpload({
           });
 
         await fs.unlink(tempFile).catch(() => {});
-        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
+        logger.info(`Uploaded ${recordingId} on Dropbox`);
 
         const accessToken = auth.getAccessToken();
         if (accessToken !== driveUser.token)
@@ -487,6 +490,8 @@ export async function driveUpload({
       logger.error(`DropboxError [${err.error.error_summary}]`, err.error);
       return { error: `DropboxError [${err.error.error_summary}]`, notify: true };
     }
-    return { error: (e as any).toString() || 'unknown_error', notify: true };
+    let errorString = (e as any).toString().slice(0, 100) || 'unknown_error';
+    if (errorString.startsWith('Error: <!DOCTYPE')) errorString = 'upload_timeout';
+    return { error: errorString, notify: true };
   }
 }
