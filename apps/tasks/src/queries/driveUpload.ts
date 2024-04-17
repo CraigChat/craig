@@ -224,6 +224,12 @@ export async function driveUpload({
         if (!folderId) return { error: 'google_token_expired', notify: true };
         child = await cook(recordingId, format, container);
 
+        tempFile = path.join(tmpdir(), `${fileName}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
+        await fs.writeFile(tempFile, child.stdout);
+
+        await clearReadyState(recordingId);
+        killProcessTree(child);
+
         // TODO server icon as contentHints.thumbnail ?
 
         const file = await drive.files.create({
@@ -246,12 +252,12 @@ export async function driveUpload({
           },
           media: {
             mimeType: mime,
-            body: child.stdout
+            body: createReadStream(tempFile)
           }
         });
 
-        await clearReadyState(recordingId);
-        killProcessTree(child);
+        await fs.unlink(tempFile).catch(() => {});
+
         return {
           error: null,
           notify: true,
