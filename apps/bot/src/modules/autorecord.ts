@@ -27,6 +27,7 @@ interface AutoRecordUpsert {
 export default class AutorecordModule extends DexareModule<DexareClient<CraigBotConfig>> {
   debounceTimeouts = new Map<string, any>();
   autorecords = new Map<string, AutoRecord>();
+  fetching = false;
   lastRefresh = 0;
 
   constructor(client: any) {
@@ -56,6 +57,8 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
   }
 
   async fetchAll() {
+    if (this.fetching) return;
+    this.fetching = true;
     const autorecords = (
       await prisma.autoRecord.findMany({
         where: {
@@ -71,6 +74,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     });
     autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
     this.lastRefresh = Date.now();
+    this.fetching = false;
   }
 
   async upsert(data: AutoRecordUpsert) {
