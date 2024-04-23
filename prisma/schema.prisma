@@ -65,6 +65,8 @@ model Recording {
   endedAt      DateTime? @db.Timestamptz(6)
   errored      Boolean   @default(false)
   expiresAt    DateTime  @db.Timestamptz(6)
+
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model AutoRecord {
@@ -77,6 +79,8 @@ model AutoRecord {
   minimum       Int      @default(1)
   triggerUsers  String[]
   updatedAt     DateTime @db.Timestamptz(6) @updatedAt
+
+  @@index([clientId], type: Hash)
 }
 
 model GoogleDriveUser {
