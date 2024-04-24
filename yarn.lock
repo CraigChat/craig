@@ -2641,7 +2641,7 @@ eol@^0.9.1:
 
 "eris@github:CraigChat/dysnomia#craig-master":
   version "0.2.0-dev"
-  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/e09830de73930094bacc3480f6306cef4c97c533"
+  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/5d4ede6891da7321679f06c79bccebd539a8b16a"
   dependencies:
     ws "^8.2.3"
   optionalDependencies:
@@ -7427,10 +7427,15 @@ ws@^8.0.0:
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.12.1.tgz#c51e583d79140b5e42e39be48c934131942d4a8f"
   integrity sha512-1qo+M9Ba+xNhPB+YTWUlK6M17brTut5EXbcBaMRN5pH5dFrXz7lzz1ChFSUq3bOUl8yEvSenhHmYUNJxFzdJew==
 
-ws@^8.10.0, ws@^8.2.3:
+ws@^8.10.0:
   version "8.10.0"
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.10.0.tgz#00a28c09dfb76eae4eb45c3b565f771d6951aa51"
   integrity sha512-+s49uSmZpvtAsd2h37vIPy1RBusaLawVe8of+GyEPsaJTCMpj/2v8NpeK1SHXjBlQ95lQTmQofOJnFiLoaN3yw==
+
+ws@^8.2.3:
+  version "8.16.0"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-8.16.0.tgz#d1cd774f36fbc07165066a60e40323eab6446fd4"
+  integrity sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==
 
 xtend@^4.0.2:
   version "4.0.2"

@@ -21,6 +21,7 @@ interface AutoRecordUpsert {
   postChannelId: string | null;
   minimum: number;
   triggerUsers: string[];
+  triggerRoles: string[];
 }
 
 // @ts-ignore
@@ -86,7 +87,13 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     if (autoRecording)
       newAutoRecording = await prisma.autoRecord.update({
         where: { id: autoRecording.id },
-        data: { userId: data.userId, minimum: data.minimum, triggerUsers: data.triggerUsers, postChannelId: data.postChannelId || null }
+        data: {
+          userId: data.userId,
+          minimum: data.minimum,
+          triggerUsers: data.triggerUsers,
+          triggerRoles: data.triggerRoles,
+          postChannelId: data.postChannelId || null
+        }
       });
     else
       newAutoRecording = await prisma.autoRecord.create({
@@ -97,7 +104,8 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           userId: data.userId,
           postChannelId: data.postChannelId || null,
           minimum: data.minimum,
-          triggerUsers: data.triggerUsers
+          triggerUsers: data.triggerUsers,
+          triggerRoles: data.triggerRoles
         }
       });
 
@@ -125,26 +133,25 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     const autoRecording = await this.find(channelId);
     if (!autoRecording) return;
 
-    // Get rewards
-    const userData = await prisma.user.findFirst({ where: { id: autoRecording.userId } });
-    const blessing = await prisma.blessing.findFirst({ where: { guildId: guildId } });
-    const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
-
-    // Remove auto-recording if they lost the ability to autorecord
-    if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));
-
-    // Check maintenence
-    const maintenence = await checkMaintenance(this.client.bot.user.id);
-    if (maintenence) return;
-
     // Determine min and trigger users
-    const guild = this.client.bot.guilds.get(guildId)!;
-    const channel = guild.channels.get(channelId)! as Eris.StageChannel | Eris.VoiceChannel;
+    const guild = this.client.bot.guilds.get(guildId);
+    if (!guild) return;
+    const channel = guild.channels.get(channelId) as Eris.StageChannel | Eris.VoiceChannel;
+    if (!channel) return;
 
     const memberCount = channel.voiceMembers.filter((m) => !m.bot).length;
     let shouldRecord = autoRecording.minimum === 0 ? false : memberCount >= autoRecording.minimum;
-    if (autoRecording.triggerUsers.length > 0 && channel.voiceMembers.some((member) => autoRecording.triggerUsers.includes(member.id) && !member.bot))
+    if (
+      !shouldRecord &&
+      autoRecording.triggerUsers.length > 0 &&
+      channel.voiceMembers.some((member) => !member.bot && autoRecording.triggerUsers.includes(member.id))
+    )
+      shouldRecord = true;
+    if (
+      !shouldRecord &&
+      autoRecording.triggerRoles.length > 0 &&
+      channel.voiceMembers.some((member) => !member.bot && autoRecording.triggerRoles.some((r) => r !== guildId && member.roles.includes(r)))
+    )
       shouldRecord = true;
 
     if (!shouldRecord && recording) {
@@ -155,6 +162,19 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     }
 
     if (shouldRecord && !recording) {
+      // Get rewards
+      const userData = await prisma.user.findFirst({ where: { id: autoRecording.userId } });
+      const blessing = await prisma.blessing.findFirst({ where: { guildId: guildId } });
+      const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+      const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
+
+      // Remove auto-recording if they lost the ability to autorecord
+      if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));
+
+      // Check maintenence
+      const maintenence = await checkMaintenance(this.client.bot.user.id);
+      if (maintenence) return;
+
       this.logger.info(`Starting to autorecord ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`);
       // Check permissions
       if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
@@ -238,7 +258,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.LINK,
                       label: 'Support Server',
-                      url: 'https://craig.chat/support'
+                      url: 'https://discord.gg/craig'
                     }
                   ]
                 }

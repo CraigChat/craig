@@ -40,15 +40,15 @@ export default class AutoRecord extends GeneralCommand {
             },
             {
               type: CommandOptionType.INTEGER,
-              name: 'mininum',
-              description: 'The minimum amount of members to auto-record on. Set this to 0 to only auto-record by triggers.',
+              name: 'minimum',
+              description: 'The minimum amount of members to auto-record on, regardless of triggers.',
               min_value: 0,
               max_value: 99
             },
             {
               type: CommandOptionType.STRING,
               name: 'triggers',
-              description: 'The members that trigger the auto-recording. Mention users inside this option.'
+              description: 'The members or roles that trigger the auto-recording. Mention users/roles inside this option.'
             },
             {
               type: CommandOptionType.CHANNEL,
@@ -129,18 +129,19 @@ export default class AutoRecord extends GeneralCommand {
 
           if (!autoRecording)
             return {
-              content: 'That channel is not auto-recorded.',
+              content: `The channel <#${ctx.options.view.channel}> is not auto-recorded.`,
               ephemeral: true
             };
 
           return {
             embeds: [
               {
-                title: ctx.channels.get(ctx.options.view.channel)!.name ?? 'Unknown channel',
+                title: ctx.channels.get(ctx.options.view.channel)?.name ?? 'Unknown channel',
                 description: stripIndents`
                   **Channel:** <#${ctx.options.view.channel}>
                   **Created by:** <@${autoRecording.userId}>
-                  **Minimum members:** ${autoRecording.minimum === 0 ? 'N/A' : autoRecording.minimum.toLocaleString()}
+                  **Minimum members:** ${autoRecording.minimum === 0 ? '*None*' : autoRecording.minimum.toLocaleString()}
+                  **Trigger roles:** ${autoRecording.triggerRoles.map((roleId) => `<@&${roleId}>`).join(', ') || '*None*'}
                   **Trigger users:** ${autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || '*None*'}
                   **Updated at:** <t:${Math.round(autoRecording.updatedAt.valueOf() / 1000)}:F>
                 `
@@ -168,7 +169,8 @@ export default class AutoRecord extends GeneralCommand {
                 .map((ar) => {
                   const extra = [
                     ar.minimum !== 0 ? `${ar.minimum} minimum` : null,
-                    ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} trigger users` : null,
+                    ar.triggerRoles.length > 0 ? `${ar.triggerRoles.length} role[s]` : null,
+                    ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} user[s]` : null,
                     ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
                   ].filter((e) => !!e) as string[];
                   return `<#${ar.channelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
@@ -212,13 +214,20 @@ export default class AutoRecord extends GeneralCommand {
           };
 
         const channel = ctx.options.on.channel as string;
-        const min = ctx.options.on.mininum ?? 1;
+        const min = ctx.options.on.minimum ?? 0;
         const triggerUsers = ctx.users.map((u) => u.id);
+        const triggerRoles = ctx.roles.map((r) => r.id);
         const postChannel = ctx.options.on['post-channel'] as string;
 
-        if (min === 0 && triggerUsers.length <= 0)
+        if (min === 0 && triggerUsers.length <= 0 && triggerRoles.length <= 0)
           return {
-            content: "You can't set the minimum to 0 without any triggers.",
+            content: 'You need to at least set a minimum user amount or add a user/role trigger.',
+            ephemeral: true
+          };
+
+        if (triggerRoles.includes(guild.id))
+          return {
+            content: 'The `@everyone` role cannot be used as a trigger role.',
             ephemeral: true
           };
 
@@ -238,7 +247,8 @@ export default class AutoRecord extends GeneralCommand {
           userId: ctx.user.id,
           postChannelId: postChannel || null,
           minimum: min,
-          triggerUsers: triggerUsers
+          triggerUsers,
+          triggerRoles
         });
 
         return {
