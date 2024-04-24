@@ -8,24 +8,26 @@ import { CommandContext } from 'slash-create';
 import Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
 
-const sentryOpts: any = config.get('sentry');
-Sentry.init({
-  dsn: sentryOpts.dsn,
-  integrations: [
-    new Sentry.Integrations.Http({ tracing: true }),
-    new RewriteFrames({
-      root: __dirname
-    }),
-    new Integrations.Prisma({ client: prisma })
-  ],
+const sentryOpts: any = config.has('sentry') ? config.get('sentry') : null;
+if (sentryOpts)
+  Sentry.init({
+    dsn: sentryOpts.dsn,
+    integrations: [
+      new Sentry.Integrations.Http({ tracing: true }),
+      new RewriteFrames({
+        root: __dirname
+      }),
+      new Integrations.Prisma({ client: prisma })
+    ],
 
-  environment: sentryOpts.env || process.env.NODE_ENV || 'development',
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  release: `craig-bot@${require('../package.json').version}`,
-  tracesSampleRate: sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1.0
-});
+    environment: sentryOpts.env || process.env.NODE_ENV || 'development',
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    release: `craig-bot@${require('../package.json').version}`,
+    tracesSampleRate: sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1.0
+  });
 
 export function reportErrorFromCommand(ctx: CommandContext, error: any, commandName: string, type?: string) {
+  if (!sentryOpts) return;
   Sentry.withScope((scope) => {
     scope.setTag('type', type || 'generic');
     if (commandName) scope.setTag('command', commandName);
@@ -43,6 +45,7 @@ export function reportErrorFromCommand(ctx: CommandContext, error: any, commandN
 }
 
 export function reportRecordingError(ctx: CommandContext, error: any, recording?: Recording) {
+  if (!sentryOpts) return;
   Sentry.withScope((scope) => {
     scope.setTag('type', 'command');
     scope.setTag('command', 'join');
@@ -61,6 +64,7 @@ export function reportRecordingError(ctx: CommandContext, error: any, recording?
 }
 
 export function reportAutorecordingError(member: Eris.Member, guildId: string, channelId: string, error: any, recording?: Recording) {
+  if (!sentryOpts) return;
   Sentry.withScope((scope) => {
     scope.setTag('type', 'autorecord');
     if (recording) scope.setTag('recording', recording.id);
@@ -77,5 +81,6 @@ export function reportAutorecordingError(member: Eris.Member, guildId: string, c
 }
 
 export function close() {
+  if (!sentryOpts) return;
   return Sentry.close();
 }
