@@ -271,6 +271,7 @@ config_env() {
     "DROPBOX_CLIENT_SECRET"
     "APP_URI"
     "JWT_SECRET"
+    "DATABASE_URL"
   )
 
   create_env_file "$craig_dir/apps/dashboard/.env" "${env_names[@]}"
