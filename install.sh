@@ -298,6 +298,12 @@ config_env() {
 
   create_env_file "$craig_dir/apps/download/.env" "${env_names[@]}"
 
+  env_names=(
+    "DATABASE_URL"
+  )
+
+  create_env_file "$craig_dir/apps/bot/.env" "${env_names[@]}"
+
 }
 
 config_react(){
