@@ -143,7 +143,7 @@ start_redis() {
   if ! redis-cli ping | grep -q "PONG"
   then
     sudo systemctl enable --now redis-server # is disabled by default
-
+    sudo /etc/init.d/redis-server start #in case there is no systemd
     start_time_s=$(date +%s)
 
     while ! redis-cli ping | grep -q "PONG"
@@ -173,6 +173,7 @@ start_postgresql() {
   if ! pg_isready
   then
     sudo systemctl enable --now postgresql # is enabled by default
+    sudo /etc/init.d/postgresql start #in case there is no systemd
 
     start_time_s=$(date +%s)
 
