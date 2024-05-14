@@ -30,6 +30,9 @@ APT_DEPENDENCIES=(
 # this lets us call the function from anywhere and it will work
 craig_dir=$(dirname "$(realpath "$0")")
 
+#Get the init system
+init_system=$(ps --no-headers -o comm 1)
+
 ###################################################
 # Function definitions
 ###################################################
@@ -137,7 +140,7 @@ start_redis() {
 
   if ! redis-cli ping | grep -q "PONG"
   then
-    if "ps --no-headers -o comm 1" -q "systemd"
+    if [[ $init_system == "systemd" ]]
     then
       sudo systemctl enable --now redis-server # is disabled by default
     else
@@ -171,7 +174,7 @@ start_postgresql() {
 
   if ! pg_isready
   then
-    if "ps --no-headers -o comm 1" -q "systemd"
+    if [[ $init_system ==  "systemd" ]]
     then
       sudo systemctl enable --now postgresql # is enabled by default
     else
