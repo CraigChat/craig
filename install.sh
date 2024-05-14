@@ -7,6 +7,7 @@ set -e
 ###################################################
 
 APT_DEPENDENCIES=(
+  wget            # cook
   make            # cook
   inkscape        # cook
   ffmpeg          # cook
@@ -85,14 +86,20 @@ info() {
 }
 
 install_apt_packages() {
+  if [ "$USER" != "root" ]
+    apt-get install -y sudo
+  then
+      echo "Make sure sudo is installed"
+  fi
+
   info "Updating and upgrading apt packages..."
   sudo apt-get update
-  sudo apt-get -y upgrade
+  sudo DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
 
   info "Installing apt dependencies..."
   for package in "${APT_DEPENDENCIES[@]}"
   do
-    sudo apt-get -y install "$package"
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -y install "$package"
   done
 
   # Add redis repository to apt index and install it
@@ -100,7 +107,7 @@ install_apt_packages() {
   curl -fsSL https://packages.redis.io/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
   echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
   sudo apt-get update || true
-  sudo apt-get -y install redis
+  sudo DEBIAN_FRONTEND=noninteractive apt-get -y install redis
 }
 
 install_node() {
