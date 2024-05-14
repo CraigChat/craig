@@ -86,11 +86,6 @@ info() {
 }
 
 install_apt_packages() {
-  if [ "$USER" != "root" ]
-    apt-get install -y sudo
-  then
-      echo "Make sure sudo is installed"
-  fi
 
   info "Updating and upgrading apt packages..."
   sudo apt-get update
@@ -398,6 +393,12 @@ config_cook(){
         ;;
     esac
   done
+  # if root, install sudo
+  if [ "$USER" != "root" ]
+    apt-get install -y sudo
+  then
+      error "Make sure sudo is installed and run again."
+  fi
 
   # Prompt for sudo up front for installing
   # packages and configuring PostgreSQL
