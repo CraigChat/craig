@@ -278,6 +278,7 @@ config_env() {
 
   env_names=(
     "API_PORT"
+    "API_HOST"
     "API_HOMEPAGE"
     "ENNUIZEL_BASE"
     "TRUST_PROXY"
