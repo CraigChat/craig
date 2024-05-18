@@ -510,8 +510,9 @@ start_app(){
       config_yarn
   fi
   start_app
+  pm2 logs
 
-  info "Craig Startup finished..."
+  info "Craig Shutdown..."
   info "End time: $(date +%H:%M:%S)"
   info "Log output: $craig_dir/startup.log"
 
