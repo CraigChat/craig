@@ -129,7 +129,7 @@ clean_running_container() {
         export $key=${defaults[$key]};
       fi
     done
-    
+
     # Set and create config file
     env_names=(
     "DISCORD_BOT_TOKEN"
@@ -505,7 +505,7 @@ start_app(){
       config_env
       config_react
       config_yarn
-  else
+  fi
   start_app
 
   info "Craig Startup finished..."
