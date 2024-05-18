@@ -303,7 +303,6 @@ config_env() {
     "DISCORD_APP_ID"
     "DEVELOPMENT_GUILD_ID"
     "DATABASE_URL"
-
   )
 
   create_env_file "$craig_dir/apps/bot/.env" "${env_names[@]}"

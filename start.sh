@@ -356,6 +356,9 @@ config_env() {
   create_env_file "$craig_dir/apps/download/.env" "${env_names[@]}"
 
   env_names=(
+    "DISCORD_BOT_TOKEN"
+    "DISCORD_APP_ID"
+    "DEVELOPMENT_GUILD_ID"
     "DATABASE_URL"
   )
 
