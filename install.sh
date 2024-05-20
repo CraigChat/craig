@@ -329,8 +329,9 @@ config_react(){
   #   applicationID: '',
   # ----------------------------
 
-  sed -z -E -i "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')/\
-  \1'$DISCORD_BOT_TOKEN'\3'$DISCORD_APP_ID'/"\
+  DOWNLOAD_DOMAIN=$(echo $API_HOMEPAGE|awk -F'://' '{print $2}')
+  sed -z -E -i "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')//\
+  \1'$DISCORD_BOT_TOKEN'\3'$DISCORD_APP_ID'\3'$DOWNLOAD_DOMAIN'/"\
   "$craig_dir/apps/bot/config/default.js"
 
 
