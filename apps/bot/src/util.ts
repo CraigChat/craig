@@ -169,7 +169,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
           }
         : null
     ].filter((c) => !!c)
-  } as Eris.MessageContent;
+  } as Eris.MessageContent<'hasNonce'>;
 }
 
 export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {

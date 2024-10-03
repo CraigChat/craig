@@ -37,7 +37,7 @@ export default class JoinCommand extends TextCommand {
               style: ButtonStyle.LINK,
               label: 'What are slash commands?',
               url: 'https://support.discord.com/hc/en-us/articles/1500000368501-Slash-Commands-FAQ',
-              emoji: { name: '❔', id: null }
+              emoji: { name: '❔' }
             }
           ]
         }
