@@ -465,6 +465,7 @@ export default class Recording {
     if (!alreadyConnected) {
       this.connection?.removeAllListeners('connect');
       this.connection?.removeAllListeners('disconnect');
+      this.connection?.removeAllListeners('resumed');
       this.connection?.removeAllListeners('error');
       this.connection?.removeAllListeners('warn');
       this.connection?.removeAllListeners('debug');
@@ -478,11 +479,12 @@ export default class Recording {
       connection.on('ready', this.onConnectionReady.bind(this));
       connection.on('connect', this.onConnectionConnect.bind(this));
       connection.on('disconnect', this.onConnectionDisconnect.bind(this));
-      connection.on('error', (err) => {
+      connection.on('resumed', this.onConnectionResumed.bind(this));
+      connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
       });
-      connection.on('warn', (m) => {
+      connection.on('warn', (m: string) => {
         this.writeToLog(`Warning: ${m}`, 'connection');
         this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
       });
@@ -571,9 +573,15 @@ export default class Recording {
 
   async onConnectionReady() {
     if (!this.active) return;
-    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState})`, 'connection');
-    this.recorder.logger.debug(`Recording ${this.id} ready`);
+    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode})`);
     this.pushToActivity('Automatically reconnected.');
+  }
+
+  async onConnectionResumed() {
+    if (!this.active) return;
+    this.writeToLog(`Voice connection resumed (seq=${this.connection?.wsSequence})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} resumed`);
   }
 
   async onConnectionDisconnect(err?: Error) {
@@ -667,7 +675,6 @@ export default class Recording {
 
   async onData(data: Buffer, userID: string, timestamp: number) {
     if (!this.active) return;
-    data = Buffer.from(data);
     if (!userID) return;
 
     let recordingUser = this.users[userID];
@@ -820,6 +827,7 @@ export default class Recording {
       }
 
     const startedTimestamp = this.startedAt ? Math.floor(this.startedAt.valueOf() / 1000) : null;
+    const voiceRegion = this.connection?.endpoint?.hostname;
     return {
       content: '',
       embeds: [
