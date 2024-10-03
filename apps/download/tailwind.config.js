@@ -22,7 +22,7 @@ module.exports = {
     fontFamily: {
       display: ['Lexend', '"Red Hat Text"', ...sans],
       body: ['"Red Hat Text"', ...sans],
-      mono: ['"Ubunto Mono"', ...mono]
+      mono: ['"Ubuntu Mono"', ...mono]
     }
   },
   variants: {},

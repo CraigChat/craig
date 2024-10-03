@@ -126,9 +126,12 @@ int main(int argc, char **argv)
 
         // Get the data
         if (packetSize > bufSz) {
-            buf = realloc(buf, packetSize);
-            if (!buf)
+            unsigned char *temp = realloc(buf, packetSize); // Use a temporary pointer
+            if (!temp) { // Check if memory allocation failed
+                free(buf); // Free the existing buffer to avoid a memory leak
                 break;
+            }
+            buf = temp; // Only assign buf if realloc was successful
             bufSz = packetSize;
         }
         if (readAll(0, buf, packetSize) != packetSize)
@@ -185,7 +188,7 @@ int main(int argc, char **argv)
             m = time / 60.0;
             time -= m * 60;
             printf("\t%d:%02d:%02d: ", h, m, (int) time);
-            printNote(buf, packetSize); 
+            printNote(buf, packetSize);
             printf("\r\n");
         }
     }
