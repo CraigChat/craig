@@ -846,6 +846,7 @@ export default class Recording {
               **Recording ID:** \`${this.id}\`
               **Channel:** ${this.channel.mention}
               ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
+              ${voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''}
             `}
           `,
           fields: this.logs.length
