@@ -27,14 +27,12 @@
 /* NOTE: This program assumes little-endian for speed, it WILL NOT WORK on a
  * big-endian system */
 
-struct OggPreHeader
-{
+struct OggPreHeader {
     unsigned char capturePattern[4];
     unsigned char version;
 } __attribute__((packed));
 
-struct OggHeader
-{
+struct OggHeader {
     unsigned char type;
     uint64_t granulePos;
     uint32_t streamNo;
@@ -44,13 +42,11 @@ struct OggHeader
 
 ssize_t readAll(int fd, void *vbuf, size_t count)
 {
-    unsigned char *buf = (unsigned char *)vbuf;
+    unsigned char *buf = (unsigned char *) vbuf;
     ssize_t rd = 0, ret;
-    while (rd < count)
-    {
+    while (rd < count) {
         ret = read(fd, buf + rd, count - rd);
-        if (ret <= 0)
-            return ret;
+        if (ret <= 0) return ret;
         rd += ret;
     }
     return rd;
@@ -59,32 +55,30 @@ ssize_t readAll(int fd, void *vbuf, size_t count)
 void printNote(unsigned char *buf, uint32_t packetSize)
 {
     int i;
-    for (i = 4; i < packetSize; i++)
-    {
-        switch (buf[i])
-        {
-        case '"':
-        case '\\':
-            printf("\\%c", buf[i]);
-            break;
+    for (i = 4; i < packetSize; i++) {
+        switch (buf[i]) {
+            case '"':
+            case '\\':
+                printf("\\%c", buf[i]);
+                break;
 
-        case '\n':
-            printf("\\n");
-            break;
+            case '\n':
+                printf("\\n");
+                break;
 
-        case '\r':
-            printf("\\r");
-            break;
+            case '\r':
+                printf("\\r");
+                break;
 
-        default:
-            putchar(buf[i]);
+            default:
+                putchar(buf[i]);
         }
     }
 }
 
 int main(int argc, char **argv)
 {
-    uint32_t noteStreamNo = (uint32_t)-1;
+    uint32_t noteStreamNo = (uint32_t) -1;
     uint32_t packetSize;
     unsigned char segmentCount, segmentVal;
     unsigned char *buf = NULL;
@@ -93,19 +87,15 @@ int main(int argc, char **argv)
     unsigned char outputAudacity = 0, outputJSON = 0, outputHeader = 0;
     int ai;
 
-    for (ai = 1; ai < argc; ai++)
-    {
+    for (ai = 1; ai < argc; ai++) {
         char *arg = argv[ai];
-        if (!strcmp(arg, "-f") || !strcmp(arg, "--format"))
-        {
+        if (!strcmp(arg, "-f") || !strcmp(arg, "--format")) {
             arg = argv[++ai];
             if (arg && !strcmp(arg, "audacity"))
                 outputAudacity = 1;
             if (arg && !strcmp(arg, "json"))
                 outputJSON = 1;
-        }
-        else
-        {
+        } else {
             fprintf(stderr, "Use: extnotes [--format audacity|-f audacity|--format json|-f json]\n");
             exit(1);
         }
@@ -114,8 +104,7 @@ int main(int argc, char **argv)
     if (outputJSON)
         printf("[");
 
-    while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader))
-    {
+    while (readAll(0, &preHeader, sizeof(preHeader)) == sizeof(preHeader)) {
         struct OggHeader oggHeader;
         double time;
         if (memcmp(preHeader.capturePattern, "OggS", 4))
@@ -129,19 +118,16 @@ int main(int argc, char **argv)
         packetSize = 0;
         if (readAll(0, &segmentCount, 1) != 1)
             break;
-        for (; segmentCount; segmentCount--)
-        {
+        for (; segmentCount; segmentCount--) {
             if (readAll(0, &segmentVal, 1) != 1)
                 break;
-            packetSize += (uint32_t)segmentVal;
+            packetSize += (uint32_t) segmentVal;
         }
 
         // Get the data
-        if (packetSize > bufSz)
-        {
+        if (packetSize > bufSz) {
             unsigned char *temp = realloc(buf, packetSize); // Use a temporary pointer
-            if (!temp)
-            {              // Check if memory allocation failed
+            if (!temp) { // Check if memory allocation failed
                 free(buf); // Free the existing buffer to avoid a memory leak
                 break;
             }
@@ -154,7 +140,7 @@ int main(int argc, char **argv)
         // Check for headers
         if (oggHeader.granulePos == 0 && packetSize == 10 && !memcmp(buf, "STREAMNOTE", 10))
             noteStreamNo = oggHeader.streamNo;
-        else if (noteStreamNo == (uint32_t)-1 && oggHeader.granulePos > 0)
+        else if (noteStreamNo == (uint32_t) -1 && oggHeader.granulePos > 0)
             break;
 
         // Do we care?
@@ -168,10 +154,8 @@ int main(int argc, char **argv)
         time = oggHeader.granulePos / 48000.0;
 
         // Now output this line
-        if (outputAudacity)
-        {
-            if (!outputHeader)
-            {
+        if (outputAudacity) {
+            if (!outputHeader) {
                 // Header first
                 printf("\t<labeltrack name=\"Label Track\" height=\"73\" minimized=\"0\">\n");
                 outputHeader = 1;
@@ -181,28 +165,21 @@ int main(int argc, char **argv)
             printf("\t\t<label t=\"%f\" t1=\"%f\" title=\"", time, time);
             printNote(buf, packetSize);
             printf("\"/>\n");
-        }
-        else if (outputJSON)
-        {
-            if (outputHeader)
-            {
+
+        } else if (outputJSON) {
+            if (outputHeader) {
                 // Add comma before next note
                 printf(",");
-            }
-            else
-            {
+            } else {
                 outputHeader = 1;
             }
 
             printf("{\"time\":\"%f\",\"note\":\"", time, time);
             printNote(buf, packetSize);
             printf("\"}");
-        }
-        else
-        {
+        } else {
             int h, m;
-            if (!outputHeader)
-            {
+            if (!outputHeader) {
                 printf("Notes:\r\n");
                 outputHeader = 1;
             }
@@ -210,7 +187,7 @@ int main(int argc, char **argv)
             time -= h * 3600;
             m = time / 60.0;
             time -= m * 60;
-            printf("\t%d:%02d:%02d: ", h, m, (int)time);
+            printf("\t%d:%02d:%02d: ", h, m, (int) time);
             printNote(buf, packetSize);
             printf("\r\n");
         }
