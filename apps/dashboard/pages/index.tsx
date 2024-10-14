@@ -5,6 +5,7 @@ import Head from 'next/head';
 import { useEffect, useState } from 'react';
 
 import Button from '../components/button';
+import DropboxButton from '../components/dropboxButton';
 import Dropdown, { DropdownItem } from '../components/dropdown';
 import GoogleButton from '../components/googleButton';
 import Link from '../components/link';
@@ -21,7 +22,6 @@ import Toggle from '../components/toggle';
 import prisma from '../lib/prisma';
 import { getAvatarUrl, parseUser } from '../utils';
 import { DiscordUser } from '../utils/types';
-import DropboxButton from '../components/dropboxButton';
 
 interface Props {
   user: DiscordUser;
@@ -130,7 +130,10 @@ export default function Index(props: Props) {
   );
   const [driveService, setDriveService] = useState(props.drive.service ?? 'google');
 
-  const driveCanEnable = (driveService === 'google' && props.googleDrive) || (driveService === 'onedrive' && props.microsoft);
+  const driveCanEnable =
+    (driveService === 'google' && props.googleDrive) ||
+    (driveService === 'onedrive' && props.microsoft) ||
+    (driveService === 'dropbox' && props.dropbox);
 
   const benefitDate = new Date(Date.now() + 1000 * 60 * 60);
   benefitDate.setMinutes(0);
