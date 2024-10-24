@@ -97,7 +97,7 @@ export default class Recording {
 
   messageChannelID: string | null = null;
   messageID: string | null = null;
-  startTime: [number, number] = [0, 0];
+  startTime: [number, number] | null = null;
   startedAt: Date | null = null;
   createdAt = new Date();
   logs: string[] = [];
@@ -344,7 +344,7 @@ export default class Recording {
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
 
-      const timestamp = process.hrtime(this.startTime);
+      const timestamp = process.hrtime(this.startTime!);
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       if (this.startedAt)
         await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, this.autorecorded, !!this.webapp, false).catch(() => {});
@@ -678,7 +678,7 @@ export default class Recording {
     if (!userID) return;
 
     let recordingUser = this.users[userID];
-    const chunkTime = process.hrtime(this.startTime);
+    const chunkTime = process.hrtime(this.startTime!);
     const time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
     if (!this.userPackets[userID]) this.userPackets[userID] = [];
     if (!recordingUser) {
@@ -762,7 +762,7 @@ export default class Recording {
       this.writer?.writeNoteHeader();
       this.notePacketNo++;
     }
-    const chunkTime = process.hrtime(this.startTime);
+    const chunkTime = process.hrtime(this.startTime!);
     const chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
     this.writer?.writeNote(chunkGranule, this.notePacketNo++, Buffer.from('NOTE' + note));
   }
