@@ -95,10 +95,7 @@ install_apt_packages() {
   sudo DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
 
   info "Installing apt dependencies..."
-  for package in "${APT_DEPENDENCIES[@]}"
-  do
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -y install "$package"
-  done
+  sudo DEBIAN_FRONTEND=noninteractive apt-get -y install "${APT_DEPENDENCIES[@]}"
 
   # Add redis repository to apt index and install it
   # for more info, see: https://redis.io/docs/install/install-redis/install-redis-on-linux/
