@@ -316,7 +316,7 @@ export class WebappClient {
         let granulePos = message.readUIntLE(EnnuicastrParts.data.granulePos, 6);
 
         // Calculate our "correct" time to make sure it's not unacceptably far off
-        const arrivalHrTime = process.hrtime(this.recording.startTime);
+        const arrivalHrTime = process.hrtime(this.recording.startTime!);
         const arrivalTime = arrivalHrTime[0] * 48000 + ~~(arrivalHrTime[1] / 20833.333);
 
         if (granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000) granulePos = arrivalTime;
@@ -403,7 +403,7 @@ export class WebappClient {
                 const ret = Buffer.alloc(EnnuicastrParts.pong.length);
                 ret.writeUInt32LE(EnnuicastrId.PONG, 0);
                 data.copy(ret, EnnuicastrParts.pong.clientTime, EnnuicastrParts.ping.clientTime);
-                const tm = process.hrtime(this.recording.startTime);
+                const tm = process.hrtime(this.recording.startTime!);
                 ret.writeDoubleLE(tm[0] * 1000 + tm[1] / 1000000, EnnuicastrParts.pong.serverTime);
                 this.ws.send(this.wrapMessage(ret, clientId));
                 break;

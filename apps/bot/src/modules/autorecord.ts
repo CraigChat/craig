@@ -223,7 +223,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
       const error = await recording
         .start(parsedRewards, userData?.webapp ?? false)
-        .then(() => false)
+        .then(() => (recording.state === RecordingState.ERROR ? recording.stateDescription || 'Unknown error' : false))
         .catch((e) => e);
 
       if (error !== false) {
@@ -233,8 +233,11 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         );
         reportAutorecordingError(member, guildId, channelId, error, recording);
 
-        recording.state = RecordingState.ERROR;
-        await recording.stop(true).catch(() => {});
+        if (recording.state !== RecordingState.ERROR) {
+          recording.state = RecordingState.ERROR;
+          await recording.stop(true).catch(() => {});
+        }
+
         if (recording.messageID && recording.messageChannelID)
           await this.client.bot
             .editMessage(recording.messageChannelID, recording.messageID, {

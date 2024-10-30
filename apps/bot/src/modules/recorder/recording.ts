@@ -97,7 +97,7 @@ export default class Recording {
 
   messageChannelID: string | null = null;
   messageID: string | null = null;
-  startTime: [number, number] = [0, 0];
+  startTime: [number, number] | null = null;
   startedAt: Date | null = null;
   createdAt = new Date();
   logs: string[] = [];
@@ -344,7 +344,7 @@ export default class Recording {
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
 
-      const timestamp = process.hrtime(this.startTime);
+      const timestamp = process.hrtime(this.startTime!);
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       if (this.startedAt)
         await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, this.autorecorded, !!this.webapp, false).catch(() => {});
@@ -465,6 +465,7 @@ export default class Recording {
     if (!alreadyConnected) {
       this.connection?.removeAllListeners('connect');
       this.connection?.removeAllListeners('disconnect');
+      this.connection?.removeAllListeners('resumed');
       this.connection?.removeAllListeners('error');
       this.connection?.removeAllListeners('warn');
       this.connection?.removeAllListeners('debug');
@@ -478,11 +479,12 @@ export default class Recording {
       connection.on('ready', this.onConnectionReady.bind(this));
       connection.on('connect', this.onConnectionConnect.bind(this));
       connection.on('disconnect', this.onConnectionDisconnect.bind(this));
-      connection.on('error', (err) => {
+      connection.on('resumed', this.onConnectionResumed.bind(this));
+      connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
       });
-      connection.on('warn', (m) => {
+      connection.on('warn', (m: string) => {
         this.writeToLog(`Warning: ${m}`, 'connection');
         this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
       });
@@ -571,9 +573,15 @@ export default class Recording {
 
   async onConnectionReady() {
     if (!this.active) return;
-    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState})`, 'connection');
-    this.recorder.logger.debug(`Recording ${this.id} ready`);
+    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode})`);
     this.pushToActivity('Automatically reconnected.');
+  }
+
+  async onConnectionResumed() {
+    if (!this.active) return;
+    this.writeToLog(`Voice connection resumed (seq=${this.connection?.wsSequence})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} resumed`);
   }
 
   async onConnectionDisconnect(err?: Error) {
@@ -667,11 +675,10 @@ export default class Recording {
 
   async onData(data: Buffer, userID: string, timestamp: number) {
     if (!this.active) return;
-    data = Buffer.from(data);
     if (!userID) return;
 
     let recordingUser = this.users[userID];
-    const chunkTime = process.hrtime(this.startTime);
+    const chunkTime = process.hrtime(this.startTime!);
     const time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
     if (!this.userPackets[userID]) this.userPackets[userID] = [];
     if (!recordingUser) {
@@ -755,7 +762,7 @@ export default class Recording {
       this.writer?.writeNoteHeader();
       this.notePacketNo++;
     }
-    const chunkTime = process.hrtime(this.startTime);
+    const chunkTime = process.hrtime(this.startTime!);
     const chunkGranule = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
     this.writer?.writeNote(chunkGranule, this.notePacketNo++, Buffer.from('NOTE' + note));
   }
@@ -820,6 +827,7 @@ export default class Recording {
       }
 
     const startedTimestamp = this.startedAt ? Math.floor(this.startedAt.valueOf() / 1000) : null;
+    const voiceRegion = this.connection?.endpoint?.hostname;
     return {
       content: '',
       embeds: [
@@ -838,6 +846,7 @@ export default class Recording {
               **Recording ID:** \`${this.id}\`
               **Channel:** ${this.channel.mention}
               ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
+              ${voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''}
             `}
           `,
           fields: this.logs.length
