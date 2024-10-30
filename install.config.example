@@ -30,8 +30,8 @@ JWT_SECRET=1234
 ##################################################
 
 API_PORT=5029
-API_HOST=127.0.0.1
-API_HOMEPAGE=https://craig.chat/
+API_HOST=0.0.0.0
+API_HOMEPAGE=http://localhost:5029
 ENNUIZEL_BASE=https://ez.craig.horse/
 TRUST_PROXY=
 SENTRY_DSN=
