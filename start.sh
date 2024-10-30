@@ -121,12 +121,12 @@ clean_running_container() {
     rm -rf "$pii_file"
   done
   #If no install.config mounted then try to create one from container ENVs
-  if ![ -f "$craig_dir/install.config" ]; then
+  if ! [ -f "$craig_dir/install.config" ]; then
     
     #Assign default values if variables not set. This is dirty but using default values for variables should be implemented somewhere else.
     for key in "${!defaults[@]}"; do 
-      if ![ -v $key ]; then
-        export $key=${defaults[$key]};
+      if ! [ -v "$key" ]; then
+        export "$key"="${defaults[$key]}"
       fi
     done
 
@@ -386,8 +386,8 @@ config_react(){
   #   applicationID: '',
   # ----------------------------
   DOWNLOAD_DOMAIN=$(echo $API_HOMEPAGE|awk -F'://' '{print $2}')
-  sed -z -E -i "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')/\
-  \1'$DISCORD_BOT_TOKEN'\3'$DISCORD_APP_ID'\5'$DOWNLOAD_DOMAIN'/"\
+  sed -z -E -i'' "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')/\
+  \1'${DISCORD_BOT_TOKEN}'\3'${DISCORD_APP_ID}'\5'${DOWNLOAD_DOMAIN//\//\\/}'/" \
   "$craig_dir/apps/bot/config/default.js"
 
 

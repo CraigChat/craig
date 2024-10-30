@@ -327,8 +327,8 @@ config_react(){
   # ----------------------------
 
   DOWNLOAD_DOMAIN=$(echo $API_HOMEPAGE|awk -F'://' '{print $2}')
-  sed -z -E -i "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')/\
-  \1'$DISCORD_BOT_TOKEN'\3'$DISCORD_APP_ID'\5'$DOWNLOAD_DOMAIN'/"\
+  sed -z -E -i'' "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')/\
+  \1'${DISCORD_BOT_TOKEN}'\3'${DISCORD_APP_ID}'\5'${DOWNLOAD_DOMAIN//\//\\/}'/" \
   "$craig_dir/apps/bot/config/default.js"
 
 
@@ -414,10 +414,10 @@ config_cook(){
     esac
   done
   # if root, install sudo
-  if [ "$USER" != "root" ]
+  if [ "$(whoami)" == "root" ]; then
     apt-get install -y sudo
-  then
-      error "Make sure sudo is installed and run again."
+  else
+    error "Make sure sudo is installed and run again."
   fi
 
   # Prompt for sudo up front for installing
