@@ -62,7 +62,7 @@ export default class RefreshPatrons extends TaskJob {
     return credentials;
   }
 
-  async getPatrons(credentials: Credentials, cursor?: string) {
+  async getPatrons(credentials: Credentials, cursor?: string, retries = 0): Promise<{ patrons: Patron[]; next: string | undefined; total: number }> {
     const query = new URLSearchParams({
       include: 'currently_entitled_tiers,user',
       'fields[member]': 'full_name,currently_entitled_amount_cents,patron_status,email',
@@ -73,8 +73,17 @@ export default class RefreshPatrons extends TaskJob {
       headers: {
         Authorization: `Bearer ${credentials.accessToken}`,
         'User-Agent': this.userAgent
-      }
+      },
+      validateStatus: () => true
     });
+
+    if (response.status === 429) {
+      const waitFor = Math.pow(5, retries + 1);
+      if (retries >= 3) throw new Error('Too many rate limit retries when fetching patrons');
+      this.logger.log(`Hit a 429, waiting ${waitFor} seconds to retry...`);
+      await new Promise((r) => setTimeout(r, waitFor * 1000));
+      return this.getPatrons(credentials, cursor, retries + 1);
+    } else if (response.status !== 200) throw new Error(`Failed to fetch patrons: HTTP ${response.status}`);
 
     const data = response.data as PatronCampaignMembersResponse;
     const patrons = data.data.map((member) => {
@@ -92,6 +101,7 @@ export default class RefreshPatrons extends TaskJob {
         tiers: member.relationships.currently_entitled_tiers.data.map((tier) => tier.id)
       } as Patron;
     });
+
     return {
       patrons,
       next: data.meta.pagination.cursors?.next,
