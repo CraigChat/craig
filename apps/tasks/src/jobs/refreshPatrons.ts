@@ -67,6 +67,7 @@ export default class RefreshPatrons extends TaskJob {
       include: 'currently_entitled_tiers,user',
       'fields[member]': 'full_name,currently_entitled_amount_cents,patron_status,email',
       'fields[user]': 'social_connections',
+      'page[count]': '500',
       ...(cursor ? { 'page[cursor]': cursor } : {})
     });
     const response = await axios.get(`https://www.patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
