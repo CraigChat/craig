@@ -79,8 +79,8 @@ export default class ShardUtilModule extends ShardManagerModule {
           )
           .catch(() => null);
         res.push({
-          id: shard.id,
           ...(shardRes ?? {}),
+          id: shard.id,
           respawnWhenAvailable: shard.respawnWhenAvailable,
           lastActivity: shard.lastActivity
         });
