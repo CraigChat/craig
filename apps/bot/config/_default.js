@@ -138,8 +138,9 @@ module.exports = {
     },
 
     status: {
-      type: 2, // Listening to
-      name: 'your conversations'
+      type: 4, // [custom status]
+      name: 'craig',
+      state: 'Recording VCs • craig.chat'
     },
 
     logger: {
