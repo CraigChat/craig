@@ -344,10 +344,11 @@ export default class Recording {
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
 
-      const timestamp = process.hrtime(this.startTime!);
-      const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-      if (this.startedAt)
+      if (this.startedAt && this.startTime) {
+        const timestamp = process.hrtime(this.startTime!);
+        const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
         await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, this.autorecorded, !!this.webapp, false).catch(() => {});
+      }
 
       // Reset nickname
       if (this.recorder.client.config.craig.removeNickname) {
