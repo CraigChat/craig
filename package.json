@@ -24,7 +24,8 @@
     "sync:dev": "yarn manypkg run bot sync:dev",
     "run-job": "yarn manypkg run tasks run-job",
     "prisma:generate": "prisma generate && yarn manypkg run bot prisma:generate && yarn manypkg run dashboard prisma:generate && yarn manypkg run tasks prisma:generate",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:dev": "prisma migrate dev"
   },
   "repository": {
     "type": "git",

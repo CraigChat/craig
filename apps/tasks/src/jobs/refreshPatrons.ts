@@ -168,7 +168,7 @@ export default class RefreshPatrons extends TaskJob {
 
         // Reset rewards tier
         const user = await prisma.user.findFirst({ where: { patronId: dbPatron.id } });
-        if (user && !patreonConfig.skipUsers.includes(user.id)) {
+        if (user && !patreonConfig.skipUsers.includes(user.id) && !user.tierManuallySet) {
           this.logger.info(`Resetting rewards for user ${user.id}`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } }));
         }
@@ -227,7 +227,7 @@ export default class RefreshPatrons extends TaskJob {
       // Upsert in user table
       if (patron.discordId) {
         const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-        if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id)) {
+        if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id) && !user.tierManuallySet) {
           this.logger.info(`Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } }));
         }
@@ -244,7 +244,7 @@ export default class RefreshPatrons extends TaskJob {
       } else if (!patreonConfig.skipUsers.includes(patron.id)) {
         // Find if this person is a patron, and give them a tier if so
         const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-        if (!user || patreonConfig.skipUsers.includes(user.id)) continue;
+        if (!user || user.tierManuallySet || patreonConfig.skipUsers.includes(user.id)) continue;
         const tier = this.determineRewardTier(patron);
         if (user.rewardTier === tier) continue;
         this.logger.log(`Updating user ${user.id} reward tier for patron ${patron.id} (${patron.name}, tier=${tier})`);
