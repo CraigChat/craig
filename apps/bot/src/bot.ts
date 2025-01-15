@@ -157,7 +157,7 @@ export async function connect() {
   }
 
   process.title = `${botName} - ${
-    process.env.SHARD_ID ? `Shard ${process.env.SHARD_ID}/${process.env.SHARD_COUNT}` : `${client.bot.shards.size} shard(s)`
+    process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
   }`;
 }
 
