@@ -54,6 +54,7 @@ export default class ShardInfoCommand extends TextCommand {
         .length.toLocaleString()} shards\n` +
       `       |       Status |   Guilds   |   Latency   |     Uptime     |  Recordings  | RWA\n` +
       res
+        .sort((a, b) => a.id - b.id)
         .map(
           (shard) =>
             `${shard.id === parseInt(process.env.SHARD_ID!) ? '>' : ' '} [${shard.id.toString().padStart(3, ' ')}]: ${(
