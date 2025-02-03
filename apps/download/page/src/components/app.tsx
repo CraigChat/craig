@@ -50,6 +50,7 @@ interface AppState {
   readyState: ReadyState | null;
   downloadingAvatars: boolean;
   dlButton: SectionButton | null;
+  showPreviousDownload: boolean;
 
   modalOpen: boolean;
   allowModalClose: boolean;
@@ -79,7 +80,8 @@ export default class App extends Component<any, AppState> {
       downloading: false,
       readyState: null,
       downloadingAvatars: false,
-      dlButton: null
+      dlButton: null,
+      showPreviousDownload: true
     };
 
     const localSHP = localStorage.getItem('showHiddenPlatforms');
@@ -104,7 +106,10 @@ export default class App extends Component<any, AppState> {
   }
 
   onBeforeUnload(event: BeforeUnloadEvent) {
-    if (this.state.downloading) event.returnValue = i18n.t('still_downloading');
+    if (this.state.downloading) {
+      event.returnValue = i18n.t('still_downloading');
+      event.preventDefault();
+    }
   }
 
   async componentDidMount() {
@@ -122,15 +127,34 @@ export default class App extends Component<any, AppState> {
   async loadRecording() {
     try {
       const query = new URLSearchParams(location.search);
-      const recording = await getRecording(this.state.recordingId, query.get('key'));
-      const users = await getRecordingUsers(this.state.recordingId, query.get('key'));
-      console.debug('Got recording', recording, users);
-      this.setState({ recording, users, loading: false });
+      const key = query.get('key');
+      const recording = await getRecording(this.state.recordingId, key);
+      const users = await getRecordingUsers(this.state.recordingId, key);
+      const readyState = await isReady(this.state.recordingId, key);
+      console.debug('Got recording', recording, users, readyState);
+      this.setState({ recording, users, loading: false, readyState });
+      if (readyState && !readyState.ready) await this.updatePreviousReadyState(key);
     } catch (e) {
       const { errorT } = await parseError(e);
       console.error('Failed to get recording:', e);
       this.setState({ error: errorT, loading: false });
     }
+  }
+
+  async updatePreviousReadyState(key: string) {
+    let ready = false;
+
+    const getReadyState = async () => {
+      const readyState = await isReady(this.state.recordingId, key);
+      ready = readyState.ready;
+      this.setState({ readyState });
+      setTimeout(async () => {
+        if (ready || !this.state.showPreviousDownload) return;
+        await getReadyState();
+      }, 1000);
+    };
+
+    await getReadyState();
   }
 
   async loadDuration() {
@@ -170,7 +194,7 @@ export default class App extends Component<any, AppState> {
       await wait(1000);
       const readyState = await isReady(this.state.recordingId, key);
       ready = readyState.ready;
-      this.setState({ readyState });
+      this.setState({ readyState, showPreviousDownload: false });
     }
   }
 

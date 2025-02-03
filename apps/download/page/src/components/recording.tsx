@@ -8,13 +8,14 @@ import clsx from 'clsx';
 import { Fragment, h } from 'preact';
 import { useTranslation } from 'react-i18next';
 
-import { CookAvatarsPayload, RecordingInfo, RecordingUser } from '../api';
+import { CookAvatarsPayload, ReadyState, RecordingInfo, RecordingUser } from '../api';
 import prettyMs from '../prettyMs';
 import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
 import { asT, PlatformInfo } from '../util';
 import DiscordElement from './discordElement';
 import DownloadButton from './downloadButton';
 import GlowersSection from './glowersSection';
+import PreviouslyDownloaded from './previouslyDownloaded';
 import Section from './section';
 
 const EXPIRY_WARN_AT = 1000 * 60 * 60 * 3;
@@ -27,6 +28,9 @@ interface RecordingProps {
     durationLoading: boolean;
     duration: number | null;
     platform: PlatformInfo;
+    readyState: ReadyState | null;
+    downloading: boolean;
+    showPreviousDownload: boolean;
   };
   onDurationClick?(e: MouseEvent): any;
   onDownloadClick?(button: SectionButton, e: MouseEvent): any;
@@ -98,6 +102,12 @@ export default function Recording({ state, onDurationClick, onDownloadClick, onD
           </div>
         </div>
       </div>
+
+      {!state.downloading && state.readyState && state.showPreviousDownload ? (
+        <PreviouslyDownloaded readyState={state.readyState} users={state.users} recording={state.recording} platform={state.platform} />
+      ) : (
+        ''
+      )}
 
       {/* Expiry Block */}
       <div class="flex flex-col items-center justify-center">
