@@ -103,7 +103,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick, onD
         </div>
       </div>
 
-      {!state.downloading && state.readyState && state.showPreviousDownload ? (
+      {!state.downloading && state.readyState && state.showPreviousDownload && state.readyState.download ? (
         <PreviouslyDownloaded readyState={state.readyState} users={state.users} recording={state.recording} platform={state.platform} />
       ) : (
         ''
