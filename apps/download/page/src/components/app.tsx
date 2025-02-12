@@ -261,17 +261,17 @@ export default class App extends Component<any, AppState> {
       container: button.container || 'zip',
       dynaudnorm: button.dynaudnorm || false
     };
-    if (
-      readyState.download &&
-      readyState.download.format === payload.format &&
-      readyState.download.container === payload.container &&
-      readyState.download.dynaudnorm === payload.dynaudnorm &&
-      readyState.download.type === 'default'
-    ) {
-      location.href = `/dl/${readyState.download.file}`;
-      this.showCompletedPrompt(`/dl/${readyState.download.file}`, true);
-      return;
-    }
+    // if (
+    //   readyState.download &&
+    //   readyState.download.format === payload.format &&
+    //   readyState.download.container === payload.container &&
+    //   readyState.download.dynaudnorm === payload.dynaudnorm &&
+    //   readyState.download.type === 'default'
+    // ) {
+    //   location.href = `/dl/${readyState.download.file}`;
+    //   this.showCompletedPrompt(`/dl/${readyState.download.file}`, true);
+    //   return;
+    // }
 
     this.openDownloadingModal(false, button);
 
