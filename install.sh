@@ -7,22 +7,23 @@ set -e
 ###################################################
 
 APT_DEPENDENCIES=(
-  make            # cook
-  inkscape        # cook
-  ffmpeg          # cook
-  flac            # cook
-  fdkaac          # cook
-  vorbis-tools    # cook
-  opus-tools      # cook
-  zip             # cook
-  unzip           # cook
-  lsb-release     # redis
-  curl            # redis
-  gpg             # redis
-  postgresql      # web
-  sed             # install
-  coreutils       # install
-  build-essential # install
+  make              # cook
+  inkscape          # cook
+  ffmpeg            # cook
+  flac              # cook
+  fdkaac            # cook
+  vorbis-tools      # cook
+  opus-tools        # cook
+  zip               # cook
+  unzip             # cook
+  lsb-release       # redis
+  curl              # redis
+  gpg               # redis
+  postgresql        # web
+  sed               # install
+  coreutils         # install
+  build-essential   # install
+  python-setuptools # install
 )
 
 # Get the directory of the script being executed
