@@ -20,6 +20,7 @@ APT_DEPENDENCIES=(
   curl              # redis
   gpg               # redis
   postgresql        # web
+  dbus-x11          # install
   sed               # install
   coreutils         # install
   build-essential   # install
