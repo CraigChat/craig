@@ -1,0 +1,11 @@
+{
+  "name": "@craig/types",
+  "version": "0.0.1",
+	"types": "./src/index.d.ts",
+  "exports": {
+    ".": "./src/index.d.ts",
+    "./kitchen": "./src/kitchen.d.ts",
+    "./recording": "./src/recording.d.ts"
+  },
+  "license": "MIT"
+}

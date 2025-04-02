@@ -1,0 +1,101 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "Craig Development",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+			"nonFreePackages": "true"
+		},
+    "ghcr.io/devcontainers-contrib/features/apt-packages:1": {
+      // Craig Dependencies: ffmpeg, flac, lame, vorbis-tools, opus-tools, node-gyp, libfltk1.3, libfltk1.3-dev
+      // Legacy dependencies: at
+      // Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies): libtool, yasm
+      // MinGW dependencies for FFmpeg Windows compilation: mingw-w64-tools, gcc-mingw-w64-i686, g++-mingw-w64-i686, libz-mingw-w64, libz-mingw-w64-dev
+			"packages": "ffmpeg,flac,lame,vorbis-tools,opus-tools,node-gyp,libtool,yasm,libfltk1.3,libfltk1.3-dev,at,mingw-w64-tools,gcc-mingw-w64-i686,g++-mingw-w64-i686,libz-mingw-w64,libz-mingw-w64-dev"
+		},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.10.13",
+			"installTools": "false"
+    },
+		"ghcr.io/devcontainers-contrib/features/prisma:2": {
+			"version": "latest"
+		},
+		"ghcr.io/dhoeric/features/act:1": {},
+		"ghcr.io/itsmechlark/features/redis-server:1": {
+			"version": "7"
+		},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	"overrideFeatureInstallOrder": [
+		"ghcr.io/devcontainers/features/common-utils",
+		"ghcr.io/devcontainers-contrib/features/apt-packages"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"MS-SarifVSCode.sarif-viewer",
+				"jock.svg",
+				"cweijan.vscode-redis-client",
+				"ms-ossdata.vscode-postgresql",
+				"eamodio.gitlens",
+				"csstools.postcss",
+				"editorconfig.editorconfig",
+				"dbaeumer.vscode-eslint",
+				"github.vscode-github-actions",
+				"esbenp.prettier-vscode",
+				"yoavbls.pretty-ts-errors",
+				"svelte.svelte-vscode",
+				"gruntfuggly.todo-tree",
+				"prisma.prisma",
+				"bradlc.vscode-tailwindcss",
+				"hbenl.vscode-test-explorer",
+				"ms-vscode.makefile-tools",
+				"steveucho.fltk-fluid-syntax-highlighting",
+				"ms-vscode.cpptools-themes",
+				"ahmadalli.vscode-nginx-conf"
+			],
+      "settings": {
+        "eslint.validate": [
+          "javascript",
+          "svelte"
+        ]
+      }
+		}
+	},
+
+	"onCreateCommand": "./.devcontainer/on-create-command.sh",
+	"updateContentCommand": "pnpm install -f",
+	"postCreateCommand": "./.devcontainer/post-create-command.sh",
+
+  "portsAttributes": {
+    "9000": {
+      "label": "Kitchen"
+    },
+    "5173": {
+      "label": "Ferret (Development)",
+      "onAutoForward": "openPreview"
+    },
+    "4173": {
+      "label": "Ferret (Preview)",
+      "onAutoForward": "openPreview"
+    },
+    "9001": {
+      "label": "Ennuizel Streamer"
+    }
+  },
+	"forwardPorts": [9000, 5173, 4173, 9001]
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "yarn install",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

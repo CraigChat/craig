@@ -1,5 +1,6 @@
 {
   "name": "craig",
+  "version": "0.0.0",
   "homepage": "http://craig.chat/",
   "license": "ISC",
   "private": true,
@@ -8,35 +9,38 @@
     "email": "me@snazzah.com",
     "url": "https://snazzah.com/"
   },
-  "workspaces": [
-    "apps/bot",
-    "apps/dashboard",
-    "apps/download",
-    "apps/tasks"
-  ],
+  "engines": {
+    "node": ">=18.20.4",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.1.1",
   "scripts": {
-    "build": "yarn workspaces run build",
-    "test": "yarn workspaces run test",
-    "lint": "yarn workspaces run lint",
-    "lint:fix": "yarn workspaces run lint:fix",
-    "lint:monorepo": "yarn manypkg check",
-    "sync": "yarn manypkg run bot sync",
-    "sync:dev": "yarn manypkg run bot sync:dev",
-    "run-job": "yarn manypkg run tasks run-job",
-    "prisma:generate": "prisma generate && yarn manypkg run bot prisma:generate && yarn manypkg run dashboard prisma:generate && yarn manypkg run tasks prisma:generate",
-    "prisma:deploy": "prisma migrate deploy",
-    "prisma:dev": "prisma migrate dev"
+    "dev": "turbo dev --no-daemon",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "build-cook": "pnpm --filter kitchen --filter ennuizel-streamer run build-cook",
+    "sync": "pnpm --filter bot run sync",
+    "sync:dev": "pnpm --filter bot run sync:dev",
+    "db:deploy": "dotenv -c -- pnpm --filter db run db:migrate:deploy"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/CraigChat/craig"
   },
   "dependencies": {
-    "@manypkg/cli": "^0.19.2",
-    "dotenv-cli": "^7.4.1",
-    "eslint": "^8.20.0",
-    "eslint-config-snazzah": "^1.1.0",
-    "prisma": "^5.12.1",
-    "rimraf": "^3.0.2"
+    "dotenv-cli": "8.0.0",
+    "eslint": "9.21.0",
+    "eslint-config-craig": "workspace:*",
+    "rimraf": "5.0.10",
+    "turbo": "2.4.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "supports-color": "8.1.1"
+    },
+    "patchedDependencies": {
+      "svelte-awesome-color-picker@4.0.0": "patches/svelte-awesome-color-picker@4.0.0.patch"
+    }
   }
 }

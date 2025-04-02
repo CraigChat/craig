@@ -1,0 +1,21 @@
+{
+  "name": "@craig/metrics",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsup": "^8.4.0"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3"
+  }
+}

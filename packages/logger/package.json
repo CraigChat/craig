@@ -1,0 +1,27 @@
+{
+  "name": "@craig/logger",
+  "version": "0.0.1",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts"
+  },
+  "dependencies": {
+    "chalk": "4.1.2",
+    "dayjs": "1.11.13",
+    "winston": "3.17.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  }
+}

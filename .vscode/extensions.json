@@ -1,0 +1,20 @@
+{
+  "recommendations": [
+    "csstools.postcss",
+    "editorconfig.editorconfig",
+    "dbaeumer.vscode-eslint",
+    "github.vscode-github-actions",
+    "esbenp.prettier-vscode",
+    "yoavbls.pretty-ts-errors",
+    "svelte.svelte-vscode",
+    "gruntfuggly.todo-tree",
+    "prisma.prisma",
+    "bradlc.vscode-tailwindcss",
+    "hbenl.vscode-test-explorer",
+    "ms-vscode.makefile-tools",
+    "steveucho.fltk-fluid-syntax-highlighting",
+    "ms-vscode.cpptools-themes",
+    "ahmadalli.vscode-nginx-conf",
+    "usernamehw.errorlens"
+  ]
+}

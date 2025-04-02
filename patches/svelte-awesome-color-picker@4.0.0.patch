@@ -1,0 +1,13 @@
+diff --git a/dist/components/variant/default/TextInput.svelte b/dist/components/variant/default/TextInput.svelte
+index 5715c20086012201fdd7c64385e9ff83c48a93f4..c71e036a5ef9fc1af3beec1890956577c841a229 100644
+--- a/dist/components/variant/default/TextInput.svelte
++++ b/dist/components/variant/default/TextInput.svelte
+@@ -94,7 +94,7 @@
+ 	{#if textInputModes.length > 1}
+ 		<button type="button" onclick={() => (mode = nextMode)}>
+ 			<span class="disappear" aria-hidden="true">{texts.color[mode]}</span>
+-			<span class="appear">{texts.changeTo} {nextMode}</span>
++			<span class="appear">{texts.changeTo} {texts.color[nextMode]}</span>
+ 		</button>
+ 	{:else}
+ 		<div class="button-like">{texts.color[mode]}</div>

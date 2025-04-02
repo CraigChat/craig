@@ -1,0 +1,4 @@
+*.o
+*.cxx
+sfx.h
+powersfx.h

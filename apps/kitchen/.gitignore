@@ -1,0 +1,17 @@
+cook/extnotes
+cook/oggcorrect
+cook/oggduration
+cook/oggmultiplexer
+cook/oggstender
+cook/oggtracks
+cook/wavduration
+
+cook/*.png
+cook/*.exe
+cook/*.macosx
+
+cook/ffmpeg-*
+!cook/ffmpeg-flags
+!cook/ffmpeg-lgpl21.txt
+cook/*.tar.xz
+cook/windows/unzip/*.a

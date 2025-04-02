@@ -1,0 +1,41 @@
+{
+  "database": {
+    "psql": {
+      "name": "PostgreSQL",
+      "host": "127.0.0.1",
+      "port": 5432,
+      "user": "postgres",
+      "database": "postgres",
+      "password": "postgres",
+      "dbType": "PostgreSQL"
+    }
+  },
+  "nosql": {
+    "redis": {
+      "name": "Redis",
+      "host": "127.0.0.1",
+      "port": 6379,
+      "dbType": "Redis",
+      "database": "0",
+      "timezone": "+00:00",
+      "useConnectionString": false,
+      "usingSSH": false,
+      "useSocksProxy": false,
+      "global": true,
+      "savePassword": "Forever",
+      "hideSystemSchema": true,
+      "readonly": false,
+      "sort": 11,
+      "useSSL": false,
+      "isCluster": false,
+      "encrypt": false,
+      "authType": "default",
+      "esAuth": "none",
+      "showHidden": true,
+      "srv": false,
+      "key": "redis",
+      "connectionKey": "nosql.connections"
+    }
+  },
+  "$schema": "https://dbclient-release.oss-cn-hongkong.aliyuncs.com/dbclient/schema.json"
+}

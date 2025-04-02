@@ -3,37 +3,34 @@ node_modules/
 
 # development
 .next/
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
 node_modules/
-.vercel
+.vercel/
+.turbo/
+.pnpm-store/
+.tmp/
+.docker/
+*.zip
 
 # production
 data/
-rec/
+/downloads/
+/rec/
+/rec_cache/
+/output/
 dist/
 build/
+/rec
 
 # misc
 .DS_Store
 *.pem
 *.swp
 
-# Cook
-cook/extnotes
-cook/oggcorrect
-cook/oggduration
-cook/oggmultiplexer
-cook/oggstender
-cook/oggtracks
-cook/wavduration
-cook/*.png
-cook/*.exe
-cook/*.macosx
-apps/download/downloads/
-
 # Database
-*.rdb
 *.db
 *.db-shm
 *.db-wal
@@ -43,14 +40,7 @@ apps/download/downloads/
 node-log.txt
 nohup.out
 
-# ENV files and Config
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# ENV files
 .env
-config.json
-apps/*/config/default.js
-.patreon-credentials.json
-install.config
-
+.env.*
+!.env.example

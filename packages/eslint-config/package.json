@@ -1,0 +1,34 @@
+{
+  "name": "eslint-config-craig",
+  "version": "0.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "scripts": {
+    "lint": "eslint -c src/index.js .",
+    "format": "eslint -c src/index.js . --fix"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./extras": "./src/extras.js"
+  },
+  "dependencies": {
+    "eslint": "^9.21.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-json": "^4.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-svelte": "^3.0.2",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.2",
+    "prettier-plugin-svelte": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.11",
+    "svelte-eslint-parser": "^1.0.0",
+    "typescript-eslint": "^8.25.0"
+  }
+}
