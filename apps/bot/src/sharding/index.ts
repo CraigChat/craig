@@ -3,6 +3,7 @@ import config from 'config';
 import * as logger from './logger';
 import ShardManager from './manager';
 import BotListPosterModule from './modules/botlist';
+import MetricsModule from './modules/metrics';
 import ShardUtilModule from './modules/shardutil';
 
 const manager = new ShardManager(config.get('sharding'));
@@ -12,7 +13,7 @@ manager.on('reconnecting', (shard, m) => logger.warn(`Shard ${shard.id} reconnec
 manager.on('ready', (shard, msg) => logger.info(`Shard ${shard.id} ready with ${msg.d?._guilds ?? '<unknown>'} guilds.`));
 manager.on('shardError', (shard, e) => logger.error(`Shard ${shard.id} encountered an error`, e));
 
-manager.loadModules(BotListPosterModule, ShardUtilModule);
+manager.loadModules(BotListPosterModule, ShardUtilModule, MetricsModule);
 process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r));
 
 (async () => {
