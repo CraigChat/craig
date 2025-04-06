@@ -61,32 +61,36 @@ export default class ShardUtilModule extends ShardManagerModule {
     });
     this.registerCommand('getShardInfo', async (shard, msg, respond) => {
       logger.debug(`Shard ${shard.id}: Getting shard info`);
-      const res = [];
-      for (const shard of this.manager.shards.values()) {
-        const shardRes = await shard
-          .eval(
-            `
-          let res = {
-            id: this.shard ? this.shard.id : parseInt(process.env.SHARD_ID),
-            status: this.shard.status,
-            guilds: this.bot.guilds.size,
-            latency: Number.isFinite(this.shard.latency) ? this.shard.latency : -1,
-            uptime: process.uptime(),
-            recordings: this.modules.get("recorder").recordings.size
-          };
-          res
-        `
-          )
-          .catch(() => null);
-        res.push({
-          ...(shardRes ?? {}),
-          id: shard.id,
-          respawnWhenAvailable: shard.respawnWhenAvailable,
-          lastActivity: shard.lastActivity
-        });
-      }
+      const res: any[] = [];
+      await Promise.all(
+        Array.from(this.manager.shards.values()).map(async (shard) => {
+          const shardRes = await Promise.race([
+            shard.eval(
+              `
+                let res = {
+                  id: this.shard ? this.shard.id : parseInt(process.env.SHARD_ID),
+                  status: this.shard.status,
+                  guilds: this.bot.guilds.size,
+                  latency: Number.isFinite(this.shard.latency) ? this.shard.latency : -1,
+                  uptime: process.uptime(),
+                  recordings: this.modules.get("recorder").recordings.size
+                };
+                res
+              `
+            ),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1000))
+          ]).catch(() => null);
+          res.push({
+            status: shard.status,
+            ...(shardRes ?? {}),
+            id: shard.id,
+            respawnWhenAvailable: shard.respawnWhenAvailable,
+            lastActivity: shard.lastActivity
+          });
+        })
+      );
 
-      return respond({ res });
+      return respond({ res, spawned: this.manager.shards.size, total: this.manager.options.shardCount });
     });
     this.registerCommand('setRWA', async (shard, msg, respond) => {
       if (msg.d.id === 'all') {

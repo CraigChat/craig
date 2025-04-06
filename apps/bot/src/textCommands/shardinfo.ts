@@ -35,9 +35,11 @@ export default class ShardInfoCommand extends TextCommand {
 
     if (!sharding.on) return void (await replyOrSend(ctx, 'Sharding is not enabled.'));
     const {
-      d: { res }
+      d: { res, spawned, total }
     } = await sharding.sendAndRecieve<{
       res: { id: number; status?: string; guilds?: number; latency?: number; uptime?: number; recordings?: number; respawnWhenAvailable: boolean }[];
+      spawned: number;
+      total: number;
     }>('getShardInfo');
 
     const totalGuilds = res.reduce((acc, cur) => acc + (cur.guilds ?? 0), 0);
@@ -46,7 +48,7 @@ export default class ShardInfoCommand extends TextCommand {
     const totalRecordings = res.reduce((acc, cur) => acc + (cur.recordings ?? 0), 0);
 
     const message =
-      `Your Shard ID: ${process.env.SHARD_ID}\n\n` +
+      `Your Shard ID: ${process.env.SHARD_ID} -- Shards Spawned: ${spawned}/${total}${spawned !== total ? ' (!)' : ''}\n\n` +
       `      --- SUMMARY --- | ${totalGuilds.toLocaleString().padEnd(10, ' ')} | ${`${averageLatency}ms avg`.padEnd(11, ' ')} | ${`${this.format(
         averageUptime
       )} avg`.padEnd(14, ' ')} | ${totalRecordings.toLocaleString().padEnd(12, ' ')} | ${res
