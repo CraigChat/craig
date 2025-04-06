@@ -6,6 +6,7 @@ import { DexareClient } from 'dexare';
 import { hostname } from 'os';
 
 import { client as dexareClient, CraigBotConfig } from './bot';
+import type MetricsModule from './modules/metrics';
 import type RecorderModule from './modules/recorder';
 
 const influxOpts: any = config.has('influx') ? config.get('influx') : null;
@@ -22,7 +23,12 @@ export let autorecordingsStarted = 0;
 
 export let pointQueue: Point[] = [];
 
+function getMetricsModule() {
+  return dexareClient.modules.get('metrics') as any as MetricsModule;
+}
+
 export function onCommandRun(userID: string, commandName: string, guildID?: string) {
+  getMetricsModule().onCommandRan(commandName);
   if (!influxOpts || !influxOpts.url || !client) return;
   const commandCount = commandCounts.get(commandName) || { users: [], used: 0 };
 
@@ -38,6 +44,7 @@ export function onCommandRun(userID: string, commandName: string, guildID?: stri
 }
 
 export function onRecordingStart(userID: string, guildID: string, auto = false) {
+  getMetricsModule().onRecordingStart(auto);
   if (!influxOpts || !influxOpts.url || !client) return;
   recordingsStarted++;
   if (!activeUsers.includes(userID)) activeUsers.push(userID);

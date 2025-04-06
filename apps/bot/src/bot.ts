@@ -9,6 +9,7 @@ import { init as i18nInit } from './i18n';
 import { cron as influxCron } from './influx';
 import AutorecordModule from './modules/autorecord';
 import LoggerModule from './modules/logger';
+import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
 import ShardingModule from './modules/sharding';
 import SlashModule from './modules/slash';
@@ -116,7 +117,7 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule);
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   // Makes custom emojis with the name 'craig' work as prefixes

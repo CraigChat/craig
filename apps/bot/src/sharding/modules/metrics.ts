@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { Gauge, register } from 'prom-client';
+import { Counter, Gauge, register } from 'prom-client';
 
 import * as logger from '../logger';
 import type ShardManager from '../manager';
@@ -22,6 +22,19 @@ function setPropPerShard(prop: string, gauge: Gauge, manager: ShardManager) {
   );
 }
 
+function collectFromShards(stat: string, counter: Counter, manager: ShardManager) {
+  return timeout(
+    Promise.all(
+      Array.from(manager.shards.values()).map(async (shard) => {
+        if (shard.status === 'ready' || shard.status === 'resuming') {
+          const result: number = await shard.eval(`this.modules.get("metrics").collect("${stat}")`);
+          counter.inc({ shard: shard.id.toString() }, result);
+        }
+      })
+    )
+  );
+}
+
 function timeout(p: Promise<any>, ms = 500) {
   return Promise.race([p, wait(ms)]);
 }
@@ -36,24 +49,24 @@ export default class MetricsModule extends ShardManagerModule {
     });
 
     new Gauge({
-      name: 'craig_bot_shards_total',
-      help: 'Gauge for total shard count',
+      name: 'craig_bot_shard_count',
+      help: 'Gauge for current shard count',
       collect() {
         this.set(manager.shards.size);
       }
     });
 
     new Gauge({
-      name: 'craig_bot_shards_configured_total',
-      help: 'Gauge for total configured shard count',
+      name: 'craig_bot_shards_configured',
+      help: 'Gauge for configured shard count',
       collect() {
         this.set(manager.options.shardCount);
       }
     });
 
     new Gauge({
-      name: 'craig_bot_guilds_total',
-      help: 'Gauge for total guild count',
+      name: 'craig_bot_guilds',
+      help: 'Gauge for guild count',
       labelNames: ['shard'],
       async collect() {
         try {
@@ -63,7 +76,7 @@ export default class MetricsModule extends ShardManagerModule {
     });
 
     new Gauge({
-      name: 'craig_bot_guilds_unavailable_total',
+      name: 'craig_bot_guilds_unavailable',
       help: 'Gauge for total unavailable guild count',
       labelNames: ['shard'],
       async collect() {
@@ -74,12 +87,65 @@ export default class MetricsModule extends ShardManagerModule {
     });
 
     new Gauge({
-      name: 'craig_bot_recordings_total',
-      help: 'Gauge for total active recording count',
+      name: 'craig_bot_recordings_active',
+      help: 'Gauge for active recording count',
       labelNames: ['shard'],
       async collect() {
         try {
           await setPropPerShard('this.modules.get("recorder").recordings.size', this, manager);
+        } catch {}
+      }
+    });
+
+    new Counter({
+      name: 'craig_bot_recordings_total',
+      help: 'Counter for total recording starts',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await collectFromShards('recordingsStarted', this, manager);
+        } catch {}
+      }
+    });
+
+    new Counter({
+      name: 'craig_bot_recordings_auto_total',
+      help: 'Counter for total autorecording starts',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await collectFromShards('autorecordingsStarted', this, manager);
+        } catch {}
+      }
+    });
+
+    new Counter({
+      name: 'craig_bot_commands_ran_total',
+      help: 'Counter for total commands ran per shard',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await collectFromShards('commandsRan', this, manager);
+        } catch {}
+      }
+    });
+
+    new Counter({
+      name: 'craig_bot_command_usage_total',
+      help: 'Counter for command usage per command',
+      labelNames: ['command'],
+      async collect() {
+        try {
+          await timeout(
+            Promise.all(
+              Array.from(manager.shards.values()).map(async (shard) => {
+                if (shard.status === 'ready' || shard.status === 'resuming') {
+                  const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("commands")');
+                  for (const command in result) this.inc({ command }, result[command]);
+                }
+              })
+            )
+          );
         } catch {}
       }
     });
@@ -97,7 +163,7 @@ export default class MetricsModule extends ShardManagerModule {
 
     new Gauge({
       name: 'craig_bot_shard_uptime_seconds',
-      help: 'Gauge for millisecond latency per shard',
+      help: 'Gauge for uptime per shard',
       labelNames: ['shard'],
       async collect() {
         try {
