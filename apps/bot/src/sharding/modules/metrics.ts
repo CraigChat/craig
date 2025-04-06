@@ -130,7 +130,7 @@ export default class MetricsModule extends ShardManagerModule {
       }
     });
 
-    new Counter({
+    const cmdUsage = new Counter({
       name: 'craig_bot_command_usage_total',
       help: 'Counter for command usage per command',
       labelNames: ['command'],
@@ -149,6 +149,9 @@ export default class MetricsModule extends ShardManagerModule {
         } catch {}
       }
     });
+
+    for (const command of ['autorecord', 'bless', 'features', 'info', 'join', 'note', 'recordings', 'server-settings', 'stop', 'unbless', 'webapp'])
+      cmdUsage.inc({ command }, 0);
 
     new Gauge({
       name: 'craig_bot_shard_latency_milliseconds',
