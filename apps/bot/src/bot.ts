@@ -13,6 +13,7 @@ import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
 import ShardingModule from './modules/sharding';
 import SlashModule from './modules/slash';
+import UploadModule from './modules/upload';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 import { close as closeSentry } from './sentry';
@@ -25,6 +26,7 @@ export interface CraigBotConfig extends BaseConfig {
   prefix: string | string[];
   mentionPrefix: boolean;
   status: Eris.ActivityPartial<Eris.BotActivityType>;
+  kitchenURL?: string;
 
   craig: {
     emoji: string;
@@ -117,7 +119,7 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule);
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   // Makes custom emojis with the name 'craig' work as prefixes
