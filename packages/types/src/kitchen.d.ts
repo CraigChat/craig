@@ -71,6 +71,7 @@ export interface JobOutputData {
   uploadError?: boolean;
   uploadFileId?: string;
   uploadFileURL?: string;
+  uploadService?: string;
 }
 
 export interface JobJSON {

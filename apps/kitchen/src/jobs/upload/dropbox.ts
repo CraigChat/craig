@@ -31,7 +31,7 @@ export async function dropboxPreflight(userId: string) {
     await dbx.usersGetCurrentAccount();
   } catch (e) {
     const err: DropboxError<{ error_summary: string }> = e as any;
-    logger.error(`Error in dropbox preflight for user ${userId}`, err.error);
+    logger.warn(`Error in dropbox preflight for user ${userId}`, err.error);
     await prisma.dropboxUser.delete({ where: { id: userId } });
     return false;
   }
@@ -97,6 +97,7 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
                   });
                 }
               } catch (e) {
+                logger.error(`Error in dropbox upload for recording ${job.recordingId} for user ${userId}`, e);
                 return reject(e);
               }
 

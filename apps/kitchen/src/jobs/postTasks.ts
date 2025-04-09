@@ -42,6 +42,7 @@ async function cloudUpload(job: Job) {
     if (!user) return;
     driveService = user.driveService;
     if (user.rewardTier === 0 || !user.driveEnabled) return;
+    job.outputData.uploadService = user.driveService;
 
     logger.info(`Uploading ${job.recordingId} to ${user.id} via ${user.driveService} (${job.options?.format}/${job.options?.container})`);
 

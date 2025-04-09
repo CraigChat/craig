@@ -77,7 +77,10 @@ export async function microsoftUpload(job: Job, info: RecordingInfo, fileName: s
   );
 
   if (uploadSession.status !== 200) {
-    logger.error(`OneDrive error while creating upload session (${uploadSession.status})`, await uploadSession.text().catch(() => null));
+    logger.error(
+      `OneDrive error while creating upload session for recording ${job.recordingId} for user ${userId} (${uploadSession.status})`,
+      await uploadSession.text().catch(() => null)
+    );
     throw new UploadError('Your Microsoft authentication has either expired or I was not allowed to upload, please re-authenticate.');
   }
 

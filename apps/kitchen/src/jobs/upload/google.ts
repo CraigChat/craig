@@ -6,9 +6,10 @@ import { type drive_v3, google } from 'googleapis';
 
 import { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } from '../../util/config.js';
 import { getRecordingDescription, UploadError } from '../../util/index.js';
+import logger from '../../util/logger.js';
 import { Job } from '../job.js';
 
-async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
+async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive, userId: string) {
   try {
     const list = await drive.files.list({
       q: "name = 'Craig' and mimeType = 'application/vnd.google-apps.folder'"
@@ -26,6 +27,7 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
 
     return folder.data.id;
   } catch (e) {
+    logger.warn(`Failed to get Craig directory for user ${userId}`, e);
     return null;
   }
 }
@@ -46,11 +48,14 @@ export async function googlePreflight(userId: string) {
     if (tokens.refresh_token)
       await prisma.googleDriveUser.update({
         where: { id: userId },
-        data: { refreshToken: tokens.refresh_token }
+        data: {
+          refreshToken: tokens.refresh_token,
+          token: tokens.access_token ?? undefined
+        }
       });
   });
 
-  const folderId = await findCraigDirectoryInGoogleDrive(drive);
+  const folderId = await findCraigDirectoryInGoogleDrive(drive, userId);
   if (!folderId) return false;
   return { folderId };
 }
@@ -75,7 +80,7 @@ export async function googleUpload(job: Job, info: RecordingInfo, fileName: stri
       });
   });
 
-  const folderId = job.postTaskOptions?.googleFolderId || (await findCraigDirectoryInGoogleDrive(drive));
+  const folderId = job.postTaskOptions?.googleFolderId || (await findCraigDirectoryInGoogleDrive(drive, userId));
   if (!folderId) throw new UploadError('Your Google authentication was invalidated, please re-authenticate.');
   const mimeType = job.getMimeType();
 
