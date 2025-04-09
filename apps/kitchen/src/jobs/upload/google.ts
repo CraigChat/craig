@@ -76,7 +76,10 @@ export async function googleUpload(job: Job, info: RecordingInfo, fileName: stri
     if (tokens.refresh_token)
       await prisma.googleDriveUser.update({
         where: { id: userId },
-        data: { refreshToken: tokens.refresh_token }
+        data: {
+          refreshToken: tokens.refresh_token,
+          token: tokens.access_token ?? undefined
+        }
       });
   });
 

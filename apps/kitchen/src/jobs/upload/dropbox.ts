@@ -114,10 +114,11 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
         });
 
   const accessToken = auth.getAccessToken();
-  if (accessToken !== driveUser.token)
+  const refreshToken = auth.getRefreshToken();
+  if (accessToken !== driveUser.token || refreshToken !== driveUser.refreshToken)
     await prisma.dropboxUser.update({
       where: { id: userId },
-      data: { token: accessToken }
+      data: { refreshToken, token: accessToken }
     });
 
   job.outputData.uploadFileId = file.result.id;
