@@ -7,7 +7,6 @@ node_modules/
 !.vscode/launch.json
 !.vscode/extensions.json
 .idea/
-node_modules/
 .vercel/
 .turbo/
 .pnpm-store/
@@ -29,6 +28,7 @@ build/
 .DS_Store
 *.pem
 *.swp
+_tmp_*
 
 # Database
 *.db
