@@ -24,5 +24,8 @@ if [ ! -f ./.env ]; then
   echo 'DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"' >> .env
 fi
 
+# pull submodules
+git submodule update --init
+
 # prisma migration
 pnpm db:deploy
