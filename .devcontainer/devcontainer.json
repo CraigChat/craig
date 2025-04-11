@@ -6,20 +6,20 @@
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"features": {
-    "ghcr.io/devcontainers/features/common-utils:2": {
+		"ghcr.io/devcontainers/features/common-utils:2": {
 			"nonFreePackages": "true"
 		},
-    "ghcr.io/devcontainers-contrib/features/apt-packages:1": {
-      // Craig Dependencies: ffmpeg, flac, lame, vorbis-tools, opus-tools, node-gyp, libfltk1.3, libfltk1.3-dev
-      // Legacy dependencies: at
-      // Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies): libtool, yasm
-      // MinGW dependencies for FFmpeg Windows compilation: mingw-w64-tools, gcc-mingw-w64-i686, g++-mingw-w64-i686, libz-mingw-w64, libz-mingw-w64-dev
+		"ghcr.io/devcontainers-contrib/features/apt-packages:1": {
+			// Craig Dependencies: ffmpeg, flac, lame, vorbis-tools, opus-tools, node-gyp, libfltk1.3, libfltk1.3-dev
+			// Legacy dependencies: at
+			// Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies): libtool, yasm
+			// MinGW dependencies for FFmpeg Windows compilation: mingw-w64-tools, gcc-mingw-w64-i686, g++-mingw-w64-i686, libz-mingw-w64, libz-mingw-w64-dev
 			"packages": "ffmpeg,flac,lame,vorbis-tools,opus-tools,node-gyp,libtool,yasm,libfltk1.3,libfltk1.3-dev,at,mingw-w64-tools,gcc-mingw-w64-i686,g++-mingw-w64-i686,libz-mingw-w64,libz-mingw-w64-dev"
 		},
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.10.13",
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.10.13",
 			"installTools": "false"
-    },
+		},
 		"ghcr.io/devcontainers-contrib/features/prisma:2": {
 			"version": "latest"
 		},
@@ -27,7 +27,7 @@
 		"ghcr.io/itsmechlark/features/redis-server:1": {
 			"version": "7"
 		},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+		"ghcr.io/devcontainers/features/github-cli:1": {}
 	},
 	"overrideFeatureInstallOrder": [
 		"ghcr.io/devcontainers/features/common-utils",
@@ -57,12 +57,12 @@
 				"ms-vscode.cpptools-themes",
 				"ahmadalli.vscode-nginx-conf"
 			],
-      "settings": {
-        "eslint.validate": [
-          "javascript",
-          "svelte"
-        ]
-      }
+			"settings": {
+				"eslint.validate": [
+					"javascript",
+					"svelte"
+				]
+			}
 		}
 	},
 
@@ -70,22 +70,22 @@
 	"updateContentCommand": "pnpm install -f",
 	"postCreateCommand": "./.devcontainer/post-create-command.sh",
 
-  "portsAttributes": {
-    "9000": {
-      "label": "Kitchen"
-    },
-    "5173": {
-      "label": "Ferret (Development)",
-      "onAutoForward": "openPreview"
-    },
-    "4173": {
-      "label": "Ferret (Preview)",
-      "onAutoForward": "openPreview"
-    },
-    "9001": {
-      "label": "Ennuizel Streamer"
-    }
-  },
+	"portsAttributes": {
+		"9000": {
+			"label": "Kitchen"
+		},
+		"5173": {
+			"label": "Ferret (Development)",
+			"onAutoForward": "openPreview"
+		},
+		"4173": {
+			"label": "Ferret (Preview)",
+			"onAutoForward": "openPreview"
+		},
+		"9001": {
+			"label": "Ennuizel Streamer"
+		}
+	},
 	"forwardPorts": [9000, 5173, 4173, 9001]
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
