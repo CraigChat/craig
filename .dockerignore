@@ -1,0 +1,9 @@
+.git/
+node_modules/
+prisma/migrations/
+build/
+dist/
+*.log
+*.tmp
+*.bak
+.env
