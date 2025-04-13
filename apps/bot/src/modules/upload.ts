@@ -1,5 +1,6 @@
 import { type DexareClient, DexareModule } from 'dexare';
 import Dysnomia from 'eris';
+import fetch from 'node-fetch';
 import { ButtonStyle, ComponentType } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../bot';
