@@ -84,6 +84,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
         });
       } else if (response.status === 200) {
         const job = await response.json();
+        this.logger.info(`Started an upload for recording ${recordingId} for user ${userId}`);
         await redis.sadd(KEY, job.id);
       }
     } catch (e) {
@@ -204,6 +205,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
   }
 
   onReady() {
+    clearInterval(this.interval);
     this.interval = setInterval(this.onTick.bind(this), 1000);
     this.logger.info('Started interval');
   }
