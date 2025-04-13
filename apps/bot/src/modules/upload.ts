@@ -71,7 +71,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
     const service = SERVICES[driveService] ?? driveService;
 
     try {
-      const response = await fetch(`${this.client.config.kitchenURL}/recordings/${recordingId}/upload/${userId}`);
+      const response = await fetch(`${this.client.config.kitchenURL}/recordings/${recordingId}/upload/${userId}`, { method: 'POST' });
       // 204's means this ran fine but theres no recording coming out of it
       if (response.status > 299) {
         const error = (await response.json().catch(() => null))?.error ?? 'server_error';
