@@ -162,12 +162,12 @@ start_postgresql() {
 
   info "Starting PostgreSQL server..."
 
-  if ! pg_isready -h "$DATABASE_URL"; then
+  if ! pg_isready -h "$POSTGRESQL_HOST"; then
     sudo systemctl enable --now postgresql # is enabled by default
 
     start_time_s=$(date +%s)
 
-    while ! pg_isready -h "$DATABASE_URL"; do
+    while ! pg_isready -h "$POSTGRESQL_HOST"; do
       current_time_s=$(date +%s)
       sleep 1 # otherwise we get a bunch of connection refused errors
 
@@ -183,30 +183,30 @@ start_postgresql() {
 
 
   # create postgreSQL database if it doesn't already exist
-  if sudo -u postgres -i psql -h "$DATABASE_URL" -lqt | cut -d \| -f 1 | grep -qw "$DATABASE_NAME"; then
+  if sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -lqt | cut -d \| -f 1 | grep -qw "$DATABASE_NAME"; then
     info "PostgreSQL database '$DATABASE_NAME' already exists."
   else
     # we need to be the postgres superuser to create a db
     # -i to avoid the "could not  change directory to '...': Permission denied message"
-    sudo -u postgres -i createdb -h "$DATABASE_URL" $DATABASE_NAME
+    sudo -u postgres -i createdb -h "$POSTGRESQL_HOST" $DATABASE_NAME
   fi
 
   # Don't know if this is strictly needed, but add user to run this database
 
   # Check if user exists
-  if ! sudo -u postgres -i psql -h "$DATABASE_URL" -t -c '\du' | cut -d \| -f 1 | grep -qw "$POSTGRESQL_USER"; then
+  if ! sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -t -c '\du' | cut -d \| -f 1 | grep -qw "$POSTGRESQL_USER"; then
     # Create user if it doesn't exist
-    sudo -u postgres -i psql -h "$DATABASE_URL" -c "CREATE USER $POSTGRESQL_USER WITH PASSWORD '$POSTGRESQL_PASSWORD';"
+    sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "CREATE USER $POSTGRESQL_USER WITH PASSWORD '$POSTGRESQL_PASSWORD';"
   else
     info "PostgreSQL user '$POSTGRESQL_USER' already exists."
   fi
 
-  sudo -u postgres -i psql -h "$DATABASE_URL" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $POSTGRESQL_USER;"
-  sudo -u postgres -i psql -h "$DATABASE_URL" -c "GRANT ALL ON SCHEMA public TO $POSTGRESQL_USER;"
-  sudo -u postgres -i psql -h "$DATABASE_URL" -c "GRANT USAGE ON SCHEMA public TO $POSTGRESQL_USER;"
-  sudo -u postgres -i psql -h "$DATABASE_URL" -c "ALTER DATABASE $DATABASE_NAME OWNER TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT ALL ON SCHEMA public TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT USAGE ON SCHEMA public TO $POSTGRESQL_USER;"
+  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "ALTER DATABASE $DATABASE_NAME OWNER TO $POSTGRESQL_USER;"
 
-  sudo -u postgres -i psql -h "$DATABASE_URL" -c "\l" # unnecessary but just for debugging
+  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "\l" # unnecessary but just for debugging
 }
 
 create_env_file() {
