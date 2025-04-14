@@ -190,11 +190,11 @@ export default class UploadModule extends DexareModule<CraigBot> {
                 }
               );
 
-            await redis.srem(jobId);
+            await redis.srem(KEY, jobId);
           }
         } else {
           this.logger.warn(`Failed to find pending job ${jobId}`);
-          await redis.srem(jobId);
+          await redis.srem(KEY, jobId);
         }
       } catch (e) {
         this.logger.error(`Failed to request kitchen for job info for job ${jobId}`, e);
