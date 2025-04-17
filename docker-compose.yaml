@@ -4,7 +4,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: /bin/bash
     stdin_open: true
     tty: true
     ports:

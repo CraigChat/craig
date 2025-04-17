@@ -121,94 +121,6 @@ install_node() {
   npm install -g pm2
 }
 
-start_redis() {
-
-  local start_time_s
-  local current_time_s
-
-  # otherwise 'redis-server' will not be found if this function
-  # is ran separately
-  source ~/.nvm/nvm.sh || true
-  nvm use $NODE_VERSION
-
-  # start redis and check if it is running, timeout if it hasn't started
-  info "Starting Redis server..."
-
-  if ! redis-cli -h $REDIS_HOST ping | grep -q "PONG"; then
-    sudo systemctl enable --now redis-server # is disabled by default
-
-    start_time_s=$(date +%s)
-
-    while ! redis-cli -h $REDIS_HOST ping | grep -q "PONG"; do
-      current_time_s=$(date +%s)
-      sleep 1 # otherwise we get a bunch of connection refused errors
-
-      if [[ $current_time_s-$start_time_s -ge $REDIS_START_TIMEOUT_S ]]
-      then
-        error "Redis server is not running or not accepting connections"
-        info "Make sure Redis was successfully installed and rerun this script"
-        info "You can also try increasing the REDIS_START_TIMEOUT_S value (currently $REDIS_START_TIMEOUT_S seconds)"
-        exit 1
-      fi
-    done 
-  fi
-
-}
-
-start_postgresql() {
-
-  local start_time_s
-  local current_time_s
-
-  info "Starting PostgreSQL server..."
-
-  if ! pg_isready -h "$POSTGRESQL_HOST"; then
-    sudo systemctl enable --now postgresql # is enabled by default
-
-    start_time_s=$(date +%s)
-
-    while ! pg_isready -h "$POSTGRESQL_HOST"; do
-      current_time_s=$(date +%s)
-      sleep 1 # otherwise we get a bunch of connection refused errors
-
-      if [[ $current_time_s-$start_time_s -ge $POSTGRESQL_START_TIMEOUT_S ]]
-      then
-        error "PostgreSQL server is not running or not accepting connections"
-        info "Make sure PostgreSQL was successfully installed and rerun this script"
-        info "You can also try increasing the POSTGRESQL_START_TIMEOUT_S value (currently $POSTGRESQL_START_TIMEOUT_S seconds)"
-        exit 1
-      fi
-    done 
-  fi
-
-
-  # create postgreSQL database if it doesn't already exist
-  if sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -lqt | cut -d \| -f 1 | grep -qw "$DATABASE_NAME"; then
-    info "PostgreSQL database '$DATABASE_NAME' already exists."
-  else
-    # we need to be the postgres superuser to create a db
-    # -i to avoid the "could not  change directory to '...': Permission denied message"
-    sudo -u postgres -i createdb -h "$POSTGRESQL_HOST" $DATABASE_NAME
-  fi
-
-  # Don't know if this is strictly needed, but add user to run this database
-
-  # Check if user exists
-  if ! sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -t -c '\du' | cut -d \| -f 1 | grep -qw "$POSTGRESQL_USER"; then
-    # Create user if it doesn't exist
-    sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "CREATE USER $POSTGRESQL_USER WITH PASSWORD '$POSTGRESQL_PASSWORD';"
-  else
-    info "PostgreSQL user '$POSTGRESQL_USER' already exists."
-  fi
-
-  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $POSTGRESQL_USER;"
-  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT ALL ON SCHEMA public TO $POSTGRESQL_USER;"
-  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT USAGE ON SCHEMA public TO $POSTGRESQL_USER;"
-  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "ALTER DATABASE $DATABASE_NAME OWNER TO $POSTGRESQL_USER;"
-
-  sudo -u postgres -i psql -h "$POSTGRESQL_HOST" -c "\l" # unnecessary but just for debugging
-}
-
 create_env_file() {
   local output_file="$1"
   local variable_names=("${@:2}")
@@ -329,10 +241,6 @@ config_yarn(){
   # install dependencies
   yarn install
 
-  # config prisma
-  yarn prisma:generate
-  yarn prisma:deploy
-
   # build
   yarn run build
 
@@ -342,25 +250,6 @@ config_yarn(){
   # only sync Discord slash commands to the guild
   # specified by DEVELOPMENT_GUILD_ID in install.config
   # yarn run sync:dev 
-}
-
-start_app(){
-
-  # otherwise 'pm2' will not be found if this function
-  # is ran separately
-  source ~/.nvm/nvm.sh || true
-  nvm use $NODE_VERSION
-
-  info "Starting Craig..."
-
-  cd "$craig_dir/apps/bot" && pm2 start "ecosystem.config.js"
-  cd "$craig_dir/apps/dashboard" && pm2 start "ecosystem.config.js"
-  cd "$craig_dir/apps/download" && pm2 start "ecosystem.config.js"
-  cd "$craig_dir/apps/tasks" && pm2 start "ecosystem.config.js"
-
-  pm2 save
-
-  cd "$craig_dir"
 }
 
 config_cook(){
@@ -413,13 +302,10 @@ config_cook(){
 
   install_apt_packages
   install_node
-  start_redis
-  start_postgresql
   config_env
   config_react
   config_yarn
   config_cook
-  start_app
 
   info "Craig installation finished..."
   info "End time: $(date +%H:%M:%S)"

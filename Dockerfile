@@ -20,6 +20,7 @@ RUN apt-get update && \
   libtool \
   pkg-config \
   gawk \
+  wget \
   ca-certificates \
   # Installing FDK AAC codec library \
   && git clone https://github.com/mstorsjo/fdk-aac.git ./fdk-aac \
@@ -31,12 +32,6 @@ RUN apt-get update && \
   && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
   && apt-get install -y nodejs \
   && rm -rf /var/lib/apt/lists/* ./fdk-aac ./fdkaac
-
-# && git clone https://github.com/nu774/fdkaac.git /fdkaac \
-# && cd /fdkaac && \
-# make && \
-# make install \
-
 
 # Create and set the working directory
 WORKDIR /app
@@ -55,15 +50,10 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 # Clone the repository
 COPY . .
 
-# RUN yarn install && \
-#   yarn cache clean && \
-#   yarn workspace run build
-
 # TODO: replace `sudo` with `gosu`. ()
-# RUN sudo ./install.sh
+RUN chmod +x run.sh && sudo ./install.sh
 
 # Expose ports (adjust based on the application)
 EXPOSE 3000
 
-# CMD ["tail", "-f", "/dev/null"]
-CMD ["sleep", "infinity"]
+CMD ["./run.sh"]
