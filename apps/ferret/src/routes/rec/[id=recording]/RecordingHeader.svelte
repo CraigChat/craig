@@ -20,7 +20,7 @@
   const recording = page.data.recording!;
   const users = page.data.users!;
 
-  const EXPIRY_WARN_AT = 60 * 60 * 3;
+  const EXPIRY_WARN_AT = 60 * 60 * 24;
 
   let intlRtf = $derived(new Intl.RelativeTimeFormat($locale ?? undefined, { numeric: 'auto' }));
   let startTime = new Date(recording.startTime);
