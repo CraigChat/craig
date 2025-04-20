@@ -1,27 +1,7 @@
-###################################################
-# Discord bot
-###################################################
-
-DISCORD_BOT_TOKEN=
-DISCORD_APP_ID=
-CLIENT_ID=
-CLIENT_SECRET=
-DEVELOPMENT_GUILD_ID=
-
 ##################################################
 # Dashboard app environment
 ##################################################
 
-PATREON_CLIENT_ID=test
-PATREON_CLIENT_SECRET=test
-PATRON_TIER_MAP={\"00001\":2,\"0002\":3}
-PATREON_WEBHOOK_SECRET=test
-GOOGLE_CLIENT_ID=test
-GOOGLE_CLIENT_SECRET=test
-MICROSOFT_CLIENT_ID=test
-MICROSOFT_CLIENT_SECRET=test
-DROPBOX_CLIENT_ID=test
-DROPBOX_CLIENT_SECRET=test
 APP_URI=http://localhost:3000
 JWT_SECRET=1234
 
@@ -33,20 +13,8 @@ API_PORT=5029
 API_HOST=127.0.0.1
 API_HOMEPAGE=https://craig.chat/
 ENNUIZEL_BASE=https://ez.craig.horse/
-TRUST_PROXY=
-SENTRY_DSN=
-SENTRY_HOST=
 SENTRY_SAMPLE_RATE=1.0
-SENTRY_DSN_API=
-SENTRY_ENV=
 SENTRY_SAMPLE_RATE_API=1.0
-INFLUX_URL=
-INFLUX_TOKEN=
-INFLUX_ORG=
-INFLUX_BUCKET=
-SERVER_NAME=dev
-REDIS_HOST=
-REDIS_PORT=
 
 ##################################################
 # Other
