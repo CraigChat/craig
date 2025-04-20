@@ -487,8 +487,7 @@ export default class Recording {
     this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
     if (err) {
       this.state = RecordingState.RECONNECTING;
-      if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
-      else this.pushToActivity('An error has disconnected me, reconnecting...');
+      this.pushToActivity('An error has disconnected me, reconnecting...');
       this.channel.leave();
       await this.retryConnect();
     } else if (this.state !== RecordingState.RECONNECTING) {
