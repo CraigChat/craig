@@ -8,12 +8,12 @@ import Eris from 'eris';
 import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
 import path from 'path';
-import { ButtonStyle, ComponentType } from 'slash-create';
+import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
-import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
+import { getSelfMember, ParsedRewards, wait } from '../../util';
 import type SlashModule from '../slash';
 import type RecorderModule from '.';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
@@ -32,6 +32,7 @@ const USER_HARD_LIMIT = 10000;
 
 const BAD_MESSAGE_CODES = [
   404,
+  10003, // Unknown channel
   10008, //	Unknown message
   20009, // Explicit content cannot be sent to the desired recipient(s)
   40004, // Send messages has been temporarily disabled
@@ -757,65 +758,87 @@ export default class Recording {
     const startedTimestamp = this.startedAt ? Math.floor(this.startedAt.valueOf() / 1000) : null;
     const voiceRegion = this.connection?.endpoint?.hostname;
     return {
-      content: '',
-      embeds: [
-        {
-          author: {
-            name: this.user.discriminator === '0' ? this.user.username : `${this.user.username}#${this.user.discriminator}`,
-            icon_url: this.user.dynamicAvatarURL()
-          },
-          color,
-          title,
-          description: stripIndents`
-            ${this.stateDescription ?? ''}
-
-            ${stripIndentsAndLines`
-              ${this.autorecorded ? '*`Autorecorded`*' : ''}
-              **Recording ID:** \`${this.id}\`
-              **Channel:** ${this.channel.mention}
-              ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
-              ${voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''}
-            `}
-          `,
-          fields: this.logs.length
-            ? [
-                {
-                  name: 'Activity',
-                  value: this.logs.slice(0, 10).join('\n')
-                }
-              ]
-            : [],
-          footer: ![RecordingState.ENDED, RecordingState.ERROR].includes(this.state)
-            ? {
-                text: 'Is this panel stuck? Try running "/join" again for a new recording panel.'
-              }
-            : null
-        }
-      ],
+      flags: MessageFlags.IS_COMPONENTS_V2,
       components: [
         {
-          type: ComponentType.ACTION_ROW,
+          type: ComponentType.CONTAINER,
+          accent_color: color,
           components: [
             {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.DESTRUCTIVE,
-              label: 'Stop recording',
-              custom_id: `rec:${this.id}:stop`,
-              disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: this.emojis.getPartial('stop')
+              type: ComponentType.TEXT_DISPLAY,
+              content: stripIndents`
+                -# ${this.user.mention}'s recording
+                ## ${title}
+                ${this.stateDescription ?? ''}
+              `
             },
             {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.PRIMARY,
-              label: 'Add a note',
-              custom_id: `rec:${this.id}:note`,
-              disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: this.emojis.getPartial('addnote')
+              type: ComponentType.SEPARATOR,
+              divider: true,
+              spacing: SeparatorSpacingSize.SMALL
+            },
+            {
+              type: ComponentType.TEXT_DISPLAY,
+              content: [
+                `**Recording ID:** \`${this.id}\``,
+                `**Channel:** ${this.channel.mention}`,
+                startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : '',
+                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''
+              ]
+                .filter((v) => !!v)
+                .join('\n')
+            },
+            ...(this.logs.length
+              ? [
+                  {
+                    type: ComponentType.SEPARATOR,
+                    divider: true,
+                    spacing: SeparatorSpacingSize.SMALL
+                  },
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: `### Activity\n${this.logs.slice(0, 10).join('\n')}`
+                  }
+                ]
+              : []),
+            {
+              type: ComponentType.SEPARATOR,
+              divider: true,
+              spacing: SeparatorSpacingSize.SMALL
+            },
+            {
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.DESTRUCTIVE,
+                  label: 'Stop recording',
+                  custom_id: `rec:${this.id}:stop`,
+                  disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                  emoji: this.emojis.getPartial('stop')
+                },
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.PRIMARY,
+                  label: 'Add a note',
+                  custom_id: `rec:${this.id}:note`,
+                  disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                  emoji: this.emojis.getPartial('addnote')
+                }
+              ]
             }
           ]
-        }
+        },
+        ...(![RecordingState.ENDED, RecordingState.ERROR].includes(this.state)
+          ? [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: '-# Is this panel stuck? Try running `/join` again for a new recording panel.'
+              }
+            ]
+          : [])
       ]
-    } as Eris.AdvancedMessageContent;
+    } as EditMessageOptions as any;
   }
 
   async updateMessage() {

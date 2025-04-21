@@ -1,7 +1,7 @@
 import { type DexareClient, DexareModule } from 'dexare';
 import Dysnomia from 'eris';
 import fetch from 'node-fetch';
-import { ButtonStyle, ComponentType } from 'slash-create';
+import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../bot';
 import { client as redis } from '../redis';
@@ -47,22 +47,34 @@ export default class UploadModule extends DexareModule<CraigBot> {
     if (dmChannel)
       await dmChannel
         .createMessage({
-          embeds: [embed],
-          components: linkButton
-            ? [
+          flags: MessageFlags.IS_COMPONENTS_V2,
+          components: [
+            {
+              type: ComponentType.CONTAINER,
+              accent_color: embed.color,
+              components: [
                 {
-                  type: ComponentType.ACTION_ROW,
-                  components: [
-                    {
-                      type: ComponentType.BUTTON,
-                      style: ButtonStyle.LINK,
-                      ...linkButton
-                    }
-                  ]
-                }
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: `### ${embed.title}\n${embed.description}`
+                },
+                ...(linkButton
+                  ? [
+                      {
+                        type: ComponentType.ACTION_ROW,
+                        components: [
+                          {
+                            type: ComponentType.BUTTON,
+                            style: ButtonStyle.LINK,
+                            ...linkButton
+                          }
+                        ]
+                      }
+                    ]
+                  : [])
               ]
-            : []
-        })
+            }
+          ]
+        } as EditMessageOptions as any)
         .catch(() => {});
   }
 

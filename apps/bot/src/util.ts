@@ -3,7 +3,16 @@ import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import { CommandContext, DexareCommand } from 'dexare';
 import Eris from 'eris';
-import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
+import {
+  ButtonStyle,
+  ComponentActionRow,
+  ComponentType,
+  EditMessageOptions,
+  Member,
+  MessageFlags,
+  MessageOptions,
+  SeparatorSpacingSize
+} from 'slash-create';
 
 import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
@@ -111,66 +120,108 @@ export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'
 export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule<any>['emojis']) {
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
+  const headerInfo = `Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
+    Date.now() / 1000
+  )}:F>.\n-# You can bring up the recording panel with \`/join\`.`;
   return {
-    embeds: [
+    flags: MessageFlags.IS_COMPONENTS_V2,
+    components: [
       {
-        description: stripIndents`
-          Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(Date.now() / 1000)}:F>.
-          > You can bring up the recording panel with \`/join\`.
-
-          ${stripIndentsAndLines`
-            **Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})
-            **Recording ID:** \`${recording.id}\`
-            **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-            ${
+        type: ComponentType.CONTAINER,
+        components: [
+          recording.channel.guild.icon
+            ? {
+                type: ComponentType.SECTION,
+                accessory: {
+                  type: ComponentType.THUMBNAIL,
+                  media: { url: recording.channel.guild.dynamicIconURL('png', 128) }
+                },
+                components: [
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: headerInfo
+                  }
+                ]
+              }
+            : {
+                type: ComponentType.TEXT_DISPLAY,
+                content: headerInfo
+              },
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: [
+              `**Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})`,
+              `**Channel:** ${recording.channel.name} (${recording.channel.id})`,
+              `**Recording ID:** \`${recording.id}\``,
+              `**Delete key:** ||\`${recording.deleteKey}\`|| (click to show)`,
               recording.webapp
                 ? `**Webapp URL:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
                 : ''
-            }`}
-
-          I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
-          This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
-        `,
-        footer: {
-          text: "The audio can be downloaded even while I'm still recording."
-        }
-      }
-    ],
-    components: [
-      {
-        type: ComponentType.ACTION_ROW,
-        components: [
-          {
-            type: ComponentType.BUTTON,
-            style: ButtonStyle.LINK,
-            label: 'Download',
-            url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-            emoji: emojis.getPartial('download')
+            ]
+              .filter((v) => !!v)
+              .join('\n')
           },
           {
-            type: ComponentType.BUTTON,
-            style: ButtonStyle.LINK,
-            label: 'Delete recording',
-            url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
-            emoji: emojis.getPartial('delete')
-          }
-        ]
-      },
-      recording.messageChannelID && recording.messageID
-        ? {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: stripIndents`
+              I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
+              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
+              -# The audio can be downloaded even while I'm still recording.
+            `
+          },
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
             type: ComponentType.ACTION_ROW,
             components: [
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Jump to recording panel',
-                url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+                label: 'Download',
+                url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                emoji: emojis.getPartial('download')
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Delete recording',
+                url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                emoji: emojis.getPartial('delete')
               }
             ]
-          }
-        : null
-    ].filter((c) => !!c)
-  } as Eris.MessageContent<'hasNonce'>;
+          },
+          ...(recording.messageChannelID && recording.messageID
+            ? [
+                {
+                  type: ComponentType.ACTION_ROW,
+                  components: [
+                    {
+                      type: ComponentType.BUTTON,
+                      style: ButtonStyle.LINK,
+                      label: 'Jump to recording panel',
+                      url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+                    }
+                  ]
+                }
+              ]
+            : [])
+        ]
+      }
+    ]
+  } as EditMessageOptions as any;
 }
 
 export async function blessServer(userID: string, guildID: string, emojis: SlashModule<any>['emojis']): Promise<MessageOptions> {
