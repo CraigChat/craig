@@ -28,7 +28,7 @@
     "@sentry/tracing": "^7.2.0",
     "@snazzah/emoji-sync": "^0.1.1",
     "@trpc/client": "^9.26.2",
-    "axios": "^0.27.2",
+    "axios": "^1.8.4",
     "chalk": "4",
     "common-tags": "^1.8.2",
     "config": "^3.3.8",
