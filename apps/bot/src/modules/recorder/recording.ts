@@ -14,6 +14,7 @@ import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
 import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
+import type SlashModule from '../slash';
 import type RecorderModule from '.';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { WebappClient } from './webapp';
@@ -706,6 +707,10 @@ export default class Recording {
     if (!this.closing) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
   }
 
+  get emojis() {
+    return (this.recorder.client.modules.get('slash') as SlashModule<any>).emojis;
+  }
+
   messageContent() {
     let color: number | undefined = undefined;
     let title = 'Loading...';
@@ -765,7 +770,7 @@ export default class Recording {
             ${this.stateDescription ?? ''}
 
             ${stripIndentsAndLines`
-              ${this.autorecorded ? '- *Autorecorded*' : ''}
+              ${this.autorecorded ? '*`Autorecorded`*' : ''}
               **Recording ID:** \`${this.id}\`
               **Channel:** ${this.channel.mention}
               ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
@@ -797,7 +802,7 @@ export default class Recording {
               label: 'Stop recording',
               custom_id: `rec:${this.id}:stop`,
               disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { id: '968242879539576862' }
+              emoji: this.emojis.getPartial('stop')
             },
             {
               type: ComponentType.BUTTON,
@@ -805,7 +810,7 @@ export default class Recording {
               label: 'Add a note',
               custom_id: `rec:${this.id}:note`,
               disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { id: '968242878948192267' }
+              emoji: this.emojis.getPartial('addnote')
             }
           ]
         }

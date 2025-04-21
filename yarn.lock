@@ -327,6 +327,11 @@
     ajv-formats "^2.1.1"
     fast-uri "^2.0.0"
 
+"@fastify/busboy@^2.0.0":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
+  integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
+
 "@fastify/deepmerge@^1.0.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@fastify/deepmerge/-/deepmerge-1.1.0.tgz#91f0a5a27034ff76b7bece63a5906894940ace82"
@@ -956,6 +961,13 @@
   version "0.14.0"
   resolved "https://registry.yarnpkg.com/@sindresorhus/is/-/is-0.14.0.tgz#9fb3a3cf3132328151f353de4632e01e52102bea"
   integrity sha512-9NET910DNaIPngYnLLPeg+Ogzqsi9uM4mSboU5y6p8S5DzMTVEsJZrawi+BoDNUVBa2DhJqQYUFvMDfgU062LQ==
+
+"@snazzah/emoji-sync@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@snazzah/emoji-sync/-/emoji-sync-0.1.1.tgz#57231662df1d96329746a69172d87b647f2f06fd"
+  integrity sha512-vTluLaYUV/zyo2gv0lG8zLjQqrgZCnvUlHRlhoEeTcAu+ckML8VPD3T0o7gXjOP/BcVe40eXfNn+8+KsC2M3pw==
+  dependencies:
+    eventemitter3 "^5.0.1"
 
 "@stablelib/aead@^1.0.1":
   version "1.0.1"
@@ -3147,6 +3159,11 @@ eventemitter3@^4.0.4, eventemitter3@^4.0.7:
   version "4.0.7"
   resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-4.0.7.tgz#2de9b68f6528d5644ef5c59526a1b4a07306169f"
   integrity sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==
+
+eventemitter3@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-5.0.1.tgz#53f5ffd0a492ac800721bb42c66b841de96423c4"
+  integrity sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==
 
 execa@5:
   version "5.1.1"
@@ -6633,7 +6650,7 @@ simple-swizzle@^0.2.2:
   dependencies:
     is-arrayish "^0.3.1"
 
-slash-create@^5.10.0, slash-create@^5.6.1:
+slash-create@^5.6.1:
   version "5.10.0"
   resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-5.10.0.tgz#0211bd58ba59d00ae0cb50864131a8f5e93ce0c4"
   integrity sha512-rQQa3xuI6Q2Pi0NJ8/3hhMKT7Dqh1izGEV2+4ZCh3uO8W+RhQV2zMfcQ8XfNxuSMxD+wH7rB8FQaoCSARU2H6A==
@@ -6641,6 +6658,16 @@ slash-create@^5.10.0, slash-create@^5.6.1:
     eventemitter3 "^4.0.7"
     lodash.isequal "^4.5.0"
     tweetnacl "^1.0.3"
+
+slash-create@^6.4.1:
+  version "6.4.1"
+  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-6.4.1.tgz#d2a32b4e7c4a0d82c92d6daefe349f6fddfe1f3b"
+  integrity sha512-1x9eLSzTtUs499m6HAitFt+V3GDwNVwfgtFa6GALRpSOc7IqBO6r+MJzR1E3Ri8S+0oNwxaIUSvVtSvmYJsGnA==
+  dependencies:
+    eventemitter3 "^5.0.1"
+    lodash.isequal "^4.5.0"
+    tweetnacl "^1.0.3"
+    undici "^5.28.4"
 
 slash-up@^1.2.0:
   version "1.2.0"
@@ -7270,6 +7297,18 @@ unbox-primitive@^1.0.1:
     has-bigints "^1.0.1"
     has-symbols "^1.0.2"
     which-boxed-primitive "^1.0.2"
+
+undici-types@^7.8.0:
+  version "7.8.0"
+  resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-7.8.0.tgz#de00b85b710c54122e44fbfd911f8d70174cd294"
+  integrity sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw==
+
+undici@^5.28.4:
+  version "5.29.0"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-5.29.0.tgz#419595449ae3f2cdcba3580a2e8903399bd1f5a3"
+  integrity sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==
+  dependencies:
+    "@fastify/busboy" "^2.0.0"
 
 unicode-canonical-property-names-ecmascript@^1.0.4:
   version "1.0.4"

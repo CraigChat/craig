@@ -145,7 +145,7 @@ export default class Join extends GeneralCommand {
                     style: ButtonStyle.LINK,
                     label: 'Jump to recording panel',
                     url: `https://discordapp.com/channels/${ctx.guildID}/${recording.messageChannelID}/${recording.messageID}`,
-                    emoji: { id: '949782524131942460' }
+                    emoji: this.emojis.getPartial('jump')
                   }
                 ]
               }
@@ -358,7 +358,7 @@ export default class Join extends GeneralCommand {
     }
 
     // Send DM
-    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);
+    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
 
     if (dmMessage)
       await ctx.sendFollowUp({
@@ -373,7 +373,7 @@ export default class Join extends GeneralCommand {
                 style: ButtonStyle.LINK,
                 label: 'Jump to DM',
                 url: `https://discord.com/channels/@me/${dmChannel.id}/${dmMessage.id}`,
-                emoji: { id: '949782524131942460' }
+                emoji: this.emojis.getPartial('jump') || undefined
               }
             ]
           }
@@ -405,14 +405,14 @@ export default class Join extends GeneralCommand {
                 style: ButtonStyle.LINK,
                 label: 'Download',
                 url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-                emoji: { id: '949825704923639828' }
+                emoji: this.emojis.getPartial('download') || undefined
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Delete recording',
                 url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
-                emoji: { id: '949825704596500481' }
+                emoji: this.emojis.getPartial('delete') || undefined
               }
             ]
           }

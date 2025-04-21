@@ -7,6 +7,7 @@ import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions 
 
 import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
+import type SlashModule from './modules/slash';
 import { prisma } from './prisma';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -107,7 +108,7 @@ export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'
   }
 });
 
-export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig) {
+export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule<any>['emojis']) {
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
   return {
@@ -144,14 +145,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
             style: ButtonStyle.LINK,
             label: 'Download',
             url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-            emoji: { id: '949825704923639828' }
+            emoji: emojis.getPartial('download')
           },
           {
             type: ComponentType.BUTTON,
             style: ButtonStyle.LINK,
             label: 'Delete recording',
             url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
-            emoji: { id: '949825704596500481' }
+            emoji: emojis.getPartial('delete')
           }
         ]
       },
@@ -172,7 +173,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
   } as Eris.MessageContent<'hasNonce'>;
 }
 
-export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {
+export async function blessServer(userID: string, guildID: string, emojis: SlashModule<any>['emojis']): Promise<MessageOptions> {
   const userData = await prisma.user.findFirst({ where: { id: userID } });
   const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
   const blessingUser = blessing ? (blessing.userId === userID ? userData : await prisma.user.findFirst({ where: { id: blessing.userId } })) : null;
@@ -193,7 +194,7 @@ export async function blessServer(userID: string, guildID: string): Promise<Mess
               style: ButtonStyle.DESTRUCTIVE,
               label: 'Remove blessing',
               custom_id: `user:unbless:${guildID}`,
-              emoji: { id: '887142796560060426' }
+              emoji: emojis.getPartial('remove') || undefined
             }
           ]
         }
@@ -255,6 +256,10 @@ export async function replyOrSend(ctx: CommandContext, content: Eris.MessageCont
 export default abstract class TextCommand extends DexareCommand {
   // @ts-ignore
   client!: CraigBot;
+
+  get emojis() {
+    return (this.client.modules.get('slash') as SlashModule<any>).emojis;
+  }
 
   finalize(response: any, ctx: CommandContext) {
     if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object'))

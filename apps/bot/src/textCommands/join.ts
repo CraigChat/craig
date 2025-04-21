@@ -30,7 +30,7 @@ export default class JoinCommand extends TextCommand {
               url: `https://discord.com/oauth2/authorize?client_id=${
                 this.client.config.craig.inviteID ?? this.client.config.applicationID
               }&permissions=0&scope=applications.commands&guild_id=${ctx.guild?.id}`,
-              emoji: { name: 'craig', id: this.client.config.craig.emoji }
+              emoji: this.emojis.getPartial('craig') || undefined
             },
             {
               type: ComponentType.BUTTON,

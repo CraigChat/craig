@@ -1,3 +1,4 @@
+import { EmojiManager } from '@snazzah/emoji-sync';
 import { BaseConfig, DexareClient, DexareModule } from 'dexare';
 import path from 'node:path';
 import { ComponentActionRow, ComponentContext, ComponentType, GatewayServer, SlashCreator, SlashCreatorOptions, TextInputStyle } from 'slash-create';
@@ -21,6 +22,7 @@ export interface SlashModuleOptions {
 
 export default class SlashModule<T extends DexareClient<SlashConfig>> extends DexareModule<T> {
   creator: SlashCreator;
+  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'jump' | 'remove' | 'stop'>;
 
   constructor(client: T) {
     super(client, {
@@ -34,11 +36,15 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       applicationID: this.client.config.applicationID,
       client
     });
+    this.emojis = new EmojiManager({
+      token: this.client.config.token,
+      applicationId: this.client.config.applicationID
+    });
     this.filePath = __filename;
   }
 
-  load() {
-    this.creator
+  async load() {
+    await this.creator
       .withServer(
         new GatewayServer((handler) =>
           this.registerEvent('rawWS', (_, event) => {
@@ -62,6 +68,11 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       if (ctx.customID.startsWith('rec:')) await this.handleRecordingInteraction(ctx);
       else if (ctx.customID.startsWith('user:')) await this.handleUserInteraction(ctx);
     });
+
+    await this.emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
+    await this.emojis.sync();
+    this.emojis.on('warn', (message) => this.logger.warn('[emoji] ' + message));
+    this.emojis.on('error', (error) => this.logger.error('[emoji] ' + (error.stack || error.toString())));
   }
 
   get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {
@@ -157,7 +168,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
         const [guildID] = args;
         try {
           await ctx.editParent({ components: [] });
-          await ctx.send(await blessServer(ctx.user.id, guildID));
+          await ctx.send(await blessServer(ctx.user.id, guildID, this.emojis));
         } catch (e) {
           this.logger.error(`Error blessing server ${guildID}:`, e);
           await ctx.send({

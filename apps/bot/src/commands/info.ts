@@ -38,7 +38,7 @@ export default class Info extends GeneralCommand {
 
     return {
       content: stripIndents`
-        <:craig:${this.client.config.craig.emoji}> **Craig** is a multi-track voice channel recorder.
+        ${this.emojis.getMarkdown('craig')} **Craig** is a multi-track voice channel recorder.
         I am in **${guildCount.toLocaleString()}** guilds and currently recording **${recordings.toLocaleString()}** conversations.
 
         This server is on shard ${this.client.shard?.id ?? process.env.SHARD_ID} with ${
@@ -63,9 +63,7 @@ export default class Info extends GeneralCommand {
               url: `https://discord.com/oauth2/authorize?client_id=${
                 this.client.config.craig.inviteID ?? this.client.config.applicationID
               }&permissions=0&scope=bot%20applications.commands`,
-              emoji: {
-                id: this.client.config.craig.emoji
-              }
+              emoji: this.emojis.getPartial('craig')
             },
             {
               type: ComponentType.BUTTON,
