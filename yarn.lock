@@ -275,10 +275,10 @@
   resolved "https://registry.yarnpkg.com/@discordjs/collection/-/collection-0.1.6.tgz#9e9a7637f4e4e0688fd8b2b5c63133c91607682c"
   integrity sha512-utRNxnd9kSS2qhyivo9lMlt5qgAUasH2gb7BEOn6p0efFh24gjGomHzWKMAPn2hEReOPQZCJaRKoURwRotKucQ==
 
-"@discordjs/node-pre-gyp@^0.4.4":
-  version "0.4.4"
-  resolved "https://registry.yarnpkg.com/@discordjs/node-pre-gyp/-/node-pre-gyp-0.4.4.tgz#33eea1038784ffc5715ef775e4f9d6cffaa96c73"
-  integrity sha512-x569MMtdk6jdGo2S58iiZoyv4p/N2Ju8Nh6vvzZb1wyouV7IE3VuU0hg2kqUmTfD0z6r4uD6acvMTuc+iA3f8g==
+"@discordjs/node-pre-gyp@^0.4.5":
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/@discordjs/node-pre-gyp/-/node-pre-gyp-0.4.5.tgz#b33e38cedd821268c75923641783c68fcd1b55ae"
+  integrity sha512-YJOVVZ545x24mHzANfYoy0BJX5PDyeZlpiJjDkUBM/V/Ao7TFX9lcUvCN4nr0tbr5ubeaXxtEBILUrHtTphVeQ==
   dependencies:
     detect-libc "^2.0.0"
     https-proxy-agent "^5.0.0"
@@ -290,13 +290,13 @@
     semver "^7.3.5"
     tar "^6.1.11"
 
-"@discordjs/opus@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@discordjs/opus/-/opus-0.8.0.tgz#dae2d220a7942736343021f9af2b2b921d482c46"
-  integrity sha512-uHE7OmHEmP8YM0yvsH3iSdacdeghO0qTkF0CIkV07Tg0qdyOLUVkoZHj5Zcpge9rC4qb/JvTS2xRgttSZLM43Q==
+"@discordjs/opus@^0.10.0":
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/@discordjs/opus/-/opus-0.10.0.tgz#512c26326de62612f19d6ea01cac33a4634b5461"
+  integrity sha512-HHEnSNrSPmFEyndRdQBJN2YE6egyXS9JUnJWyP6jficK0Y+qKMEZXyYTgmzpjrxXP1exM/hKaNP7BRBUEWkU5w==
   dependencies:
-    "@discordjs/node-pre-gyp" "^0.4.4"
-    node-addon-api "^5.0.0"
+    "@discordjs/node-pre-gyp" "^0.4.5"
+    node-addon-api "^8.1.0"
 
 "@eslint/eslintrc@^1.3.0":
   version "1.3.0"
@@ -5076,10 +5076,10 @@ next@12.1.6:
     "@next/swc-win32-ia32-msvc" "12.1.6"
     "@next/swc-win32-x64-msvc" "12.1.6"
 
-node-addon-api@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-5.0.0.tgz#7d7e6f9ef89043befdb20c1989c905ebde18c501"
-  integrity sha512-CvkDw2OEnme7ybCykJpVcKH+uAOLV2qLqiyla128dN9TkEWfrYmxG6C2boDe5KcNQqZF3orkqzGgOMvZ/JNekA==
+node-addon-api@^8.1.0:
+  version "8.3.1"
+  resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-8.3.1.tgz#53bc8a4f8dbde3de787b9828059da94ba9fd4eed"
+  integrity sha512-lytcDEdxKjGJPTLEfW4mYMigRezMlyJY8W4wxJK8zE533Jlb8L8dRuObJFWg2P+AuOIxoCgKF+2Oq4d4Zd0OUA==
 
 node-fetch@2.6.7, node-fetch@^2.6.1, node-fetch@^2.6.7:
   version "2.6.7"
