@@ -38,7 +38,7 @@
     "execa": "5",
     "fastify": "^4.10.2",
     "ioredis": "^5.0.6",
-    "nanoid": "^3.3.4"
+    "nanoid": "^3.3.8"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^4.1.3",
