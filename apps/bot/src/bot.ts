@@ -122,19 +122,6 @@ export async function connect() {
   client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
-  // Makes custom emojis with the name 'craig' work as prefixes
-  client.events.register(
-    'prefixer',
-    'messageCreate',
-    (event, message) => {
-      if (client.config.craig.alistair && /^<a?:alistair:\d+>,?/.test(message.content))
-        event.set('prefix', message.content.match(/^<a?:alistair:\d+>,?/)![0]);
-      else if (!client.config.craig.alistair && /^<a?:craig:\d+>,?/.test(message.content))
-        event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
-    },
-    { after: ['commands'] }
-  );
-
   await i18nInit();
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => client.commands.register(require(file)));
