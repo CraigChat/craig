@@ -61,11 +61,11 @@
     "@types/dotenv": "^8.2.0",
     "@types/i18next-fs-backend": "^1.1.2",
     "@types/ioredis": "^4.28.10",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.19.86",
     "@types/qs": "^6.9.7",
     "@types/ws": "^8.5.4",
     "slash-up": "^1.2.0",
-    "typescript": "^4.7.3",
+    "typescript": "^5.8.3",
     "undici-types": "^7.8.0"
   }
 }
