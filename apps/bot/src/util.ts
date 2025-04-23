@@ -298,6 +298,114 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
   };
 }
 
+export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
+  const recordings = await prisma.recording.findMany({
+    where: {
+      userId: userID,
+      clientId: client.bot.user.id,
+      expiresAt: { gt: new Date() }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  if (recordings.length === 0)
+    return {
+      flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
+      components: [
+        {
+          type: ComponentType.TEXT_DISPLAY,
+          content: `You haven't done any recordings recently on ${client.bot.user.mention}.`
+        }
+      ]
+    } as EditMessageOptions;
+
+  const downloadDomain = client.config.craig.downloadDomain;
+  const emojis = (client.modules.get('slash') as SlashModule<any>).emojis;
+  const MAX_PAGE_AMOUNT = 5;
+  const pages = Math.ceil(recordings.length / MAX_PAGE_AMOUNT);
+  const page = Math.min(pages, Math.max(1, requestedPage));
+  const pagedRecordings = recordings.slice((page - 1) * MAX_PAGE_AMOUNT, page * MAX_PAGE_AMOUNT);
+
+  return {
+    flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
+    allowedMentions: {
+      everyone: false,
+      users: false,
+      roles: false
+    },
+    components: [
+      {
+        type: ComponentType.CONTAINER,
+        components: [
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: `## Previous recordings on ${
+              client.bot.user.mention
+            }\n-# ${recordings.length.toLocaleString()} recording(s), Page ${page}/${pages}`
+          },
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          ...pagedRecordings.map((r) => ({
+            type: ComponentType.SECTION,
+            components: [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: stripIndentsAndLines`
+                  ### 🎙️ Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
+                  ${r.autorecorded ? '*`Autorecorded`*' : ''} <#${r.channelId}> • Expires <t:${Math.floor(
+                  r.expiresAt.valueOf() / 1000
+                )}:R> • Delete Key: ||\`${r.deleteKey}\`||
+                `
+              }
+            ],
+            accessory: {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: 'Download',
+              emoji: emojis.getPartial('download'),
+              url: `https://${downloadDomain}/rec/${r.id}?key=${r.accessKey}`
+            }
+          })),
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: `user:recordings:${Math.max(1, page - 1)}:prev`,
+                disabled: page <= 1,
+                emoji: emojis.getPartial('prev')
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.SECONDARY,
+                custom_id: 'noop',
+                disabled: true,
+                label: `${page}/${pages}`
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: `user:recordings:${Math.min(pages, page + 1)}:next`,
+                disabled: page >= pages,
+                emoji: emojis.getPartial('next')
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  } as EditMessageOptions;
+}
+
 export async function replyOrSend(ctx: CommandContext, content: Eris.MessageContent): Promise<Eris.Message> {
   if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory'))
     return ctx.replyMention(content);

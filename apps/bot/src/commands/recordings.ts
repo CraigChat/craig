@@ -2,7 +2,7 @@ import { CommandContext, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, stripIndentsAndLines } from '../util';
+import { checkBan, paginateRecordings } from '../util';
 
 export default class Recordings extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -50,29 +50,7 @@ export default class Recordings extends GeneralCommand {
         ephemeral: true
       };
 
-    const config = this.client.config;
-    return {
-      embeds: [
-        {
-          author: {
-            icon_url: this.client.bot.user.dynamicAvatarURL(),
-            name: `Your last 10 recordings on ${this.client.bot.user.username}`
-          },
-          fields: recordings.map((r) => {
-            return {
-              name: `🎙️ Recording \`${r.id}\` - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
-              value: stripIndentsAndLines`
-                ${r.autorecorded ? 'Auto-recorded' : 'Recorded'} in <#${r.channelId}>
-                Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:F>)
-                [Download](https://${config.craig.downloadDomain}/rec/${r.id}?key=${r.accessKey}) - [Delete](https://${
-                config.craig.downloadDomain
-              }/rec/${r.id}?key=${r.accessKey}&delete=${r.deleteKey})
-              `
-            };
-          })
-        }
-      ],
-      ephemeral: true
-    };
+    const content = await paginateRecordings(this.client as any, ctx.user.id);
+    return content;
   }
 }

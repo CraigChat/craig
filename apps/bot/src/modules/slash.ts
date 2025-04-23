@@ -7,7 +7,7 @@ import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
 import { prisma } from '../prisma';
 import { reportErrorFromCommand } from '../sentry';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, unblessServer } from '../util';
+import { blessServer, checkRecordingPermission, cutoffText, disableComponents, paginateRecordings, unblessServer } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
 
@@ -22,7 +22,7 @@ export interface SlashModuleOptions {
 
 export default class SlashModule<T extends DexareClient<SlashConfig>> extends DexareModule<T> {
   creator: SlashCreator;
-  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'jump' | 'remove' | 'stop'>;
+  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'jump' | 'next' | 'prev' | 'remove' | 'stop'>;
 
   constructor(client: T) {
     super(client, {
@@ -187,6 +187,19 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
           this.logger.error(`Error unblessing server ${guildID}:`, e);
           await ctx.send({
             content: 'An error occurred while removing the blessing from the server.',
+            ephemeral: true
+          });
+        }
+        return;
+      }
+      case 'recordings': {
+        const [page] = args;
+        try {
+          await ctx.editParent(await paginateRecordings(this.client as any, ctx.user.id, parseInt(page)));
+        } catch (e) {
+          this.logger.error(`Error paginating recordings for user ${ctx.user.id}:`, e);
+          await ctx.send({
+            content: 'An error occurred while using this interaction.',
             ephemeral: true
           });
         }
