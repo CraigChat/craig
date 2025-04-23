@@ -759,6 +759,11 @@ export default class Recording {
     const voiceRegion = this.connection?.endpoint?.hostname;
     return {
       flags: MessageFlags.IS_COMPONENTS_V2,
+      allowedMentions: {
+        everyone: false,
+        users: false,
+        roles: false
+      },
       components: [
         {
           type: ComponentType.CONTAINER,
