@@ -45,7 +45,7 @@
     "ioredis": "^5.0.6",
     "just-group-by": "^2.2.0",
     "just-range": "^4.2.0",
-    "nanoid": "^3.3.4",
+    "nanoid": "^3.3.8",
     "node-fetch": "2.6.7",
     "prom-client": "^15.1.3",
     "slash-create": "^6.4.1",
