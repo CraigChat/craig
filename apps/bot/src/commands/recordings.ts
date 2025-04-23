@@ -8,7 +8,7 @@ export default class Recordings extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'recordings',
-      description: 'Get links to your last 10 recordings.',
+      description: 'Access your previous recordings.',
       deferEphemeral: true
     });
 
