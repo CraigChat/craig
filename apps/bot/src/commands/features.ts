@@ -31,7 +31,7 @@ export default class Features extends GeneralCommand {
       mix: 'Smart Mix',
       auto: 'Auto-recording',
       drive: 'Cloud Backup',
-      glowers: 'Glowers',
+      glowers: 'Avatar Overlays',
       eccontinuous: 'Continuous Mode via Webapp',
       ecflac: 'FLAC via Webapp',
       mp3: 'Exporting to MP3'
