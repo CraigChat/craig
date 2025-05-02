@@ -1,10 +1,7 @@
-# Use an official Node.js image as the base image
-# FROM node:20-buster
 FROM debian:bullseye-slim
 
 RUN echo "deb http://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/debian.list
 
-# Install necessary packages
 RUN apt-get update && \
   apt-get install --no-install-recommends -y \
   gcc-10 \
@@ -33,7 +30,6 @@ RUN apt-get update && \
   && apt-get install -y nodejs \
   && rm -rf /var/lib/apt/lists/* ./fdk-aac ./fdkaac
 
-# Create and set the working directory
 WORKDIR /app
 
 # Add a large swap file (adjust the size as needed, for example, 8GB swap)
@@ -47,13 +43,11 @@ ENV CC=gcc-10
 ENV CXX=g++-10
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Clone the repository
 COPY . .
 
-# TODO: replace `sudo` with `gosu`. ()
-RUN chmod +x run.sh && sudo ./install.sh
+RUN chmod +x run.sh && ./install.sh \
+  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Expose ports (adjust based on the application)
 EXPOSE 3000
 
 CMD ["./run.sh"]
