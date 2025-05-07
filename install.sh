@@ -2,6 +2,12 @@
 
 set -e
 
+if [ -f /.dockerenv ] || grep -qE 'docker|kubepods|containerd' /proc/1/cgroup; then
+  SUDO=""
+else
+  SUDO="sudo"
+fi
+
 ###################################################
 # Variable definitions
 ###################################################
@@ -87,21 +93,20 @@ info() {
 
 install_apt_packages() {
   info "Updating and upgrading apt packages..."
-  sudo apt-get update
-  sudo apt-get -y upgrade
+  $SUDO apt-get update
+  $SUDO apt-get -y upgrade
 
   info "Installing apt dependencies..."
-  for package in "${APT_DEPENDENCIES[@]}"
-  do
-    sudo apt-get -y install "$package"
+  for package in "${APT_DEPENDENCIES[@]}"; do
+    $SUDO apt-get -y install "$package"
   done
 
   # Add redis repository to apt index and install it
   # for more info, see: https://redis.io/docs/install/install-redis/install-redis-on-linux/
-  curl -fsSL https://packages.redis.io/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-  echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-  sudo apt-get update || true
-  sudo apt-get -y install redis
+  curl -fsSL https://packages.redis.io/gpg | $SUDO gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+  echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | $SUDO tee /etc/apt/sources.list.d/redis.list
+  $SUDO apt-get update || true
+  $SUDO apt-get -y install redis
 }
 
 install_node() {
@@ -278,13 +283,15 @@ config_cook(){
     esac
   done
 
-  # Prompt for sudo up front for installing
-  # packages and configuring PostgreSQL
-  info "This script requires sudo privileges to run"
+  if ! [ -f /.dockerenv ] && ! grep -qE 'docker|kubepods|containerd' /proc/1/cgroup; then
+    # Prompt for sudo up front for installing
+    # packages and configuring PostgreSQL
+    info "This script requires sudo privileges to run"
 
-  if ! sudo -v; then
-    error "Sudo password entry was cancelled or incorrect."
-    exit 1 
+    if ! sudo -v; then
+      error "Sudo password entry was cancelled or incorrect."
+      exit 1
+    fi
   fi
 
   source "$craig_dir/install.config"
