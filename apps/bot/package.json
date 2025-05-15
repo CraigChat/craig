@@ -26,7 +26,7 @@
     "@sentry/integrations": "^7.2.0",
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
-    "@snazzah/emoji-sync": "^0.1.1",
+    "@snazzah/emoji-sync": "^0.1.2",
     "@trpc/client": "^9.26.2",
     "axios": "^0.27.2",
     "chalk": "4",

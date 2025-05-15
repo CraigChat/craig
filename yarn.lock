@@ -962,10 +962,10 @@
   resolved "https://registry.yarnpkg.com/@sindresorhus/is/-/is-0.14.0.tgz#9fb3a3cf3132328151f353de4632e01e52102bea"
   integrity sha512-9NET910DNaIPngYnLLPeg+Ogzqsi9uM4mSboU5y6p8S5DzMTVEsJZrawi+BoDNUVBa2DhJqQYUFvMDfgU062LQ==
 
-"@snazzah/emoji-sync@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@snazzah/emoji-sync/-/emoji-sync-0.1.1.tgz#57231662df1d96329746a69172d87b647f2f06fd"
-  integrity sha512-vTluLaYUV/zyo2gv0lG8zLjQqrgZCnvUlHRlhoEeTcAu+ckML8VPD3T0o7gXjOP/BcVe40eXfNn+8+KsC2M3pw==
+"@snazzah/emoji-sync@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@snazzah/emoji-sync/-/emoji-sync-0.1.2.tgz#d61de20d1e7ed141f3c2283098bbb458b1e447e0"
+  integrity sha512-zom5q/RtxDOc5X5tCliHO17xHVyq8dBtNF2YAo8en7pZuikWFyh8fZr++JCAbz9UAs9PZeBLSMzvbmMzZ5Qw8w==
   dependencies:
     eventemitter3 "^5.0.1"
 

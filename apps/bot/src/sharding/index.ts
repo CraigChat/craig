@@ -1,4 +1,6 @@
+import { EmojiManager } from '@snazzah/emoji-sync';
 import config from 'config';
+import path from 'path';
 
 import * as logger from './logger';
 import ShardManager from './manager';
@@ -17,6 +19,14 @@ manager.loadModules(BotListPosterModule, ShardUtilModule, MetricsModule);
 process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r));
 
 (async () => {
+  logger.info('Fetching emojis...');
+  const emojis = new EmojiManager({
+    token: config.get('dexare.token'),
+    applicationId: config.get('dexare.applicationID')
+  });
+  await emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
+  await emojis.sync();
+  process.env.EMOJI_SYNC_DATA = JSON.stringify(Array.from(emojis.emojis.values()));
   logger.info('Starting to spawn...');
   await manager.spawnAllWithConcurrency();
   logger.info(
