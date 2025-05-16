@@ -19,7 +19,7 @@ import { googlePreflight } from './jobs/upload/google.js';
 import { microsoftPreflight } from './jobs/upload/microsoft.js';
 import { REC_DIRECTORY } from './util/config.js';
 import logger from './util/logger.js';
-import { uploadCount } from './util/metrics.js';
+import { registerWithManager, uploadCount } from './util/metrics.js';
 import { getDuration } from './util/process.js';
 
 const debug = process.env.NODE_ENV !== 'production';
@@ -221,6 +221,7 @@ app.listen(
 
     logger.info(`Serving at ${address} (${process.env.NODE_ENV})`);
     await jobManager.init();
+    registerWithManager(jobManager);
     startMetricsServer(logger);
     if (process.send && process.env.pm_id !== undefined) process.send('ready');
   }
