@@ -19,10 +19,10 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "format": "turbo format",
-    "build-cook": "pnpm --filter kitchen --filter ennuizel-streamer run build-cook",
-    "sync": "pnpm --filter bot run sync",
-    "sync:dev": "pnpm --filter bot run sync:dev",
-    "db:deploy": "dotenv -c -- pnpm --filter db run db:migrate:deploy"
+    "build-cook": "pnpm -F kitchen -F ennuizel-streamer run build-cook",
+    "sync": "pnpm -F bot run sync",
+    "sync:dev": "pnpm -F bot run sync:dev",
+    "db:deploy": "dotenv -c -- pnpm -F db run db:migrate:deploy"
   },
   "repository": {
     "type": "git",
@@ -40,7 +40,7 @@
       "supports-color": "8.1.1"
     },
     "patchedDependencies": {
-      "svelte-awesome-color-picker@4.0.0": "patches/svelte-awesome-color-picker@4.0.0.patch"
+      "svelte-awesome-color-picker@4.0.2": "patches/svelte-awesome-color-picker@4.0.2.patch"
     }
   }
 }

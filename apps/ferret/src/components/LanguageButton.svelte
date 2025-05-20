@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
+  import partialIcon from '@iconify-icons/mdi/alert-outline';
   import checkIcon from '@iconify-icons/mdi/check';
   import dropdownIcon from '@iconify-icons/mdi/chevron-down';
   import langIcon from '@iconify-icons/mdi/translate';
@@ -21,6 +22,8 @@
   import Portal from 'svelte-portal';
 
   import { localeCookieName } from '$lib/cookie';
+
+  const fullLocales = ['en', 'tr', 'nl'];
 
   const localeNames: Record<string, string> = {
     en: 'English',
@@ -114,13 +117,17 @@
           <span class="flex-1 text-left">
             {localeNames[lang] || lang}
           </span>
-          <Icon
-            icon={checkIcon}
-            class={clsx('flex-none', {
-              'text-white': selected,
-              'text-transparent': !selected
-            })}
-          />
+          {#if !fullLocales.includes(lang) && !selected}
+            <Icon icon={partialIcon} class="flex-none text-yellow-300/50" />
+          {:else}
+            <Icon
+              icon={checkIcon}
+              class={clsx('flex-none', {
+                'text-white': selected,
+                'text-transparent': !selected
+              })}
+            />
+          {/if}
         </button>
       {/each}
     </div>

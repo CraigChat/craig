@@ -67,7 +67,7 @@
 </svelte:head>
 
 {#snippet channel()}
-  <div class="flex items-center justify-center gap-1 text-neutral-400 sm:gap-2">
+  <div class="flex items-center justify-center gap-1 font-semibold text-neutral-400 sm:gap-2">
     <div class="relative h-4 w-4 sm:h-6 sm:w-6">
       {#if recording.channel.type === 2}
         <svg viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-full w-full">
@@ -136,11 +136,17 @@
     <div class="inline-flex shrink grow basis-0 flex-col items-center justify-center gap-1.5 sm:items-start">
       <div class="flex flex-col items-center justify-center sm:items-start">
         <div class="font-display text-center text-xl font-semibold text-zinc-100 sm:text-left sm:text-2xl">{recording.guild.name}</div>
-        <div class="inline-flex w-full flex-wrap items-center justify-center gap-1 font-semibold sm:items-start sm:justify-start sm:gap-2">
-          {@render channel()}
-          <div class="font-display flex items-center justify-center gap-1 text-base font-medium text-neutral-400 sm:gap-2 sm:text-xl">
-            <DynamicTranslatable template={$t('recording.by_user')} replacements={{ user: requester }} />
-          </div>
+        <div
+          class="inline-flex w-full flex-wrap items-center justify-center gap-1 text-base font-medium sm:items-start sm:justify-start sm:gap-2 sm:text-xl"
+        >
+          {#if $t('recording.by_user').includes('{channel}')}
+            <DynamicTranslatable template={$t('recording.by_user')} replacements={{ user: requester, channel }} />
+          {:else}
+            {@render channel()}
+            <div class="flex items-center justify-center gap-1 text-base font-medium text-neutral-400 sm:gap-2 sm:text-xl">
+              <DynamicTranslatable template={$t('recording.by_user')} replacements={{ user: requester }} />
+            </div>
+          {/if}
         </div>
       </div>
       <div class="inline-flex w-full flex-wrap items-center justify-center gap-1 text-zinc-500 sm:justify-start">

@@ -8,9 +8,9 @@ overrides:
   supports-color: 8.1.1
 
 patchedDependencies:
-  svelte-awesome-color-picker@4.0.0:
-    hash: 2446i6xf47wgvyw5qsq2iqzihy
-    path: patches/svelte-awesome-color-picker@4.0.0.patch
+  svelte-awesome-color-picker@4.0.2:
+    hash: oqgqwmmkx6ulmju4odg7gmaxh4
+    path: patches/svelte-awesome-color-picker@4.0.2.patch
 
 importers:
 
@@ -95,9 +95,6 @@ importers:
       nanoid:
         specifier: ^5.0.9
         version: 5.0.9
-      svelte-persisted-store:
-        specifier: ^0.12.0
-        version: 0.12.0(svelte@5.19.0)
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -178,8 +175,8 @@ importers:
         specifier: ^5.19.0
         version: 5.19.0
       svelte-awesome-color-picker:
-        specifier: ^4.0.0
-        version: 4.0.0(patch_hash=2446i6xf47wgvyw5qsq2iqzihy)(svelte@5.19.0)
+        specifier: ^4.0.2
+        version: 4.0.2(patch_hash=oqgqwmmkx6ulmju4odg7gmaxh4)(svelte@5.19.0)
       svelte-check:
         specifier: ^4.1.4
         version: 4.1.4(picomatch@4.0.2)(svelte@5.19.0)(typescript@5.7.3)
@@ -189,6 +186,9 @@ importers:
       svelte-i18n:
         specifier: ^4.0.1
         version: 4.0.1(svelte@5.19.0)
+      svelte-persisted-store:
+        specifier: ^0.12.0
+        version: 0.12.0(svelte@5.19.0)
       svelte-portal:
         specifier: ^2.2.1
         version: 2.2.1
@@ -3669,8 +3669,8 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  svelte-awesome-color-picker@4.0.0:
-    resolution: {integrity: sha512-/CMrP/UHPzZ57RceNc/pmWkc/Sf5D4uCavlK+v9JYkGmuO7qmuXt/VzjzMuiaeHo8Kl+yPlEAHqIRa3/C+aniw==}
+  svelte-awesome-color-picker@4.0.2:
+    resolution: {integrity: sha512-Ez72goMMNmw6sZhB1/BXEA8984lEkudPrdlNS+y3nHm2Lnk1w4nwy5NFyWPxTP7nFnLxhIqyV3VuJVG4PokKwg==}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -7243,7 +7243,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte-awesome-color-picker@4.0.0(patch_hash=2446i6xf47wgvyw5qsq2iqzihy)(svelte@5.19.0):
+  svelte-awesome-color-picker@4.0.2(patch_hash=oqgqwmmkx6ulmju4odg7gmaxh4)(svelte@5.19.0):
     dependencies:
       colord: 2.9.3
       svelte: 5.19.0

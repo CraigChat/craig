@@ -27,19 +27,12 @@
     let match;
 
     while ((match = regex.exec(template)) !== null) {
-      // Add the text before the placeholder.
-      if (match.index > lastIndex) {
-        parts.push(template.slice(lastIndex, match.index));
-      }
-      // Push a marker object for this placeholder.
+      if (match.index > lastIndex) parts.push(template.slice(lastIndex, match.index));
       parts.push({ type: 'placeholder', key: match[1] });
       lastIndex = regex.lastIndex;
     }
 
-    // Add the rest of the string if any.
-    if (lastIndex < template.length) {
-      parts.push(template.slice(lastIndex));
-    }
+    if (lastIndex < template.length) parts.push(template.slice(lastIndex));
     return parts;
   }
 
