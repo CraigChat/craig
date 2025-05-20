@@ -177,7 +177,7 @@
           {/if}
         </div>
         <button
-          class="text-right text-sm font-normal transition-all hover:text-red-500 disabled:pointer-events-none disabled:opacity-50 sm:text-left sm:text-base"
+          class="text-right text-sm font-normal underline underline-offset-2 transition-all hover:text-red-500 disabled:pointer-events-none disabled:opacity-50 sm:text-left sm:text-base"
           onclick={() => (showDeleteModal = true)}
           disabled={$jobOpen}
         >
