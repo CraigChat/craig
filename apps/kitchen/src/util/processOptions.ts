@@ -9,28 +9,34 @@ let ioniceClass: number | null = PROC_IONICE;
 let useChrt = PROC_CHRT_IDLE;
 
 export async function testProcessOptions() {
-  const niceProcess = await execaCommand(`nice -n${niceness} echo`)
-    .then(() => null)
-    .catch((e) => e);
-  if (niceProcess) {
-    logger.warn(`Invalid niceness value when testing with '${niceProcess.command}', removing variable`, niceProcess.stderr);
-    niceness = null;
+  if (niceness) {
+    const niceProcess = await execaCommand(`nice -n${niceness} echo`)
+      .then(() => null)
+      .catch((e) => e);
+    if (niceProcess) {
+      logger.warn(`Invalid niceness value when testing with '${niceProcess.command}', removing variable`, niceProcess.stderr);
+      niceness = null;
+    }
   }
 
-  const tasksetProcess = await execaCommand(`taskset -c ${cpuMap} echo`)
-    .then(() => null)
-    .catch((e) => e);
-  if (tasksetProcess) {
-    logger.warn(`Invalid taskset cpu list value when testing with '${tasksetProcess.command}', removing variable`, tasksetProcess.stderr);
-    cpuMap = null;
+  if (cpuMap) {
+    const tasksetProcess = await execaCommand(`taskset -c ${cpuMap} echo`)
+      .then(() => null)
+      .catch((e) => e);
+    if (tasksetProcess) {
+      logger.warn(`Invalid taskset cpu list value when testing with '${tasksetProcess.command}', removing variable`, tasksetProcess.stderr);
+      cpuMap = null;
+    }
   }
 
-  const ioniceProcess = await execaCommand(`ionice -c${ioniceClass} echo`)
-    .then(() => null)
-    .catch((e) => e);
-  if (ioniceProcess) {
-    logger.warn(`Invalid ionice class value when testing with '${ioniceProcess.command}', removing variable`, ioniceProcess.stderr);
-    ioniceClass = null;
+  if (ioniceClass) {
+    const ioniceProcess = await execaCommand(`ionice -c${ioniceClass} echo`)
+      .then(() => null)
+      .catch((e) => e);
+    if (ioniceProcess) {
+      logger.warn(`Invalid ionice class value when testing with '${ioniceProcess.command}', removing variable`, ioniceProcess.stderr);
+      ioniceClass = null;
+    }
   }
 
   if (useChrt) {
@@ -63,11 +69,4 @@ export function procOpts({
   ];
 
   return commands.filter((cmd) => cmd !== null).join(' ');
-}
-
-export async function testTaskset(cpuList: string) {
-  const result = await execaCommand(`taskset -c ${cpuList} echo`)
-    .then(() => null)
-    .catch((e) => e);
-  return !result;
 }
