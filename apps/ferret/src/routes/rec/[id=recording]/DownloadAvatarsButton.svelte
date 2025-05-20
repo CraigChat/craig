@@ -6,7 +6,7 @@
 
   import { page } from '$app/state';
   import FallbackImage from '$components/FallbackImage.svelte';
-  import { PUBLIC_AVATAR_CDN } from '$env/static/public';
+  import { env } from '$env/dynamic/public';
   import { loadingIcon } from '$lib/icons';
   import { toast } from '$lib/toaster';
   import { AVATAR_PLACEHOLDER, formatUser, getAvatar, getDefaultAvatar } from '$lib/util';
@@ -35,7 +35,11 @@
       if (user.avatar?.startsWith('data:')) return (zipContents[fileName] = b64ToUInt8(user.avatar.split(',')[1]));
 
       const start = Date.now();
-      const tryUrls = [user.avatarUrl, PUBLIC_AVATAR_CDN ? `${PUBLIC_AVATAR_CDN}/discord-avatars/${user.id}.png` : undefined, getDefaultAvatar(user)];
+      const tryUrls = [
+        user.avatarUrl,
+        env.PUBLIC_AVATAR_CDN ? `${env.PUBLIC_AVATAR_CDN}/discord-avatars/${user.id}.png` : undefined,
+        getDefaultAvatar(user)
+      ];
       for (const url of tryUrls) {
         if (!url) continue;
         try {

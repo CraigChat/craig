@@ -10,7 +10,7 @@
 
   import { page, updated } from '$app/state';
   import bgMask from '$assets/bgmask.svg';
-  import { PUBLIC_HOSTNAME, PUBLIC_PLAUSIBLE_HOSTNAME } from '$env/static/public';
+  import { env } from '$env/dynamic/public';
 
   interface Props {
     children?: import('svelte').Snippet;
@@ -22,8 +22,8 @@
 <svelte:head>
   <title>Craig</title>
   <link rel="preload" as="font" type="font/ttf" crossorigin="anonymous" href="/assets/fonts/PublicSans-variable.ttf" />
-  {#if PUBLIC_PLAUSIBLE_HOSTNAME}
-    <script data-domain={PUBLIC_HOSTNAME} src="https://{PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.js"></script>
+  {#if env.PUBLIC_PLAUSIBLE_HOSTNAME}
+    <script data-domain={env.PUBLIC_HOSTNAME} src="https://{env.PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.js"></script>
   {/if}
 </svelte:head>
 
