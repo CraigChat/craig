@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,26 +10,6 @@ datasource db {
 model User {
   id             String  @id
 
-  rewardTier      Int     @default(0)
-  patronId        String?
-  tierManuallySet Boolean @default(false)
-
-  webapp         Boolean @default(false)
-
-  driveEnabled   Boolean @default(false)
-  driveService   String  @default("google")
-  driveFormat    String?
-  driveContainer String?
-
-  createdAt      DateTime @db.Timestamptz(6) @default(now())
-  updatedAt      DateTime @db.Timestamptz(6) @updatedAt
-}
-
-model Ban {
-  id             String  @id
-  type           Int     @default(0)
-  name           String?
-  reason         String?
   createdAt      DateTime @db.Timestamptz(6) @default(now())
   updatedAt      DateTime @db.Timestamptz(6) @updatedAt
 }
@@ -44,13 +21,6 @@ model Guild {
   updatedAt   DateTime @db.Timestamptz(6) @updatedAt
 }
 
-model Blessing {
-  guildId    String   @id
-  userId     String
-  createdAt  DateTime @db.Timestamptz(6) @default(now())
-  updatedAt  DateTime @db.Timestamptz(6) @updatedAt
-}
-
 model Recording {
   id           String    @id
   accessKey    String
@@ -60,58 +30,10 @@ model Recording {
   guildId      String
   clientId     String
   shardId      Int
-  autorecorded Boolean   @default(false)
-  rewardTier   Int       @default(0)
   createdAt    DateTime  @db.Timestamptz(6) @default(now())
   endedAt      DateTime? @db.Timestamptz(6)
   errored      Boolean   @default(false)
   expiresAt    DateTime  @db.Timestamptz(6)
 
   @@index([userId, createdAt(sort: Desc)])
-}
-
-model AutoRecord {
-  id            String   @id @default(cuid())
-  channelId     String
-  clientId      String
-  guildId       String
-  userId        String
-  postChannelId String?
-  minimum       Int      @default(1)
-  triggerUsers  String[]
-  triggerRoles  String[]
-  updatedAt     DateTime @db.Timestamptz(6) @updatedAt
-
-  @@index([clientId], type: Hash)
-}
-
-model GoogleDriveUser {
-  id           String  @id
-  refreshToken String?
-  token        String
-}
-
-model MicrosoftUser {
-  id           String  @id
-  refreshToken String
-  token        String
-  name         String
-  username     String
-}
-
-model DropboxUser {
-  id           String  @id
-  refreshToken String
-  token        String
-  name         String
-}
-
-model Patreon {
-  id          String    @id
-  name        String
-  email       String
-  cents       Int
-	tiers       String[]
-  createdAt   DateTime  @db.Timestamptz(6) @default(now())
-  updatedAt   DateTime  @db.Timestamptz(6) @updatedAt
 }
