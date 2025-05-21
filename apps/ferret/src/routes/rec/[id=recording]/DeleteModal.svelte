@@ -5,6 +5,7 @@
 
   import { page } from '$app/state';
   import Button from '$components/Button.svelte';
+  import DynamicTranslatable from '$components/DynamicTranslatable.svelte';
   import Modal from '$components/Modal.svelte';
   import { loadingIcon } from '$lib/icons';
   import { jobOpen } from '$lib/recording/data';
@@ -48,6 +49,10 @@
   }
 </script>
 
+{#snippet recordingsCommand()}
+  <span class="rounded bg-white/20 px-1 text-white">/recordings</span>
+{/snippet}
+
 <Modal title={$t('recording.delete_modal.header')} subtitle={$t('recording.delete_modal.subtext')}>
   {#if responseError}
     <div class="flex items-center gap-2 rounded bg-red-600 p-2 text-xs text-white md:text-sm">
@@ -69,7 +74,11 @@
       bind:value={deletekey}
     />
     <span class="text-xs peer-data-[errored]:text-red-500 sm:text-sm">
-      {$t(keyInvalid ? 'recording.delete_modal.delete_key_invalid' : 'recording.delete_modal.delete_key_hint')}
+      {#if keyInvalid}
+        {$t('recording.delete_modal.delete_key_invalid')}
+      {:else}
+        <DynamicTranslatable template={$t('recording.delete_modal.delete_key_hint')} replacements={{ command: recordingsCommand }} />
+      {/if}
     </span>
   </div>
 
