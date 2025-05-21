@@ -116,7 +116,7 @@
 
     {#if desc}
       <div class="flex flex-col rounded bg-zinc-800">
-        <div class="flex gap-2 bg-zinc-700 px-2 py-1 text-white">
+        <div class="flex gap-2 rounded-t bg-zinc-700 px-2 py-1 text-white">
           <Icon icon={getFileIcon(desc.file)} class="h-6 w-6" />
           <span>{desc.file.startsWith('.') ? `craig-${recording.id}${desc.file}` : desc.file}</span>
         </div>
