@@ -65,6 +65,7 @@ export interface RecordingUser {
   username: string;
   discriminator: string;
   globalName?: string | null;
+  bot: boolean;
   avatar?: string;
   avatarUrl?: string;
   unknown: boolean;
@@ -614,6 +615,7 @@ export default class Recording {
         username: user?.username ?? 'Unknown',
         discriminator: user?.discriminator ?? '0000',
         globalName: user?.globalName,
+        bot: user?.bot ?? false,
         unknown: !user,
         track: this.trackNo++,
         packet: 2
@@ -638,6 +640,7 @@ export default class Recording {
         recordingUser.username = member?.username ?? 'Unknown';
         recordingUser.discriminator = member?.discriminator ?? '0000';
         recordingUser.globalName = member?.user?.globalName;
+        recordingUser.bot = member?.user?.bot ?? false;
         recordingUser.unknown = !member;
         if (member) user = member.user;
       }
