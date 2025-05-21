@@ -2,7 +2,7 @@ import { CommandContext, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission } from '../util';
+import { checkRecordingPermission } from '../util';
 
 export default class Stop extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -19,12 +19,6 @@ export default class Stop extends GeneralCommand {
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
     await ctx.defer(true);
-
-    if (await checkBan(ctx.user.id))
-      return {
-        content: 'You are not allowed to use the bot at this time.',
-        ephemeral: true
-      };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true) {

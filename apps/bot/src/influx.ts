@@ -57,8 +57,6 @@ export async function onRecordingEnd(
   guildID: string,
   started: Date,
   duration: number,
-  auto = false,
-  webapp = false,
   errored = false
 ) {
   if (!influxOpts || !influxOpts.url || !client) return;
@@ -73,8 +71,6 @@ export async function onRecordingEnd(
       .tag('shard', String(dexareClient.shard?.id ?? process.env.SHARD_ID))
       .tag('guildId', guildID)
       .tag('userId', userID)
-      .tag('auto', auto ? 'true' : 'false')
-      .tag('webapp', webapp ? 'true' : 'false')
       .tag('errored', errored ? 'true' : 'false')
       .intField('duration', duration)
       .timestamp(started)

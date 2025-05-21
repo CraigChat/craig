@@ -5,7 +5,7 @@ import Recording, { RecordingState } from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import { reportRecordingError } from '../sentry';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
+import { checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, stripIndentsAndLines } from '../util';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -42,19 +42,7 @@ export default class Join extends GeneralCommand {
           `
         }
       ],
-      components: [
-        {
-          type: ComponentType.ACTION_ROW,
-          components: [
-            {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.LINK,
-              label: 'Support Server',
-              url: 'https://discord.com/invite/PEc4QBE45f'
-            }
-          ]
-        }
-      ]
+      components: []
     };
 
     recording.state = RecordingState.ERROR;
@@ -73,25 +61,7 @@ export default class Join extends GeneralCommand {
       return {
         content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
         ephemeral: true,
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Join Support Server',
-                url: 'https://discord.gg/craig'
-              }
-            ]
-          }
-        ]
-      };
-
-    if (await checkBan(ctx.user.id))
-      return {
-        content: 'You are not allowed to use the bot at this time.',
-        ephemeral: true
+        components: []
       };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
@@ -110,19 +80,7 @@ export default class Join extends GeneralCommand {
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'How do I fix this?',
-                url: 'https://craig.chat/docs/#setting-up-access-roles'
-              }
-            ]
-          }
-        ],
+        components: [],
         ephemeral: true
       };
     const member = guild.members.get(ctx.user.id) || (await guild.fetchMembers({ userIDs: [ctx.user.id] }))[0];
@@ -202,13 +160,7 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
-    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
-      return {
-        content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
-        ephemeral: true
-      };
-
-    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
+    if ((ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS')) || (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL')))
       return {
         content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
         ephemeral: true
@@ -226,19 +178,7 @@ export default class Join extends GeneralCommand {
         return {
           content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
           ephemeral: true,
-          components: [
-            {
-              type: ComponentType.ACTION_ROW,
-              components: [
-                {
-                  type: ComponentType.BUTTON,
-                  style: ButtonStyle.LINK,
-                  label: 'Join Support Server',
-                  url: 'https://discord.gg/craig'
-                }
-              ]
-            }
-          ]
+          components: []
         };
     }
 
@@ -253,42 +193,6 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
     }
-
-    // Get rewards
-    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
-    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
-
-    // Check if user can record
-    if (parsedRewards.rewards.recordHours <= 0)
-      return {
-        content: stripIndentsAndLines`
-          Sorry, but this bot is only for patrons. Please use Craig.
-          If you have recently became a patron, login to the [dashboard](https://my.craig.chat/).
-          Your benefits may take up to an hour to become active.
-        `,
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'craig.chat',
-                url: 'https://craig.chat/'
-              },
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Patreon',
-                url: 'https://patreon.com/CraigRec'
-              }
-            ]
-          }
-        ],
-        ephemeral: true
-      };
 
     // Check for DM permissions
     const dmChannel = await member.user.getDMChannel().catch(() => null);
@@ -343,22 +247,9 @@ export default class Join extends GeneralCommand {
 
     recording.messageID = messageID;
     recording.messageChannelID = ctx.channelID;
-    const error = await recording
-      .start(parsedRewards, userData?.webapp ?? false)
-      .then(() => false)
-      .catch((e) => e);
-
-    if (error !== false) {
-      this.client.commands.logger.error(
-        `Failed to start recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
-        error
-      );
-      await this.reportError(ctx, err, recording).catch(() => {});
-      return;
-    }
 
     // Send DM
-    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);
+    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, this.client.config)).catch(() => null);
 
     if (dmMessage)
       await ctx.sendFollowUp({
@@ -387,11 +278,6 @@ export default class Join extends GeneralCommand {
 
           **Recording ID:** \`${recording.id}\`
           **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-          ${
-            recording.webapp
-              ? `**Webapp URL:** ${this.client.config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
-              : ''
-          }
 
           To bring up the recording link again, use the \`/recordings\` command.
         `,

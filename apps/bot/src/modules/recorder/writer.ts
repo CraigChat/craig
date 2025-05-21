@@ -15,7 +15,6 @@ import {
   OPUS_HEADERS_MONO,
   OPUS_MONO_HEADER_VAD
 } from './util';
-import type { WebUser } from './webapp';
 
 export type WriteTask =
   | {
@@ -52,22 +51,6 @@ export type WriteTask =
   | {
       type: 'writeLog';
       message: string;
-    }
-  | {
-      type: 'writeWebappOpusHeader';
-      trackNo: number;
-      continuous: boolean;
-    }
-  | {
-      type: 'writeWebappFlacHeader';
-      trackNo: number;
-      sampleRate: number;
-      user: WebUser;
-    }
-  | {
-      type: 'writeWebappUser';
-      trackNo: number;
-      data: WebUser['data'];
     };
 
 export default class RecordingWriter {
@@ -164,41 +147,6 @@ export default class RecordingWriter {
     if (!this.logStream.destroyed) this.logStream.write(message);
   }
 
-  writeWebappOpusHeader(trackNo: number, continuous: boolean) {
-    try {
-      this.headerEncoder1.write(0, trackNo, 0, continuous ? OPUS_MONO_HEADER_VAD : OPUS_HEADERS_MONO[0], BOS);
-      this.headerEncoder2.write(0, trackNo, 1, OPUS_HEADERS_MONO[1]);
-    } catch (e) {
-      this.recording.recorder.logger.error(`FFailed to write opus webapp headers for recording ${this.recording.id}`, e);
-      this.recording.writeToLog(`Failed to write webapp opus headers on track ${trackNo}: ${e}`);
-    }
-  }
-
-  writeWebappFlacHeader(trackNo: number, sampleRate: number, user: WebUser) {
-    try {
-      this.headerEncoder1.write(
-        0,
-        trackNo,
-        0,
-        sampleRate === 44100 ? (user.continuous ? FLAC_HEADER_44k_VAD : FLAC_HEADER_44k) : user.continuous ? FLAC_HEADER_48k_VAD : FLAC_HEADER_48k,
-        BOS
-      );
-      this.headerEncoder2.write(0, trackNo, 1, FLAC_TAGS);
-    } catch (e) {
-      this.recording.recorder.logger.error(`FFailed to write webapp flac headers for recording ${this.recording.id}`, e);
-      this.recording.writeToLog(`Failed to write webapp flac headers on track ${trackNo}: ${e}`);
-    }
-  }
-
-  writeWebappUser(trackNo: number, data: WebUser['data']) {
-    try {
-      this.usersStream.write(',"' + trackNo + '":' + JSON.stringify(data) + '\n');
-    } catch (e) {
-      this.recording.recorder.logger.error(`Failed to write webapp user for recording ${this.recording.id}`, e);
-      this.recording.writeToLog(`Failed to write webapp user on track ${trackNo} (${data.username}#${data.discriminator}): ${e}`);
-    }
-  }
-
   async writeWorker(task: WriteTask) {
     if (this.closed) return;
     switch (task.type) {
@@ -277,50 +225,6 @@ export default class RecordingWriter {
       case 'writeLog': {
         const { message } = task;
         if (!this.logStream.destroyed) this.logStream.write(message);
-        break;
-      }
-      case 'writeWebappOpusHeader': {
-        const { trackNo, continuous } = task;
-        try {
-          this.headerEncoder1.write(0, trackNo, 0, continuous ? OPUS_MONO_HEADER_VAD : OPUS_HEADERS_MONO[0], BOS);
-          this.headerEncoder2.write(0, trackNo, 1, OPUS_HEADERS_MONO[1]);
-        } catch (e) {
-          this.recording.recorder.logger.error(`FFailed to write opus webapp headers for recording ${this.recording.id}`, e);
-          this.recording.writeToLog(`Failed to write webapp opus headers on track ${trackNo}: ${e}`);
-        }
-        break;
-      }
-      case 'writeWebappFlacHeader': {
-        const { trackNo, sampleRate, user } = task;
-        try {
-          this.headerEncoder1.write(
-            0,
-            trackNo,
-            0,
-            sampleRate === 44100
-              ? user.continuous
-                ? FLAC_HEADER_44k_VAD
-                : FLAC_HEADER_44k
-              : user.continuous
-              ? FLAC_HEADER_48k_VAD
-              : FLAC_HEADER_48k,
-            BOS
-          );
-          this.headerEncoder2.write(0, trackNo, 1, FLAC_TAGS);
-        } catch (e) {
-          this.recording.recorder.logger.error(`FFailed to write webapp flac headers for recording ${this.recording.id}`, e);
-          this.recording.writeToLog(`Failed to write webapp flac headers on track ${trackNo}: ${e}`);
-        }
-        break;
-      }
-      case 'writeWebappUser': {
-        const { trackNo, data } = task;
-        try {
-          this.usersStream.write(',"' + trackNo + '":' + JSON.stringify(data) + '\n');
-        } catch (e) {
-          this.recording.recorder.logger.error(`Failed to write webapp user for recording ${this.recording.id}`, e);
-          this.recording.writeToLog(`Failed to write webapp user on track ${trackNo} (${data.username}#${data.discriminator}): ${e}`);
-        }
         break;
       }
     }

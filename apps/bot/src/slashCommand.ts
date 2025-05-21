@@ -2,7 +2,6 @@ import { DexareClient } from 'dexare';
 import { SlashCommand, SlashCommandOptions, SlashCreator } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from './bot';
-import AutorecordModule from './modules/autorecord';
 import type RecorderModule from './modules/recorder';
 import type ShardingModule from './modules/sharding';
 import { prisma } from './prisma';
@@ -15,10 +14,6 @@ export default abstract class GeneralCommand extends SlashCommand {
 
   get client(): CraigBot {
     return this.creator.client as CraigBot;
-  }
-
-  get autoRecord(): AutorecordModule {
-    return this.client.modules.get('autorecord') as unknown as AutorecordModule;
   }
 
   get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {

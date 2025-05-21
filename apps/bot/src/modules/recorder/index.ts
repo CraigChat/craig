@@ -178,9 +178,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         recording.guildId,
         recording.createdAt,
         Date.now() - recording.createdAt.valueOf(),
-        recording.autorecorded,
-        false,
-        true
+        false
       ).catch(() => {});
     }
   }
