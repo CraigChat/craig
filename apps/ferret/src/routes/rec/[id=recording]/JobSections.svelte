@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
+  import warnIcon from '@iconify-icons/mdi/alert-outline';
   import { onMount } from 'svelte';
   import { locale, t } from 'svelte-i18n';
 
@@ -8,6 +10,7 @@
   import { jobOpen } from '$lib/recording/data';
   import { SSEClient } from '$lib/sse';
   import { toast } from '$lib/toaster';
+  import { tooltip } from '$lib/tooltip';
   import type { MinimalJobInfo, MinimalJobUpdate, RecordingPageEmitter } from '$lib/types';
   import { capitalize, currentTime, formatBytes, formatMilliseconds, getNameFromJob, relativeTime } from '$lib/util';
 
@@ -74,6 +77,25 @@
   /** The amount of user tracks that have finished processing. */
   let finishedUsersCount = $derived(userTracks.filter((track) => track?.state?.progress === 100).length);
 
+  let pollingMode = $state(false);
+  let pollingInterval: ReturnType<typeof setInterval> | null = null;
+
+  /** Start polling for job updates. */
+  function startPolling() {
+    pollingMode = true;
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(() => fetchJob(), 3000);
+  }
+
+  /** Stop polling. */
+  function stopPolling() {
+    pollingMode = false;
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+  }
+
   // Emit status updates
   $effect(() => {
     if (status && status !== 'idle' && status !== 'queued' && status !== 'running') emitter.emit('statusUpdate', status);
@@ -100,6 +122,7 @@
 
   /** Starts the SSE connection, and attempts to recieve data to the client. */
   function startStream() {
+    if (pollingMode) return;
     sseClient.connect(`/api/v1/recordings/${recording.id}/sse?key=${key}`);
   }
 
@@ -130,7 +153,7 @@
       job = jobResponse.job;
       if (!job) lastJobUpdate = null;
       lastFetch = Date.now();
-      if (jobResponse.streamOpen) startStream();
+      if (jobResponse.streamOpen && !pollingMode) startStream();
     } catch {
     } finally {
       fetching = false;
@@ -195,6 +218,13 @@
     });
     sseClient.on('end', (info) => {
       console.log('sse ended', info, status);
+      if (info?.error === 'TOO_MANY_CONNECTIONS') {
+        toast.error($t('job.too_many_connections'));
+        streaming = false;
+        sseClient.close();
+        startPolling();
+        return;
+      }
       if (info?.error === 'JOB_NOT_FOUND' && status === 'running') {
         job = null;
         lastJobUpdate = null;
@@ -208,6 +238,7 @@
     fetchJob();
     return () => {
       sseClient.close();
+      stopPolling();
       emitter.off('streamJob', onStreamJob);
       jobOpen.set(false);
     };
@@ -288,7 +319,20 @@
             {$t(`job.status.${status}`)}
           {/if}
         </h2>
-        <NotificationBell visible={status === 'running'} {emitter} />
+        <div class="flex gap-2">
+          {#if pollingMode}
+            <div
+              use:tooltip={{
+                content: $t('job.polling_warning'),
+                placement: 'left',
+                offset: 15
+              }}
+            >
+              <Icon icon={warnIcon} class="h-6 w-6" />
+            </div>
+          {/if}
+          <NotificationBell visible={status === 'running'} {emitter} />
+        </div>
       </div>
       <div class="flex flex-col items-start justify-start">
         <span class="text-sm font-semibold text-neutral-100 sm:text-base">{jobName}</span>

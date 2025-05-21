@@ -7,7 +7,7 @@ import type { AnyMessageEvent } from '$lib/sse/types';
 import { getJob, minimizeJobInfo, minimizeJobUpdate } from '../util';
 import { ConnectionReadyState, type SSEConnection } from './client';
 
-// TODO sse connection limits
+const MAX_SSE_CONNECTIONS_PER_GROUP = 5;
 
 class SSEManager {
   jobGroups = new Map<string, SSEGroup>();
@@ -43,6 +43,11 @@ class SSEManager {
 
   async push(jobId: string, connection: SSEConnection) {
     const group = this.jobGroups.get(jobId) ?? new SSEGroup(this, jobId);
+    if (group.clients.size >= MAX_SSE_CONNECTIONS_PER_GROUP) {
+      connection.send({ event: 'end', data: { error: 'TOO_MANY_CONNECTIONS' } });
+      connection.close();
+      return;
+    }
     if (!group.subscribed) await group.subscribe();
     if (!this.jobGroups.has(jobId)) this.jobGroups.set(jobId, group);
     group.add(connection);
