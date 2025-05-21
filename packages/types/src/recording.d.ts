@@ -43,6 +43,7 @@ export interface RecordingUser {
   track: number;
   username: string;
   discriminator: string;
+  bot?: boolean;
   unknown: boolean;
   avatar?: string;
   avatarUrl?: string;

@@ -30,4 +30,7 @@
       {/if}
     </div>
   </div>
+  {#if user.bot}
+    <div class="bg-discord rounded px-1 text-xs font-semibold text-white">APP</div>
+  {/if}
 </div>

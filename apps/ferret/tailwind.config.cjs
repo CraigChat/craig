@@ -6,6 +6,7 @@ const config = {
     extend: {
       colors: {
         brand: '#FED100',
+        discord: '#5865F2',
         neutral: {
           950: '#0a0a0a'
         }
