@@ -4,6 +4,7 @@
   import folderIcon from '@iconify-icons/mdi/folder';
   import { onMount } from 'svelte';
   import { Tween } from 'svelte/motion';
+  import { SvelteSet } from 'svelte/reactivity';
   import { t } from 'svelte-i18n';
 
   import { page } from '$app/state';
@@ -18,6 +19,8 @@
   import type { FocusedButton } from '$lib/recording/sections';
   import type { RecordingPageEmitter } from '$lib/types';
   import { convertT, formatUser } from '$lib/util';
+
+  import IgnoreTracksSection from './IgnoreTracksSection.svelte';
 
   const recording = page.data.recording!;
   const users = page.data.users!;
@@ -62,6 +65,9 @@
   let title = $derived(desc.title ?? buttonText);
   const firstUser = formatUser(users[0]) ?? '';
   let normalization = $state(false);
+  let canIgnore = $derived(!button.noIgnore && users.length > 1);
+  let ignored = new SvelteSet<number>();
+  let canDownload = $derived(ignored.size !== users.length);
 
   let ennuizel = !!button.ennuizel;
   let ezTimerTween = new Tween(5);
@@ -79,7 +85,8 @@
         type: 'recording',
         options: {
           ...button.options,
-          ...(button.allowNorm ? { dynaudnorm: normalization } : {})
+          ...(button.allowNorm ? { dynaudnorm: normalization } : {}),
+          ...(ignored.size && canIgnore ? { ignoreTracks: [...ignored] } : {})
         }
       });
   }
@@ -145,15 +152,21 @@
         </span>
       </div>
 
-      {#if button.allowNorm}
+      {#if button.allowNorm || canIgnore}
         <hr class="border-white/20" />
+      {/if}
 
+      {#if button.allowNorm}
         <div class="flex w-full flex-col gap-1">
           <div class="flex items-center justify-between">
             <label for="dl-dynaudnorm" class="w-full font-medium">{$t('download.modal.normalize_audio')}</label>
             <Checkbox id="dl-dynaudnorm" disabled={$jobPosting} bind:checked={normalization} />
           </div>
         </div>
+      {/if}
+
+      {#if canIgnore}
+        <IgnoreTracksSection {ignored} />
       {/if}
     {/if}
   {/if}
@@ -163,7 +176,7 @@
       {$t('common.cancel')}
     </Button>
     {#if !ennuizel}
-      <Button primary disabled={$jobPosting} onclick={startDownload}>
+      <Button primary disabled={$jobPosting || !canDownload} onclick={startDownload}>
         <div class="relative">
           <span class="transition-opacity" class:opacity-0={$jobPosting}>{$t('common.download')}</span>
           <div

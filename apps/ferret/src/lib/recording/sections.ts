@@ -28,6 +28,7 @@ export type SectionButton = {
   };
   ennuizel?: number;
   allowNorm?: boolean;
+  noIgnore?: boolean;
   showFor?: DevicePlatform[];
   features?: MinimalRecordingInfo['features'];
 };
@@ -86,10 +87,11 @@ export const audioButtons: SectionButtons = [
         icon: windowsIcon,
         text: { t: 'download.format_buttons.win_executable' },
         options: { format: 'powersfx', container: 'exe' },
-        showFor: ['windows']
+        showFor: ['windows'],
+        noIgnore: true
       },
-      { icon: macIcon, text: { t: 'download.format_buttons.mac_script' }, options: { format: 'powersfxm' }, showFor: ['mac'] },
-      { icon: unixIcon, text: { t: 'download.format_buttons.unix_script' }, options: { format: 'powersfxu' }, showFor: ['unix'] }
+      { icon: macIcon, text: { t: 'download.format_buttons.mac_script' }, options: { format: 'powersfxm' }, showFor: ['mac'], noIgnore: true },
+      { icon: unixIcon, text: { t: 'download.format_buttons.unix_script' }, options: { format: 'powersfxu' }, showFor: ['unix'], noIgnore: true }
     ]
   }
 ];

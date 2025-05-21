@@ -14,16 +14,16 @@ type ValidateOptionsResult =
       error?: z.ZodFormattedError<PostJobBody>;
     };
 
-export function validateOptions(recording: Recording.RecordingInfo, body: any): ValidateOptionsResult {
+export function validateOptions(recording: Recording.RecordingInfo, users: Recording.RecordingUser[], body: any): ValidateOptionsResult {
   const parsed = PostJobBodySchema.safeParse(body);
   if (!parsed.success) return { valid: false, code: APIErrorCode.INVALID_BODY, error: parsed.error.format() };
 
   switch (parsed.data.type) {
     case 'recording': {
-      return parseRecordingOptions(recording, parsed.data.options);
+      return parseRecordingOptions(recording, users, parsed.data.options);
     }
     case 'avatars': {
-      return parseAvatarsOptions(recording, parsed.data.options);
+      return parseAvatarsOptions(recording, users, parsed.data.options);
     }
   }
 
@@ -50,12 +50,17 @@ const PostJobRecordingSchema = z.object({
   options: z.object({
     container: z.enum(ALLOWED_RECORDING_CONTAINERS).optional().default('zip'),
     format: z.enum(ALLOWED_RECORDING_FORMATS).optional(),
-    dynaudnorm: z.boolean().optional()
+    dynaudnorm: z.boolean().optional(),
+    ignoreTracks: z
+      .array(z.number().finite())
+      .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
+      .optional()
   })
 });
 
 export function parseRecordingOptions(
   recording: Recording.RecordingInfo,
+  users: Recording.RecordingUser[],
   options: z.infer<typeof PostJobRecordingSchema>['options']
 ): ValidateOptionsResult {
   const data: Kitchen.CreateJobOptions['options'] = {};
@@ -63,6 +68,13 @@ export function parseRecordingOptions(
   // Check features
   if (options.container === 'mix' && !recording.features.mix) return { valid: false, code: APIErrorCode.FEATURE_UNAVAILABLE };
   if (options.format === 'mp3' && !recording.features.mp3) return { valid: false, code: APIErrorCode.FEATURE_UNAVAILABLE };
+
+  // Ignore tracks
+  if (options.ignoreTracks) {
+    const trackNumbers = users.map((u) => u.track);
+    if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_FORMAT };
+    if (options.ignoreTracks.length === users.length) return { valid: false, code: APIErrorCode.NO_TRACKS_GIVEN };
+  }
 
   // Self-extractors (powersfx will have exe container after parsing, else zip container)
   if (EXTRACTOR_DOWNLOAD_FORMATS.includes(options.format as any)) {
@@ -120,18 +132,30 @@ const PostJobAvatarsSchema = z.object({
       .string()
       .regex(/^[0-9a-f]{6}$/)
       .optional(),
-    transparent: z.boolean().optional()
+    transparent: z.boolean().optional(),
+    ignoreTracks: z
+      .array(z.number().finite())
+      .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
+      .optional()
   })
 });
 
 export function parseAvatarsOptions(
   recording: Recording.RecordingInfo,
+  users: Recording.RecordingUser[],
   options: z.infer<typeof PostJobAvatarsSchema>['options']
 ): ValidateOptionsResult {
   const data: Kitchen.CreateJobOptions['options'] = {};
 
   // Check features
   if (!recording.features.glowers) return { valid: false, code: APIErrorCode.FEATURE_UNAVAILABLE };
+
+  // Ignore tracks
+  if (options.ignoreTracks) {
+    const trackNumbers = users.map((u) => u.track);
+    if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_FORMAT };
+    if (options.ignoreTracks.length === users.length) return { valid: false, code: APIErrorCode.NO_TRACKS_GIVEN };
+  }
 
   // zod does enough validation, we passthru options here
   data.format = options.format as any;

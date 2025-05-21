@@ -54,3 +54,5 @@ export interface RecordingNote {
   time: string;
   note: string;
 }
+
+export type StreamType = 'opus' | 'flac';

@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ url, params, request }) => {
 
   const body = destr<PostJobBody>(await request.text());
   if (typeof body !== 'object') return errorResponse(APIErrorCode.INVALID_BODY, { status: 400 });
-  const parsedOptions = validateOptions(recording.info, body);
+  const parsedOptions = validateOptions(recording.info, recording.users, body);
   if (!parsedOptions.valid) return errorResponse(parsedOptions.code, { status: 400 }, { error: parsedOptions.error });
 
   const newJob = await createJob({

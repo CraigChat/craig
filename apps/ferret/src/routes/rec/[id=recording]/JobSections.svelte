@@ -408,7 +408,7 @@
         {#each userTracks as track (track.track)}
           {#if expanded || (track.state && track.state.progress !== 100)}
             <div class="flex flex-col items-center justify-center gap-2 self-stretch">
-              <div class="inline-flex items-center justify-start gap-2 self-stretch">
+              <div class="inline-flex items-center justify-start gap-2 self-stretch text-neutral-400">
                 <span class="h-5 select-none rounded-xl bg-black/20 px-1.5 py-0.5 text-xs text-neutral-300">{track.track}</span>
                 <RecordingUserChip user={users[track.i]} />
               </div>

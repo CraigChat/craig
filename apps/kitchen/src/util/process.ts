@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream, WriteStream } from 'node:fs';
 import { readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { RecordingNote } from '@craig/types/recording';
+import { RecordingNote, StreamType } from '@craig/types/recording';
 import { execaCommand } from 'execa';
 
 import { Job } from '../jobs/job.js';
@@ -34,7 +34,7 @@ export async function getStreamTypes({ recFileBase, cancelSignal }: CommonProces
   const subprocess = execaCommand('./cook/oggtracks', { cancelSignal, cwd: ROOT_DIR, timeout: 10000 });
   createReadStream(`${recFileBase}.header1`).pipe(subprocess.stdin!);
   const { stdout } = await subprocess;
-  return stdout.split('\n') as ('opus' | 'flac')[];
+  return stdout.split('\n') as StreamType[];
 }
 
 interface DurationOptions extends Omit<CommonProcessOptions, 'cancelSignal'> {
@@ -125,7 +125,7 @@ function getTimemark(line: string): [string, number] | null {
 
 interface EncodeMixOptions extends CommonProcessOptions {
   audioWritePath: string;
-  tracks: [string, string][];
+  tracks: [string, StreamType][];
   encodeCommand: string;
   job?: Job;
 }
@@ -136,7 +136,7 @@ interface EncodeMixTrackOptions extends CommonProcessOptions {
 }
 
 interface EncodeTrackOptions extends EncodeMixTrackOptions {
-  codec: 'opus' | 'flac';
+  codec: StreamType;
   encodeCommand: string;
   dynaudnorm?: boolean;
   job?: Job;

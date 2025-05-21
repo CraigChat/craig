@@ -77,6 +77,7 @@ export async function processAvatarsJob(job: Job) {
     const user = users[i];
     const track = i + 1;
     const fileName = fileNameFromUser(track, user);
+    if (job.options?.ignoreTracks?.includes(track)) return;
 
     job.setState({
       type: job.state.type,

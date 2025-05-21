@@ -23,6 +23,8 @@ export enum APIErrorCode {
 
   INVALID_FORMAT = 'invalid_format',
   FEATURE_UNAVAILABLE = 'feature_unavailable',
+  INVALID_TRACK = 'invalid_track',
+  NO_TRACKS_GIVEN = 'no_tracks_given',
 
   INVALID_DELETE_KEY = 'invalid_delete_key'
 }

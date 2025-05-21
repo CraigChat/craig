@@ -2,6 +2,7 @@ import { createWriteStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import * as path from 'node:path';
 
+import { StreamType } from '@craig/types/recording';
 import { source, stripIndent } from 'common-tags';
 import { execaCommand } from 'execa';
 import he from 'he';
@@ -35,6 +36,7 @@ export async function processRecordingJob(job: Job) {
   const streamTypes = await getStreamTypes({ recFileBase, cancelSignal });
   const notes = await getNotes({ recFileBase, cancelSignal });
   const trackFiles: string[] = [];
+  const usedStreamTypes: StreamType[] = [];
   const pOpts = procOpts();
   const projectMode = job.options?.container === 'aupzip' || job.options?.container === 'sesxzip';
 
@@ -42,11 +44,13 @@ export async function processRecordingJob(job: Job) {
     const user = users[i];
     const track = i + 1;
     const fileName = fileNameFromUser(track, user);
+    if (job.options?.ignoreTracks?.includes(track)) return;
 
     let audioDir = tmpDir;
     if (job.options?.container === 'mix') {
       const audioWritePath = path.join(audioDir, `${fileName}.ogg`);
       trackFiles.push(audioWritePath);
+      usedStreamTypes.push(streamTypes[i]);
       job.setState({
         type: job.state.type,
         tracks: {
@@ -74,6 +78,7 @@ export async function processRecordingJob(job: Job) {
       if (projectMode) audioDir = path.join(tmpDir, `${job.recordingId}_data`);
       const [audioWritePath, encodeCommand] = getEncodeOptions(audioDir, fileName, job.options?.format);
       trackFiles.push(audioWritePath);
+      usedStreamTypes.push(streamTypes[i]);
       const success = await encodeTrack({
         recFileBase,
         cancelSignal,
@@ -162,7 +167,7 @@ export async function processRecordingJob(job: Job) {
 
   switch (job.options?.container) {
     case 'mix': {
-      const tracks = zip(trackFiles, streamTypes);
+      const tracks = zip(trackFiles, usedStreamTypes);
       job.setState({ type: 'encoding', progress: 0 });
       await encodeMix({
         recFileBase,

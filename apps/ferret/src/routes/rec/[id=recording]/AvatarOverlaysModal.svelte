@@ -3,6 +3,7 @@
   import errorIcon from '@iconify-icons/mdi/error';
   import helpIcon from '@iconify-icons/mdi/help';
   import range from 'just-range';
+  import { SvelteSet } from 'svelte/reactivity';
   import { t } from 'svelte-i18n';
 
   import { page } from '$app/state';
@@ -16,6 +17,8 @@
   import type { RecordingPageEmitter } from '$lib/types';
   import { AVATAR_PLACEHOLDER, getAvatar } from '$lib/util';
 
+  import IgnoreTracksSection from './IgnoreTracksSection.svelte';
+
   interface Props {
     emitter: RecordingPageEmitter;
     onclose?: () => void;
@@ -25,6 +28,9 @@
   const recording = page.data.recording!;
   const users = page.data.users!;
   const key = page.data.key!;
+
+  let ignored = new SvelteSet<number>();
+  let canDownload = $derived(ignored.size !== users.length);
 
   let helpOpen = $state(false);
 
@@ -41,7 +47,8 @@
         container: 'zip',
         transparent,
         fg: glowHex.slice(1),
-        bg: bgHex.slice(1)
+        bg: bgHex.slice(1),
+        ...(ignored.size ? { ignoreTracks: [...ignored] } : {})
       }
     });
   }
@@ -114,11 +121,15 @@
     <span class="font-medium text-zinc-300">{$t('download.avatar_overlays.options.format')}</span>
     <SpreadSelect disabled={$jobPosting} options={['mkvh264', 'webmvp8']} displayOptions={['MKV (MPEG-4)', 'WebM (VP8)']} bind:selected={format} />
   </div>
+
+  {#if users.length > 1}
+    <IgnoreTracksSection {ignored} />
+  {/if}
 </div>
 
 <div class="flex w-full justify-between bg-zinc-950/40 px-6 py-3">
   <span></span>
-  <Button primary disabled={$jobPosting} onclick={startDownload}>
+  <Button primary disabled={$jobPosting || !canDownload} onclick={startDownload}>
     <div class="relative">
       <span class="transition-opacity" class:opacity-0={$jobPosting}>{$t('common.download')}</span>
       <div
