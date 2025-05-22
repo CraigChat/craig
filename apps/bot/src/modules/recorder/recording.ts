@@ -225,8 +225,8 @@ export default class Recording {
     this.timeout = setTimeout(async () => {
       if (this.state !== RecordingState.RECORDING) return;
       this.writeToLog('Timeout reached, stopping recording');
-      this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
-      this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
+      this.stateDescription = `⚠️ You've reached the maximum time limit of X hours for this recording.`;
+      this.sendWarning(`You've reached the maximum time limit of X hours for this recording.`, false);
       await this.stop();
     }, 60 * 60 * 1000);
 

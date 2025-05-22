@@ -127,7 +127,7 @@ export async function connect() {
   influxCron.start();
   client.bot.editStatus('online', client.config.status);
 
-  let botName = 'Craig';
+  let botName = 'Kraig';
   if (process.env.pm_pid_path && process.env.pm_id) {
     try {
       const pm2Name = process.env.pm_pid_path
