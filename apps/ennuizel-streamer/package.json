@@ -18,17 +18,17 @@
   "dependencies": {
     "@craig/metrics": "workspace:*",
     "@craig/logger": "workspace:*",
-    "destr": "^2.0.3",
-    "dotenv": "^16.4.7",
-    "execa": "^9.5.2",
-    "nanoid": "^5.0.9",
+    "destr": "^2.0.5",
+    "dotenv": "^16.5.0",
+    "execa": "^9.5.3",
+    "nanoid": "^5.1.5",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.51.0"
   },
   "devDependencies": {
     "@craig/types": "workspace:*",
-    "@types/node": "^22.10.7",
-    "tsup": "^8.4.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "@types/node": "^22.15.21",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
   }
 }

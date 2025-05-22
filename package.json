@@ -33,7 +33,7 @@
     "eslint": "9.21.0",
     "eslint-config-craig": "workspace:*",
     "rimraf": "5.0.10",
-    "turbo": "2.4.4"
+    "turbo": "2.5.3"
   },
   "pnpm": {
     "overrides": {
