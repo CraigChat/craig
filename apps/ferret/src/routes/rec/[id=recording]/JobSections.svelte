@@ -65,7 +65,14 @@
   /** The current status of the job. */
   let status = $derived(lastJobUpdate?.status || job?.status);
   /** The user tracks of the job. */
-  let userTracks = $derived(users.map((user, i) => ({ i, track: user.track, state: jobState?.tracks?.[user.track] })));
+  let userTracks = $derived(
+    users.map((user, i) => ({
+      i,
+      track: user.track,
+      state: jobState?.tracks?.[user.track],
+      ignored: job?.options.ignoredTracks?.includes(user.track)
+    }))
+  );
   /** The formatted name of the job. */
   let jobName = $derived(job ? getNameFromJob(job, $t) : '');
   /** The timestamp of when the job started. */
@@ -73,7 +80,7 @@
   /** The timestamp of when the job finished. */
   let finished = $derived(lastJobUpdate?.finishedAt || (job?.finishedAt ? new Date(job.finishedAt).valueOf() : null));
   /** The amount of user tracks waiting to be processed. */
-  let waitingUsersCount = $derived(userTracks.filter((track) => !track.state).length);
+  let waitingUsersCount = $derived(userTracks.filter((track) => !track.state && !track.ignored).length);
   /** The amount of user tracks that have finished processing. */
   let finishedUsersCount = $derived(userTracks.filter((track) => track?.state?.progress === 100).length);
 
@@ -406,7 +413,7 @@
           <span>{$t('job.loading_track')}</span>
         {/if}
         {#each userTracks as track (track.track)}
-          {#if expanded || (track.state && track.state.progress !== 100)}
+          {#if !track.ignored && (expanded || (track.state && track.state.progress !== 100))}
             <div class="flex flex-col items-center justify-center gap-2 self-stretch">
               <div class="inline-flex items-center justify-start gap-2 self-stretch text-neutral-400">
                 <span class="h-5 select-none rounded-xl bg-black/20 px-1.5 py-0.5 text-xs text-neutral-300">{track.track}</span>

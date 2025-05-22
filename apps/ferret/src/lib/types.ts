@@ -64,6 +64,7 @@ export interface MinimalJobInfo {
     container?: Kitchen.ContainerType;
     dynaudnorm?: boolean;
     parallel?: boolean;
+    ignoredTracks?: number[];
   };
   status: Kitchen.JobStatus;
   state: Kitchen.JobState;

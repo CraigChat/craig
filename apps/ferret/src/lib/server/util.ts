@@ -227,7 +227,8 @@ export function minimizeJobInfo(job: Kitchen.JobJSON): MinimalJobInfo {
       format: job.options?.format,
       container: job.options?.container,
       dynaudnorm: job.options?.dynaudnorm,
-      parallel: job.options?.parallel
+      parallel: job.options?.parallel,
+      ignoredTracks: job.options?.ignoreTracks
     },
     status: job.status,
     state: job.state,
