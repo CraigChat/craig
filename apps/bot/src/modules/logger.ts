@@ -71,11 +71,6 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
 
     // Overwrite warn listener
     this.client.bot.removeAllListeners('warn').on('warn', (message, id) => {
-      // Warns in eris are sometimes strings, sometimes errors...
-      if (
-        !((message as unknown) instanceof Error && (message as unknown as Error).message.startsWith('Unknown guild text channel type:')) &&
-        !(typeof message === 'string' && message.startsWith('Unhandled MESSAGE_CREATE type'))
-      )
         this.client.emit('logger', 'warn', 'eris', [message], { id });
     });
 

@@ -49,6 +49,6 @@ module.exports = {
   timezone: 'America/New_York',
   loggerLevel: 'debug',
   tasks: {
-    ignore: []
+    ignore: ["refreshPatrons"],
   }
 };

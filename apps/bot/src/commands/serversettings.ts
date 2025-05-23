@@ -3,35 +3,34 @@ import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan } from '../util';
 
 export default class ServerSettings extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'server-settings',
-      description: 'Manage server settings.',
+      description: 'Gerir configurações do servidor.',
       deferEphemeral: true,
       dmPermission: false,
       options: [
         {
           type: CommandOptionType.SUB_COMMAND,
           name: 'view',
-          description: 'View server settings.'
+          description: 'Ver configurações.'
         },
         {
           type: CommandOptionType.SUB_COMMAND_GROUP,
           name: 'access-role',
-          description: 'Manage access roles.',
+          description: 'Gerir cargos de acesso.',
           options: [
             {
               type: CommandOptionType.SUB_COMMAND,
               name: 'add',
-              description: 'Add an access role.',
+              description: 'Adicionar cargo de acesso.',
               options: [
                 {
                   type: CommandOptionType.ROLE,
                   name: 'role',
-                  description: 'The role to add.',
+                  description: 'O cargo a ser adicionado.',
                   required: true
                 }
               ]
@@ -39,12 +38,12 @@ export default class ServerSettings extends GeneralCommand {
             {
               type: CommandOptionType.SUB_COMMAND,
               name: 'remove',
-              description: 'Remove an access role.',
+              description: 'Remover um cargo de acesso.',
               options: [
                 {
                   type: CommandOptionType.ROLE,
                   name: 'role',
-                  description: 'The role to remove.',
+                  description: 'O cargo a ser removido.',
                   required: true
                 }
               ]
@@ -58,14 +57,8 @@ export default class ServerSettings extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    if (!ctx.guildID) return 'Esse comando deve ser usado em um servidor.';
     const guild = this.client.bot.guilds.get(ctx.guildID)!;
-
-    if (await checkBan(ctx.user.id))
-      return {
-        content: 'You are not allowed to use the bot at this time.',
-        ephemeral: true
-      };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true) {
@@ -73,7 +66,7 @@ export default class ServerSettings extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the server-settings command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: 'Espere alguns segundos antes de usar esse comando.',
         ephemeral: true
       };
     }
@@ -81,7 +74,7 @@ export default class ServerSettings extends GeneralCommand {
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     if (!ctx.member!.permissions.has('MANAGE_GUILD'))
       return {
-        content: 'You need the `Manage Server` permission to change server settings.',
+        content: 'Você não tem permissão para gerenciar esse servidor.',
         ephemeral: true
       };
 
@@ -92,7 +85,7 @@ export default class ServerSettings extends GeneralCommand {
             {
               title: 'Server Settings',
               description: stripIndents`
-                **Access Roles:** ${guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : '*None*'}
+                **Cargos de acesso:** ${guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : '*None*'}
               `
             }
           ],
@@ -105,7 +98,7 @@ export default class ServerSettings extends GeneralCommand {
             const roleID = ctx.options['access-role'].add.role;
             if (guildData && guildData.accessRoles.includes(roleID))
               return {
-                content: 'This role is already an access role.',
+                content: 'Este já é um cargo de acesso.',
                 ephemeral: true
               };
             await this.prisma.guild.upsert({
@@ -116,7 +109,7 @@ export default class ServerSettings extends GeneralCommand {
               create: { id: ctx.guildID, accessRoles: [roleID] }
             });
             return {
-              content: `Added role <@&${roleID}> to access roles.`,
+              content: `Adicionado <@&${roleID}> como cargo de acesso.`,
               ephemeral: true
             };
           }
@@ -124,7 +117,7 @@ export default class ServerSettings extends GeneralCommand {
             const roleID = ctx.options['access-role'].remove.role;
             if (!guildData || !guildData.accessRoles.includes(roleID))
               return {
-                content: 'This role is not an access role.',
+                content: 'Este já não é um cargo de acesso.',
                 ephemeral: true
               };
             await this.prisma.guild.update({
@@ -132,7 +125,7 @@ export default class ServerSettings extends GeneralCommand {
               data: { accessRoles: guildData.accessRoles.filter((r) => r !== roleID).filter((r) => guild.roles.has(r)) }
             });
             return {
-              content: `Removed <@&${roleID}> from access roles.`,
+              content: `Removido <@&${roleID}> dos cargos de acesso.`,
               ephemeral: true
             };
           }
@@ -141,7 +134,7 @@ export default class ServerSettings extends GeneralCommand {
     }
 
     return {
-      content: 'Unknown sub-command.',
+      content: 'Desconhecido.',
       ephemeral: true
     };
   }

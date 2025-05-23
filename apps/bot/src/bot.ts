@@ -7,7 +7,6 @@ import { SlashCreatorOptions } from 'slash-create';
 
 import { init as i18nInit } from './i18n';
 import { cron as influxCron } from './influx';
-import AutorecordModule from './modules/autorecord';
 import LoggerModule from './modules/logger';
 import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
@@ -37,13 +36,6 @@ export interface CraigBotConfig extends BaseConfig {
     sizeLimitWeb: number;
     sizeLimitWebOpus: number;
     inviteID?: string;
-    webapp: {
-      on: boolean;
-      url: string;
-      token: string;
-      connectUrl: string;
-    };
-    rewardTiers: { [tier: string]: RewardTier };
   };
 
   logger: {
@@ -54,13 +46,6 @@ export interface CraigBotConfig extends BaseConfig {
   slash: {
     creator?: SlashCreatorOptions;
   };
-}
-
-export interface RewardTier {
-  recordHours: number;
-  downloadExpiryHours: number;
-  features: string[];
-  sizeLimitMult?: number;
 }
 
 export class CraigBot extends DexareClient<CraigBotConfig> {
@@ -117,7 +102,7 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule);
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, MetricsModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   // Makes custom emojis with the name 'craig' work as prefixes
@@ -142,7 +127,7 @@ export async function connect() {
   influxCron.start();
   client.bot.editStatus('online', client.config.status);
 
-  let botName = 'Craig';
+  let botName = 'Kraig';
   if (process.env.pm_pid_path && process.env.pm_id) {
     try {
       const pm2Name = process.env.pm_pid_path

@@ -5,19 +5,19 @@ import Recording, { RecordingState } from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import { reportRecordingError } from '../sentry';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
+import { checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, stripIndentsAndLines } from '../util';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'join',
-      description: 'Start recording in a channel.',
+      description: 'Inicia uma gravação em um canal.',
       dmPermission: false,
       options: [
         {
           type: CommandOptionType.CHANNEL,
-          name: 'channel',
-          description: 'The channel to record in.',
+          name: 'canal',
+          description: 'O canal para gravar.',
           channel_types: [2, 13]
         }
       ]
@@ -33,28 +33,15 @@ export default class Join extends GeneralCommand {
       embeds: [
         {
           color: 0xe74c3c,
-          title: 'An error occurred.',
+          title: 'Ocorreu um erro.',
           description: stripIndents`
-            An error occurred while trying to start the recording. Try again in a few minutes.
-            If this problem persists, please join the support server by clicking button below.
+            Ocorreu um erro ao iniciar a gravação.
 
             **Recording ID:** \`${recording.id}\`
           `
         }
       ],
-      components: [
-        {
-          type: ComponentType.ACTION_ROW,
-          components: [
-            {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.LINK,
-              label: 'Support Server',
-              url: 'https://discord.com/invite/PEc4QBE45f'
-            }
-          ]
-        }
-      ]
+      components: []
     };
 
     recording.state = RecordingState.ERROR;
@@ -66,32 +53,14 @@ export default class Join extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    if (!ctx.guildID) return 'Esse comando deve ser usado em um servidor.';
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
     if (!guild)
       return {
-        content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
+        content: 'Não consegui me conectar ao servidor.',
         ephemeral: true,
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Join Support Server',
-                url: 'https://discord.gg/craig'
-              }
-            ]
-          }
-        ]
-      };
-
-    if (await checkBan(ctx.user.id))
-      return {
-        content: 'You are not allowed to use the bot at this time.',
-        ephemeral: true
+        components: []
       };
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
@@ -100,7 +69,7 @@ export default class Join extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: 'Espere alguns segundos antes de usar esse comando.',
         ephemeral: true
       };
     }
@@ -109,20 +78,8 @@ export default class Join extends GeneralCommand {
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
-        content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'How do I fix this?',
-                url: 'https://craig.chat/docs/#setting-up-access-roles'
-              }
-            ]
-          }
-        ],
+        content: 'Você não tem permissão de iniciar uma gravação.',
+        components: [],
         ephemeral: true
       };
     const member = guild.members.get(ctx.user.id) || (await guild.fetchMembers({ userIDs: [ctx.user.id] }))[0];
@@ -134,7 +91,7 @@ export default class Join extends GeneralCommand {
         const message = await this.client.bot.getMessage(recording.messageChannelID, recording.messageID).catch(() => null);
         if (message)
           return {
-            content: 'Already recording in this guild.',
+            content: 'Já existe uma gravação nesse servidor.',
             ephemeral: true,
             components: [
               {
@@ -143,7 +100,7 @@ export default class Join extends GeneralCommand {
                   {
                     type: ComponentType.BUTTON,
                     style: ButtonStyle.LINK,
-                    label: 'Jump to recording panel',
+                    label: 'Painel de gravação.',
                     url: `https://discordapp.com/channels/${ctx.guildID}/${recording.messageChannelID}/${recording.messageID}`,
                     emoji: { id: '949782524131942460' }
                   }
@@ -153,15 +110,10 @@ export default class Join extends GeneralCommand {
           };
       }
 
-      if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+      if ((ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS')) || (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL')))
         return {
-          content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
-          ephemeral: true
-        };
-
-      if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
-        return {
-          content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
+          content: `Estão faltando permissões para enviar o painel de gravação: 
+                    São necessárias as permissões \`Embed Links\` e \`View Channel\` em <#${ctx.channelID}>.`,
           ephemeral: true
         };
 
@@ -177,19 +129,19 @@ export default class Join extends GeneralCommand {
     if (!channel && member?.voiceState?.channelID) channel = guild.channels.get(member.voiceState.channelID);
     else if (!channel)
       return {
-        content: 'Please specify a channel to record in, or join a channel.',
+        content: 'Especifique um canal ou entre em um canal de voz para iniciar uma gravação.',
         ephemeral: true
       };
     if (channel!.type !== 2 && channel!.type !== 13)
       return {
-        content: 'That channel is not a voice channel.',
+        content: 'Esse canal não é um canal de voz.',
         ephemeral: true
       };
 
     // Check permissions
     if (!channel!.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
       return {
-        content: `I do not have permission to connect to <#${channel!.id}>.`,
+        content: `Eu não tenho permissão para entrar em <#${channel!.id}>.`,
         ephemeral: true
       };
 
@@ -198,19 +150,14 @@ export default class Join extends GeneralCommand {
       : guild.permissionsOf(this.client.bot.user.id).has('changeNickname');
     if (!nicknamePermission)
       return {
-        content: 'I do not have permission to change my nickname. I will not record without this permission.',
+        content: 'Eu preciso de permissão para alterar meu apelido.',
         ephemeral: true
       };
 
-    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+    if ((ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS')) || (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL')))
       return {
-        content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
-        ephemeral: true
-      };
-
-    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
-      return {
-        content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
+        content: `Estão faltando permissões para enviar o painel de gravação: 
+                  São necessárias as permissões \`Embed Links\` e \`View Channel\` em <#${ctx.channelID}>.`,
         ephemeral: true
       };
 
@@ -224,21 +171,9 @@ export default class Join extends GeneralCommand {
       const maintenence = await checkMaintenance(this.client.bot.user.id);
       if (maintenence)
         return {
-          content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
+          content: `⚠️ __O bot está em manutenção.__\n\n${maintenence.message}`,
           ephemeral: true,
-          components: [
-            {
-              type: ComponentType.ACTION_ROW,
-              components: [
-                {
-                  type: ComponentType.BUTTON,
-                  style: ButtonStyle.LINK,
-                  label: 'Join Support Server',
-                  url: 'https://discord.gg/craig'
-                }
-              ]
-            }
-          ]
+          components: []
         };
     }
 
@@ -249,80 +184,43 @@ export default class Join extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was server-ratelimited. (${ctx.guildID})`
       );
       return {
-        content: 'This server is recording too often! Try again in a few seconds.',
+        content: 'Aguarde alguns segundos antes de usar esse comando novamente.',
         ephemeral: true
       };
     }
-
-    // Get rewards
-    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
-    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
-
-    // Check if user can record
-    if (parsedRewards.rewards.recordHours <= 0)
-      return {
-        content: stripIndentsAndLines`
-          Sorry, but this bot is only for patrons. Please use Craig.
-          If you have recently became a patron, login to the [dashboard](https://my.craig.chat/).
-          Your benefits may take up to an hour to become active.
-        `,
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'craig.chat',
-                url: 'https://craig.chat/'
-              },
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Patreon',
-                url: 'https://patreon.com/CraigRec'
-              }
-            ]
-          }
-        ],
-        ephemeral: true
-      };
 
     // Check for DM permissions
     const dmChannel = await member.user.getDMChannel().catch(() => null);
     if (!dmChannel) {
       return {
-        content: "I can't DM you, so I can't record. I need to be able to DM you to send you the download link.",
+        content: "Preciso de permissão para enviar mensagens diretas. Não posso enviar o link de download.",
         ephemeral: true
       };
     }
 
     // Nickname the bot
     const selfUser = await getSelfMember(guild, this.client.bot);
-    const recNick = cutoffText(`![RECORDING] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
+    const recNick = cutoffText(`![GRAVANDO] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
     await ctx.defer();
     let nickChanged = false;
-    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
+    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[GRAVANDO]')))
       try {
         const nickWarnTimeout = setTimeout(() => {
           if (!nickChanged)
             ctx.editOriginal(oneLine`
-              It's taking a while for me to change my nickname to indicate that I'm recording.
-              I cannot start recording until I've changed my nickname. Please be patient.
+              Aguarde enquanto tento alterar meu apelido.
             `);
         }, 3000) as unknown as number;
-        await this.client.bot.editGuildMember(ctx.guildID, '@me', { nick: recNick }, 'Setting recording status');
+        await this.client.bot.editGuildMember(ctx.guildID, '@me', { nick: recNick }, 'Trocando estado de gravação');
         nickChanged = true;
         clearTimeout(nickWarnTimeout);
       } catch (e) {
         nickChanged = true;
         this.client.commands.logger.warn(
-          `Failed to change nickname for ${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) to record`,
+          `Não consegui alterar meu apelido ${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) pra gravar`,
           e
         );
-        return `An error occurred while changing my nickname: ${e}`;
+        return `Ocorreu um erro ao mudar meu apelido: ${e}`;
       }
 
     // Start recording
@@ -343,26 +241,13 @@ export default class Join extends GeneralCommand {
 
     recording.messageID = messageID;
     recording.messageChannelID = ctx.channelID;
-    const error = await recording
-      .start(parsedRewards, userData?.webapp ?? false)
-      .then(() => false)
-      .catch((e) => e);
-
-    if (error !== false) {
-      this.client.commands.logger.error(
-        `Failed to start recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
-        error
-      );
-      await this.reportError(ctx, err, recording).catch(() => {});
-      return;
-    }
 
     // Send DM
-    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);
+    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, this.client.config)).catch(() => null);
 
     if (dmMessage)
       await ctx.sendFollowUp({
-        content: `Started recording in <#${channel!.id}>.`,
+        content: `Gravação iniciada em <#${channel!.id}>.`,
         ephemeral: true,
         components: [
           {
@@ -371,7 +256,7 @@ export default class Join extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Jump to DM',
+                label: 'Ir para mensagem direta.',
                 url: `https://discord.com/channels/@me/${dmChannel.id}/${dmMessage.id}`,
                 emoji: { id: '949782524131942460' }
               }
@@ -382,18 +267,13 @@ export default class Join extends GeneralCommand {
     else
       await ctx.sendFollowUp({
         content: stripIndentsAndLines`
-          Started recording in <#${channel!.id}>.
-          I was unable to send you a DM with the download link. I need to be able to DM you to send you the download link in the future.
+          Gravação iniciada em <#${channel!.id}>.
+          Não consegui enviar o link da gravação.
 
-          **Recording ID:** \`${recording.id}\`
-          **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-          ${
-            recording.webapp
-              ? `**Webapp URL:** ${this.client.config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
-              : ''
-          }
+          **ID da gravação:** \`${recording.id}\`
+          **Chave para deletar:** ||\`${recording.deleteKey}\`|| (click to show)
 
-          To bring up the recording link again, use the \`/recordings\` command.
+          Para mostrar o link da gravação novamente, use o comando \`/recordings\`.
         `,
         ephemeral: true,
         components: [
@@ -410,7 +290,7 @@ export default class Join extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Delete recording',
+                label: 'Deletar Gravação',
                 url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
                 emoji: { id: '949825704596500481' }
               }

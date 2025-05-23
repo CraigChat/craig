@@ -5,7 +5,6 @@ import { join } from 'node:path';
 
 import { createLogger } from './logger';
 import { client } from './redis';
-import { listen } from './trpc';
 import { TaskJob } from './types';
 
 const tasksConfig: {
@@ -49,7 +48,6 @@ const tasksConfig: {
   }
 
   await client.connect();
-  listen(2022);
 
   logger.info('Ready.');
   if (process.send) process.send('ready');

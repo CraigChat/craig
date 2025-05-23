@@ -2,13 +2,13 @@ import { CommandContext, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, stripIndentsAndLines } from '../util';
+import { stripIndentsAndLines } from '../util';
 
 export default class Recordings extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'recordings',
-      description: 'Get links to your last 10 recordings.',
+      description: 'Mostrar os links para as suas ultimas 10 gravações.',
       deferEphemeral: true
     });
 
@@ -16,19 +16,13 @@ export default class Recordings extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (await checkBan(ctx.user.id))
-      return {
-        content: 'You are not allowed to use the bot at this time.',
-        ephemeral: true
-      };
-
     const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
     if (userCooldown !== true) {
       this.client.commands.logger.warn(
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the recordings command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: 'Espere alguns segundos andes de usar esse comando.',
         ephemeral: true
       };
     }
@@ -46,7 +40,7 @@ export default class Recordings extends GeneralCommand {
 
     if (recordings.length === 0)
       return {
-        content: `You haven't done any recordings recently on ${this.client.bot.user.username}.`,
+        content: `Não há gravações recentes.`,
         ephemeral: true
       };
 
@@ -56,15 +50,15 @@ export default class Recordings extends GeneralCommand {
         {
           author: {
             icon_url: this.client.bot.user.dynamicAvatarURL(),
-            name: `Your last 10 recordings on ${this.client.bot.user.username}`
+            name: `Suas ultimas 10 gravações:`
           },
           fields: recordings.map((r) => {
             return {
-              name: `🎙️ Recording \`${r.id}\` - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
+              name: `🎙️ Gravação \`${r.id}\` - <t:${Math.floor(r.createdAt.valueOf() / 1000)}:F>`,
               value: stripIndentsAndLines`
-                ${r.autorecorded ? 'Auto-recorded' : 'Recorded'} in <#${r.channelId}>
-                Expires <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:F>)
-                [Download](https://${config.craig.downloadDomain}/rec/${r.id}?key=${r.accessKey}) - [Delete](https://${
+                'Gravado em' in <#${r.channelId}>
+                Expira em <t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R> (<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:F>)
+                [Download](https://${config.craig.downloadDomain}/rec/${r.id}?key=${r.accessKey}) - [Deletar](https://${
                 config.craig.downloadDomain
               }/rec/${r.id}?key=${r.accessKey}&delete=${r.deleteKey})
               `

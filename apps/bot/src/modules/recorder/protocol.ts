@@ -186,29 +186,3 @@ export enum EnnuicastrInfo {
   /* S->C, string: Inform the client of the name of this recording */
   REC_NAME = 0x16
 }
-
-export enum WebappOp {
-  IDENTIFY = 0x00,
-  READY = 0x01,
-  NEW = 0x02,
-  DATA = 0x03,
-  CLOSE = 0x04,
-  EXIT = 0x05,
-  PING = 0x06,
-  PONG = 0x07
-}
-
-export enum WebappOpCloseReason {
-  CLOSED = 0x00,
-  SHARD_CLOSED = 0x01,
-  RECORDING_ENDED = 0x02,
-  INVALID = 0x03,
-  INVALID_MESSAGE = 0x05,
-  INVALID_ID = 0x06,
-  INVALID_FLAGS = 0x07,
-  INVALID_TOKEN = 0x08,
-  INVALID_USERNAME = 0x09,
-  INVALID_CONNECTION_TYPE = 0x10,
-  NOT_FOUND = 0x11,
-  ALREADY_CONNECTED = 0x12
-}

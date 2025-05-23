@@ -13,10 +13,9 @@ import { ButtonStyle, ComponentType } from 'slash-create';
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
-import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
+import { getSelfMember, stripIndentsAndLines, wait } from '../../util';
 import type RecorderModule from '.';
-import { UserExtraType, WebappOpCloseReason } from './protocol';
-import { WebappClient } from './webapp';
+import { UserExtraType } from './protocol';
 import RecordingWriter from './writer';
 
 dayjs.extend(duration);
@@ -87,13 +86,11 @@ export default class Recording {
   active = false;
   started = false;
   closing = false;
-  autorecorded = false;
   state: RecordingState = RecordingState.IDLE;
   warningState: WarningState | null = null;
   stateDescription?: string;
   connection: Eris.VoiceConnection | null = null;
   receiver: Eris.VoiceDataStream | null = null;
-  webapp?: WebappClient;
 
   messageChannelID: string | null = null;
   messageID: string | null = null;
@@ -102,7 +99,6 @@ export default class Recording {
   createdAt = new Date();
   logs: string[] = [];
   lastMessageError: Error | null = null;
-  rewards: ParsedRewards | null = null;
 
   users: { [key: string]: RecordingUser } = {};
   userPackets: { [key: string]: Chunk[] } = {};
@@ -126,7 +122,6 @@ export default class Recording {
     this.recorder = recorder;
     this.channel = channel;
     this.user = user;
-    this.autorecorded = auto;
     this.sizeLimit = this.recorder.client.config.craig.sizeLimit;
   }
 
@@ -165,7 +160,7 @@ export default class Recording {
     if (dmChannel) await dmChannel.createMessage(`⚠️ Warning for recording \`${this.id}\`: ${text}`).catch(() => null);
   }
 
-  async start(parsedRewards: ParsedRewards, webapp = false) {
+  async start() {
     await this.sanityCheckIdClashing();
 
     this.recorder.logger.info(`Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`);
@@ -192,9 +187,6 @@ export default class Recording {
     this.startedAt = new Date();
 
     const fileBase = path.join(this.recorder.recordingPath, `${this.id}.ogg`);
-    const { tier, rewards } = parsedRewards;
-    this.rewards = { tier, rewards };
-    if (rewards.sizeLimitMult) this.sizeLimit *= rewards.sizeLimitMult;
     await writeFile(
       fileBase + '.info',
       JSON.stringify({
@@ -202,7 +194,6 @@ export default class Recording {
         key: this.accessKey,
         delete: this.deleteKey,
         guild: this.channel.guild.name,
-        autorecorded: this.autorecorded,
         guildExtra: {
           name: this.channel.guild.name,
           id: this.channel.guild.id,
@@ -224,8 +215,7 @@ export default class Recording {
         requesterId: this.user.id,
         clientId: this.recorder.client.bot.user.id,
         startTime: this.startedAt.toISOString(),
-        expiresAfter: rewards.downloadExpiryHours,
-        features: rewards.features.reduce((acc, cur) => ({ ...acc, [cur]: true }), {} as { [key: string]: boolean })
+        expiresAfter: 60 * 60 * 1000,
       }),
       { encoding: 'utf8' }
     );
@@ -235,10 +225,10 @@ export default class Recording {
     this.timeout = setTimeout(async () => {
       if (this.state !== RecordingState.RECORDING) return;
       this.writeToLog('Timeout reached, stopping recording');
-      this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
-      this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
+      this.stateDescription = `⚠️ You've reached the maximum time limit of X hours for this recording.`;
+      this.sendWarning(`You've reached the maximum time limit of X hours for this recording.`, false);
       await this.stop();
-    }, rewards.recordHours * 60 * 60 * 1000);
+    }, 60 * 60 * 1000);
 
     this.usageInterval = setInterval(async () => {
       if (this.state !== RecordingState.RECORDING) return;
@@ -280,16 +270,13 @@ export default class Recording {
         guildId: this.channel.guild.id,
         clientId: this.recorder.client.bot.user.id,
         shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
-        rewardTier: tier,
-        autorecorded: this.autorecorded,
-        expiresAt: new Date(this.startedAt.valueOf() + rewards.downloadExpiryHours * 60 * 60 * 1000),
+        expiresAt: new Date(this.startedAt.valueOf() + 60 * 60 * 1000),
         createdAt: this.startedAt
       }
     });
 
-    if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
 
-    onRecordingStart(this.user.id, this.channel.guild.id, this.autorecorded);
+    onRecordingStart(this.user.id, this.channel.guild.id);
   }
 
   async stop(internal = false, userID?: string) {
@@ -315,13 +302,12 @@ export default class Recording {
 
       // Close the output files and connection
       this.closing = true;
-      this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
       await wait(200);
       await this.writer?.end();
 
       this.recorder.recordings.delete(this.channel.guild.id);
 
-      if (this.rewards && this.startedAt && this.started)
+      if (this.startedAt && this.started)
         await prisma.recording
           .upsert({
             where: { id: this.id },
@@ -335,9 +321,7 @@ export default class Recording {
               guildId: this.channel.guild.id,
               clientId: this.recorder.client.bot.user.id,
               shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
-              rewardTier: this.rewards.tier,
-              autorecorded: this.autorecorded,
-              expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
+              expiresAt: new Date(this.startedAt.valueOf() * 60 * 60 * 1000),
               createdAt: this.startedAt,
               endedAt: new Date()
             }
@@ -347,7 +331,7 @@ export default class Recording {
       if (this.startedAt && this.startTime) {
         const timestamp = process.hrtime(this.startTime!);
         const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-        await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, this.autorecorded, !!this.webapp, false).catch(() => {});
+        await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, false).catch(() => {});
       }
 
       // Reset nickname
@@ -365,98 +349,10 @@ export default class Recording {
             this.recorder.logger.error('Failed to change nickname', e);
           }
       }
-
-      if (this.started)
-        await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id} to ${this.user.id}`, e));
     } catch (e) {
       // This is pretty bad, make sure to clean up any reference
       this.recorder.logger.error(`Failed to stop recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`, e);
       this.recorder.recordings.delete(this.channel.guild.id);
-    }
-  }
-
-  async uploadToDrive() {
-    const user = await prisma.user.findUnique({ where: { id: this.user.id } });
-    if (!user || !user.driveEnabled) return;
-
-    const services: { [key: string]: string } = {
-      google: 'Google Drive',
-      dropbox: 'Dropbox',
-      onedrive: 'OneDrive',
-      box: 'Box'
-    };
-    const service = services[user.driveService] ?? user.driveService;
-
-    const response = await this.recorder.trpc
-      .query('driveUpload', {
-        recordingId: this.id,
-        userId: this.user.id
-      })
-      .catch(() => null);
-
-    if (!response) {
-      this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: Could not connect to the server`);
-      const dmChannel = await this.user.getDMChannel().catch(() => null);
-      if (dmChannel)
-        await dmChannel.createMessage({
-          embeds: [
-            {
-              title: `Failed to upload to ${service}`,
-              description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording to ${service}.`,
-              color: 0xe74c3c
-            }
-          ]
-        });
-      return;
-    }
-
-    if (response.error) {
-      this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: ${response.error}`);
-      if (response.notify) {
-        const dmChannel = await this.user.getDMChannel().catch(() => null);
-        if (dmChannel)
-          await dmChannel.createMessage({
-            embeds: [
-              {
-                title: `Failed to upload to ${service}`,
-                description: `Failed to upload recording \`${this.id}\` to ${service}. You may need to manually upload it to ${service}, or possibly re-connect to ${service}.\n\n- **\`${response.error}\`**`,
-                color: 0xe74c3c
-              }
-            ]
-          });
-      }
-      return;
-    }
-
-    if (response.notify) {
-      const dmChannel = await this.user.getDMChannel().catch(() => null);
-      if (dmChannel)
-        await dmChannel.createMessage({
-          embeds: [
-            {
-              title: `Uploaded to ${service}`,
-              description: `Recording \`${this.id}\` was uploaded to ${service}.`,
-              color: 0x2ecc71
-            }
-          ],
-          components: [
-            ...(response.url
-              ? ([
-                  {
-                    type: ComponentType.ACTION_ROW,
-                    components: [
-                      {
-                        type: ComponentType.BUTTON,
-                        style: ButtonStyle.LINK,
-                        label: `Open in ${service}`,
-                        url: response.url
-                      }
-                    ]
-                  }
-                ] as any)
-              : [])
-          ]
-        });
     }
   }
 
@@ -591,8 +487,7 @@ export default class Recording {
     this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
     if (err) {
       this.state = RecordingState.RECONNECTING;
-      if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
-      else this.pushToActivity('An error has disconnected me, reconnecting...');
+      this.pushToActivity('An error has disconnected me, reconnecting...');
       this.channel.leave();
       await this.retryConnect();
     } else if (this.state !== RecordingState.RECONNECTING) {
@@ -696,7 +591,6 @@ export default class Recording {
       };
       recordingUser = this.users[userID];
 
-      this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
 
       try {
         this.writeToLog(
@@ -728,7 +622,6 @@ export default class Recording {
         }
 
         recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
-        if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
       }
 
       this.writer?.writeUser(recordingUser);
@@ -753,9 +646,6 @@ export default class Recording {
 
     // Flush packets if its getting long
     if (this.userPackets[userID].length >= 16) this.flush(recordingUser, 1);
-
-    // Set speaking thru webapp
-    this.webapp?.userSpeaking(recordingUser.track);
   }
 
   note(note?: string) {
@@ -843,7 +733,6 @@ export default class Recording {
             ${this.stateDescription ?? ''}
 
             ${stripIndentsAndLines`
-              ${this.autorecorded ? '- *Autorecorded*' : ''}
               **Recording ID:** \`${this.id}\`
               **Channel:** ${this.channel.mention}
               ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}

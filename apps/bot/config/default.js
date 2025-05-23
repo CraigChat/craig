@@ -1,4 +1,5 @@
 const Eris = require('eris');
+env = require('dotenv').config();
 
 module.exports = {
   // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
@@ -38,9 +39,9 @@ module.exports = {
 
   dexare: {
     // Bot token
-    token: '',
+    token: process.env.DISCORD_TOKEN,
     // Application ID
-    applicationID: '',
+    applicationID: process.env.DISCORD_APP_ID,
 
     /** @type {Eris.ClientOptions} */
     erisOptions: {
