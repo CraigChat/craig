@@ -201,7 +201,7 @@ start_redis() {
     then
       sudo systemctl enable --now redis-server # is disabled by default
     else
-      sudo /etc/init.d/redis-server start #in case there is no systemd. In the future we can check sysv, systemd and others
+      redis-server --daemonize yes #in case there is no systemd. In the future we can check sysv, systemd and others
     fi
     start_time_s=$(date +%s)
 
