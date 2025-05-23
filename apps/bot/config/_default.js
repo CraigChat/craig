@@ -61,8 +61,7 @@ module.exports = {
     },
 
     // Users who can eval
-    // elevated: ['158049329150427136'],
-    elevated: ['297933425489215488'], // Return this to original value after testing
+    elevated: ['158049329150427136'],
 
     prefix: ['craig', ':craig:', 'craig,', ':craig:,'],
     mentionPrefix: true,
