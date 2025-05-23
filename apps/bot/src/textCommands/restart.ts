@@ -36,10 +36,14 @@ export default class RestartCommand extends TextCommand {
     const message = await replyOrSend(ctx, `Restarting shards ${shards.join(', ')}...`);
 
     const errors: [number, string][] = [];
-    for (const shard of shards) {
-      const result = await sharding.sendAndRecieve<{ error?: string }>('restartShard', { id: shard }).catch((e) => ({ error: e.toString() }));
-      if ('error' in result) errors.push([shard, result.error]);
-    }
+    await Promise.all(
+      shards.map(async (shard) => {
+        const result = await sharding
+          .sendAndRecieve<{ error?: string }>('restartShard', { id: shard }, 30000)
+          .catch((e) => ({ error: e.toString() }));
+        if ('error' in result) errors.push([shard, result.error]);
+      })
+    );
 
     await message.edit(stripIndents`
       Restarted shards ${shards.filter((s) => !errors.find((e) => e[0] === s)).join(', ')}.

@@ -8,22 +8,24 @@ set -e
 
 APT_DEPENDENCIES=(
   wget            # cook
-  make            # cook
-  inkscape        # cook
-  ffmpeg          # cook
-  flac            # cook
-  fdkaac          # cook
-  vorbis-tools    # cook
-  opus-tools      # cook
-  zip             # cook
-  unzip           # cook
-  lsb-release     # redis
-  curl            # redis
-  gpg             # redis
-  postgresql      # web
-  sed             # install
-  coreutils       # install
-  build-essential # install
+  make              # cook
+  inkscape          # cook
+  ffmpeg            # cook
+  flac              # cook
+  fdkaac            # cook
+  vorbis-tools      # cook
+  opus-tools        # cook
+  zip               # cook
+  unzip             # cook
+  lsb-release       # redis
+  curl              # redis
+  gpg               # redis
+  postgresql        # web
+  dbus-x11          # install
+  sed               # install
+  coreutils         # install
+  build-essential   # install
+  python-setuptools # install
 )
 
 # Get the directory of the script being executed
@@ -249,9 +251,13 @@ config_env() {
     "DISCORD_BOT_TOKEN"
     "DISCORD_APP_ID"
     "DEVELOPMENT_GUILD_ID"
-    "DATABASE_URL"
   )
   create_env_file "$craig_dir/.env" "${env_names[@]}"
+
+  env_names=(
+    "DATABASE_URL"
+  )
+  create_env_file "$craig_dir/prisma/.env" "${env_names[@]}"
 
   env_names=(
     "CLIENT_ID"

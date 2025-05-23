@@ -36,6 +36,6 @@ export default class Bless extends GeneralCommand {
       };
     }
 
-    return await blessServer(ctx.user.id, ctx.guildID);
+    return await blessServer(ctx.user.id, ctx.guildID, this.emojis);
   }
 }

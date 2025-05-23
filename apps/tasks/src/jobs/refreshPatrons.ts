@@ -62,19 +62,29 @@ export default class RefreshPatrons extends TaskJob {
     return credentials;
   }
 
-  async getPatrons(credentials: Credentials, cursor?: string) {
+  async getPatrons(credentials: Credentials, cursor?: string, retries = 0): Promise<{ patrons: Patron[]; next: string | undefined; total: number }> {
     const query = new URLSearchParams({
       include: 'currently_entitled_tiers,user',
       'fields[member]': 'full_name,currently_entitled_amount_cents,patron_status,email',
       'fields[user]': 'social_connections',
+      'page[count]': '500',
       ...(cursor ? { 'page[cursor]': cursor } : {})
     });
     const response = await axios.get(`https://www.patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
       headers: {
         Authorization: `Bearer ${credentials.accessToken}`,
         'User-Agent': this.userAgent
-      }
+      },
+      validateStatus: () => true
     });
+
+    if (response.status === 429) {
+      const waitFor = Math.pow(5, retries + 1);
+      if (retries >= 3) throw new Error('Too many rate limit retries when fetching patrons');
+      this.logger.log(`Hit a 429, waiting ${waitFor} seconds to retry...`);
+      await new Promise((r) => setTimeout(r, waitFor * 1000));
+      return this.getPatrons(credentials, cursor, retries + 1);
+    } else if (response.status !== 200) throw new Error(`Failed to fetch patrons: HTTP ${response.status}`);
 
     const data = response.data as PatronCampaignMembersResponse;
     const patrons = data.data.map((member) => {
@@ -92,6 +102,7 @@ export default class RefreshPatrons extends TaskJob {
         tiers: member.relationships.currently_entitled_tiers.data.map((tier) => tier.id)
       } as Patron;
     });
+
     return {
       patrons,
       next: data.meta.pagination.cursors?.next,
@@ -157,7 +168,7 @@ export default class RefreshPatrons extends TaskJob {
 
         // Reset rewards tier
         const user = await prisma.user.findFirst({ where: { patronId: dbPatron.id } });
-        if (user && !patreonConfig.skipUsers.includes(user.id)) {
+        if (user && !patreonConfig.skipUsers.includes(user.id) && !user.tierManuallySet) {
           this.logger.info(`Resetting rewards for user ${user.id}`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } }));
         }
@@ -216,7 +227,7 @@ export default class RefreshPatrons extends TaskJob {
       // Upsert in user table
       if (patron.discordId) {
         const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-        if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id)) {
+        if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id) && !user.tierManuallySet) {
           this.logger.info(`Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
           operations.push(prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } }));
         }
@@ -233,7 +244,7 @@ export default class RefreshPatrons extends TaskJob {
       } else if (!patreonConfig.skipUsers.includes(patron.id)) {
         // Find if this person is a patron, and give them a tier if so
         const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-        if (!user || patreonConfig.skipUsers.includes(user.id)) continue;
+        if (!user || user.tierManuallySet || patreonConfig.skipUsers.includes(user.id)) continue;
         const tier = this.determineRewardTier(patron);
         if (user.rewardTier === tier) continue;
         this.logger.log(`Updating user ${user.id} reward tier for patron ${patron.id} (${patron.name}, tier=${tier})`);

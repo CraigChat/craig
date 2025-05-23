@@ -3,10 +3,20 @@ import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import { CommandContext, DexareCommand } from 'dexare';
 import Eris from 'eris';
-import { ButtonStyle, ComponentActionRow, ComponentType, Member, MessageOptions } from 'slash-create';
+import {
+  ButtonStyle,
+  ComponentActionRow,
+  ComponentType,
+  EditMessageOptions,
+  Member,
+  MessageFlags,
+  MessageOptions,
+  SeparatorSpacingSize
+} from 'slash-create';
 
 import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
+import type SlashModule from './modules/slash';
 import { prisma } from './prisma';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -107,72 +117,114 @@ export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'
   }
 });
 
-export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig) {
+export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule<any>['emojis']) {
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
+  const headerInfo = `Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
+    Date.now() / 1000
+  )}:F>.\n-# You can bring up the recording panel with \`/join\`.`;
   return {
-    embeds: [
+    flags: MessageFlags.IS_COMPONENTS_V2,
+    components: [
       {
-        description: stripIndents`
-          Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(Date.now() / 1000)}:F>.
-          > You can bring up the recording panel with \`/join\`.
-
-          ${stripIndentsAndLines`
-            **Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})
-            **Recording ID:** \`${recording.id}\`
-            **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-            ${
+        type: ComponentType.CONTAINER,
+        components: [
+          recording.channel.guild.icon
+            ? {
+                type: ComponentType.SECTION,
+                accessory: {
+                  type: ComponentType.THUMBNAIL,
+                  media: { url: recording.channel.guild.dynamicIconURL('png', 128) }
+                },
+                components: [
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: headerInfo
+                  }
+                ]
+              }
+            : {
+                type: ComponentType.TEXT_DISPLAY,
+                content: headerInfo
+              },
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: [
+              `**Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})`,
+              `**Channel:** ${recording.channel.name} (${recording.channel.id})`,
+              `**Recording ID:** \`${recording.id}\``,
+              `**Delete key:** ||\`${recording.deleteKey}\`|| (click to show)`,
               recording.webapp
                 ? `**Webapp URL:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
                 : ''
-            }`}
-
-          I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
-          This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
-        `,
-        footer: {
-          text: "The audio can be downloaded even while I'm still recording."
-        }
-      }
-    ],
-    components: [
-      {
-        type: ComponentType.ACTION_ROW,
-        components: [
-          {
-            type: ComponentType.BUTTON,
-            style: ButtonStyle.LINK,
-            label: 'Download',
-            url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-            emoji: { id: '949825704923639828' }
+            ]
+              .filter((v) => !!v)
+              .join('\n')
           },
           {
-            type: ComponentType.BUTTON,
-            style: ButtonStyle.LINK,
-            label: 'Delete recording',
-            url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
-            emoji: { id: '949825704596500481' }
-          }
-        ]
-      },
-      recording.messageChannelID && recording.messageID
-        ? {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: stripIndents`
+              I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
+              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
+              -# The audio can be downloaded even while I'm still recording.
+            `
+          },
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
             type: ComponentType.ACTION_ROW,
             components: [
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Jump to recording panel',
-                url: `http://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+                label: 'Download',
+                url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                emoji: emojis.getPartial('download')
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Delete recording',
+                url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                emoji: emojis.getPartial('delete')
               }
             ]
-          }
-        : null
-    ].filter((c) => !!c)
-  } as Eris.MessageContent<'hasNonce'>;
+          },
+          ...(recording.messageChannelID && recording.messageID
+            ? [
+                {
+                  type: ComponentType.ACTION_ROW,
+                  components: [
+                    {
+                      type: ComponentType.BUTTON,
+                      style: ButtonStyle.LINK,
+                      label: 'Jump to recording panel',
+                      url: `http://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+                    }
+                  ]
+                }
+              ]
+            : [])
+        ]
+      }
+    ]
+  } as EditMessageOptions as any;
 }
 
-export async function blessServer(userID: string, guildID: string): Promise<MessageOptions> {
+export async function blessServer(userID: string, guildID: string, emojis: SlashModule<any>['emojis']): Promise<MessageOptions> {
   const userData = await prisma.user.findFirst({ where: { id: userID } });
   const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
   const blessingUser = blessing ? (blessing.userId === userID ? userData : await prisma.user.findFirst({ where: { id: blessing.userId } })) : null;
@@ -193,7 +245,7 @@ export async function blessServer(userID: string, guildID: string): Promise<Mess
               style: ButtonStyle.DESTRUCTIVE,
               label: 'Remove blessing',
               custom_id: `user:unbless:${guildID}`,
-              emoji: { id: '887142796560060426' }
+              emoji: emojis.getPartial('remove') || undefined
             }
           ]
         }
@@ -246,6 +298,114 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
   };
 }
 
+export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
+  const recordings = await prisma.recording.findMany({
+    where: {
+      userId: userID,
+      clientId: client.bot.user.id,
+      expiresAt: { gt: new Date() }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  if (recordings.length === 0)
+    return {
+      flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
+      components: [
+        {
+          type: ComponentType.TEXT_DISPLAY,
+          content: `You haven't done any recordings recently on ${client.bot.user.mention}.`
+        }
+      ]
+    } as EditMessageOptions;
+
+  const downloadDomain = client.config.craig.downloadDomain;
+  const emojis = (client.modules.get('slash') as SlashModule<any>).emojis;
+  const MAX_PAGE_AMOUNT = 5;
+  const pages = Math.ceil(recordings.length / MAX_PAGE_AMOUNT);
+  const page = Math.min(pages, Math.max(1, requestedPage));
+  const pagedRecordings = recordings.slice((page - 1) * MAX_PAGE_AMOUNT, page * MAX_PAGE_AMOUNT);
+
+  return {
+    flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
+    allowedMentions: {
+      everyone: false,
+      users: false,
+      roles: false
+    },
+    components: [
+      {
+        type: ComponentType.CONTAINER,
+        components: [
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: `## Previous recordings on ${
+              client.bot.user.mention
+            }\n-# ${recordings.length.toLocaleString()} recording(s), Page ${page}/${pages}`
+          },
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          ...pagedRecordings.map((r) => ({
+            type: ComponentType.SECTION,
+            components: [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: stripIndentsAndLines`
+                  ### 🎙️ Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
+                  ${r.autorecorded ? '*`Autorecorded`*' : ''} <#${r.channelId}> • Expires <t:${Math.floor(
+                  r.expiresAt.valueOf() / 1000
+                )}:R> • Delete Key: ||\`${r.deleteKey}\`||
+                `
+              }
+            ],
+            accessory: {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: 'Download',
+              emoji: emojis.getPartial('download'),
+              url: `https://${downloadDomain}/rec/${r.id}?key=${r.accessKey}`
+            }
+          })),
+          {
+            type: ComponentType.SEPARATOR,
+            divider: true,
+            spacing: SeparatorSpacingSize.SMALL
+          },
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: `user:recordings:${Math.max(1, page - 1)}:prev`,
+                disabled: page <= 1,
+                emoji: emojis.getPartial('prev')
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.SECONDARY,
+                custom_id: 'noop',
+                disabled: true,
+                label: `${page}/${pages}`
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: `user:recordings:${Math.min(pages, page + 1)}:next`,
+                disabled: page >= pages,
+                emoji: emojis.getPartial('next')
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  } as EditMessageOptions;
+}
+
 export async function replyOrSend(ctx: CommandContext, content: Eris.MessageContent): Promise<Eris.Message> {
   if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory'))
     return ctx.replyMention(content);
@@ -255,6 +415,10 @@ export async function replyOrSend(ctx: CommandContext, content: Eris.MessageCont
 export default abstract class TextCommand extends DexareCommand {
   // @ts-ignore
   client!: CraigBot;
+
+  get emojis() {
+    return (this.client.modules.get('slash') as SlashModule<any>).emojis;
+  }
 
   finalize(response: any, ctx: CommandContext) {
     if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object'))

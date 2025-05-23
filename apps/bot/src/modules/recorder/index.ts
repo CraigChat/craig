@@ -13,6 +13,7 @@ import type { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';
+import type UploadModule from '../upload';
 import Recording, { RecordingState } from './recording';
 
 type TRPCRouter = Router<
@@ -65,6 +66,11 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     this.recordingPath = path.resolve(__dirname, '../../..', this.client.config.craig.recordingFolder);
     this.filePath = __filename;
     this.cron = new CronJob('* * * * *', this.onCron.bind(this), null, false, 'America/New_York');
+  }
+
+  get uploader() {
+    // @ts-ignore
+    return this.client.modules.get('upload') as UploadModule;
   }
 
   async load() {
@@ -122,7 +128,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       await prisma.recording.findMany({
         where: {
           clientId: this.client.bot.user.id,
-          shardId: this.client.bot.shards.keys().next().value,
+          shardId: this.client.bot.shards.keys().next().value as number,
           errored: false,
           endedAt: null
         }

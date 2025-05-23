@@ -139,7 +139,7 @@ export default class ShardingModule extends DexareModule<CraigBot> {
     });
   }
 
-  sendAndRecieve<T = any>(type: string, data: Record<string, any> = {}): Promise<ManagerResponseMessage<T>> {
+  sendAndRecieve<T = any>(type: string, data: Record<string, any> = {}, timeoutMs = 5000): Promise<ManagerResponseMessage<T>> {
     return new Promise((resolve, reject) => {
       if (!process.env.SHARD_COUNT || !process.send) return reject(new Error('This is not sharded.'));
 
@@ -147,7 +147,7 @@ export default class ShardingModule extends DexareModule<CraigBot> {
       const timeout = setTimeout(() => {
         this._awaitedPromises.delete(nonce);
         reject(new Error('Request timed out.'));
-      }, 5000);
+      }, timeoutMs);
       this._awaitedPromises.set(nonce, { resolve, reject, timeout });
       process.send({
         t: type,

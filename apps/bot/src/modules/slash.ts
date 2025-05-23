@@ -1,3 +1,4 @@
+import { EmojiManager } from '@snazzah/emoji-sync';
 import { BaseConfig, DexareClient, DexareModule } from 'dexare';
 import path from 'node:path';
 import { ComponentActionRow, ComponentContext, ComponentType, GatewayServer, SlashCreator, SlashCreatorOptions, TextInputStyle } from 'slash-create';
@@ -6,7 +7,7 @@ import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
 import { prisma } from '../prisma';
 import { reportErrorFromCommand } from '../sentry';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, unblessServer } from '../util';
+import { blessServer, checkRecordingPermission, cutoffText, disableComponents, paginateRecordings, unblessServer } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
 
@@ -21,6 +22,7 @@ export interface SlashModuleOptions {
 
 export default class SlashModule<T extends DexareClient<SlashConfig>> extends DexareModule<T> {
   creator: SlashCreator;
+  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'jump' | 'next' | 'prev' | 'remove' | 'stop'>;
 
   constructor(client: T) {
     super(client, {
@@ -34,11 +36,15 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       applicationID: this.client.config.applicationID,
       client
     });
+    this.emojis = new EmojiManager({
+      token: this.client.config.token,
+      applicationId: this.client.config.applicationID
+    });
     this.filePath = __filename;
   }
 
-  load() {
-    this.creator
+  async load() {
+    await this.creator
       .withServer(
         new GatewayServer((handler) =>
           this.registerEvent('rawWS', (_, event) => {
@@ -62,6 +68,14 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       if (ctx.customID.startsWith('rec:')) await this.handleRecordingInteraction(ctx);
       else if (ctx.customID.startsWith('user:')) await this.handleUserInteraction(ctx);
     });
+
+    if (process.env.EMOJI_SYNC_DATA) this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
+    else {
+      await this.emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
+      await this.emojis.sync();
+    }
+    this.emojis.on('warn', (message) => this.logger.warn('[emoji] ' + message));
+    this.emojis.on('error', (error) => this.logger.error('[emoji] ' + (error.stack || error.toString())));
   }
 
   get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {
@@ -157,7 +171,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
         const [guildID] = args;
         try {
           await ctx.editParent({ components: [] });
-          await ctx.send(await blessServer(ctx.user.id, guildID));
+          await ctx.send(await blessServer(ctx.user.id, guildID, this.emojis));
         } catch (e) {
           this.logger.error(`Error blessing server ${guildID}:`, e);
           await ctx.send({
@@ -176,6 +190,19 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
           this.logger.error(`Error unblessing server ${guildID}:`, e);
           await ctx.send({
             content: 'An error occurred while removing the blessing from the server.',
+            ephemeral: true
+          });
+        }
+        return;
+      }
+      case 'recordings': {
+        const [page] = args;
+        try {
+          await ctx.editParent(await paginateRecordings(this.client as any, ctx.user.id, parseInt(page)));
+        } catch (e) {
+          this.logger.error(`Error paginating recordings for user ${ctx.user.id}:`, e);
+          await ctx.send({
+            content: 'An error occurred while using this interaction.',
             ephemeral: true
           });
         }

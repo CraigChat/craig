@@ -5,6 +5,7 @@ import type { CraigBot, CraigBotConfig } from './bot';
 import AutorecordModule from './modules/autorecord';
 import type RecorderModule from './modules/recorder';
 import type ShardingModule from './modules/sharding';
+import type SlashModule from './modules/slash';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 
@@ -27,6 +28,10 @@ export default abstract class GeneralCommand extends SlashCommand {
 
   get sharding(): ShardingModule {
     return this.client.modules.get('sharding') as ShardingModule;
+  }
+
+  get emojis() {
+    return (this.client.modules.get('slash') as SlashModule<any>).emojis;
   }
 
   get prisma() {

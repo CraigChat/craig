@@ -50,7 +50,8 @@ nohup.out
 .env.production.local
 .env
 config.json
-apps/*/config/default.js
+apps/*/config/*.js
+!apps/*/config/_default.js
 .patreon-credentials.json
 install.config
 

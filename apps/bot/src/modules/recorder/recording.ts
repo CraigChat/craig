@@ -8,12 +8,13 @@ import Eris from 'eris';
 import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
 import path from 'path';
-import { ButtonStyle, ComponentType } from 'slash-create';
+import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
-import { getSelfMember, ParsedRewards, stripIndentsAndLines, wait } from '../../util';
+import { getSelfMember, ParsedRewards, wait } from '../../util';
+import type SlashModule from '../slash';
 import type RecorderModule from '.';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { WebappClient } from './webapp';
@@ -31,6 +32,7 @@ const USER_HARD_LIMIT = 10000;
 
 const BAD_MESSAGE_CODES = [
   404,
+  10003, // Unknown channel
   10008, //	Unknown message
   20009, // Explicit content cannot be sent to the desired recipient(s)
   40004, // Send messages has been temporarily disabled
@@ -63,6 +65,7 @@ export interface RecordingUser {
   username: string;
   discriminator: string;
   globalName?: string | null;
+  bot: boolean;
   avatar?: string;
   avatarUrl?: string;
   unknown: boolean;
@@ -344,10 +347,11 @@ export default class Recording {
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
 
-      const timestamp = process.hrtime(this.startTime!);
-      const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-      if (this.startedAt)
+      if (this.startedAt && this.startTime) {
+        const timestamp = process.hrtime(this.startTime!);
+        const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
         await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, this.autorecorded, !!this.webapp, false).catch(() => {});
+      }
 
       // Reset nickname
       if (this.recorder.client.config.craig.removeNickname) {
@@ -378,85 +382,7 @@ export default class Recording {
     const user = await prisma.user.findUnique({ where: { id: this.user.id } });
     if (!user || !user.driveEnabled) return;
 
-    const services: { [key: string]: string } = {
-      google: 'Google Drive',
-      dropbox: 'Dropbox',
-      onedrive: 'OneDrive',
-      box: 'Box'
-    };
-    const service = services[user.driveService] ?? user.driveService;
-
-    const response = await this.recorder.trpc
-      .query('driveUpload', {
-        recordingId: this.id,
-        userId: this.user.id
-      })
-      .catch(() => null);
-
-    if (!response) {
-      this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: Could not connect to the server`);
-      const dmChannel = await this.user.getDMChannel().catch(() => null);
-      if (dmChannel)
-        await dmChannel.createMessage({
-          embeds: [
-            {
-              title: `Failed to upload to ${service}`,
-              description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording to ${service}.`,
-              color: 0xe74c3c
-            }
-          ]
-        });
-      return;
-    }
-
-    if (response.error) {
-      this.recorder.logger.error(`Failed to upload recording ${this.id} to ${service}: ${response.error}`);
-      if (response.notify) {
-        const dmChannel = await this.user.getDMChannel().catch(() => null);
-        if (dmChannel)
-          await dmChannel.createMessage({
-            embeds: [
-              {
-                title: `Failed to upload to ${service}`,
-                description: `Failed to upload recording \`${this.id}\` to ${service}. You may need to manually upload it to ${service}, or possibly re-connect to ${service}.\n\n- **\`${response.error}\`**`,
-                color: 0xe74c3c
-              }
-            ]
-          });
-      }
-      return;
-    }
-
-    if (response.notify) {
-      const dmChannel = await this.user.getDMChannel().catch(() => null);
-      if (dmChannel)
-        await dmChannel.createMessage({
-          embeds: [
-            {
-              title: `Uploaded to ${service}`,
-              description: `Recording \`${this.id}\` was uploaded to ${service}.`,
-              color: 0x2ecc71
-            }
-          ],
-          components: [
-            ...(response.url
-              ? ([
-                  {
-                    type: ComponentType.ACTION_ROW,
-                    components: [
-                      {
-                        type: ComponentType.BUTTON,
-                        style: ButtonStyle.LINK,
-                        label: `Open in ${service}`,
-                        url: response.url
-                      }
-                    ]
-                  }
-                ] as any)
-              : [])
-          ]
-        });
-    }
+    await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
   }
 
   async connect() {
@@ -689,6 +615,7 @@ export default class Recording {
         username: user?.username ?? 'Unknown',
         discriminator: user?.discriminator ?? '0000',
         globalName: user?.globalName,
+        bot: user?.bot ?? false,
         unknown: !user,
         track: this.trackNo++,
         packet: 2
@@ -713,6 +640,7 @@ export default class Recording {
         recordingUser.username = member?.username ?? 'Unknown';
         recordingUser.discriminator = member?.discriminator ?? '0000';
         recordingUser.globalName = member?.user?.globalName;
+        recordingUser.bot = member?.user?.bot ?? false;
         recordingUser.unknown = !member;
         if (member) user = member.user;
       }
@@ -783,6 +711,10 @@ export default class Recording {
     if (!this.closing) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
   }
 
+  get emojis() {
+    return (this.recorder.client.modules.get('slash') as SlashModule<any>).emojis;
+  }
+
   messageContent() {
     let color: number | undefined = undefined;
     let title = 'Loading...';
@@ -829,65 +761,92 @@ export default class Recording {
     const startedTimestamp = this.startedAt ? Math.floor(this.startedAt.valueOf() / 1000) : null;
     const voiceRegion = this.connection?.endpoint?.hostname;
     return {
-      content: '',
-      embeds: [
-        {
-          author: {
-            name: this.user.discriminator === '0' ? this.user.username : `${this.user.username}#${this.user.discriminator}`,
-            icon_url: this.user.dynamicAvatarURL()
-          },
-          color,
-          title,
-          description: stripIndents`
-            ${this.stateDescription ?? ''}
-
-            ${stripIndentsAndLines`
-              ${this.autorecorded ? '- *Autorecorded*' : ''}
-              **Recording ID:** \`${this.id}\`
-              **Channel:** ${this.channel.mention}
-              ${startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : ''}
-              ${voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''}
-            `}
-          `,
-          fields: this.logs.length
-            ? [
-                {
-                  name: 'Activity',
-                  value: this.logs.slice(0, 10).join('\n')
-                }
-              ]
-            : [],
-          footer: ![RecordingState.ENDED, RecordingState.ERROR].includes(this.state)
-            ? {
-                text: 'Is this panel stuck? Try running "/join" again for a new recording panel.'
-              }
-            : null
-        }
-      ],
+      flags: MessageFlags.IS_COMPONENTS_V2,
+      allowedMentions: {
+        everyone: false,
+        users: false,
+        roles: false
+      },
       components: [
         {
-          type: ComponentType.ACTION_ROW,
+          type: ComponentType.CONTAINER,
+          accent_color: color,
           components: [
             {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.DESTRUCTIVE,
-              label: 'Stop recording',
-              custom_id: `rec:${this.id}:stop`,
-              disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { id: '968242879539576862' }
+              type: ComponentType.TEXT_DISPLAY,
+              content: stripIndents`
+                -# ${this.user.mention}'s recording
+                ## ${title}
+                ${this.stateDescription ?? ''}
+              `
             },
             {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.PRIMARY,
-              label: 'Add a note',
-              custom_id: `rec:${this.id}:note`,
-              disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-              emoji: { id: '968242878948192267' }
+              type: ComponentType.SEPARATOR,
+              divider: true,
+              spacing: SeparatorSpacingSize.SMALL
+            },
+            {
+              type: ComponentType.TEXT_DISPLAY,
+              content: [
+                `**Recording ID:** \`${this.id}\``,
+                `**Channel:** ${this.channel.mention}`,
+                startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : '',
+                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''
+              ]
+                .filter((v) => !!v)
+                .join('\n')
+            },
+            ...(this.logs.length
+              ? [
+                  {
+                    type: ComponentType.SEPARATOR,
+                    divider: true,
+                    spacing: SeparatorSpacingSize.SMALL
+                  },
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: `### Activity\n${this.logs.slice(0, 10).join('\n')}`
+                  }
+                ]
+              : []),
+            {
+              type: ComponentType.SEPARATOR,
+              divider: true,
+              spacing: SeparatorSpacingSize.SMALL
+            },
+            {
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.DESTRUCTIVE,
+                  label: 'Stop recording',
+                  custom_id: `rec:${this.id}:stop`,
+                  disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                  emoji: this.emojis.getPartial('stop')
+                },
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.PRIMARY,
+                  label: 'Add a note',
+                  custom_id: `rec:${this.id}:note`,
+                  disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                  emoji: this.emojis.getPartial('addnote')
+                }
+              ]
             }
           ]
-        }
+        },
+        ...(![RecordingState.ENDED, RecordingState.ERROR].includes(this.state)
+          ? [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: '-# Is this panel stuck? Try running `/join` again for a new recording panel.'
+              }
+            ]
+          : [])
       ]
-    } as Eris.AdvancedMessageContent;
+    } as EditMessageOptions as any;
   }
 
   async updateMessage() {

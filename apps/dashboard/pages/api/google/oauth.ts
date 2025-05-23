@@ -7,7 +7,7 @@ import { config } from '../../../utils/config';
 
 const REDIRECT_URI = `${config.appUri}/api/google/oauth`;
 
-const scopes = ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive.metadata.readonly'];
+const scopes = ['https://www.googleapis.com/auth/drive.file'];
 export const oauth2Client = new google.auth.OAuth2(config.googleClientId, config.googleClientSecret, REDIRECT_URI);
 
 const OAUTH_URI = oauth2Client.generateAuthUrl({

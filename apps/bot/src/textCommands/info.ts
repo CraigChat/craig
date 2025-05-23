@@ -16,7 +16,7 @@ export default class InfoCommand extends TextCommand {
   async run(ctx: CommandContext) {
     await replyOrSend(ctx, {
       content: stripIndents`
-        <:craig:${this.client.config.craig.emoji}> **Craig** is a multi-track voice channel recorder.
+        ${this.emojis.getMarkdown('craig')} **Craig** is a multi-track voice channel recorder.
         This server is on shard ${this.client.shard?.id ?? process.env.SHARD_ID} with ${
         this.client.shard?.latency ?? '<unknown>'
       } milliseconds of latency.
@@ -38,10 +38,7 @@ export default class InfoCommand extends TextCommand {
               url: `https://discord.com/oauth2/authorize?client_id=${
                 this.client.config.craig.inviteID ?? this.client.config.applicationID
               }&permissions=0&scope=bot%20applications.commands`,
-              emoji: {
-                name: 'craig',
-                id: this.client.config.craig.emoji
-              }
+              emoji: this.emojis.getPartial('craig') || undefined
             }
           ]
         }

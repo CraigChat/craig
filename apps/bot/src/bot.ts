@@ -9,9 +9,11 @@ import { init as i18nInit } from './i18n';
 import { cron as influxCron } from './influx';
 import AutorecordModule from './modules/autorecord';
 import LoggerModule from './modules/logger';
+import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
 import ShardingModule from './modules/sharding';
 import SlashModule from './modules/slash';
+import UploadModule from './modules/upload';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
 import { close as closeSentry } from './sentry';
@@ -24,6 +26,7 @@ export interface CraigBotConfig extends BaseConfig {
   prefix: string | string[];
   mentionPrefix: boolean;
   status: Eris.ActivityPartial<Eris.BotActivityType>;
+  kitchenURL?: string;
 
   craig: {
     emoji: string;
@@ -116,21 +119,8 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule);
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
-
-  // Makes custom emojis with the name 'craig' work as prefixes
-  client.events.register(
-    'prefixer',
-    'messageCreate',
-    (event, message) => {
-      if (client.config.craig.alistair && /^<a?:alistair:\d+>,?/.test(message.content))
-        event.set('prefix', message.content.match(/^<a?:alistair:\d+>,?/)![0]);
-      else if (!client.config.craig.alistair && /^<a?:craig:\d+>,?/.test(message.content))
-        event.set('prefix', message.content.match(/^<a?:craig:\d+>,?/)![0]);
-    },
-    { after: ['commands'] }
-  );
 
   await i18nInit();
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -157,7 +147,7 @@ export async function connect() {
   }
 
   process.title = `${botName} - ${
-    process.env.SHARD_ID ? `Shard ${process.env.SHARD_ID}/${process.env.SHARD_COUNT}` : `${client.bot.shards.size} shard(s)`
+    process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
   }`;
 }
 

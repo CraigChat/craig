@@ -16,6 +16,7 @@ export interface ManagerOptions {
   respawn?: boolean;
   args?: string[];
   execArgv?: string[];
+  metricsPort?: number;
 }
 
 export type CommandHandler = (shard: Shard, msg: any, respond: (data: any) => Promise<void>) => void | Promise<void>;
@@ -34,7 +35,8 @@ export default class ShardManager extends EventEmitter {
         respawn: options.respawn ?? true,
         concurrency: options.concurrency ?? 1,
         args: options.args ?? [],
-        execArgv: options.execArgv ?? []
+        execArgv: options.execArgv ?? [],
+        metricsPort: options.metricsPort ?? null
       },
       options
     );
@@ -144,9 +146,9 @@ export default class ShardManager extends EventEmitter {
     return Promise.all(promises);
   }
 
-  fetchClientValues(prop: string) {
+  fetchClientValues(prop: string, force = false) {
     if (this.shards.size === 0) return Promise.reject(new Error('No shards have been spawned.'));
-    if (this.shards.size !== this.options.shardCount) return Promise.reject(new Error('Still spawning shards.'));
+    if (this.shards.size !== this.options.shardCount && !force) return Promise.reject(new Error('Still spawning shards.'));
     const promises = [];
     for (const shard of this.shards.values()) promises.push(shard.fetchClientValue(prop));
     return Promise.all(promises);

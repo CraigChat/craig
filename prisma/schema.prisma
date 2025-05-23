@@ -13,8 +13,9 @@ datasource db {
 model User {
   id             String  @id
 
-  rewardTier     Int     @default(0)
-  patronId       String?
+  rewardTier      Int     @default(0)
+  patronId        String?
+  tierManuallySet Boolean @default(false)
 
   webapp         Boolean @default(false)
 

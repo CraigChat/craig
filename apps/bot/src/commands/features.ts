@@ -31,7 +31,7 @@ export default class Features extends GeneralCommand {
       mix: 'Smart Mix',
       auto: 'Auto-recording',
       drive: 'Cloud Backup',
-      glowers: 'Glowers',
+      glowers: 'Avatar Overlays',
       eccontinuous: 'Continuous Mode via Webapp',
       ecflac: 'FLAC via Webapp',
       mp3: 'Exporting to MP3'
@@ -42,7 +42,7 @@ export default class Features extends GeneralCommand {
       Record Duration Limit: ${rewards.recordHours} hours
       Download Expiration: ${rewards.downloadExpiryHours / 24} days
 
-      ${rewards.features.map((feat) => `<:check:992946553134268436> ${featureNames[feat] ?? feat}`).join('\n')}
+      ${rewards.features.map((feat) => `${this.emojis.getMarkdown('check')} ${featureNames[feat] ?? feat}`).join('\n')}
     `;
   }
 

@@ -11,6 +11,7 @@ import { reportAutorecordingError } from '../sentry';
 import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
 import type RecorderModule from './recorder';
 import Recording, { RecordingState } from './recorder/recording';
+import type SlashModule from './slash';
 
 const TTL = 1000 * 60 * 60; // 1 hour
 
@@ -55,6 +56,10 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
   get recorder() {
     // @ts-ignore
     return this.client.modules.get('recorder') as RecorderModule<DexareClient<CraigBotConfig>>;
+  }
+
+  get emojis() {
+    return (this.recorder.client.modules.get('slash') as SlashModule<any>).emojis;
   }
 
   async fetchAll() {
@@ -273,7 +278,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
       // Try to DM user
       const dmChannel = await member.user.getDMChannel().catch(() => null);
-      if (dmChannel) await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config)).catch(() => null);
+      if (dmChannel) await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
     }
   }
 

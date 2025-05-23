@@ -26,23 +26,29 @@ export default class ShardInfoCommand extends TextCommand {
     return pad(hours) + ':' + pad(minutes) + ':' + pad(s);
   }
 
+  padValue(value: number | undefined, maxLength: number) {
+    return (typeof value === 'number' ? value.toLocaleString() : '-').padEnd(maxLength, ' ');
+  }
+
   async run(ctx: CommandContext) {
     const sharding = this.client.modules.get('sharding') as ShardingModule;
 
     if (!sharding.on) return void (await replyOrSend(ctx, 'Sharding is not enabled.'));
     const {
-      d: { res }
+      d: { res, spawned, total }
     } = await sharding.sendAndRecieve<{
-      res: { id: number; status: string; guilds: number; latency: number; uptime: number; recordings: number; respawnWhenAvailable: boolean }[];
+      res: { id: number; status?: string; guilds?: number; latency?: number; uptime?: number; recordings?: number; respawnWhenAvailable: boolean }[];
+      spawned: number;
+      total: number;
     }>('getShardInfo');
 
-    const totalGuilds = res.reduce((acc, cur) => acc + cur.guilds, 0);
-    const averageLatency = Math.round(res.reduce((acc, cur) => acc + cur.latency, 0) / res.length);
-    const averageUptime = res.reduce((acc, cur) => acc + cur.uptime, 0) / res.length;
-    const totalRecordings = res.reduce((acc, cur) => acc + cur.recordings, 0);
+    const totalGuilds = res.reduce((acc, cur) => acc + (cur.guilds ?? 0), 0);
+    const averageLatency = Math.round(res.reduce((acc, cur) => acc + (cur.latency ?? 0), 0) / res.length);
+    const averageUptime = res.reduce((acc, cur) => acc + (cur.uptime ?? 0), 0) / res.length;
+    const totalRecordings = res.reduce((acc, cur) => acc + (cur.recordings ?? 0), 0);
 
     const message =
-      `Your Shard ID: ${process.env.SHARD_ID}\n\n` +
+      `Your Shard ID: ${process.env.SHARD_ID} -- Shards Spawned: ${spawned}/${total}${spawned !== total ? ' (!)' : ''}\n\n` +
       `      --- SUMMARY --- | ${totalGuilds.toLocaleString().padEnd(10, ' ')} | ${`${averageLatency}ms avg`.padEnd(11, ' ')} | ${`${this.format(
         averageUptime
       )} avg`.padEnd(14, ' ')} | ${totalRecordings.toLocaleString().padEnd(12, ' ')} | ${res
@@ -50,14 +56,18 @@ export default class ShardInfoCommand extends TextCommand {
         .length.toLocaleString()} shards\n` +
       `       |       Status |   Guilds   |   Latency   |     Uptime     |  Recordings  | RWA\n` +
       res
+        .sort((a, b) => a.id - b.id)
         .map(
           (shard) =>
-            `${shard.id === parseInt(process.env.SHARD_ID!) ? '>' : ' '} [${shard.id.toString().padStart(3, ' ')}]: ${shard.status.padStart(
-              12,
-              ' '
-            )} | ${shard.guilds.toLocaleString().padEnd(10, ' ')} | ${`${Math.round(shard.latency)}ms`.padEnd(11, ' ')} | ${this.format(
-              shard.uptime
-            ).padEnd(14, ' ')} | ${shard.recordings.toLocaleString().padEnd(12, ' ')} | ${shard.respawnWhenAvailable}`
+            `${shard.id === parseInt(process.env.SHARD_ID!) ? '>' : ' '} [${shard.id.toString().padStart(3, ' ')}]: ${(
+              shard.status ?? 'unknown'
+            ).padStart(12, ' ')} | ${this.padValue(shard.guilds, 10)} | ${(typeof shard.latency === 'number'
+              ? `${Math.round(shard.latency)}ms`
+              : '-'
+            ).padEnd(11, ' ')} | ${(typeof shard.uptime === 'number' ? this.format(shard.uptime) : '-').padEnd(14, ' ')} | ${this.padValue(
+              shard.recordings,
+              12
+            )} | ${shard.respawnWhenAvailable ?? '-'}`
         )
         .join('\n');
 
