@@ -385,6 +385,7 @@ config_react(){
   #   // Application ID
   #   applicationID: '',
   # ----------------------------
+
   DOWNLOAD_DOMAIN=$(echo $API_HOMEPAGE|awk -F'://' '{print $2}')
   sed -z -E -i'' "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')/\
   \1'${DISCORD_BOT_TOKEN}'\3'${DISCORD_APP_ID}'\5'${DOWNLOAD_DOMAIN//\//\\/}'/" \
@@ -466,9 +467,9 @@ start_app(){
     esac
   done
   # if root, install sudo
-  if [ "$USER" != "root" ]
+  if [ "$(whoami)" == "root" ]; then
     apt-get install -y sudo
-  then
+  else
       error "Make sure sudo is installed and run again."
   fi
 
@@ -499,7 +500,7 @@ start_app(){
     exit 1
   fi
 
-  info "Now Starting Craig..."
+  info "Now starting Craig..."
   info "Start time: $(date +%H:%M:%S)"
 
 
@@ -513,7 +514,7 @@ start_app(){
   start_app
   pm2 logs
 
-  info "Craig Shutdown..."
+  info "Craig shutdown..."
   info "End time: $(date +%H:%M:%S)"
   info "Log output: $craig_dir/startup.log"
 

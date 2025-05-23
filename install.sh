@@ -251,13 +251,9 @@ config_env() {
     "DISCORD_BOT_TOKEN"
     "DISCORD_APP_ID"
     "DEVELOPMENT_GUILD_ID"
-  )
-  create_env_file "$craig_dir/.env" "${env_names[@]}"
-
-  env_names=(
     "DATABASE_URL"
   )
-  create_env_file "$craig_dir/prisma/.env" "${env_names[@]}"
+  create_env_file "$craig_dir/.env" "${env_names[@]}"
 
   env_names=(
     "CLIENT_ID"

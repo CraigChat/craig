@@ -1,13 +1,10 @@
 # Use an official Ubuntu base image
 FROM ubuntu:22.04
 
-# Remove interactive prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Install all required dependencies in advance
+# Install all required dependencies in advance, for performance
 RUN apt-get update && \
     apt-get -y upgrade && \
-    apt-get install -y \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
     # cook
     make inkscape ffmpeg flac fdkaac vorbis-tools opus-tools zip unzip \
     wget \
@@ -17,11 +14,13 @@ RUN apt-get update && \
     # web
     postgresql \
     # install
-    sed coreutils build-essential \
+    dbus-x11 sed coreutils build-essential python-setuptools \
     # Other dependencies
-    sudo git && \
+    sudo git locales && \
     # Cleanup
     apt-get -y autoremove
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
 
 WORKDIR /app
 
