@@ -143,14 +143,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
             type: ComponentType.BUTTON,
             style: ButtonStyle.LINK,
             label: 'Download',
-            url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+            url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
             emoji: { id: '949825704923639828' }
           },
           {
             type: ComponentType.BUTTON,
             style: ButtonStyle.LINK,
             label: 'Delete recording',
-            url: `https://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+            url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
             emoji: { id: '949825704596500481' }
           }
         ]
@@ -163,7 +163,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Jump to recording panel',
-                url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+                url: `http://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
               }
             ]
           }
