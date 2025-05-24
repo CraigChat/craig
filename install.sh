@@ -6,11 +6,6 @@ set -e
 # Variable definitions
 ###################################################
 
-# Markers to skip installation steps if they have already completed
-APT_MARKER="$craig_dir/.apt_installed"
-NODE_MARKER="$craig_dir/.node_installed"
-FORCE_INSTALL=0
-
 # Prevent interactive prompts during install
 DEBIAN_FRONTEND=noninteractive
 
@@ -39,6 +34,10 @@ APT_DEPENDENCIES=(
 # Get the directory of the script being executed
 # this lets us call the function from anywhere and it will work
 craig_dir=$(dirname "$(realpath "$0")")
+
+# Marker to skip install and config steps if they have already completed
+INSTALL_MARKER="$craig_dir/.installed"
+FORCE_INSTALL=0
 
 #Get the init system
 init_system=$(ps --no-headers -o comm 1)
@@ -434,9 +433,9 @@ config_cook(){
     esac
   done
 
-  # Remove the marker files to force a reinstall
+  # Remove the marker file to force a reinstall
   if [[ "$FORCE_INSTALL" == "1" ]]; then
-    rm -f "$APT_MARKER" "$NODE_MARKER"
+    rm -f "$INSTALL_MARKER"
   fi
 
   # if root, install sudo
@@ -468,25 +467,26 @@ config_cook(){
   info "Now installing Craig..."
   info "Start time: $(date +%H:%M:%S)"
 
-  if [[ ! -f "$APT_MARKER" ]]; then
+  if [[ ! -f "$INSTALL_MARKER" ]]; then
     install_apt_packages
-    touch "$APT_MARKER"
-  else
-    info "Skipping APT install: already completed"
-  fi
-  if [[ ! -f "$NODE_MARKER" ]]; then
     install_node
-    touch "$NODE_MARKER"
   else
-    info "Skipping Node install: already completed"
+    info "Skipping install: already completed"
   fi
 
   start_redis
   start_postgresql
-  config_env
-  config_react
-  config_yarn
-  config_cook
+
+  if [[ ! -f "$INSTALL_MARKER" ]]; then
+    config_env
+    config_react
+    config_yarn
+    config_cook
+    touch "$INSTALL_MARKER"
+  else
+    info "Skipping config: already completed"
+  fi
+
   start_app
 
   info "Craig installation finished..."

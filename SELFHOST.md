@@ -189,25 +189,7 @@ This might need to be done for other distributions as well.
 
 ### Restarting Craig after reboot
 
-By default, Craig will not automatically restart if you reboot your computer. You can re-run a modified version of [install.sh](install.sh) script so that the following steps are performed:
-
-- Make sure the Redis server is online
-- Make sure the PostgreSQL database is online
-- Start the application
-
-To speed up the restart (and avoid rebuilding Craig), you should comment out some unnecessary steps (function calls) in the install script:
-
-```sh
-# install_apt_packages
-# install_node
-start_redis
-start_postgresql
-# config_env
-# config_react
-# config_yarn
-# config_cook
-start_app
-```
+By default, Craig will not automatically restart if you reboot your computer. You can re-run [install.sh](install.sh) script to restart the application.
 
 ### Monitoring, starting, and stopping Craig
 
