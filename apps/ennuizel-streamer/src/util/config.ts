@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { DEV_MODE } from './index.js';
 
-export const REC_DIRECTORY = fileURLToPath(new URL(process.env.REC_DIRECTORY || DEV_MODE ? '../../../../rec' : '../../../rec', import.meta.url));
+export const REC_DIRECTORY = fileURLToPath(new URL(process.env.REC_DIRECTORY || (DEV_MODE ? '../../../../rec' : '../../../rec'), import.meta.url));
 
 export const PROC_NICENESS = process.env.PROC_NICENESS ? parseInt(process.env.PROC_NICENESS, 10) : 10;
 export const PROC_TASKSET_CPU_MAP = process.env.PROC_TASKSET_CPU_MAP ?? null;
