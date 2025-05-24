@@ -174,7 +174,7 @@ int main(int argc, char **argv)
                 outputHeader = 1;
             }
 
-            printf("{\"time\":\"%f\",\"note\":\"", time, time);
+            printf("{\"time\":\"%f\",\"note\":\"", time);
             printNote(buf, packetSize);
             printf("\"}");
         } else {
