@@ -55,6 +55,7 @@ export class SSEConnection extends EventEmitter {
   #onClose() {
     if (this.#pingTimer) clearInterval(this.#pingTimer);
     this.state = ConnectionReadyState.CLOSED;
+    this.controller = undefined;
     this.emit('close');
     this.#log('Connection closed');
   }
