@@ -35,7 +35,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
     });
 
     this.filePath = __filename;
-    this.KEY = `pending-upload-jobs:${this.client.bot.user.id}`;
+    this.KEY = `pending-upload-jobs:${this.client.config.applicationID}`;
   }
 
   get trpc() {
