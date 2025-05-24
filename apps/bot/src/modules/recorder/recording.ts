@@ -456,7 +456,8 @@ export default class Recording {
   }
 
   async playNowRecording() {
-    const filePath = this.recorder.client.config.craig.nowRecordingOpus || path.join(__dirname, '../../../data/nowrecording.opus');
+    const fileName = this.recorder.client.config.craig.alistair ? 'nowrecording_alistair.opus' : 'nowrecording.opus';
+    const filePath = this.recorder.client.config.craig.nowRecordingOpus || path.join(__dirname, '../../../data', fileName);
 
     try {
       await access(filePath);
