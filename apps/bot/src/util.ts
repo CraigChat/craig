@@ -191,14 +191,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Download',
-                url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                url: `${config.craig.downloadProtocol}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
                 emoji: emojis.getPartial('download')
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Delete recording',
-                url: `http://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                url: `${config.craig.downloadProtocol}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
                 emoji: emojis.getPartial('delete')
               }
             ]
@@ -212,7 +212,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.LINK,
                       label: 'Jump to recording panel',
-                      url: `http://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
+                      url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
                     }
                   ]
                 }
@@ -320,6 +320,8 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
     } as EditMessageOptions;
 
   const downloadDomain = client.config.craig.downloadDomain;
+  const downloadProtocol = client.config.craig.downloadProtocol;
+  const baseUrl = `${downloadProtocol}://${downloadDomain}`;
   const emojis = (client.modules.get('slash') as SlashModule<any>).emojis;
   const MAX_PAGE_AMOUNT = 5;
   const pages = Math.ceil(recordings.length / MAX_PAGE_AMOUNT);
@@ -366,7 +368,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
               style: ButtonStyle.LINK,
               label: 'Download',
               emoji: emojis.getPartial('download'),
-              url: `https://${downloadDomain}/rec/${r.id}?key=${r.accessKey}`
+              url: `${baseUrl}/rec/${r.id}?key=${r.accessKey}`
             }
           })),
           {

@@ -6,8 +6,16 @@ set -e
 # Variable definitions
 ###################################################
 
+# Markers to skip installation steps if they have already completed
+APT_MARKER="$craig_dir/.apt_installed"
+NODE_MARKER="$craig_dir/.node_installed"
+FORCE_INSTALL=0
+
+# Prevent interactive prompts during install
+DEBIAN_FRONTEND=noninteractive
+
 APT_DEPENDENCIES=(
-  wget            # cook
+  wget              # cook
   make              # cook
   inkscape          # cook
   ffmpeg            # cook
@@ -46,6 +54,8 @@ Usage: install.sh [options]
 
 options:
     -h, --help       Display this message.
+    -f, --force-install
+                     Force reinstall of APT and Node dependencies.
 
 Please modify file 'install_config' located in the main directory of Craig with 
 values for the Discord bot environment variables
@@ -91,20 +101,19 @@ info() {
 }
 
 install_apt_packages() {
-
   info "Updating and upgrading apt packages..."
   sudo apt-get update
-  sudo DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+  sudo apt-get -y upgrade
 
   info "Installing apt dependencies..."
-  sudo DEBIAN_FRONTEND=noninteractive apt-get -y install "${APT_DEPENDENCIES[@]}"
+  sudo apt-get -y install "${APT_DEPENDENCIES[@]}"
 
   # Add redis repository to apt index and install it
   # for more info, see: https://redis.io/docs/install/install-redis/install-redis-on-linux/
   curl -fsSL https://packages.redis.io/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
   echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
   sudo apt-get update || true
-  sudo DEBIAN_FRONTEND=noninteractive apt-get -y install redis
+  sudo apt-get -y install redis
 }
 
 install_node() {
@@ -251,9 +260,13 @@ config_env() {
     "DISCORD_BOT_TOKEN"
     "DISCORD_APP_ID"
     "DEVELOPMENT_GUILD_ID"
-    "DATABASE_URL"
   )
   create_env_file "$craig_dir/.env" "${env_names[@]}"
+
+  env_names=(
+    "DATABASE_URL"
+  )
+  create_env_file "$craig_dir/prisma/.env" "${env_names[@]}"
 
   env_names=(
     "CLIENT_ID"
@@ -270,7 +283,6 @@ config_env() {
     "DROPBOX_CLIENT_SECRET"
     "APP_URI"
     "JWT_SECRET"
-    "DATABASE_URL"
   )
 
   create_env_file "$craig_dir/apps/dashboard/.env" "${env_names[@]}"
@@ -302,7 +314,6 @@ config_env() {
     "DISCORD_BOT_TOKEN"
     "DISCORD_APP_ID"
     "DEVELOPMENT_GUILD_ID"
-    "DATABASE_URL"
   )
 
   create_env_file "$craig_dir/apps/bot/.env" "${env_names[@]}"
@@ -328,9 +339,13 @@ config_react(){
   #   applicationID: '',
   # ----------------------------
 
-  DOWNLOAD_DOMAIN=$(echo $API_HOMEPAGE|awk -F'://' '{print $2}')
-  sed -z -E -i'' "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadDomain:\s*)('localhost:5029')/\
-  \1'${DISCORD_BOT_TOKEN}'\3'${DISCORD_APP_ID}'\5'${DOWNLOAD_DOMAIN//\//\\/}'/" \
+  # Extract protocol and domain from API_HOMEPAGE
+  DOWNLOAD_PROTOCOL=$(echo "$API_HOMEPAGE" | awk -F '://' '{print $1}')
+  DOWNLOAD_DOMAIN=$(echo "$API_HOMEPAGE" | awk -F '://' '{print $2}')
+
+  # Perform in-place replacement in the config file
+  sed -z -E -i'' "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadProtocol:\s*)('https')(.*downloadDomain:\s*)('localhost:5029')/\
+  \1'${DISCORD_BOT_TOKEN}'\3'${DISCORD_APP_ID}'\5'${DOWNLOAD_PROTOCOL}'\7'${DOWNLOAD_DOMAIN//\//\\/}'/" \
   "$craig_dir/apps/bot/config/default.js"
 
 
@@ -409,12 +424,21 @@ config_cook(){
     case "$1" in
       -h | --help)
         usage ;;
+      -f|--force-install)
+        FORCE_INSTALL=1
+        shift ;;
       *)
         warning "Unrecognized option: '$1'"
         usage 1
         ;;
     esac
   done
+
+  # Remove the marker files to force a reinstall
+  if [[ "$FORCE_INSTALL" == "1" ]]; then
+    rm -f "$APT_MARKER" "$NODE_MARKER"
+  fi
+
   # if root, install sudo
   if [ "$(whoami)" == "root" ]; then
     apt-get install -y sudo
@@ -444,8 +468,19 @@ config_cook(){
   info "Now installing Craig..."
   info "Start time: $(date +%H:%M:%S)"
 
-  install_apt_packages
-  install_node
+  if [[ ! -f "$APT_MARKER" ]]; then
+    install_apt_packages
+    touch "$APT_MARKER"
+  else
+    info "Skipping APT install: already completed"
+  fi
+  if [[ ! -f "$NODE_MARKER" ]]; then
+    install_node
+    touch "$NODE_MARKER"
+  else
+    info "Skipping Node install: already completed"
+  fi
+
   start_redis
   start_postgresql
   config_env

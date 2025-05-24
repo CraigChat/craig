@@ -69,7 +69,9 @@ module.exports = {
     craig: {
       // The craig emoji ID
       emoji: '297187944295301122',
-      // The domain to get downloads from, will be given in https
+      // The protocol get downloads from
+      downloadProtocol: 'https',
+      // The domain to get downloads from
       downloadDomain: 'localhost:5029',
       // The homepage of the bot
       homepage: 'https://craig.chat/',

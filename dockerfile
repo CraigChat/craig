@@ -19,12 +19,13 @@ RUN apt-get update && \
     sudo git locales && \
     # Cleanup
     apt-get -y autoremove
+
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 
 WORKDIR /app
 
-# Copy all changes, particularly environment variables with discord API keys
+# Copy the repo, particularly environment variables with discord API keys
 COPY . .
 # Run first-time setup for faster restarts
 RUN ./install.sh
@@ -34,7 +35,7 @@ EXPOSE 3000
 # Expose API port
 EXPOSE 5029
 # Start Craig
-CMD ["sh", "-c", "/app/start.sh"]
+CMD ["sh", "-c", "/app/install.sh && sleep infinity"]
 
 
 # Usage:
