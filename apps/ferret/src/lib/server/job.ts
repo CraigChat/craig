@@ -74,6 +74,7 @@ export function parseRecordingOptions(
     const trackNumbers = users.map((u) => u.track);
     if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_FORMAT };
     if (options.ignoreTracks.length === users.length) return { valid: false, code: APIErrorCode.NO_TRACKS_GIVEN };
+    data.ignoreTracks = options.ignoreTracks;
   }
 
   // Self-extractors (powersfx will have exe container after parsing, else zip container)
