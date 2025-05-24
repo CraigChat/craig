@@ -167,6 +167,7 @@ uWS
   .listen(HOST, PORT, async (token) => {
     if (token) {
       logger.info(`Listening on ${HOST}:${PORT}`);
+      logger.info(`Rec Directory: ${REC_DIRECTORY}`);
       await testProcessOptions();
       startMetricsServer(logger);
       // PM2 signalling
