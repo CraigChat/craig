@@ -441,8 +441,6 @@ config_cook(){
   # if root, install sudo
   if [ "$(whoami)" == "root" ]; then
     apt-get install -y sudo
-  else
-    error "Make sure sudo is installed and run again."
   fi
 
   # Prompt for sudo up front for installing
