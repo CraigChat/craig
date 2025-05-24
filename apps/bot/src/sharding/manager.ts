@@ -26,6 +26,7 @@ export default class ShardManager extends EventEmitter {
   readonly modules = new Map<string, ManagerModule>();
   commands = new Map<string, CommandHandler>();
   shards = new Map<number, Shard>();
+  emojiSyncData: any[] | null = null;
 
   constructor(options: ManagerOptions) {
     super();

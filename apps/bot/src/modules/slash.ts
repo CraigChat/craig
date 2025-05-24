@@ -69,8 +69,10 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       else if (ctx.customID.startsWith('user:')) await this.handleUserInteraction(ctx);
     });
 
-    if (process.env.EMOJI_SYNC_DATA) this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
-    else {
+    if (process.env.EMOJI_SYNC_DATA) {
+      this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
+      this.logger.info('Loaded emojis from shard manager');
+    } else {
       await this.emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
       await this.emojis.sync();
     }
