@@ -189,7 +189,7 @@ This might need to be done for other distributions as well.
 
 ### Restarting Craig after reboot
 
-By default, Craig will not automatically restart if you reboot your computer. You can re-run [install.sh](install.sh) script to restart the application.
+By default, Craig will not automatically restart if you reboot your computer. You can re-run the [install.sh](install.sh) script to restart the application.
 
 ### Monitoring, starting, and stopping Craig
 
