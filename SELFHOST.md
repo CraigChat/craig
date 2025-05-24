@@ -91,6 +91,7 @@ Changing some of these variables from their default values will break Craig, so 
 ### Suggested self-host configuration changes
 
 #### `install.config`
+
 - `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
 - `API_HOMEPAGE`: This should be changed to the IP address or domain name of the machine running Craig so that download links are functional (e.g., `http://localhost:5029` or `http://192.168.0.10:5029`).
 
