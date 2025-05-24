@@ -23,7 +23,7 @@
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
     "@trpc/server": "^9.20.3",
-    "axios": "^0.27.2",
+    "axios": "^0.30.0",
     "chalk": "4",
     "config": "^3.3.8",
     "cron": "^2.1.0",
