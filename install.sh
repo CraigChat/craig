@@ -54,7 +54,7 @@ Usage: install.sh [options]
 options:
     -h, --help       Display this message.
     -f, --force-install
-                     Force reinstall of APT and Node dependencies.
+                     Force application rebuild.
 
 Please modify file 'install_config' located in the main directory of Craig with 
 values for the Discord bot environment variables
