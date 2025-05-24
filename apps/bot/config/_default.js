@@ -69,7 +69,7 @@ module.exports = {
     craig: {
       // The craig emoji ID
       emoji: '297187944295301122',
-      // The protocol get downloads from
+      // The protocol to get downloads from
       downloadProtocol: 'https',
       // The domain to get downloads from
       downloadDomain: 'localhost:5029',
