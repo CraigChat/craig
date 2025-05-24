@@ -30,8 +30,8 @@ export interface CraigBotConfig extends BaseConfig {
 
   craig: {
     emoji: string;
-    downloadDomain: string;
     downloadProtocol: string;
+    downloadDomain: string;
     homepage: string;
     recordingFolder: string;
     removeNickname: boolean;
