@@ -78,8 +78,11 @@ export class SSEConnection extends EventEmitter {
   }
 
   send(message: AnyMessageEvent) {
-    if (this.state === ConnectionReadyState.CLOSED) throw new Error('Tried to send message to a closed connection');
-    this.controller?.enqueue(writeMessage(message));
+    // if (this.state === ConnectionReadyState.CLOSED) throw new Error('Tried to send message to a closed connection');
+    if (this.state === ConnectionReadyState.CLOSED) return;
+    try {
+      this.controller?.enqueue(writeMessage(message));
+    } catch {}
   }
 
   close() {
