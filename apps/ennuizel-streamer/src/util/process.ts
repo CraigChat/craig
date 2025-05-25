@@ -70,7 +70,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   buf.writeUInt32LE(sending, 0);
 
   function onError(e: any) {
-    logger.log(`[${id}-${track}]`, 'Stream error', e);
+    logger.warn(`[${id}-${track}]`, 'Stream error', e);
     endWS(1011);
   }
 
