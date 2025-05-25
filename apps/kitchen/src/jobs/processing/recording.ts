@@ -25,8 +25,7 @@ import { procOpts } from '../../util/processOptions.js';
 import { getInfoText, getRecordingInfo } from '../../util/recording.js';
 import { Job } from '../job.js';
 
-// TODO ogg handling (??)
-// TODO mkv handling (??)
+// TODO ogg/mkv container handling (??)
 
 export async function processRecordingJob(job: Job) {
   const { id, recFileBase, tmpDir } = job;
