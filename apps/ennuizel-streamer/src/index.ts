@@ -149,7 +149,9 @@ uWS
         if (info.key !== payload.k) return ws.end(4002);
         if (!users[payload.t - 1]) return ws.end(4003);
 
-        ws.send('{"ok":true}');
+        try {
+          ws.send('{"ok":true}');
+        } catch {}
         data.ready = true;
         data.cancelTimeout();
         data.controller = streamController(ws, payload.i, payload.t);

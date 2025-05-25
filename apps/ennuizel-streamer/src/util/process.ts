@@ -69,12 +69,21 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
 
   buf.writeUInt32LE(sending, 0);
 
+  function onError(e: any) {
+    logger.log(`[${id}-${track}]`, 'Stream error', e);
+    endWS();
+  }
+
   function readable() {
     if (paused) return;
-    let chunk;
-    while ((chunk = stream.read(SEND_SIZE))) {
-      setData(chunk);
-      if (paused) break;
+    try {
+      let chunk;
+      while ((chunk = stream.read(SEND_SIZE))) {
+        setData(chunk);
+        if (paused) break;
+      }
+    } catch (e) {
+      onError(e);
     }
   }
 
@@ -84,6 +93,8 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   }
 
   function sendBuffer() {
+    if (wsEnded) return;
+
     // Get the sendable part
     let toSend: Buffer;
     if (buf!.length > SEND_SIZE) {
@@ -133,7 +144,14 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const endWS = (code: number = 1000) => {
     if (wsEnded) return;
     wsEnded = true;
-    ws.end(code);
+    try {
+      ws.end(code);
+    } catch {
+      // Force close connection
+      try {
+        ws.close();
+      } catch {}
+    }
   };
 
   const setPaused = (value: boolean) => (paused = value);
@@ -143,9 +161,13 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const stream = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
   stream.on('readable', readable);
   stream.once('end', () => {
-    while (buf!.length > 4) sendBuffer();
-    sendBuffer();
-    endWS();
+    try {
+      while (buf!.length > 4) sendBuffer();
+      sendBuffer();
+      endWS();
+    } catch (e) {
+      onError(e);
+    }
   });
   stream.once('close', () => {
     endWS();
