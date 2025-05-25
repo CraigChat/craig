@@ -113,6 +113,10 @@ export const currentTime = writable(Math.floor(Date.now() / 1000), (set, update)
   return () => clearInterval(interval);
 });
 
+function normalizeFormat(format?: string) {
+  return format === 'vorbis' ? 'Ogg Vorbis' : (format || 'flac').toUpperCase();
+}
+
 export function getNameFromJob(job: MinimalJobInfo, t: (id: string) => string) {
   switch (job.type) {
     case 'recording': {
@@ -120,11 +124,11 @@ export function getNameFromJob(job: MinimalJobInfo, t: (id: string) => string) {
       else if (job.options.container === 'sesxzip') return `${t('download.sections.audio')} / ${t('download.format_buttons.adobe_audition')}`;
       else if (job.options.container === 'exe') return `${t('download.sections.audio')} / ${t('download.format_buttons.win_executable')}`;
       else if (job.options.container === 'mix')
-        return `${t('download.sections.audio')} / ${job.options.format === 'vorbis' ? 'Ogg Vorbis' : (job.options.format || 'flac').toUpperCase()} (${t('download.sections.stsm')})`;
+        return `${t('download.sections.audio')} / ${normalizeFormat(job.options.format)} (${t('download.sections.stsm')})`;
       else if (job.options.format === 'powersfx') return `${t('download.sections.audio')} / ${t('download.format_buttons.win_executable')}`;
       else if (job.options.format === 'powersfxm') return `${t('download.sections.audio')} / ${t('download.format_buttons.mac_script')}`;
       else if (job.options.format === 'powersfxu') return `${t('download.sections.audio')} / ${t('download.format_buttons.unix_script')}`;
-      return `${t('download.sections.audio')} / ${(job.options.format || 'flac').toUpperCase()} (${t('download.sections.mt')})`;
+      return `${t('download.sections.audio')} / ${normalizeFormat(job.options.format)} (${t('download.sections.mt')})`;
     }
     case 'avatars': {
       if (job.options.format === 'mkvh264') return `${t('download.avatar_overlays.name')} / MKV`;

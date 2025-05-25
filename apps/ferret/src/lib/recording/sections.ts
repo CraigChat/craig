@@ -57,6 +57,7 @@ export const audioButtons: SectionButtons = [
       { text: 'wav', ennuizel: 5 },
       { text: 'AAC', suffix: '(MPEG-4)', options: { format: 'aac' }, allowNorm: true },
       { text: 'ALAC', suffix: '(Apple Lossless)', ennuizel: 6, showFor: ['mac'], allowNorm: true },
+      { text: 'Ogg Vorbis', options: { format: 'vorbis' }, allowNorm: true },
       { icon: mp3Icon, text: 'MP3', options: { format: 'mp3' }, features: ['mp3'], allowNorm: true }
     ]
   },
