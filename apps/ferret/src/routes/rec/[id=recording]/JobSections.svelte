@@ -12,7 +12,7 @@
   import { toast } from '$lib/toaster';
   import { tooltip } from '$lib/tooltip';
   import type { MinimalJobInfo, MinimalJobUpdate, RecordingPageEmitter } from '$lib/types';
-  import { capitalize, currentTime, formatBytes, formatMilliseconds, getNameFromJob, relativeTime } from '$lib/util';
+  import { capitalize, currentTime, formatBytes, formatMilliseconds, getNameFromJob, getRTF, relativeTime } from '$lib/util';
 
   import NotificationBell from './NotificationBell.svelte';
 
@@ -58,7 +58,7 @@
   /** Whether the job track section has been expanded. */
   let expanded = $state(false);
   /** Intl.RelativeTimeFormat used for formatting. */
-  let intlRtf = $derived(new Intl.RelativeTimeFormat($locale ?? undefined, { numeric: 'auto' }));
+  let intlRtf = $derived(getRTF($locale ?? undefined, { numeric: 'auto' }));
 
   /** The current state of the job. */
   let jobState = $derived(lastJobUpdate?.state || job?.state);

@@ -1,6 +1,7 @@
 import type { RecordingUser } from '@craig/types/recording';
 import { writable } from 'svelte/store';
 
+import { defaultLocale } from './i18n';
 import type { MinimalJobInfo } from './types';
 
 export function acronym(name: string) {
@@ -151,4 +152,18 @@ export function convertT(content: Translatable, t: (id: string, opts: any) => st
 
 export function capitalize(str: string): string {
   return str.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function getRTF(locale?: string | undefined | null, options?: Intl.RelativeTimeFormatOptions): Intl.RelativeTimeFormat {
+  let localeValid = true;
+  if (locale) {
+    try {
+      Intl.getCanonicalLocales(locale);
+    } catch {
+      console.info(`Invalid locale found: ${locale}`);
+      localeValid = false;
+    }
+  }
+
+  return new Intl.RelativeTimeFormat(localeValid && locale ? locale : defaultLocale, options);
 }

@@ -12,7 +12,7 @@
   import FallbackImage from '$components/FallbackImage.svelte';
   import RecordingUserChip from '$components/RecordingUserChip.svelte';
   import { jobOpen } from '$lib/recording/data';
-  import { acronym, currentTime, getAvatar, getDefaultAvatar, relativeTime } from '$lib/util';
+  import { acronym, currentTime, getAvatar, getDefaultAvatar, getRTF, relativeTime } from '$lib/util';
 
   import DeleteModal from './DeleteModal.svelte';
   import DurationTag from './DurationTag.svelte';
@@ -22,7 +22,8 @@
 
   const EXPIRY_WARN_AT = 60 * 60 * 24;
 
-  let intlRtf = $derived(new Intl.RelativeTimeFormat($locale ?? undefined, { numeric: 'auto' }));
+  // FIX invalid locale breaks this
+  let intlRtf = $derived(getRTF($locale ?? undefined, { numeric: 'auto' }));
   let startTime = new Date(recording.startTime);
   let expiryDate = new Date(startTime.valueOf() + 1000 * 60 * 60 * (recording.expiresAfter || 24));
   let expiry = $derived(Math.floor(expiryDate.valueOf() / 1000) - $currentTime);
