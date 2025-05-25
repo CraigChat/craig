@@ -71,7 +71,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
 
   function onError(e: any) {
     logger.log(`[${id}-${track}]`, 'Stream error', e);
-    endWS();
+    endWS(1011);
   }
 
   function readable() {
