@@ -156,7 +156,9 @@ export function capitalize(str: string): string {
 
 export function getRTF(locale?: string | undefined | null, options?: Intl.RelativeTimeFormatOptions): Intl.RelativeTimeFormat {
   let localeValid = true;
-  if (locale) {
+  // HOTFIX, I guess locale set strings could be null?
+  if (locale === 'null') localeValid = false;
+  else if (locale) {
     try {
       Intl.getCanonicalLocales(locale);
     } catch {

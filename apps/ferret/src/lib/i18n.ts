@@ -15,7 +15,7 @@ for (const [file, importer] of Object.entries(localeFiles)) {
 
 init({
   fallbackLocale: defaultLocale,
-  initialLocale: browser ? get(localeCookieName) || window.navigator.language : defaultLocale,
+  initialLocale: browser ? get(localeCookieName) || window.navigator.language || defaultLocale : defaultLocale,
   formats: {
     number: {
       scientific: { notation: 'scientific' },
