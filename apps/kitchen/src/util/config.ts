@@ -10,8 +10,8 @@ export const REC_DIRECTORY = fileURLToPath(new URL(process.env.REC_DIRECTORY || 
 export const OUTPUT_DIRECTORY = fileURLToPath(new URL(process.env.OUTPUT_DIRECTORY || '../../../../output', import.meta.url));
 export const DOWNLOADS_DIRECTORY = fileURLToPath(new URL(process.env.DOWNLOADS_DIRECTORY || '../../../../downloads', import.meta.url));
 
-export const JOB_EXPIRATION = ms(process.env.JOB_EXPIRATION || '1d');
-export const TMP_EXPIRATION = ms(process.env.TMP_EXPIRATION || '6h');
+export const JOB_EXPIRATION = ms((process.env.JOB_EXPIRATION as any) || '1d');
+export const TMP_EXPIRATION = ms((process.env.TMP_EXPIRATION as any) || '6h');
 
 export const SAVE_JOBS = process.env.SAVE_JOBS === 'true';
 export const KITCHEN_CRON_TIME = process.env.KITCHEN_CRON_TIME || '0 * * * *';
