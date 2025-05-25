@@ -35,13 +35,21 @@ export const GET: RequestHandler = async ({ params }) => {
 
   if (!stat) error(404, 'Not Found');
 
+  let streamEnded = false;
   const readStream = createReadStream(filePath);
   const stream = new ReadableStream({
     start: (controller) => {
       readStream.on('data', (data) => controller.enqueue(data));
-      readStream.once('close', () => controller.close());
+      readStream.once('close', () => {
+        try {
+          if (!streamEnded) controller.close();
+        } catch {}
+      });
     },
-    cancel: () => void readStream.destroy()
+    cancel: () => {
+      streamEnded = true;
+      readStream.destroy();
+    }
   });
   return new Response(stream, {
     headers: {
