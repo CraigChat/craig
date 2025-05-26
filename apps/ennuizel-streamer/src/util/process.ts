@@ -184,7 +184,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const stream = childProcess.stdout;
   stream.on('readable', readable);
   stream.once('end', () => {
-    logger.log(`[${id}-${track}] Stream is ending`);
+    logger.log(`[${id}-${track}] Process stream ended`);
     try {
       while (buf!.length > 4) sendBuffer();
       sendBuffer();
@@ -195,7 +195,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   });
   stream.once('error', (e) => logger.log(`[${id}-${track}] Stream got partwise error`, e));
   stream.once('close', () => {
-    logger.log(`[${id}-${track}] Stream is closing`);
+    logger.log(`[${id}-${track}] Process stream closed`);
     endWS();
   });
   logger.log(`[${id}-${track}] Stream ready with process ${childProcess.pid}`);
