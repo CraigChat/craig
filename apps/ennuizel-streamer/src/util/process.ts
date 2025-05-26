@@ -43,7 +43,8 @@ export function rawPartwise({ recFileBase, track, cancelSignal }: RawPartwiseOpt
 
   const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
 
-  childProcess.stderr.once('error', () => {});
+  childProcess.stderr.on('data', () => {});
+  childProcess.stderr.on('error', () => {});
 
   // Prevent further data from stderr from spilling out
   cancelSignal.addEventListener('abort', () => {
