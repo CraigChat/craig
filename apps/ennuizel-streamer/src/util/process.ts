@@ -151,14 +151,14 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const onEnd = () => {
     logger.log(`[${id}-${track}] Stream ended`);
     if (wsEnded) return;
-    if (!childProcess.killed) childProcess.kill();
+    if (childProcess.exitCode === null) childProcess.kill();
     wsEnded = true;
     abortController.abort();
     timer();
   };
   const endWS = (code: number = 1000) => {
     if (wsEnded) return;
-    if (!childProcess.killed) childProcess.kill();
+    if (childProcess.exitCode === null) childProcess.kill();
     wsEnded = true;
     try {
       ws.end(code);
