@@ -8,7 +8,7 @@ import uWS from 'uWebSockets.js';
 import { HOST, PORT, PROXY_HEADER, REC_DIRECTORY } from './util/config.js';
 import { timeoutWebsocket, WebsocketData } from './util/index.js';
 import logger from './util/logger.js';
-import { openStreams, requestHistogram } from './util/metrics.js';
+import { openStreams, requestHistogram, streamsTotal } from './util/metrics.js';
 import { getNotes, SEND_SIZE, streamController } from './util/process.js';
 import { testProcessOptions } from './util/processOptions.js';
 import { getInfoText, getRecordingInfo, recordingExists } from './util/recording.js';
@@ -116,6 +116,7 @@ uWS
     open: (ws) => {
       const data = ws.getUserData();
       data.cancelTimeout = timeoutWebsocket(ws);
+      streamsTotal.inc();
       openStreams.inc();
       openStreamCount++;
       logger.info(`WS open (${openStreamCount})`);

@@ -7,7 +7,7 @@ import type { WebSocket } from 'uWebSockets.js';
 import { REC_DIRECTORY } from './config.js';
 import { ROOT_DIR } from './index.js';
 import logger from './logger.js';
-import { wsHistogram } from './metrics.js';
+import { acksRecieved, dataSent, wsHistogram } from './metrics.js';
 import { procOpts } from './processOptions.js';
 
 export const DEF_TIMEOUT = 14400 * 1000;
@@ -108,6 +108,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
       logger.warn(`Recieved status after sending ${sending}[${ackd}]: ${status} (bp: ${ws.getBufferedAmount()})`);
       waitingForBackpressure = true;
     }
+    dataSent.inc(toSend.byteLength);
 
     const hdr = Buffer.alloc(4);
     sending++;
@@ -139,6 +140,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     }
     if (p > ackd) {
       ackd = p;
+      acksRecieved.inc();
       if (sending <= ackd + MAX_ACK) {
         paused = false;
         logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
