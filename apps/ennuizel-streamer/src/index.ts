@@ -29,6 +29,7 @@ function send(
 }
 
 const ID_REGEX = /^[\w-]+$/;
+let openStreamCount = 0;
 
 uWS
   .App()
@@ -115,7 +116,8 @@ uWS
       const data = ws.getUserData();
       data.cancelTimeout = timeoutWebsocket(ws);
       openStreams.inc();
-      logger.info(`WS open (${openStreams.get()})`);
+      openStreamCount++;
+      logger.info(`WS open (${openStreamCount})`);
     },
     message: async (ws, message, isBinary) => {
       const data = ws.getUserData();
@@ -165,7 +167,8 @@ uWS
       if (!data.ready) data.cancelTimeout();
       data.controller?.onEnd();
       openStreams.dec();
-      logger.info(`WS close (${openStreams.get()})`);
+      openStreamCount--;
+      logger.info(`WS close (${openStreamCount})`);
     }
   })
   .listen(HOST, PORT, async (token) => {
