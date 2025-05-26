@@ -70,7 +70,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   buf.writeUInt32LE(sending, 0);
 
   function onError(e: any) {
-    logger.warn(`[${id}-${track}]`, 'Stream error', e);
+    logger.warn(`[${id}-${track}] Stream error`, e);
     endWS(1011);
   }
 
@@ -105,7 +105,8 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
       buf = null;
     }
 
-    ws.send(toSend, true);
+    const status = ws.send(toSend, true);
+    if (status !== 1) logger.warn(`Recieved status after sending: ${status} (bp: ${ws.getBufferedAmount()})`);
     // console.log(`[${id}-${track}]`, { sending, result, ackd });
 
     const hdr = Buffer.alloc(4);
@@ -122,7 +123,10 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     const msg = Buffer.from(message);
     const cmd = msg.readUInt32LE(0);
     const p = msg.readUInt32LE(4);
-    if (cmd !== 0) return ws.close();
+    if (cmd !== 0) {
+      logger.warn(`[${id}-${track}] Got an unexpected command (${cmd})`);
+      return endWS(1003);
+    }
     if (p > ackd) {
       ackd = p;
       if (sending <= ackd + MAX_ACK) {
@@ -135,7 +139,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
 
   let wsEnded = false;
   const onEnd = () => {
-    logger.log(`[${id}-${track}]`, 'Stream ended');
+    logger.log(`[${id}-${track}] Stream ended`);
     if (wsEnded) return;
     wsEnded = true;
     abortController.abort();
@@ -169,11 +173,12 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
       onError(e);
     }
   });
+  stream.once('error', (e) => logger.log(`[${id}-${track}] Stream got partwise error`, e));
   stream.once('close', () => {
     endWS();
     stream.destroy();
   });
-  logger.log(`[${id}-${track}]`, 'Stream ready');
+  logger.log(`[${id}-${track}] Stream ready`);
 
   return { onMessage, onEnd, readable, setPaused };
 }

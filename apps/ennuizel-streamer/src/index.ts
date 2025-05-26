@@ -96,7 +96,7 @@ uWS
     /* Handlers */
     upgrade: (res, req, context) => {
       const timer = requestHistogram.startTimer({ route: '/ennuizel' });
-      const ip = PROXY_HEADER ? req.getHeader(PROXY_HEADER) : Buffer.from(res.getRemoteAddressAsText()).toString();
+      const ip = PROXY_HEADER ? req.getHeader(PROXY_HEADER.toLowerCase()) : Buffer.from(res.getRemoteAddressAsText()).toString();
       logger.info(`New websocket connection request from ${ip}`);
 
       /* This immediately calls open handler, you must not use res after this call */
@@ -115,6 +115,7 @@ uWS
       const data = ws.getUserData();
       data.cancelTimeout = timeoutWebsocket(ws);
       openStreams.inc();
+      logger.info(`WS open (${openStreams.get()})`);
     },
     message: async (ws, message, isBinary) => {
       const data = ws.getUserData();
@@ -164,6 +165,7 @@ uWS
       if (!data.ready) data.cancelTimeout();
       data.controller?.onEnd();
       openStreams.dec();
+      logger.info(`WS close (${openStreams.get()})`);
     }
   })
   .listen(HOST, PORT, async (token) => {
