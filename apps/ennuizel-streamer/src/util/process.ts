@@ -12,8 +12,8 @@ import { procOpts } from './processOptions.js';
 
 export const DEF_TIMEOUT = 14400 * 1000;
 
-const SEND_SIZE = 65536;
-const MAX_ACK = 128;
+export const SEND_SIZE = 65536;
+export const MAX_ACK = 128;
 
 interface CommonProcessOptions {
   recFileBase: string;
@@ -56,6 +56,7 @@ export function rawPartwise({ recFileBase, track, cancelSignal }: RawPartwiseOpt
 export type StreamController = {
   onMessage: (message: ArrayBuffer) => void;
   onEnd: () => void;
+  onDrain: () => void;
   readable: () => void;
   setPaused: (value: boolean) => boolean;
 };
@@ -63,6 +64,7 @@ export type StreamController = {
 export function streamController(ws: WebSocket<any>, id: string, track: number): StreamController {
   const timer = wsHistogram.startTimer();
   let paused = false,
+    waitingForBackpressure = false,
     ackd = -1,
     sending = 0,
     buf: Buffer | null = Buffer.alloc(4);
@@ -75,12 +77,12 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   }
 
   function readable() {
-    if (paused) return;
+    if (paused || waitingForBackpressure) return;
     try {
       let chunk;
       while ((chunk = stream.read(SEND_SIZE))) {
         setData(chunk);
-        if (paused) break;
+        if (paused || waitingForBackpressure) break;
       }
     } catch (e) {
       onError(e);
@@ -106,8 +108,10 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     }
 
     const status = ws.send(toSend, true);
-    if (status !== 1) logger.warn(`Recieved status after sending: ${status} (bp: ${ws.getBufferedAmount()})`);
-    // console.log(`[${id}-${track}]`, { sending, result, ackd });
+    if (status !== 1) {
+      logger.warn(`Recieved status after sending ${sending}[${ackd}]: ${status} (bp: ${ws.getBufferedAmount()})`);
+      waitingForBackpressure = true;
+    }
 
     const hdr = Buffer.alloc(4);
     sending++;
@@ -118,6 +122,13 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     // Stop accepting data
     if (sending > ackd + MAX_ACK) paused = true;
   }
+
+  const onDrain = () => {
+    logger.info(`[${id}-${track}] Backpressure drained (${ws.getBufferedAmount()})`);
+    const wasWaiting = waitingForBackpressure;
+    waitingForBackpressure = false;
+    if (wasWaiting && !paused) readable();
+  };
 
   const onMessage = (message: ArrayBuffer) => {
     const msg = Buffer.from(message);
@@ -132,7 +143,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
       if (sending <= ackd + MAX_ACK) {
         // Accept data
         paused = false;
-        readable();
+        if (!waitingForBackpressure) readable();
       }
     }
   };
@@ -180,5 +191,5 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   });
   logger.log(`[${id}-${track}] Stream ready`);
 
-  return { onMessage, onEnd, readable, setPaused };
+  return { onMessage, onEnd, readable, setPaused, onDrain };
 }

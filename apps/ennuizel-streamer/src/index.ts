@@ -9,7 +9,7 @@ import { HOST, PORT, PROXY_HEADER, REC_DIRECTORY } from './util/config.js';
 import { timeoutWebsocket, WebsocketData } from './util/index.js';
 import logger from './util/logger.js';
 import { openStreams, requestHistogram } from './util/metrics.js';
-import { getNotes, streamController } from './util/process.js';
+import { getNotes, SEND_SIZE, streamController } from './util/process.js';
 import { testProcessOptions } from './util/processOptions.js';
 import { getInfoText, getRecordingInfo, recordingExists } from './util/recording.js';
 
@@ -92,6 +92,7 @@ uWS
     /* Options */
     compression: 0,
     maxPayloadLength: 16 * 1024 * 1024,
+    maxBackpressure: SEND_SIZE * 5,
     idleTimeout: 10,
 
     /* Handlers */
@@ -168,6 +169,9 @@ uWS
       } else {
         if (isBinary) data.controller?.onMessage(message);
       }
+    },
+    drain(ws) {
+      ws.getUserData().controller?.onDrain();
     },
     close: (ws) => {
       const data = ws.getUserData();
