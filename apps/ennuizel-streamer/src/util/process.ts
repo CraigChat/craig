@@ -46,7 +46,7 @@ export function rawPartwise({ recFileBase, track, cancelSignal }: RawPartwiseOpt
   childProcess.stderr.on('data', () => {});
   childProcess.stderr.on('error', () => {});
 
-  return childProcess.stdout;
+  return childProcess;
 }
 
 export type StreamController = {
@@ -151,12 +151,14 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const onEnd = () => {
     logger.log(`[${id}-${track}] Stream ended`);
     if (wsEnded) return;
+    if (!childProcess.killed) childProcess.kill();
     wsEnded = true;
     abortController.abort();
     timer();
   };
   const endWS = (code: number = 1000) => {
     if (wsEnded) return;
+    if (!childProcess.killed) childProcess.kill();
     wsEnded = true;
     try {
       ws.end(code);
@@ -172,7 +174,14 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
 
   const abortController = new AbortController();
   const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
-  const stream = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
+  const childProcess = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
+  childProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
+  childProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
+  childProcess.on('error', (e) => {
+    logger.log(`[${id}-${track}] Process errored (${e})`);
+    endWS(1003);
+  });
+  const stream = childProcess.stdout;
   stream.on('readable', readable);
   stream.once('end', () => {
     logger.log(`[${id}-${track}] Stream is ending`);
@@ -190,7 +199,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     endWS();
     stream.destroy();
   });
-  logger.log(`[${id}-${track}] Stream ready`);
+  logger.log(`[${id}-${track}] Stream ready with process ${childProcess.pid}`);
 
   return { onMessage, onEnd, readable, setPaused, onDrain };
 }
