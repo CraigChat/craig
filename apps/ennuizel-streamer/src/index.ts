@@ -133,7 +133,8 @@ uWS
         }
 
         // Validate payload
-        if (typeof payload.i !== 'string' || typeof payload.k !== 'string' || typeof payload.t !== 'number') return ws.end(4001);
+        if (typeof payload !== 'object' || typeof payload.i !== 'string' || typeof payload.k !== 'string' || typeof payload.t !== 'number')
+          return ws.end(4001);
         if (
           payload.t < 1 ||
           payload.t > 65535 ||
