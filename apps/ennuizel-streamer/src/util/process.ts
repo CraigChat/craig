@@ -46,11 +46,6 @@ export function rawPartwise({ recFileBase, track, cancelSignal }: RawPartwiseOpt
   childProcess.stderr.on('data', () => {});
   childProcess.stderr.on('error', () => {});
 
-  // Prevent further data from stderr from spilling out
-  cancelSignal.addEventListener('abort', () => {
-    childProcess.stderr.removeAllListeners('data');
-  });
-
   return childProcess.stdout;
 }
 
