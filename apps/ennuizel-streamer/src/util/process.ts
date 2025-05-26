@@ -116,7 +116,10 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     else buf = hdr;
 
     // Stop accepting data
-    if (sending > ackd + MAX_ACK) paused = true;
+    if (sending > ackd + MAX_ACK) {
+      logger.log(`[${id}-${track}] Paused after ${sending} (${ackd})`);
+      paused = true;
+    }
   }
 
   const onDrain = () => {
@@ -137,8 +140,8 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     if (p > ackd) {
       ackd = p;
       if (sending <= ackd + MAX_ACK) {
-        // Accept data
         paused = false;
+        logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
         if (!waitingForBackpressure) readable();
       }
     }
@@ -172,6 +175,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const stream = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
   stream.on('readable', readable);
   stream.once('end', () => {
+    logger.log(`[${id}-${track}] Stream is ending`);
     try {
       while (buf!.length > 4) sendBuffer();
       sendBuffer();
@@ -182,6 +186,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   });
   stream.once('error', (e) => logger.log(`[${id}-${track}] Stream got partwise error`, e));
   stream.once('close', () => {
+    logger.log(`[${id}-${track}] Stream is closing`);
     endWS();
     stream.destroy();
   });
