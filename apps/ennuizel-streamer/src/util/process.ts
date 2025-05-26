@@ -197,7 +197,6 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   stream.once('close', () => {
     logger.log(`[${id}-${track}] Stream is closing`);
     endWS();
-    stream.destroy();
   });
   logger.log(`[${id}-${track}] Stream ready with process ${childProcess.pid}`);
 
