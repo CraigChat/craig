@@ -31,7 +31,7 @@ function send(
 const ID_REGEX = /^[\w-]+$/;
 let openStreamCount = 0;
 
-uWS
+const app = uWS
   .App()
   .get('/health', (res) => {
     const timer = requestHistogram.startTimer({ route: '/health' });
@@ -195,3 +195,15 @@ uWS
       logger.error(`Failed to listen to port ${PORT}`);
     }
   });
+
+process.once('SIGTERM', () => {
+  logger.info('Recieved SIGTERM');
+  app.close();
+  process.exit();
+});
+
+process.once('SIGINT', () => {
+  logger.info('Recieved SIGINT');
+  app.close();
+  process.exit();
+});
