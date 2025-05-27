@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "dotenv -e ../../.env -e .env -c -- node build",
+    "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7002 build",
     "dev": "dotenv -e ../../.env -e .env -c -- vite dev --host",
     "build": "dotenv -e ../../.env -e .env -c -- vite build",
     "preview": "dotenv -e ../../.env -e .env -c -- vite preview",

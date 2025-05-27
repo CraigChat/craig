@@ -20,6 +20,13 @@
       "dependsOn": [
         "^generate"
       ]
+    },
+    "inspect": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": [
+        "^build"
+      ]
     }
   }
 }

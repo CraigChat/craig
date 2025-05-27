@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "dotenv -e ../../.env -e .env -c -- node dist/index.js",
+    "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7001 dist/index.js",
     "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
     "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 restart ecosystem.config.cjs --update-env",
     "build": "rimraf dist && tsc",

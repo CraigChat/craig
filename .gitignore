@@ -39,6 +39,7 @@ _tmp_*
 *.log
 node-log.txt
 nohup.out
+*.heapsnapshot
 
 # ENV files
 .env

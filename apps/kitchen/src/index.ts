@@ -12,6 +12,7 @@ import type {
 } from '@craig/types/kitchen';
 import fastify from 'fastify';
 import path from 'path';
+import { writeHeapSnapshot } from 'v8';
 
 import JobManager from './jobs/manager.js';
 import { dropboxPreflight } from './jobs/upload/dropbox.js';
@@ -53,6 +54,12 @@ app.post('/settings', async (req, reply) => {
   return reply.status(200).send({
     allowNewJobs: jobManager.allowNewJobs
   });
+});
+
+app.post('/_writeHeapSnapshot', async (req, reply) => {
+  if (req.headers['x-real-ip'] || req.headers['cf-connecting-ip']) return reply.status(401).send({ ok: false });
+  const filename = writeHeapSnapshot();
+  return reply.status(200).send({ filename });
 });
 
 app.get('/jobs', async (req, reply) => {
