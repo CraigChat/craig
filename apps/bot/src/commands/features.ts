@@ -78,6 +78,7 @@ export default class Features extends GeneralCommand {
       embeds: [
         {
           title: 'Features',
+          description: `[View Dashboard](${this.client.config.craig.dashboardURL})`,
           fields: [
             {
               name: 'Your Perks',

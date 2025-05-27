@@ -88,13 +88,20 @@ export default class UploadModule extends DexareModule<CraigBot> {
       if (response.status > 299) {
         const error = (await response.json().catch(() => null))?.error ?? 'server_error';
         this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} (${response.status}, ${error})`);
-        await this.dm(userId, {
-          title: `Failed to upload to ${service}`,
-          description: `${
-            SERVICE_ERROR_MESSAGES[error] ?? SERVICE_ERROR_MESSAGES.server_error
-          } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-          color: ERROR_COLOR
-        });
+        await this.dm(
+          userId,
+          {
+            title: `Failed to upload to ${service}`,
+            description: `${
+              SERVICE_ERROR_MESSAGES[error] ?? SERVICE_ERROR_MESSAGES.server_error
+            } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+            color: ERROR_COLOR
+          },
+          {
+            label: 'Open Dashboard',
+            url: this.client.config.craig.dashboardURL
+          }
+        );
       } else if (response.status === 200) {
         const job = await response.json();
         this.logger.info(`Started an upload for recording ${recordingId} for user ${userId}`);

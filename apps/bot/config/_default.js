@@ -73,6 +73,8 @@ module.exports = {
       downloadDomain: 'localhost:5029',
       // The homepage of the bot
       homepage: 'https://craig.chat/',
+      // The dashboard URL
+      dashboardURL: 'https://my.craig.chat',
       // Record disk size limit, in bytes
       sizeLimit: 536870912,
       // Record disk size limit for Opus web users, in bytes
