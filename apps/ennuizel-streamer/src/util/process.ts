@@ -5,7 +5,7 @@ import { execaCommand } from 'execa';
 import type { WebSocket } from 'uWebSockets.js';
 
 import { REC_DIRECTORY } from './config.js';
-import { ROOT_DIR } from './index.js';
+import { ROOT_DIR, WebsocketData } from './index.js';
 import logger from './logger.js';
 import { acksRecieved, dataSent, wsHistogram } from './metrics.js';
 import { procOpts } from './processOptions.js';
@@ -57,7 +57,7 @@ export type StreamController = {
   setPaused: (value: boolean) => boolean;
 };
 
-export function streamController(ws: WebSocket<any>, id: string, track: number): StreamController {
+export function streamController(ws: WebSocket<WebsocketData>, id: string, track: number): StreamController {
   const timer = wsHistogram.startTimer();
   let paused = false,
     waitingForBackpressure = false,
@@ -91,7 +91,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   }
 
   function sendBuffer() {
-    if (wsEnded) return;
+    if (wsEnded || ws.getUserData().left) return;
 
     // Get the sendable part
     let toSend: Buffer;
@@ -117,10 +117,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     else buf = hdr;
 
     // Stop accepting data
-    if (sending > ackd + MAX_ACK) {
-      // logger.log(`[${id}-${track}] Paused after ${sending} (${ackd})`);
-      paused = true;
-    }
+    if (sending > ackd + MAX_ACK) paused = true;
   }
 
   function killProcess() {
@@ -162,20 +159,34 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     logger.log(`[${id}-${track}] Stream ended`);
     if (wsEnded) return;
     wsEnded = true;
+
     killProcess();
     abortController.abort();
+
+    // Clean up child process listeners
+    childProcess.removeAllListeners('spawn');
+    childProcess.removeAllListeners('exit');
+    childProcess.removeAllListeners('error');
+
+    // Clean up and kill stream events
+    stream.removeListener('readable', readable);
+    stream.removeAllListeners('end');
+    stream.removeAllListeners('error');
+    stream.removeAllListeners('close');
+    stream.destroy();
+
     timer();
   };
+
   const endWS = (code: number = 1000) => {
-    if (wsEnded) return;
-    wsEnded = true;
+    if (ws.getUserData().left) return;
     killProcess();
     try {
-      ws.end(code);
+      if (!ws.getUserData().left) ws.end(code);
     } catch {
       // Force close connection
       try {
-        ws.close();
+        if (!ws.getUserData().left) ws.close();
       } catch {}
     }
   };
@@ -192,7 +203,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     endWS(1003);
   });
   childProcess.catch((e) => {
-    if (!wsEnded) logger.warn(`[${id}-${track}] Process error: ${e}`);
+    if (!ws.getUserData().left) logger.warn(`[${id}-${track}] Process error: ${e}`);
   });
   const stream = childProcess.stdout;
   stream.on('readable', readable);
