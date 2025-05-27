@@ -87,7 +87,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
 
   function setData(chunk: Buffer) {
     buf = Buffer.concat([buf!, chunk]);
-    while (buf.length >= SEND_SIZE) sendBuffer();
+    while (buf.length >= SEND_SIZE && !ws.getUserData().left) sendBuffer();
   }
 
   function sendBuffer() {
@@ -199,7 +199,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   stream.once('end', () => {
     logger.log(`[${id}-${track}] Process stream ended`);
     try {
-      while (buf!.length > 4 && !wsEnded) sendBuffer();
+      while (buf!.length > 4 && !ws.getUserData().left) sendBuffer();
       sendBuffer();
       endWS();
     } catch (e) {
