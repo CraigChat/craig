@@ -348,10 +348,11 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
     mixFilter += `[aud${co}]`;
     co++;
 
-    // amix can only mix 32 at a time, so if we reached that, we have to start again
+    // amix can only mix 32 at a time
     if (co >= 32) {
-      mixFilter += ` amix=32,dynaudnorm[aud0];[aud0]`;
-      co = 1;
+      filter += `${mixFilter} amix=${co},dynaudnorm[aud${co}];`;
+      mixFilter = `[aud${co}]`;
+      co = 0;
     }
   }
 
