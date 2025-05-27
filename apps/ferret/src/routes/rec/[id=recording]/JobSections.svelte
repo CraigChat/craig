@@ -399,6 +399,9 @@
       >
         <span>
           {$t('job.tracks_status', { values: { finishedCount: finishedUsersCount, waitingCount: waitingUsersCount } })}
+          {#if userTracks.some((t) => t.ignored)}
+            • {$t('download.exclude_user.count', { values: { count: userTracks.filter((t) => t.ignored).length } })}
+          {/if}
         </span>
         <button class="font-semibold text-neutral-300 hover:underline" onclick={() => (expanded = !expanded)}>
           {#if expanded}
