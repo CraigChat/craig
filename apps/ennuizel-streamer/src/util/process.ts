@@ -123,6 +123,14 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
     }
   }
 
+  function killProcess() {
+    if (childProcess.exitCode === null) {
+      logger.log(`[${id}-${track}] Killing process...`);
+      const success = childProcess.kill();
+      if (!success) logger.log(`[${id}-${track}] Process killing did not succeed (ec: ${childProcess.exitCode})`);
+    }
+  }
+
   const onDrain = () => {
     logger.info(`[${id}-${track}] Backpressure drained (${ws.getBufferedAmount()})`);
     const wasWaiting = waitingForBackpressure;
@@ -153,14 +161,14 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const onEnd = () => {
     logger.log(`[${id}-${track}] Stream ended`);
     if (wsEnded) return;
-    if (childProcess.exitCode === null) childProcess.kill();
+    killProcess();
     wsEnded = true;
     abortController.abort();
     timer();
   };
   const endWS = (code: number = 1000) => {
     if (wsEnded) return;
-    if (childProcess.exitCode === null) childProcess.kill();
+    killProcess();
     wsEnded = true;
     try {
       ws.end(code);
@@ -178,7 +186,13 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
   const childProcess = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
   childProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
-  childProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
+  childProcess.on('exit', (code, signal) => {
+    logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`);
+    if (signal === 'SIGTERM') {
+      logger.warn(`[${id}-${track}] SIGTERM from process, we might die...`);
+      endWS(1003);
+    }
+  });
   childProcess.on('error', (e) => {
     logger.log(`[${id}-${track}] Process errored (${e})`);
     endWS(1003);
