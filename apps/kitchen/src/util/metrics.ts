@@ -17,6 +17,13 @@ export function registerWithManager(manager: JobManager) {
       this.set(Array.from(manager.jobs.values()).filter((job) => job.status === 'queued').length);
     }
   });
+  new Gauge({
+    name: 'craig_kitchen_jobs_cached',
+    help: 'Currently cached jobs',
+    collect() {
+      this.set(Array.from(manager.jobs.values()).length);
+    }
+  });
 }
 
 export const jobCount = new Counter({
