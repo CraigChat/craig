@@ -4,24 +4,25 @@ import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/r
 
 import { convertToTimeMark } from './index.js';
 
-export async function getRecordingInfo(recFileBase: string) {
+export async function getRecordingInfo(recFileBase: string, includeAvatars = true) {
   const [info, users] = await Promise.all([
     (async () => {
       const data = await fs.readFile(`${recFileBase}.info`, { encoding: 'utf8' });
       return JSON.parse(data) as RecordingInfo;
     })(),
-    getRecordingUsers(recFileBase)
+    getRecordingUsers(recFileBase, includeAvatars)
   ]);
 
   return { info, users };
 }
 
-export async function getRecordingUsers(recFileBase: string) {
+export async function getRecordingUsers(recFileBase: string, includeAvatars = true) {
   const data = await fs.readFile(`${recFileBase}.users`, { encoding: 'utf8' });
   const userRecord = JSON.parse(`{${data}}`) as Record<number, RecordingUser>;
   return Object.entries(userRecord)
     .map(([i, user]) => ({ ...user, track: parseInt(i) }))
-    .filter((u) => u.track !== 0);
+    .filter((u) => u.track !== 0)
+    .map((u) => (includeAvatars ? u : { ...u, avatar: undefined }));
 }
 
 export async function getInfoText(id: string, info: RecordingInfo, users: RecordingUser[], notes?: RecordingNote[]) {

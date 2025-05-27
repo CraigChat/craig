@@ -31,7 +31,7 @@ export async function processRecordingJob(job: Job) {
   const { id, recFileBase, tmpDir } = job;
   const cancelSignal = job.abortController.signal;
 
-  const { info, users } = await getRecordingInfo(recFileBase);
+  const { info, users } = await getRecordingInfo(recFileBase, false);
   const streamTypes = await getStreamTypes({ recFileBase, cancelSignal });
   const notes = await getNotes({ recFileBase, cancelSignal });
   const trackFiles: string[] = [];
