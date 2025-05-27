@@ -160,40 +160,46 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
   const childPids = await getChildPids(childProcess.pid!, cancelSignal);
 
   const durationNum = parseFloat(duration);
-  childProcess
-    .stderr!.on('data', (b) => {
-      const timemark = getTimemark(b.toString());
-      if (timemark) {
-        job?.setState({
-          type: 'encoding',
-          tracks: {
-            ...(job.state.tracks || {}),
-            [track]: {
-              progress: (timemark[1] / durationNum) * 100,
-              time: timemark[0]
+  const outputStream = createWriteStream(audioWritePath);
+  let abortListener: ((event: Event) => void) | undefined;
+
+  try {
+    childProcess
+      .stderr!.on('data', (b) => {
+        const timemark = getTimemark(b.toString());
+        if (timemark) {
+          job?.setState({
+            type: 'encoding',
+            tracks: {
+              ...(job.state.tracks || {}),
+              [track]: { progress: (timemark[1] / durationNum) * 100, time: timemark[0] }
             }
-          }
-        });
-        // console.log(`     [${timemark[0]}] ${timemark[1]} / ${duration} (${((timemark[1] / durationNum) * 100).toFixed(2)}%)`);
-      }
-    })
-    .once('error', () => {});
+          });
+        }
+      })
+      .once('error', () => {});
 
-  // Prevent further data from stderr from spilling out
-  cancelSignal.addEventListener('abort', () => {
-    childProcess.stderr!.removeAllListeners('data');
-    killPids(childPids, recFileBase, `encodeTrack/${track}`);
-  });
+    // Add abort handler that we can clean up later
+    abortListener = () => {
+      childProcess.stderr!.removeAllListeners('data');
+      killPids(childPids, recFileBase, `encodeTrack/${track}`);
+    };
+    cancelSignal.addEventListener('abort', abortListener);
 
-  childProcess.stdout!.pipe(createWriteStream(audioWritePath));
+    childProcess.stdout!.pipe(outputStream);
 
-  const success = await childProcess
-    .then(() => true)
-    .catch(() => {
-      if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
-      return false;
-    });
-  return success;
+    const success = await childProcess
+      .then(() => true)
+      .catch(() => {
+        if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
+        return false;
+      });
+    return success;
+  } finally {
+    // Clean up event listeners and streams
+    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
+    outputStream.end();
+  }
 }
 
 interface CreateAvatarVideoOptions extends CommonProcessOptions {
@@ -366,29 +372,37 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
 
   const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
   const childPids = await getChildPids(childProcess.pid!, cancelSignal);
+  const outputStream = createWriteStream(audioWritePath);
+  let abortListener: ((event: Event) => void) | undefined;
 
-  const durationNum = parseFloat(duration);
-  childProcess
-    .stderr!.on('data', (b) => {
-      const timemark = getTimemark(b.toString());
-      if (timemark)
-        job?.setState({
-          type: 'encoding',
-          progress: (timemark[1] / durationNum) * 100,
-          time: timemark[0]
-        });
-    })
-    .once('error', () => {});
+  try {
+    const durationNum = parseFloat(duration);
+    childProcess
+      .stderr!.on('data', (b) => {
+        const timemark = getTimemark(b.toString());
+        if (timemark)
+          job?.setState({
+            type: 'encoding',
+            progress: (timemark[1] / durationNum) * 100,
+            time: timemark[0]
+          });
+      })
+      .once('error', () => {});
 
-  // Prevent further data from stderr from spilling out
-  cancelSignal.addEventListener('abort', () => {
-    childProcess.stderr!.removeAllListeners('data');
-    killPids(childPids, recFileBase, 'encodeMix');
-  });
+    abortListener = () => {
+      childProcess.stderr!.removeAllListeners('data');
+      killPids(childPids, recFileBase, 'encodeMix');
+    };
+    cancelSignal.addEventListener('abort', abortListener);
 
-  childProcess.stdout!.pipe(createWriteStream(audioWritePath));
+    childProcess.stdout!.pipe(outputStream);
 
-  await childProcess.catch(() => {});
+    await childProcess.catch(() => {});
+  } finally {
+    // Clean up event listeners and streams
+    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
+    outputStream.end();
+  }
 }
 
 interface RecordingWriteOptions extends CommonProcessOptions {
