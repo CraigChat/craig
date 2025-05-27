@@ -142,8 +142,8 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
       ackd = p;
       acksRecieved.inc();
       if (sending <= ackd + MAX_ACK) {
+        if (paused) logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
         paused = false;
-        logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
         if (!waitingForBackpressure) readable();
       }
     }
