@@ -104,7 +104,8 @@ const app = uWS
       /* This immediately calls open handler, you must not use res after this call */
       res.upgrade(
         {
-          ready: false
+          ready: false,
+          left: false
         },
         req.getHeader('sec-websocket-key'),
         req.getHeader('sec-websocket-protocol'),
@@ -161,6 +162,9 @@ const app = uWS
         if (info.key !== payload.k) return ws.end(4002);
         if (!users[payload.t - 1]) return ws.end(4003);
 
+        // Websocket left before we started
+        if (data.left) return;
+
         try {
           ws.send('{"ok":true}');
         } catch {}
@@ -177,6 +181,7 @@ const app = uWS
     close: (ws) => {
       const data = ws.getUserData();
       if (!data.ready) data.cancelTimeout();
+      data.left = true;
       data.controller?.onEnd();
       openStreams.dec();
       openStreamCount--;

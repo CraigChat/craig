@@ -161,15 +161,15 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const onEnd = () => {
     logger.log(`[${id}-${track}] Stream ended`);
     if (wsEnded) return;
-    killProcess();
     wsEnded = true;
+    killProcess();
     abortController.abort();
     timer();
   };
   const endWS = (code: number = 1000) => {
     if (wsEnded) return;
-    killProcess();
     wsEnded = true;
+    killProcess();
     try {
       ws.end(code);
     } catch {
@@ -186,23 +186,20 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
   const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
   const childProcess = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
   childProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
-  childProcess.on('exit', (code, signal) => {
-    logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`);
-    if (signal === 'SIGTERM') {
-      logger.warn(`[${id}-${track}] SIGTERM from process, we might die...`);
-      endWS(1003);
-    }
-  });
+  childProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
   childProcess.on('error', (e) => {
     logger.log(`[${id}-${track}] Process errored (${e})`);
     endWS(1003);
+  });
+  childProcess.catch((e) => {
+    if (!wsEnded) logger.warn(`[${id}-${track}] Process error: ${e}`);
   });
   const stream = childProcess.stdout;
   stream.on('readable', readable);
   stream.once('end', () => {
     logger.log(`[${id}-${track}] Process stream ended`);
     try {
-      while (buf!.length > 4) sendBuffer();
+      while (buf!.length > 4 && !wsEnded) sendBuffer();
       sendBuffer();
       endWS();
     } catch (e) {

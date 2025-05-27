@@ -10,6 +10,7 @@ export const ROOT_DIR = fileURLToPath(new URL(DEV_MODE ? '../..' : '..', import.
 export type WebsocketData = {
   cancelTimeout(): void;
   ready: boolean;
+  left: boolean;
   controller?: StreamController;
 };
 
