@@ -118,7 +118,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
 
     // Stop accepting data
     if (sending > ackd + MAX_ACK) {
-      logger.log(`[${id}-${track}] Paused after ${sending} (${ackd})`);
+      // logger.log(`[${id}-${track}] Paused after ${sending} (${ackd})`);
       paused = true;
     }
   }
@@ -150,7 +150,7 @@ export function streamController(ws: WebSocket<any>, id: string, track: number):
       ackd = p;
       acksRecieved.inc();
       if (sending <= ackd + MAX_ACK) {
-        if (paused) logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
+        // if (paused) logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
         paused = false;
         if (!waitingForBackpressure) readable();
       }
