@@ -64,7 +64,7 @@ async function cloudUpload(job: Job) {
     logger.info(`Uploaded ${job.recordingId} to ${user.id} via ${user.driveService}`);
   } catch (e) {
     job.outputData.uploadError = true;
-    logger.info(`Failed to upload ${job.recordingId} for ${job.postTaskOptions?.userId} via ${driveService}`, e);
+    logger.error(`Failed to upload ${job.recordingId} for ${job.postTaskOptions?.userId} via ${driveService}`, e);
 
     throw e;
   } finally {
