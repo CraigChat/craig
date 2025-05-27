@@ -11,9 +11,9 @@ all: ../ffmpeg-movqtrle.exe ../ffmpeg-movpng.exe \
 	cd ../ffmpeg-$(FFMPEG_VER) && \
 	mkdir -p build-$* && \
 	cd build-$* && \
-	../configure $(CFG) `cat ../../../ffmpeg-flags/$*.cfg` && \
+	../configure $(CFG) `cat ../../ffmpeg-flags/$*.cfg` && \
 	$(MAKE) && \
-	cp ffmpeg.exe ../../../ffmpeg-$*.exe
+	cp ffmpeg.exe ../../ffmpeg-$*.exe
 
 ffmpeg-$(FFMPEG_VER)/configure:
 	([ -f ../ffmpeg-$(FFMPEG_VER).tar.xz ] || curl https://ffmpeg.org/releases/ffmpeg-$(FFMPEG_VER).tar.xz -o ../ffmpeg-$(FFMPEG_VER).tar.xz) && \

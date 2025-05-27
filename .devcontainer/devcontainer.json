@@ -14,7 +14,8 @@
 			// Legacy dependencies: at
 			// Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies): libtool, yasm
 			// MinGW dependencies for FFmpeg Windows compilation: mingw-w64-tools, gcc-mingw-w64-i686, g++-mingw-w64-i686, libz-mingw-w64, libz-mingw-w64-dev
-			"packages": "ffmpeg,flac,lame,vorbis-tools,opus-tools,node-gyp,libtool,yasm,libfltk1.3,libfltk1.3-dev,at,mingw-w64-tools,gcc-mingw-w64-i686,g++-mingw-w64-i686,libz-mingw-w64,libz-mingw-w64-dev"
+      // Some dependencies for building windows things: fluid
+			"packages": "ffmpeg,flac,lame,vorbis-tools,opus-tools,node-gyp,libtool,yasm,libfltk1.3,libfltk1.3-dev,at,mingw-w64-tools,gcc-mingw-w64-i686,g++-mingw-w64-i686,libz-mingw-w64,libz-mingw-w64-dev,fluid"
 		},
 		"ghcr.io/devcontainers/features/python:1": {
 			"version": "3.10.13",
