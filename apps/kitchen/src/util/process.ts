@@ -31,10 +31,15 @@ export async function getNotes({ recFileBase, cancelSignal }: CommonProcessOptio
 }
 
 export async function getStreamTypes({ recFileBase, cancelSignal }: CommonProcessOptions) {
-  const subprocess = execaCommand('./cook/oggtracks', { cancelSignal, cwd: ROOT_DIR, timeout: 10000 });
-  createReadStream(`${recFileBase}.header1`).pipe(subprocess.stdin!);
-  const { stdout } = await subprocess;
-  return stdout.split('\n') as StreamType[];
+  const stream = createReadStream(`${recFileBase}.header1`);
+  try {
+    const subprocess = execaCommand('./cook/oggtracks', { cancelSignal, cwd: ROOT_DIR, timeout: 10000 });
+    stream.pipe(subprocess.stdin!);
+    const { stdout } = await subprocess;
+    return stdout.split('\n') as StreamType[];
+  } finally {
+    stream.close();
+  }
 }
 
 interface DurationOptions extends Omit<CommonProcessOptions, 'cancelSignal'> {
@@ -68,14 +73,19 @@ function killPids(pids: number[], recFileBase: string, logId: string) {
 }
 
 export async function getDuration({ recFileBase, cancelSignal, track }: DurationOptions) {
-  const subprocess = execaCommand(`${procOpts()} ./cook/oggduration${track ? ` ${track}` : ''}`, {
-    cancelSignal,
-    cwd: ROOT_DIR,
-    timeout: 5 * 60 * 1000
-  });
-  createReadStream(`${recFileBase}.data`).pipe(subprocess.stdin!);
-  const { stdout } = await subprocess;
-  return stdout;
+  const stream = createReadStream(`${recFileBase}.data`);
+  try {
+    const subprocess = execaCommand(`${procOpts()} ./cook/oggduration${track ? ` ${track}` : ''}`, {
+      cancelSignal,
+      cwd: ROOT_DIR,
+      timeout: 5 * 60 * 1000
+    });
+    stream.pipe(subprocess.stdin!);
+    const { stdout } = await subprocess;
+    return stdout;
+  } finally {
+    stream.close();
+  }
 }
 
 export function timemarkToSeconds(timemark: string) {
@@ -198,6 +208,7 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
   } finally {
     // Clean up event listeners and streams
     if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
+    childProcess.stderr.removeAllListeners();
     outputStream.end();
   }
 }
@@ -247,38 +258,46 @@ export async function createAvatarVideo({
 
   const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
   const childPids = await getChildPids(childProcess.pid!, cancelSignal);
+  let abortListener: ((event: Event) => void) | undefined;
 
-  childProcess
-    .stderr!.on('data', (b) => {
-      const timemark = getTimemark(b.toString());
-      if (timemark) {
-        job?.setState({
-          type: 'encoding',
-          tracks: {
-            ...(job.state.tracks || {}),
-            [track]: {
-              progress: (timemark[1] / duration) * 100,
-              time: timemark[0]
+  try {
+    childProcess
+      .stderr!.on('data', (b) => {
+        const timemark = getTimemark(b.toString());
+        if (timemark) {
+          job?.setState({
+            type: 'encoding',
+            tracks: {
+              ...(job.state.tracks || {}),
+              [track]: {
+                progress: (timemark[1] / duration) * 100,
+                time: timemark[0]
+              }
             }
-          }
-        });
-      }
-    })
-    .once('error', () => {});
+          });
+        }
+      })
+      .once('error', () => {});
 
-  // Prevent further data from stderr from spilling out
-  cancelSignal.addEventListener('abort', () => {
-    childProcess.stderr!.removeAllListeners('data');
-    killPids(childPids, recFileBase, `createAvatarVideo/${track}`);
-  });
+    // Add abort handler that we can clean up later
+    abortListener = () => {
+      childProcess.stderr!.removeAllListeners('data');
+      killPids(childPids, recFileBase, `createAvatarVideo/${track}`);
+    };
+    cancelSignal.addEventListener('abort', abortListener);
 
-  const success = await childProcess
-    .then(() => true)
-    .catch(() => {
-      if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to create avatar video track ${track}`);
-      return false;
-    });
-  return success;
+    const success = await childProcess
+      .then(() => true)
+      .catch(() => {
+        if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to create avatar video track ${track}`);
+        return false;
+      });
+    return success;
+  } finally {
+    // Clean up event listeners and streams
+    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
+    childProcess.stderr.removeAllListeners();
+  }
 }
 
 interface ReEncodeTrackOptions {
