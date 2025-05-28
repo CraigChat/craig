@@ -6,6 +6,7 @@ import windowsIcon from '@iconify-icons/cib/windows';
 import auditionIcon from '@iconify-icons/file-icons/adobe-audition';
 import audacityIcon from '@iconify-icons/file-icons/audacity';
 import mp3Icon from '@iconify-icons/mdi/emoticon-frown';
+import fileIcon from '@iconify-icons/mdi/file';
 
 import type { DevicePlatform } from '$lib/device';
 import type { MinimalRecordingInfo } from '$lib/types';
@@ -30,6 +31,7 @@ export type SectionButton = {
   allowNorm?: boolean;
   noIgnore?: boolean;
   showFor?: DevicePlatform[];
+  url?: string;
   features?: MinimalRecordingInfo['features'];
 };
 
@@ -100,6 +102,18 @@ export const audioButtons: SectionButtons = [
       },
       { icon: macIcon, text: { t: 'download.format_buttons.mac_script' }, options: { format: 'powersfxm' }, showFor: ['mac'], noIgnore: true },
       { icon: unixIcon, text: { t: 'download.format_buttons.unix_script' }, options: { format: 'powersfxu' }, showFor: ['unix'], noIgnore: true }
+    ]
+  },
+  {
+    title: { t: 'download.format_buttons.other' },
+    showFor: [],
+    buttons: [
+      {
+        icon: fileIcon,
+        text: 'raw.dat',
+        url: '/raw.dat',
+        noIgnore: true
+      }
     ]
   }
 ];

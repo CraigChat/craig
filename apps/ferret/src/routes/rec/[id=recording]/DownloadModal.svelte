@@ -44,8 +44,9 @@
   let extension = $derived(FormatToExt[button.options?.format ?? ''] ?? button.options?.format);
   let buttonText = $derived(convertT(button.text, $t));
   let sectionText = $derived(convertT(button.section, $t));
+  let descriptionKey = $derived(button.url ?? `${button.options?.format ?? '-'}:${button.options?.container ?? '-'}`);
   let desc = $derived(
-    descriptions[`${button.options?.format ?? '-'}:${button.options?.container ?? '-'}`] ??
+    descriptions[descriptionKey] ??
       (button.options?.container === 'mix'
         ? ({
             file: `.${extension}`,
@@ -88,6 +89,9 @@
       open(ezUrl, '_blank');
       onclose?.();
       ennuizelWarned.set(true);
+    } else if (button.url) {
+      open(`/api/v1/recordings/${recording.id}${button.url}?key=${key}`, '_blank');
+      onclose?.();
     } else
       await postJob(emitter, onclose, recording, key, {
         type: 'recording',
@@ -133,7 +137,7 @@
       <div class="flex flex-col rounded bg-zinc-800">
         <div class="flex gap-2 rounded-t bg-zinc-700 px-2 py-1 text-white">
           <Icon icon={getFileIcon(desc.file)} class="h-6 w-6" />
-          <span>{desc.file.startsWith('.') ? `craig-${recording.id}${desc.file}` : desc.file}</span>
+          <span>{desc.file.startsWith('.') || desc.file.startsWith('-') ? `craig-${recording.id}${desc.file}` : desc.file}</span>
         </div>
         {#if desc.zipContents}
           {#each desc.zipContents as file}

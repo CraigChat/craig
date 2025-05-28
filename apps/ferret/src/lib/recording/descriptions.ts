@@ -104,5 +104,9 @@ export const descriptions: Record<string, Description> = {
       }
     ],
     description: { t: 'download.modal.description.linux_script' }
+  },
+  '/raw.dat': {
+    file: '-raw.dat',
+    description: { t: 'download.modal.description.raw' }
   }
 };

@@ -56,7 +56,8 @@
 				"ms-vscode.makefile-tools",
 				"steveucho.fltk-fluid-syntax-highlighting",
 				"ms-vscode.cpptools-themes",
-				"ahmadalli.vscode-nginx-conf"
+				"ahmadalli.vscode-nginx-conf",
+				"ms-vscode.hexeditor"
 			],
 			"settings": {
 				"eslint.validate": [
