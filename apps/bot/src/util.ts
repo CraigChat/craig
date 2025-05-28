@@ -4,8 +4,8 @@ import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import { CommandContext, DexareCommand } from 'dexare';
 import Eris from 'eris';
 import {
+  AnyComponent,
   ButtonStyle,
-  ComponentActionRow,
   ComponentType,
   EditMessageOptions,
   Member,
@@ -90,11 +90,20 @@ export function cutoffText(text: string, limit = 2000) {
   return text.length > limit ? text.slice(0, limit - 1) + '…' : text;
 }
 
-export function disableComponents(components: ComponentActionRow[]) {
-  return components.map((c) => ({
-    ...c,
-    components: c.components.map((c) => ({ ...c, disabled: true }))
-  }));
+export function disableComponents(components: AnyComponent[]) {
+  if (!components) return components;
+
+  const clone = JSON.parse(JSON.stringify(components));
+
+  function disableButtons(comps: AnyComponent[]) {
+    for (const comp of comps) {
+      if (comp.type === ComponentType.BUTTON) comp.disabled = true;
+      if ('components' in comp && Array.isArray(comp.components)) disableButtons(comp.components);
+    }
+  }
+
+  disableButtons(clone);
+  return clone;
 }
 
 export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | 'major' | 'minor' | 'maintenence'> {
