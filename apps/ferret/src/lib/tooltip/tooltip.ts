@@ -57,7 +57,7 @@ export default (node: HTMLElement, options: Options) => {
     if (key === 'Escape' || key === 'Esc') hide();
   };
 
-  let cleanup: () => void | null;
+  let cleanup: (() => void) | null;
 
   const create = () => {
     if (TIP || visible) return;
@@ -170,12 +170,14 @@ export default (node: HTMLElement, options: Options) => {
   if (constant) {
     show();
   } else {
+    const hoveringOn = () => (hovering = true);
+    const hoveringOff = () => (hovering = false);
     node.addEventListener('mouseenter', show);
-    node.addEventListener('mouseenter', () => (hovering = true));
+    node.addEventListener('mouseenter', hoveringOn);
     node.addEventListener('focus', show);
 
     node.addEventListener('mouseleave', hide);
-    node.addEventListener('mouseleave', () => (hovering = false));
+    node.addEventListener('mouseleave', hoveringOff);
     node.addEventListener('blur', hide);
 
     window.addEventListener('keydown', handleKeys);
@@ -200,8 +202,15 @@ export default (node: HTMLElement, options: Options) => {
           TIP.remove();
           TIP = null;
         }
+        cleanup?.();
+        cleanup = null;
         window.removeEventListener('keydown', handleKeys);
-
+        node.removeEventListener('mouseenter', show);
+        node.removeEventListener('mouseenter', hoveringOn);
+        node.removeEventListener('focus', show);
+        node.removeEventListener('mouseleave', hide);
+        node.removeEventListener('mouseleave', hoveringOff);
+        node.removeEventListener('blur', hide);
         onDestroy?.();
         wasDestroyed = true;
       }

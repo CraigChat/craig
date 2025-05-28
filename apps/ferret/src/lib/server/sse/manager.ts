@@ -11,7 +11,7 @@ const MAX_SSE_CONNECTIONS_PER_GROUP = 5;
 
 class SSEManager {
   jobGroups = new Map<string, SSEGroup>();
-  interval = setInterval(() => this.onIntervalTick(), 1000 * 5) as unknown as number;
+  interval = setInterval(() => this.onIntervalTick(), 1000 * 5) as ReturnType<typeof setInterval>;
 
   constructor() {
     redisSub.on('message', (channel, message) => this.onMessage(channel, message));
@@ -55,7 +55,9 @@ class SSEManager {
 
   async destroy() {
     clearInterval(this.interval);
+    redisSub.removeAllListeners('message');
     for (const group of Array.from(this.jobGroups.values())) await group.destroy();
+    this.jobGroups.clear();
   }
 }
 

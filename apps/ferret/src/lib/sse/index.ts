@@ -46,10 +46,15 @@ export class SSEClient extends Emittery<EmitterEvents> {
 
   connect(url: string | URL, withCredentials = false) {
     if (this.source) this.#close();
-    this.state = ConnectionReadyState.CONNECTING;
-    this.retries = 0;
-    this.source = new EventSource(url, { withCredentials });
-    for (const event in this.#bindings) this.source.addEventListener(event, this.#bindings[event]);
+    try {
+      this.state = ConnectionReadyState.CONNECTING;
+      this.retries = 0;
+      this.source = new EventSource(url, { withCredentials });
+      for (const event in this.#bindings) this.source.addEventListener(event, this.#bindings[event]);
+    } catch (err) {
+      console.error('Failed to create SSE connection:', err);
+      this.#close(true);
+    }
   }
 
   #onOpen() {
@@ -77,9 +82,14 @@ export class SSEClient extends Emittery<EmitterEvents> {
 
   #close(notify = false) {
     if (this.source) {
-      for (const event in this.#bindings) this.source.removeEventListener(event, this.#bindings[event]);
-      this.source.close();
-      this.source = undefined;
+      try {
+        for (const event in this.#bindings) this.source.removeEventListener(event, this.#bindings[event]);
+        this.source.close();
+      } catch (err) {
+        console.error('Error closing SSE connection:', err);
+      } finally {
+        this.source = undefined;
+      }
     }
     this.state = ConnectionReadyState.CLOSED;
     this.retries = 0;

@@ -58,6 +58,7 @@ export class SSEConnection extends EventEmitter {
     this.controller = undefined;
     this.emit('close');
     this.#log('Connection closed');
+    this.removeAllListeners();
   }
 
   #onStreamCancel() {

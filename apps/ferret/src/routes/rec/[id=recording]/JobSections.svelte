@@ -245,9 +245,16 @@
     fetchJob();
     return () => {
       sseClient.close();
+      sseClient.clearListeners();
       stopPolling();
       emitter.off('streamJob', onStreamJob);
       jobOpen.set(false);
+
+      // Extra safety: ensure polling interval is cleared
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
     };
   });
 </script>
