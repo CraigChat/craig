@@ -1,8 +1,10 @@
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
+import { join } from 'path';
 import { PassThrough } from 'stream';
 import { pipeline } from 'stream/promises';
 
+import { REC_DIRECTORY } from '$env/static/private';
 import { errorResponse, getRecordingInfo, recordingExists } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
@@ -21,8 +23,8 @@ export const GET = (async ({ url, params }) => {
   if (recording.info.key !== key) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
   if (recording.users.length !== 0 && !recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
 
-  const basePath = `/workspaces/craig/rec/${id}.ogg`;
-  const files = [`${basePath}.header1`, `${basePath}.header2`, `${basePath}.data`];
+  const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
+  const files = [`${recFileBase}.header1`, `${recFileBase}.header2`, `${recFileBase}.data`];
 
   const sizes = await Promise.all(files.map((file) => stat(file)));
   const totalSize = sizes.reduce((total, stats) => total + stats.size, 0);
