@@ -29,6 +29,8 @@ export function getFileIcon(file: string) {
     case 'wav':
     case 'aac':
     case 'ogg':
+    case 'opus':
+    case 'oga':
       return soundIcon;
     case 'txt':
       return textIcon;

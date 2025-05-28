@@ -58,7 +58,14 @@ export const audioButtons: SectionButtons = [
       { text: 'AAC', suffix: '(MPEG-4)', options: { format: 'aac' }, allowNorm: true },
       { text: 'ALAC', suffix: '(Apple Lossless)', ennuizel: 6, showFor: ['mac'], allowNorm: true },
       { text: 'Ogg Vorbis', options: { format: 'vorbis' }, allowNorm: true },
-      { icon: mp3Icon, text: 'MP3', options: { format: 'mp3' }, features: ['mp3'], allowNorm: true }
+      { icon: mp3Icon, text: 'MP3', options: { format: 'mp3' }, features: ['mp3'], allowNorm: true },
+
+      // Other formats
+      { text: 'Ogg FLAC', options: { format: 'oggflac' }, showFor: [], allowNorm: true },
+      { text: 'HE-AAC', options: { format: 'heaac' }, showFor: [], allowNorm: true },
+      { text: 'Opus', options: { format: 'opus' }, showFor: [], allowNorm: true },
+      { text: 'ADPCM wav', options: { format: 'adpcm' }, showFor: [], allowNorm: true },
+      { text: '8-bit wav', options: { format: 'wav8' }, showFor: [], allowNorm: true }
     ]
   },
   {

@@ -32,8 +32,16 @@
     onclose?: () => void;
   }
 
+  const FormatToExt: Record<string, string> = {
+    heaac: 'aac',
+    vorbis: 'ogg',
+    oggflac: 'oga',
+    adpcm: 'wav',
+    wav8: 'wav'
+  };
+
   let { emitter, button, onclose }: Props = $props();
-  let extension = $derived(button.options?.format === 'vorbis' ? 'ogg' : button.options?.format);
+  let extension = $derived(FormatToExt[button.options?.format ?? ''] ?? button.options?.format);
   let buttonText = $derived(convertT(button.text, $t));
   let sectionText = $derived(convertT(button.section, $t));
   let desc = $derived(

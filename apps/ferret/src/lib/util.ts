@@ -113,8 +113,16 @@ export const currentTime = writable(Math.floor(Date.now() / 1000), (set, update)
   return () => clearInterval(interval);
 });
 
+const FormatToName: Record<string, string> = {
+  vorbis: 'Ogg Vorbis',
+  oggflac: 'Ogg FLAC',
+  heaac: 'HE-AAC',
+  adpcm: 'ADPCM wav',
+  wav8: '8-bit wav'
+};
+
 function normalizeFormat(format?: string) {
-  return format === 'vorbis' ? 'Ogg Vorbis' : (format || 'flac').toUpperCase();
+  return (format ? FormatToName[format] : undefined) ?? (format || 'flac').toUpperCase();
 }
 
 export function getNameFromJob(job: MinimalJobInfo, t: (id: string) => string) {

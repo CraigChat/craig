@@ -15,7 +15,9 @@ const ExtToMime: Record<string, string> = {
   wav: 'audio/wav',
   zip: 'application/zip',
   exe: 'application/exe',
-  mp3: 'audio/mpeg'
+  mp3: 'audio/mpeg',
+  oga: 'audio/ogg',
+  opus: 'audio/ogg'
 };
 
 async function getStat(path: string) {
