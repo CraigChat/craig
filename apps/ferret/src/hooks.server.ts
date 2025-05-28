@@ -7,7 +7,7 @@ import { processUserAgent } from '$lib/device';
 const CYRILLIC_LANGS = ['be', 'ru', 'uk'];
 
 export const handle: Handle = async ({ event, resolve }) => {
-  const lang = event.cookies.get(localeCookieName) || event.request.headers.get('accept-language')?.split(',')[0];
+  const lang = event.cookies.get(localeCookieName) || event.request.headers.get('accept-language')?.split(',')[0]?.split(';')[0];
   const includeCyrillic = lang && CYRILLIC_LANGS.some((l) => lang.startsWith(l));
   if (lang) locale.set(lang);
   const userAgent = event.request.headers.get('user-agent');
