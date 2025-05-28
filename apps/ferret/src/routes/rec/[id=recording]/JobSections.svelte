@@ -280,6 +280,11 @@
           {/if}
         </div>
       {/if}
+      {#if userTracks.some((t) => t.ignored)}
+        <span class="rounded-full bg-white/10 bg-zinc-700 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
+          {$t('download.exclude_user.count', { values: { count: userTracks.filter((t) => t.ignored).length } })}
+        </span>
+      {/if}
     </div>
     <div class="inline-flex items-start justify-start gap-3 self-stretch">
       <Button
@@ -352,6 +357,11 @@
               • {$t('job.duration', { values: { duration: formatMilliseconds(finished - started, 3) } })}
             {/if}
           </div>
+        {/if}
+        {#if userTracks.some((t) => t.ignored)}
+          <span class="rounded-full bg-white/10 bg-zinc-700 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
+            {$t('download.exclude_user.count', { values: { count: userTracks.filter((t) => t.ignored).length } })}
+          </span>
         {/if}
       </div>
       {#if startedHere && status === 'complete'}
