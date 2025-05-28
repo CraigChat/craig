@@ -1,5 +1,6 @@
 import { STATUS_CODES } from 'node:http';
 import { join } from 'node:path';
+import { writeHeapSnapshot } from 'node:v8';
 
 import { startMetricsServer } from '@craig/metrics';
 import destr from 'destr';
@@ -36,6 +37,13 @@ const app = uWS
   .get('/health', (res) => {
     const timer = requestHistogram.startTimer({ route: '/health' });
     send(res, { timer, status: 200, data: { ok: true } });
+  })
+  .post('/_writeHeapSnapshot', async (res, req) => {
+    if (req.getHeader('x-real-ip') || req.getHeader('cf-connecting-ip')) return send(res, { status: 401, data: { ok: false } });
+    if (!process.env.SNAPSHOT_KEY || req.getHeader('authorization') !== process.env.SNAPSHOT_KEY)
+      return send(res, { status: 401, data: { ok: false } });
+    const filename = writeHeapSnapshot();
+    send(res, { status: 200, data: { filename } });
   })
   .get('/api/recording/:id/users', async (res, req) => {
     const timer = requestHistogram.startTimer({ route: '/recording/:id/users' });
