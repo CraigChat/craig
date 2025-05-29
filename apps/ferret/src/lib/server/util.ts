@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Kitchen, Recording } from '@craig/types';
+import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 import { json } from '@sveltejs/kit';
 import clone from 'just-clone';
 
@@ -252,4 +253,55 @@ export function minimizeJobUpdate(update: Kitchen.JobUpdate): MinimalJobUpdate {
     outputSize: update.outputSize,
     finishedAt: update.finishedAt
   };
+}
+
+export function convertToTimeMark(seconds: number, includeHours?: boolean): string {
+  if (isNaN(seconds) || seconds < 0) return '00:00:00';
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+  const formattedSeconds = remainingSeconds < 10 ? `0${remainingSeconds.toFixed(2)}` : `${remainingSeconds.toFixed(2)}`;
+
+  return `${hours === 0 && !includeHours ? '' : `${formattedHours}:`}${formattedMinutes}:${formattedSeconds}`;
+}
+
+export function getInfoText(id: string, info: RecordingInfo, users: RecordingUser[], notes?: RecordingNote[]) {
+  let txt =
+    'Recording ' +
+    id +
+    '\r\n' +
+    '\r\n' +
+    'Guild:\t\t' +
+    (info.guildExtra ? `${info.guildExtra.name} (${info.guildExtra.id})` : info.guild) +
+    '\r\n' +
+    'Channel:\t' +
+    (info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel) +
+    '\r\n' +
+    'Requester:\t' +
+    (info.requesterExtra ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})` : info.requester) +
+    '\r\n' +
+    'Start time:\t' +
+    info.startTime +
+    '\r\n' +
+    '\r\n' +
+    'Tracks:\r\n';
+
+  for (let i = 0; i < users.length; i++) {
+    const user = users[i];
+    txt += `\t${user.username}#${user.discriminator} (${user.id})\r\n`;
+  }
+
+  if (notes && notes.length) {
+    txt += '\r\nNotes:\r\n';
+    for (let i = 0; i < notes.length; i++) {
+      const note = notes[i];
+      txt += `\t${convertToTimeMark(parseFloat(note.time), true)}: ${note.note}\r\n`;
+    }
+  }
+
+  return txt;
 }

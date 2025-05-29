@@ -108,5 +108,9 @@ export const descriptions: Record<string, Description> = {
   '/raw.dat': {
     file: '-raw.dat',
     description: { t: 'download.modal.description.raw' }
+  },
+  '/info.txt': {
+    file: '-info.txt',
+    description: { t: 'download.modal.description.infotxt' }
   }
 };

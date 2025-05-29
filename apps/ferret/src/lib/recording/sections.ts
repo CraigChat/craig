@@ -7,6 +7,7 @@ import auditionIcon from '@iconify-icons/file-icons/adobe-audition';
 import audacityIcon from '@iconify-icons/file-icons/audacity';
 import mp3Icon from '@iconify-icons/mdi/emoticon-frown';
 import fileIcon from '@iconify-icons/mdi/file';
+import textFileIcon from '@iconify-icons/mdi/file-text';
 
 import type { DevicePlatform } from '$lib/device';
 import type { MinimalRecordingInfo } from '$lib/types';
@@ -112,6 +113,12 @@ export const audioButtons: SectionButtons = [
         icon: fileIcon,
         text: 'raw.dat',
         url: '/raw.dat',
+        noIgnore: true
+      },
+      {
+        icon: textFileIcon,
+        text: 'info.txt',
+        url: '/info.txt',
         noIgnore: true
       }
     ]
