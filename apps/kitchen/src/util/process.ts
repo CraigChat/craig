@@ -377,7 +377,7 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
     if (co >= 32) {
       filter += `${mixFilter} amix=${co},dynaudnorm[aud${co}];`;
       mixFilter = `[aud${co}]`;
-      co = 0;
+      co = 1;
     }
   }
 
