@@ -249,9 +249,6 @@ importers:
       just-range:
         specifier: ^4.2.0
         version: 4.2.0
-      just-split:
-        specifier: ^3.2.0
-        version: 3.2.0
       just-throttle:
         specifier: ^4.2.0
         version: 4.2.0
@@ -2739,9 +2736,6 @@ packages:
 
   just-range@4.2.0:
     resolution: {integrity: sha512-z2Ip8H2j7a9Vr8rKFi0IZf4IXn2Yuq2lGZFS41GjfPwksoHWTaTx1xIjU6C0HyQ1jBXEoz/FzjS5eyVXeW19tg==}
-
-  just-split@3.2.0:
-    resolution: {integrity: sha512-hh57dN5koTBkmg3T6gBFISVVaW5bgZ6Ct1W5KODD5M7hQJKqGzTKkfMwOil8MBxyztLQEjh/v6UGXE8cP5tnqQ==}
 
   just-throttle@4.2.0:
     resolution: {integrity: sha512-/iAZv1953JcExpvsywaPKjSzfTiCLqeguUTE6+VmK15mOcwxBx7/FHrVvS4WEErMR03TRazH8kcBSHqMagYIYg==}
@@ -6324,8 +6318,6 @@ snapshots:
   just-clone@6.2.0: {}
 
   just-range@4.2.0: {}
-
-  just-split@3.2.0: {}
 
   just-throttle@4.2.0: {}
 

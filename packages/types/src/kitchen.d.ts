@@ -33,7 +33,7 @@ export interface CreateJobOptions {
   tags?: JobTags;
   options?: {
     parallel?: boolean;
-    batchBy?: number;
+    concurrency?: number;
 
     format?: FormatType;
     container?: ContainerType;

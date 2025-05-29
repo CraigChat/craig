@@ -166,7 +166,7 @@ export async function processRecordingJob(job: Job) {
 
     await runParallelFunction({
       parallel: job.options?.parallel,
-      batchBy: job.options?.batchBy,
+      concurrency: job.options?.concurrency,
       userCount: users.length,
       cancelSignal,
       fn: createTrack

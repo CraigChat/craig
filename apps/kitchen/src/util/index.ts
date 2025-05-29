@@ -7,7 +7,6 @@ import { FormatType } from '@craig/types/kitchen';
 import { RecordingUser } from '@craig/types/recording';
 import { Error as DropboxError } from 'dropbox';
 import range from 'just-range';
-import split from 'just-split';
 
 export const ROOT_DIR = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -150,13 +149,13 @@ export function formatError(e: Error) {
 
 export interface RunParallelFunctionOptions {
   parallel?: boolean;
-  batchBy?: number;
+  concurrency?: number;
   userCount: number;
   cancelSignal: AbortSignal;
   fn: (index: number) => Promise<void>;
 }
 
-export async function runParallelFunction({ parallel, userCount, batchBy, cancelSignal, fn }: RunParallelFunctionOptions) {
+export async function runParallelFunction({ parallel, userCount, concurrency, cancelSignal, fn }: RunParallelFunctionOptions) {
   function fnWrapped(i: number) {
     if (cancelSignal.aborted) throw new Error('Function was aborted');
     return fn(i);
@@ -164,9 +163,25 @@ export async function runParallelFunction({ parallel, userCount, batchBy, cancel
 
   if (parallel) {
     setMaxListeners(userCount * 2, cancelSignal);
-    if (batchBy) {
-      const batches = split(range(userCount), batchBy);
-      for (const batch of batches) await Promise.all(batch.map(fnWrapped));
+    if (concurrency) {
+      const pendingUsers = range(userCount);
+      const promises: Promise<unknown>[] = [];
+
+      // Run them all
+      while (pendingUsers.length) {
+        // Add promises
+        while (pendingUsers.length && promises.length < concurrency) {
+          const i = pendingUsers.shift();
+          if (typeof i === 'number') promises.push(fnWrapped(i));
+        }
+
+        // Wait for one to finish
+        const idx = await Promise.race(promises.map((x, idx) => x.then(() => idx)));
+        promises.splice(idx, 1);
+      }
+
+      // Wait for them all to finish
+      await Promise.all(promises);
     } else await Promise.all(range(userCount).map(fnWrapped));
   } else {
     for (let i = 0; i < userCount; i++) await fnWrapped(i);

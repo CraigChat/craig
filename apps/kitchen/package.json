@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@craig/db": "workspace:*",
-    "@craig/metrics": "workspace:*",
     "@craig/logger": "workspace:*",
+    "@craig/metrics": "workspace:*",
     "common-tags": "^1.8.2",
     "cron": "^4.3.0",
     "dotenv": "^16.5.0",
@@ -30,7 +30,6 @@
     "he": "^1.2.0",
     "ioredis": "^5.6.1",
     "just-range": "^4.2.0",
-    "just-split": "^3.2.0",
     "just-throttle": "^4.2.0",
     "just-zip-it": "^3.2.0",
     "ms": "^2.1.3",
