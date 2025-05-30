@@ -17,7 +17,7 @@ import { writeHeapSnapshot } from 'v8';
 import JobManager from './jobs/manager.js';
 import { dropboxPreflight } from './jobs/upload/dropbox.js';
 import { googlePreflight } from './jobs/upload/google.js';
-import { microsoftPreflight } from './jobs/upload/microsoft.js';
+import { onedrivePreflight } from './jobs/upload/onedrive.js';
 import { REC_DIRECTORY } from './util/config.js';
 import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
@@ -177,16 +177,25 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
   switch (user.driveService) {
     case 'google': {
       const result = await googlePreflight(userId);
-      if (!result) return send(400, { error: 'auth_invalidated' });
+      if (!result) {
+        logger.info(`Failed google upload preflight on recording ${id} for user ${userId}`);
+        return send(400, { error: 'auth_invalidated' });
+      }
       postTaskOptions.googleFolderId = result.folderId;
       break;
     }
-    case 'microsoft': {
-      if (!(await microsoftPreflight(userId))) return send(400, { error: 'auth_invalidated' });
+    case 'onedrive': {
+      if (!(await onedrivePreflight(userId))) {
+        logger.info(`Failed onedrive upload preflight on recording ${id} for user ${userId}`);
+        return send(400, { error: 'auth_invalidated' });
+      }
       break;
     }
     case 'dropbox': {
-      if (!(await dropboxPreflight(userId))) return send(400, { error: 'auth_invalidated' });
+      if (!(await dropboxPreflight(userId))) {
+        logger.info(`Failed dropbox upload preflight on recording ${id} for user ${userId}`);
+        return send(400, { error: 'auth_invalidated' });
+      }
       break;
     }
   }

@@ -9,7 +9,7 @@ import { getRecordingInfo } from '../util/recording.js';
 import type { Job } from './job.js';
 import { dropboxUpload } from './upload/dropbox.js';
 import { googleUpload } from './upload/google.js';
-import { microsoftUpload } from './upload/microsoft.js';
+import { onedriveUpload } from './upload/onedrive.js';
 
 export const postTasks: { [name: string]: (job: Job) => Promise<void> } = {
   download: moveToDownloads,
@@ -51,8 +51,8 @@ async function cloudUpload(job: Job) {
         await googleUpload(job, info, fileName);
         break;
       }
-      case 'microsoft': {
-        await microsoftUpload(job, info, fileName);
+      case 'onedrive': {
+        await onedriveUpload(job, info, fileName);
         break;
       }
       case 'dropbox': {

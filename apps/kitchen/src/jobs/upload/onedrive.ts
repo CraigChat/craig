@@ -40,7 +40,7 @@ async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToke
   return null;
 }
 
-export async function microsoftPreflight(userId: string) {
+export async function onedrivePreflight(userId: string) {
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return false;
   const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
   if (!driveUser) return false;
@@ -53,7 +53,7 @@ export async function microsoftPreflight(userId: string) {
   return true;
 }
 
-export async function microsoftUpload(job: Job, info: RecordingInfo, fileName: string) {
+export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: string) {
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return;
 
   const userId = job.postTaskOptions!.userId!;
