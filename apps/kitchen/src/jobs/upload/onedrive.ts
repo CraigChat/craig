@@ -1,5 +1,4 @@
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { open, stat } from 'node:fs/promises';
 
 import { prisma } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
@@ -9,7 +8,7 @@ import { getRecordingDescription, UploadError } from '../../util/index.js';
 import logger from '../../util/logger.js';
 import { Job } from '../job.js';
 
-const CHUNKS_PER_DRIVE_UPLOAD = 20;
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 
 async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToken: string, userId: string) {
   const user = await fetch('https://graph.microsoft.com/v1.0/me', {
@@ -53,6 +52,46 @@ export async function onedrivePreflight(userId: string) {
   return true;
 }
 
+async function chunkUpload(job: Job, uploadUrl: string) {
+  const fileSize = (await stat(job.outputFile)).size;
+  const fd = await open(job.outputFile, 'r');
+  let start = 0;
+
+  while (start < fileSize) {
+    const end = Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+    const length = end - start + 1;
+
+    const buffer = Buffer.alloc(length);
+    await fd.read(buffer, 0, length, start);
+
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Length': length.toString(),
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`
+      },
+      body: buffer,
+      signal: job.abortController.signal
+    });
+
+    // 202 = more chunks needed, 200/201 = completed
+    if (res.status === 200 || res.status === 201) {
+      console.log('Upload complete!');
+      const result = await res.json();
+      await fd.close();
+      return result;
+    } else if (res.status !== 202) {
+      const data = await res.json().catch(() => null);
+      await fd.close();
+      throw new UploadError(`OneDrive Error (${res.status}): ${data?.error?.message || 'UnexpectedError'}`);
+    }
+
+    start += CHUNK_SIZE;
+  }
+
+  await fd.close();
+}
+
 export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: string) {
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return;
 
@@ -67,12 +106,13 @@ export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: st
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({
-        '@microsoft.graph.conflictBehavior': 'rename',
-        name: `${fileName}.${job.getExtension()}`,
         item: {
-          description: getRecordingDescription(job.recordingId, info, ' - ')
-        }
-      })
+          '@microsoft.graph.conflictBehavior': 'rename',
+          name: `${fileName}.${job.getExtension()}`
+        },
+        deferCommit: true
+      }),
+      signal: job.abortController.signal
     }
   );
 
@@ -85,51 +125,17 @@ export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: st
   }
 
   const uploadUrl = (await uploadSession.json()).uploadUrl as string;
+  const file = await chunkUpload(job, uploadUrl);
 
-  const fileSize = (await stat(job.outputFile)).size;
-  const readStream = createReadStream(job.outputFile);
-
-  const file: any = await new Promise((resolve, reject) => {
-    let uploadedBytes = 0;
-    let chunksToUploadSize = 0;
-    let chunks: Buffer[] = [];
-
-    readStream.on('data', async (chunk) => {
-      chunks.push(chunk as Buffer);
-      chunksToUploadSize += chunk.length;
-
-      // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-      if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
-        readStream.pause();
-
-        const response = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Length': String(chunksToUploadSize),
-            'Content-Range': 'bytes ' + uploadedBytes + '-' + (uploadedBytes + chunksToUploadSize - 1) + '/' + fileSize
-          },
-          body: Buffer.concat(chunks, chunksToUploadSize)
-        });
-
-        if (response.status >= 400) {
-          readStream.close();
-          const data = await response.json().catch(() => null);
-          return reject(new UploadError(`OneDrive Error (${response.status}): ${data?.error?.message || 'UnexpectedError'}`));
-        }
-
-        // update uploaded bytes
-        uploadedBytes += chunksToUploadSize;
-
-        // reset for next chunks
-        chunks = [];
-        chunksToUploadSize = 0;
-
-        if (response.status === 201 || response.status === 203 || response.status === 200) return resolve(await response.json());
-
-        readStream.resume();
-      }
-    });
-  });
+  // Since I can't just set the description in the upload session, here's an update to set it instead.
+  await fetch(`https://graph.microsoft.com/v1.0/drive/items/${file.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({
+      description: getRecordingDescription(job.recordingId, info, ' - ')
+    }),
+    signal: job.abortController.signal
+  }).catch(() => {});
 
   // // Set file icon
   // if (info.guildExtra.icon) {
