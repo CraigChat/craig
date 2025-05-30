@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 
-import { prisma } from '@craig/db';
+import { GoogleDriveUser, prisma } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 import { type drive_v3, google } from 'googleapis';
 
@@ -32,27 +32,34 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive, userId: st
   }
 }
 
-export async function googlePreflight(userId: string) {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return false;
-
+function createOAuthClient(driveUser: GoogleDriveUser) {
   const oAuth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
-  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
-  if (!driveUser) return;
+
   oAuth2Client.setCredentials({
     access_token: driveUser.token,
     refresh_token: driveUser.refreshToken
   });
 
-  const drive = google.drive({ version: 'v3', auth: oAuth2Client });
   oAuth2Client.on('tokens', async (tokens) => {
-    if (tokens.refresh_token)
-      await prisma.googleDriveUser.update({
-        where: { id: userId },
-        data: {
-          refreshToken: tokens.refresh_token
-        }
-      });
+    await prisma.googleDriveUser.update({
+      where: { id: driveUser.id },
+      data: {
+        token: tokens.access_token!,
+        ...(tokens.refresh_token && { refreshToken: tokens.refresh_token })
+      }
+    });
   });
+
+  return oAuth2Client;
+}
+
+export async function googlePreflight(userId: string) {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return false;
+
+  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
+  if (!driveUser) return;
+  const oAuth2Client = createOAuthClient(driveUser);
+  const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 
   const folderId = await findCraigDirectoryInGoogleDrive(drive, userId);
   if (!folderId) return false;
@@ -62,24 +69,10 @@ export async function googlePreflight(userId: string) {
 export async function googleUpload(job: Job, info: RecordingInfo, fileName: string) {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return;
   const userId = job.postTaskOptions!.userId!;
-  const oAuth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
   const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
   if (!driveUser) return;
-  oAuth2Client.setCredentials({
-    access_token: driveUser.token,
-    refresh_token: driveUser.refreshToken
-  });
-
+  const oAuth2Client = createOAuthClient(driveUser);
   const drive = google.drive({ version: 'v3', auth: oAuth2Client });
-  oAuth2Client.on('tokens', async (tokens) => {
-    if (tokens.refresh_token)
-      await prisma.googleDriveUser.update({
-        where: { id: userId },
-        data: {
-          refreshToken: tokens.refresh_token
-        }
-      });
-  });
 
   const folderId = job.postTaskOptions?.googleFolderId || (await findCraigDirectoryInGoogleDrive(drive, userId));
   if (!folderId) throw new UploadError('Your Google authentication was invalidated, please re-authenticate.');
