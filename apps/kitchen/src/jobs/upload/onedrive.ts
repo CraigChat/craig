@@ -76,7 +76,6 @@ async function chunkUpload(job: Job, uploadUrl: string) {
 
     // 202 = more chunks needed, 200/201 = completed
     if (res.status === 200 || res.status === 201) {
-      console.log('Upload complete!');
       const result = await res.json();
       await fd.close();
       return result;
@@ -109,8 +108,7 @@ export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: st
         item: {
           '@microsoft.graph.conflictBehavior': 'rename',
           name: `${fileName}.${job.getExtension()}`
-        },
-        deferCommit: true
+        }
       }),
       signal: job.abortController.signal
     }
