@@ -49,8 +49,7 @@ export async function googlePreflight(userId: string) {
       await prisma.googleDriveUser.update({
         where: { id: userId },
         data: {
-          refreshToken: tokens.refresh_token,
-          token: tokens.access_token ?? undefined
+          refreshToken: tokens.refresh_token
         }
       });
   });
