@@ -3,8 +3,10 @@
 set -e
 
 if [ -f /.dockerenv ] || grep -qE 'docker|kubepods|containerd' /proc/1/cgroup; then
+  IS_CONTAINER=true
   SUDO=""
 else
+  IS_CONTAINER=false
   SUDO="sudo"
 fi
 
@@ -39,7 +41,9 @@ start_redis() {
   set +e
 
   if ! redis-cli -h "$REDIS_HOST" ping | grep -q "PONG"; then
-    $SUDO systemctl enable --now redis-server # is disabled by default
+    if [ "$IS_CONTAINER" = false ]; then
+      $SUDO systemctl enable --now redis-server # is disabled by default
+    fi
 
     start_time_s=$(date +%s)
 
@@ -70,7 +74,9 @@ start_postgresql() {
   set +e
 
   if ! pg_isready -h "$POSTGRESQL_HOST"; then
-    $SUDO systemctl enable --now postgresql # is enabled by default
+    if [ "$IS_CONTAINER" = false ]; then
+      $SUDO systemctl enable --now postgresql # is enabled by default
+    fi
 
     start_time_s=$(date +%s)
 
@@ -90,30 +96,30 @@ start_postgresql() {
   set -e
 
   # create postgreSQL database if it doesn't already exist
-  if $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -lqt | cut -d \| -f 1 | grep -qw "$DATABASE_NAME"; then
+  if psql -h "$POSTGRESQL_HOST" -U postgres -lqt | cut -d \| -f 1 | grep -qw "$DATABASE_NAME"; then
     info "PostgreSQL database '$DATABASE_NAME' already exists."
   else
     # we need to be the postgres superuser to create a db
     # -i to avoid the "could not  change directory to '...': Permission denied message"
-    $SUDO -u postgres -i createdb -h "$POSTGRESQL_HOST" "$DATABASE_NAME"
+    createdb -h "$POSTGRESQL_HOST" "$DATABASE_NAME" -U postgres
   fi
 
   # Don't know if this is strictly needed, but add user to run this database
 
   # Check if user exists
-  if ! $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -t -c '\du' | cut -d \| -f 1 | grep -qw "$POSTGRESQL_USER"; then
+  if ! psql -U postgres -h "$POSTGRESQL_HOST" -t -c '\du' | cut -d \| -f 1 | grep -qw "$POSTGRESQL_USER"; then
     # Create user if it doesn't exist
-    $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -c "CREATE USER $POSTGRESQL_USER WITH PASSWORD '$POSTGRESQL_PASSWORD';"
+    psql -U postgres -h "$POSTGRESQL_HOST" -c "CREATE USER $POSTGRESQL_USER WITH PASSWORD '$POSTGRESQL_PASSWORD';"
   else
     info "PostgreSQL user '$POSTGRESQL_USER' already exists."
   fi
 
-  $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $POSTGRESQL_USER;"
-  $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT ALL ON SCHEMA public TO $POSTGRESQL_USER;"
-  $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -c "GRANT USAGE ON SCHEMA public TO $POSTGRESQL_USER;"
-  $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -c "ALTER DATABASE $DATABASE_NAME OWNER TO $POSTGRESQL_USER;"
+  psql -U postgres -h "$POSTGRESQL_HOST" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE_NAME TO $POSTGRESQL_USER;"
+  psql -U postgres -h "$POSTGRESQL_HOST" -c "GRANT ALL ON SCHEMA public TO $POSTGRESQL_USER;"
+  psql -U postgres -h "$POSTGRESQL_HOST" -c "GRANT USAGE ON SCHEMA public TO $POSTGRESQL_USER;"
+  psql -U postgres -h "$POSTGRESQL_HOST" -c "ALTER DATABASE $DATABASE_NAME OWNER TO $POSTGRESQL_USER;"
 
-  $SUDO -u postgres -i psql -h "$POSTGRESQL_HOST" -c "\l" # unnecessary but just for debugging
+  psql -U postgres -h "$POSTGRESQL_HOST" -c "\l" # unnecessary but just for debugging
 }
 
 start_app() {
