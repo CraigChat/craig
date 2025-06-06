@@ -1,4 +1,6 @@
 import { join } from 'node:path';
+import { Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import type { RecordingNote } from '@craig/types/recording';
 import { execaCommand } from 'execa';
@@ -57,172 +59,190 @@ export type StreamController = {
   setPaused: (value: boolean) => boolean;
 };
 
-export function streamController(ws: WebSocket<WebsocketData>, id: string, track: number): StreamController {
-  const timer = wsHistogram.startTimer();
-  let paused = false,
-    waitingForBackpressure = false,
-    ackd = -1,
-    sending = 0,
-    buf: Buffer | null = Buffer.alloc(4);
+class WebSocketStream extends Transform {
+  private buffer: Buffer = Buffer.alloc(0);
+  private sending = 0;
+  private ackd = -1;
+  private shouldPause = false;
+  private waitingForBackpressure = false;
+  private wsEnded = false;
 
-  buf.writeUInt32LE(sending, 0);
-
-  function onError(e: any) {
-    logger.warn(`[${id}-${track}] Stream error`, e);
-    endWS(1011);
+  constructor(
+    private readonly ws: WebSocket<WebsocketData>,
+    private readonly id: string,
+    private readonly track: number
+  ) {
+    super();
   }
 
-  function readable() {
-    if (paused || waitingForBackpressure) return;
+  _transform(chunk: Buffer, encoding: string, callback: (error?: Error | null, data?: any) => void) {
     try {
-      let chunk;
-      while ((chunk = stream.read(SEND_SIZE))) {
-        setData(chunk);
-        if (paused || waitingForBackpressure) break;
-      }
+      this.setData(chunk);
+      callback();
     } catch (e) {
-      onError(e);
+      callback(e instanceof Error ? e : new Error(String(e)));
     }
   }
 
-  function setData(chunk: Buffer) {
-    buf = Buffer.concat([buf!, chunk]);
-    while (buf.length >= SEND_SIZE && !ws.getUserData().left) sendBuffer();
+  private setData(chunk: Buffer) {
+    this.buffer = Buffer.concat([this.buffer, chunk]);
+    while (this.buffer.length >= SEND_SIZE - 4 && !this.ws.getUserData().left) {
+      this.sendBuffer();
+    }
   }
 
-  function sendBuffer() {
-    if (wsEnded || ws.getUserData().left) return;
+  private sendBuffer() {
+    if (this.wsEnded || this.ws.getUserData().left) return;
 
     // Get the sendable part
     let toSend: Buffer;
-    if (buf!.length > SEND_SIZE) {
-      toSend = buf!.subarray(0, SEND_SIZE);
-      buf = buf!.subarray(SEND_SIZE);
+    if (this.buffer.length > SEND_SIZE - 4) {
+      const chunk = this.buffer.subarray(0, SEND_SIZE - 4);
+
+      const seqHeader = Buffer.alloc(4);
+      seqHeader.writeUInt32LE(this.sending, 0);
+      toSend = Buffer.concat([seqHeader, chunk]);
+
+      this.buffer = this.buffer.subarray(SEND_SIZE - 4);
     } else {
-      toSend = buf!;
-      buf = null;
+      const seqHeader = Buffer.alloc(4);
+      seqHeader.writeUInt32LE(this.sending, 0);
+
+      toSend = Buffer.concat([seqHeader, this.buffer]);
+      this.buffer = Buffer.alloc(0);
     }
 
-    const status = ws.send(toSend, true);
+    const status = this.ws.send(toSend, true);
     if (status !== 1) {
-      logger.warn(`Recieved status after sending ${sending}[${ackd}]: ${status} (bp: ${ws.getBufferedAmount()})`);
-      waitingForBackpressure = true;
+      logger.warn(`Recieved status after sending ${this.sending}[${this.ackd}]: ${status} (bp: ${this.ws.getBufferedAmount()})`);
+      this.waitingForBackpressure = true;
+      this.pause();
     }
     dataSent.inc(toSend.byteLength);
 
-    const hdr = Buffer.alloc(4);
-    sending++;
-    hdr.writeUInt32LE(sending, 0);
-    if (buf) buf = Buffer.concat([hdr, buf]);
-    else buf = hdr;
+    this.sending++;
 
     // Stop accepting data
-    if (sending > ackd + MAX_ACK) paused = true;
+    if (this.sending > this.ackd + MAX_ACK) {
+      this.shouldPause = true;
+      this.pause();
+    }
   }
 
-  function killProcess() {
+  setPaused(value: boolean): boolean {
+    this.shouldPause = value;
+    if (value) {
+      this.pause();
+    } else if (!this.waitingForBackpressure) {
+      this.resume();
+    }
+    return value;
+  }
+
+  onMessage(message: ArrayBuffer) {
+    const msg = Buffer.from(message);
+    const cmd = msg.readUInt32LE(0);
+    const p = msg.readUInt32LE(4);
+    if (cmd !== 0) {
+      logger.warn(`[${this.id}-${this.track}] Got an unexpected command (${cmd})`);
+      this.endStream(1003);
+      return;
+    }
+    if (p > this.ackd) {
+      this.ackd = p;
+      acksRecieved.inc();
+      if (this.sending <= this.ackd + MAX_ACK) {
+        this.shouldPause = false;
+        if (!this.waitingForBackpressure) {
+          this.resume();
+        }
+      }
+    }
+  }
+
+  onDrain() {
+    logger.info(`[${this.id}-${this.track}] Backpressure drained (${this.ws.getBufferedAmount()})`);
+    this.waitingForBackpressure = false;
+    if (!this.shouldPause) {
+      this.resume();
+    }
+  }
+
+  endStream(code = 1000) {
+    if (!this.wsEnded) {
+      this.wsEnded = true;
+      try {
+        if (!this.ws.getUserData().left) {
+          this.ws.end(code);
+        }
+      } catch {
+        try {
+          if (!this.ws.getUserData().left) {
+            this.ws.close();
+          }
+        } catch {}
+      }
+    }
+  }
+
+  _final(callback: (error?: Error | null) => void) {
+    try {
+      while (this.buffer.length > 4 && !this.ws.getUserData().left) {
+        this.sendBuffer();
+      }
+      this.sendBuffer();
+      this.endStream();
+      callback();
+    } catch (e) {
+      callback(e instanceof Error ? e : new Error(String(e)));
+    }
+  }
+}
+
+export function streamController(ws: WebSocket<WebsocketData>, id: string, track: number): StreamController {
+  const timer = wsHistogram.startTimer();
+  const wsStream = new WebSocketStream(ws, id, track);
+  const abortController = new AbortController();
+
+  const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
+  const childProcess = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
+
+  childProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
+  childProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
+  childProcess.on('error', (e) => {
+    logger.log(`[${id}-${track}] Process errored (${e})`);
+    wsStream.endStream(1003);
+  });
+
+  childProcess.catch((e) => {
+    if (!ws.getUserData().left) logger.warn(`[${id}-${track}] Process error: ${e}`);
+  });
+
+  pipeline(childProcess.stdout, wsStream).catch((e) => {
+    logger.warn(`[${id}-${track}] Pipeline error`, e);
+    wsStream.endStream(1011);
+  });
+
+  logger.log(`[${id}-${track}] Stream ready with process ${childProcess.pid}`);
+
+  const killProcess = () => {
     if (childProcess.exitCode === null) {
       logger.log(`[${id}-${track}] Killing process...`);
       const success = childProcess.kill();
       if (!success) logger.log(`[${id}-${track}] Process killing did not succeed (ec: ${childProcess.exitCode})`);
     }
-  }
-
-  const onDrain = () => {
-    logger.info(`[${id}-${track}] Backpressure drained (${ws.getBufferedAmount()})`);
-    const wasWaiting = waitingForBackpressure;
-    waitingForBackpressure = false;
-    if (wasWaiting && !paused) readable();
   };
 
-  const onMessage = (message: ArrayBuffer) => {
-    const msg = Buffer.from(message);
-    const cmd = msg.readUInt32LE(0);
-    const p = msg.readUInt32LE(4);
-    if (cmd !== 0) {
-      logger.warn(`[${id}-${track}] Got an unexpected command (${cmd})`);
-      return endWS(1003);
-    }
-    if (p > ackd) {
-      ackd = p;
-      acksRecieved.inc();
-      if (sending <= ackd + MAX_ACK) {
-        // if (paused) logger.log(`[${id}-${track}] Unpaused (${sending}, ${ackd}, ${waitingForBackpressure})`);
-        paused = false;
-        if (!waitingForBackpressure) readable();
-      }
-    }
+  return {
+    onMessage: (message: ArrayBuffer) => wsStream.onMessage(message),
+    onEnd: () => {
+      logger.log(`[${id}-${track}] Stream ended`);
+      killProcess();
+      abortController.abort();
+      timer();
+    },
+    onDrain: () => wsStream.onDrain(),
+    readable: () => wsStream.resume(),
+    setPaused: (value: boolean) => wsStream.setPaused(value)
   };
-
-  let wsEnded = false;
-  const onEnd = () => {
-    logger.log(`[${id}-${track}] Stream ended`);
-    if (wsEnded) return;
-    wsEnded = true;
-
-    killProcess();
-    abortController.abort();
-
-    // Clean up child process listeners
-    childProcess.removeAllListeners('spawn');
-    childProcess.removeAllListeners('exit');
-    childProcess.removeAllListeners('error');
-
-    // Clean up and kill stream events
-    stream.removeListener('readable', readable);
-    stream.removeAllListeners('end');
-    stream.removeAllListeners('error');
-    stream.removeAllListeners('close');
-    stream.destroy();
-
-    timer();
-  };
-
-  const endWS = (code: number = 1000) => {
-    if (ws.getUserData().left) return;
-    killProcess();
-    try {
-      if (!ws.getUserData().left) ws.end(code);
-    } catch {
-      // Force close connection
-      try {
-        if (!ws.getUserData().left) ws.close();
-      } catch {}
-    }
-  };
-
-  const setPaused = (value: boolean) => (paused = value);
-
-  const abortController = new AbortController();
-  const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
-  const childProcess = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
-  childProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
-  childProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
-  childProcess.on('error', (e) => {
-    logger.log(`[${id}-${track}] Process errored (${e})`);
-    endWS(1003);
-  });
-  childProcess.catch((e) => {
-    if (!ws.getUserData().left) logger.warn(`[${id}-${track}] Process error: ${e}`);
-  });
-  const stream = childProcess.stdout;
-  stream.on('readable', readable);
-  stream.once('end', () => {
-    logger.log(`[${id}-${track}] Process stream ended`);
-    try {
-      while (buf!.length > 4 && !ws.getUserData().left) sendBuffer();
-      sendBuffer();
-      endWS();
-    } catch (e) {
-      onError(e);
-    }
-  });
-  stream.once('error', (e) => logger.log(`[${id}-${track}] Stream got partwise error`, e));
-  stream.once('close', () => {
-    logger.log(`[${id}-${track}] Process stream closed`);
-    endWS();
-  });
-  logger.log(`[${id}-${track}] Stream ready with process ${childProcess.pid}`);
-
-  return { onMessage, onEnd, readable, setPaused, onDrain };
 }
