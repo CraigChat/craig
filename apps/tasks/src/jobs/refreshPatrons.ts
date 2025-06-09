@@ -1,7 +1,6 @@
 import { PrismaPromise } from '@prisma/client';
 import axios from 'axios';
 import config from 'config';
-import isEqual from 'lodash.isequal';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -114,13 +113,13 @@ export default class RefreshPatrons extends TaskJob {
     return patron.tiers.map((t) => patreonConfig.tiers[t] || 0).sort((a, b) => b - a)[0] || 0;
   }
 
-  async run() {
+  async collectPatrons() {
     this.logger.log('Collecting patrons...');
 
     const credentials = await this.getCredentials();
     const initialData = await this.getPatrons(credentials);
 
-    if (initialData.total === 0) return void this.logger.info('No patrons found.');
+    if (initialData.total === 0) return [];
 
     this.logger.info(`Fetching ${initialData.total.toLocaleString()} patrons...`);
     const start = Date.now();
@@ -154,111 +153,152 @@ export default class RefreshPatrons extends TaskJob {
         .length.toLocaleString()} active with discord)`
     );
 
-    const processedPatrons: string[] = [];
-    const dbPatrons = await prisma.patreon.findMany();
+    return patrons;
+  }
+
+  resolveUserEntitlement(entitlements: { tier: number }[], userId: string) {
+    const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
+
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        rewardTier: maxTier,
+        ...(maxTier === 0 ? { driveEnabled: false } : {})
+      }
+    });
+  }
+
+  async run() {
+    const patrons = await this.collectPatrons();
+    if (patrons.length === 0) return void this.logger.info('No patrons found.');
+
     const operations: PrismaPromise<any>[] = [];
+    const now = new Date();
 
-    // Remove patrons that are no longer active and update db patrons
-    for (const dbPatron of dbPatrons) {
-      const patron = patrons.find((p) => p.id === dbPatron.id);
-      if (!patron || patron.status !== 'active_patron') {
-        this.logger.info(`Removing patron ${dbPatron.id}`);
-        operations.push(prisma.patreon.delete({ where: { id: dbPatron.id } }));
-        processedPatrons.push(dbPatron.id);
+    const activePatronIds = new Set<string>();
+    const affectedUserIds = new Set<string>();
 
-        // Reset rewards tier
-        const user = await prisma.user.findFirst({ where: { patronId: dbPatron.id } });
-        if (user && !patreonConfig.skipUsers.includes(user.id) && !user.tierManuallySet) {
-          this.logger.info(`Resetting rewards for user ${user.id}`);
-          operations.push(prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } }));
-        }
-      }
-    }
-
-    // Upsert patrons
     for (const patron of patrons.filter((p) => p.status === 'active_patron')) {
-      if (processedPatrons.includes(patron.id)) continue;
+      const { id: patreonId, name, email, cents, tiers, discordId } = patron;
 
-      // Upsert in patreon table
-      const dbPatron = dbPatrons.find((p) => p.id === patron.id);
-      if (
-        !dbPatron ||
-        !isEqual(
-          {
-            name: patron.name,
-            email: patron.email,
-            cents: patron.cents,
-            tiers: patron.tiers
-          },
-          {
-            name: dbPatron.name,
-            email: dbPatron.email,
-            cents: dbPatron.cents,
-            tiers: dbPatron.tiers
-          }
-        )
-      ) {
-        this.logger.log(`Upserting patron ${patron.id} (${patron.name} - ${patron.email} - ${patron.discordId || 'N/A'})`);
-        operations.push(
-          prisma.patreon.upsert({
-            where: { id: patron.id },
-            update: {
-              name: patron.name,
-              email: patron.email,
-              cents: patron.cents,
-              tiers: patron.tiers
-            },
-            create: {
-              id: patron.id,
-              name: patron.name,
-              email: patron.email,
-              cents: patron.cents,
-              tiers: patron.tiers
-            }
-          })
-        );
-      } else this.logger.log(`Processing patron ${patron.id} (${patron.name} - ${patron.email} - ${patron.discordId || 'N/A'})`);
+      activePatronIds.add(patreonId);
 
-      if (patreonConfig.skipUsers.includes(patron.id)) {
-        this.logger.log(`Skipping patron ${patron.id}...`);
-        continue;
+      // Upsert into Patreon table
+      operations.push(
+        prisma.patreon.upsert({
+          where: { id: patreonId },
+          update: { name, email, cents, tiers, updatedAt: now },
+          create: { id: patreonId, name, email, cents, tiers }
+        })
+      );
+
+      let resolvedDiscordId = discordId;
+
+      if (!resolvedDiscordId) {
+        const user = await prisma.user.findFirst({
+          where: { patronId: patreonId }
+        });
+        if (user) resolvedDiscordId = user.id;
       }
 
-      // Upsert in user table
-      if (patron.discordId) {
-        const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-        if (user && user.id !== patron.discordId && !patreonConfig.skipUsers.includes(user.id) && !user.tierManuallySet) {
-          this.logger.info(`Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
-          operations.push(prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } }));
-        }
+      if (!resolvedDiscordId) continue;
 
-        const tier = this.determineRewardTier(patron);
-        this.logger.log(`Upserting user ${patron.discordId} for patron ${patron.id} (${patron.name}, tier=${tier})`);
+      affectedUserIds.add(resolvedDiscordId);
+
+      // Unlink any users who have this patronId but are not the resolved user
+      const unlinked = await prisma.user.findMany({
+        where: {
+          patronId: patreonId,
+          id: { not: resolvedDiscordId }
+        },
+        select: { id: true }
+      });
+
+      if (unlinked.length > 0) {
         operations.push(
-          prisma.user.upsert({
-            where: { id: patron.discordId },
-            update: { patronId: patron.id, rewardTier: tier },
-            create: { id: patron.discordId, patronId: patron.id, rewardTier: tier }
+          prisma.user.updateMany({
+            where: {
+              patronId: patreonId,
+              id: { not: resolvedDiscordId }
+            },
+            data: { patronId: null }
           })
         );
-      } else if (!patreonConfig.skipUsers.includes(patron.id)) {
-        // Find if this person is a patron, and give them a tier if so
-        const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
-        if (!user || user.tierManuallySet || patreonConfig.skipUsers.includes(user.id)) continue;
-        const tier = this.determineRewardTier(patron);
-        if (user.rewardTier === tier) continue;
-        this.logger.log(`Updating user ${user.id} reward tier for patron ${patron.id} (${patron.name}, tier=${tier})`);
-        operations.push(
-          prisma.user.update({
-            where: { id: user.id },
-            data: { rewardTier: tier }
-          })
-        );
+
+        for (const user of unlinked) affectedUserIds.add(user.id);
+      }
+
+      // Upsert the resolved user
+      operations.push(
+        prisma.user.upsert({
+          where: { id: resolvedDiscordId },
+          update: { patronId: patreonId },
+          create: { id: resolvedDiscordId, patronId: patreonId }
+        })
+      );
+
+      // Set their entitlement
+      const tier = this.determineRewardTier(patron);
+      operations.push(
+        prisma.entitlement.upsert({
+          where: {
+            userId_source: {
+              userId: resolvedDiscordId,
+              source: 'patreon'
+            }
+          },
+          update: {
+            tier,
+            expiresAt: null
+          },
+          create: {
+            userId: resolvedDiscordId,
+            source: 'patreon',
+            tier
+          }
+        })
+      );
+    }
+
+    this.logger.info(`Committing ${operations.length.toLocaleString()} pateron/entitlement/user changes...`);
+    await prisma.$transaction(operations);
+
+    // Remove old Patreon entitlements
+    this.logger.info('Checking for stale entitlements...');
+    const staleEntitlements = await prisma.entitlement.findMany({
+      where: { source: 'patreon' },
+      select: { userId: true, user: { select: { patronId: true } } }
+    });
+
+    for (const { userId, user } of staleEntitlements) {
+      if (!user?.patronId || !activePatronIds.has(user.patronId)) {
+        await prisma.entitlement.deleteMany({
+          where: { userId, source: 'patreon' }
+        });
+        affectedUserIds.add(userId);
       }
     }
 
-    this.logger.info(`Committing ${operations.length.toLocaleString()} changes...`);
-    await prisma.$transaction(operations);
+    this.logger.info(`Re-evaluating ${affectedUserIds.size.toLocaleString()} users...`);
+    const entitlements = await prisma.entitlement.findMany({
+      where: {
+        userId: { in: [...affectedUserIds] },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
+      },
+      select: {
+        userId: true,
+        tier: true,
+        source: true
+      }
+    });
+    await prisma.$transaction(
+      Array.from(affectedUserIds).map((userId) =>
+        this.resolveUserEntitlement(
+          entitlements.filter((e) => e.userId === userId),
+          userId
+        )
+      )
+    );
     this.logger.info('OK.');
   }
 }
