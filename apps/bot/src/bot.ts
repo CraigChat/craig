@@ -8,6 +8,7 @@ import { SlashCreatorOptions } from 'slash-create';
 import { init as i18nInit } from './i18n';
 import { cron as influxCron } from './influx';
 import AutorecordModule from './modules/autorecord';
+import EntitlementsModule from './modules/entitlements';
 import LoggerModule from './modules/logger';
 import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
@@ -48,6 +49,7 @@ export interface CraigBotConfig extends BaseConfig {
       connectUrl: string;
     };
     rewardTiers: { [tier: string]: RewardTier };
+    entitlementWebhookURLs?: { url: string; key: string }[];
   };
 
   logger: {
@@ -65,6 +67,7 @@ export interface RewardTier {
   downloadExpiryHours: number;
   features: string[];
   sizeLimitMult?: number;
+  discordSkuId?: string;
 }
 
 export class CraigBot extends DexareClient<CraigBotConfig> {
@@ -121,7 +124,7 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule);
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule, EntitlementsModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   await i18nInit();
