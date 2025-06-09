@@ -88,7 +88,9 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             body: JSON.stringify({
               event: 'ENTITLEMENT_CREATE',
               entitlement: entitlement.toJSON(),
-              tier
+              tier,
+              clientId: this.client.bot.user.id,
+              shardId: this.client.shard.id
             })
           })
         )
@@ -126,7 +128,9 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             body: JSON.stringify({
               event: 'ENTITLEMENT_UPDATE',
               entitlement: entitlement.toJSON(),
-              tier
+              tier,
+              clientId: this.client.bot.user.id,
+              shardId: this.client.shard.id
             })
           })
         )
@@ -157,7 +161,9 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             body: JSON.stringify({
               event: 'ENTITLEMENT_DELETE',
               entitlement: entitlement.toJSON(),
-              tier
+              tier,
+              clientId: this.client.bot.user.id,
+              shardId: this.client.shard.id
             })
           })
         )
