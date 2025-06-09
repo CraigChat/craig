@@ -200,44 +200,6 @@ config_env() {
 
 }
 
-config_react() {
-
-  info "Configuring react..."
-
-  cp "$craig_dir/apps/bot/config/_default.js" "$craig_dir/apps/bot/config/default.js"
-  cp "$craig_dir/apps/tasks/config/_default.js" "$craig_dir/apps/tasks/config/default.js"
-
-  # not very elegant, but here's some sed magic in order to update the javascript file with the required values
-  # we are regexing the following pattern and replacing the 2nd and 4th capture group
-  # with the appropiate environment values
-  #
-  # ----------------------------
-  # dexare: {
-  #   // Bot token
-  #   token: '',
-  #   // Application ID
-  #   applicationID: '',
-  # ----------------------------
-
-  sed -z -E -i "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')/\
-  \1'$DISCORD_BOT_TOKEN'\3'$DISCORD_APP_ID'/" \
-    "$craig_dir/apps/bot/config/default.js"
-
-  # here's some more sed magic. this task isn't needed for local builds
-  # we are regexing the following pattern and replacing the 2nd capture
-  # group with the ignored task
-  #
-  # -------------------------------
-  # tasks: {
-  #   ignore: []
-  # -------------------------------
-
-  sed -z -E -i "s/(tasks:.*ignore:\s*)(\[\s*\])/\
-  \1[\"refreshPatrons\"]/" \
-    "$craig_dir/apps/tasks/config/default.js"
-
-}
-
 config_yarn() {
 
   info "Configuring yarn..."
@@ -307,7 +269,6 @@ config_cook() {
   install_apt_packages
   install_node
   config_env
-  config_react
   config_yarn
   config_cook
 

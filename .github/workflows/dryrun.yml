@@ -1,57 +1,58 @@
-name: Install
+name: Dryrun
 on:
   push:
   workflow_dispatch:
+env:
+  REGISTRY: ghcr.io #docker.io
+  IMAGE_NAME: cpdd/kraig
 jobs:
   build:
-    name: build and install
+    name: build container image
     runs-on: ubuntu-latest
+    env:
+      POSTGRESQL_HOST: ${{ vars.POSTGRESQL_HOST }}
+      POSTGRESQL_START_TIMEOUT_S: ${{ vars.POSTGRESQL_START_TIMEOUT_S }}
+      DATABASE_NAME: ${{ vars.DATABASE_NAME }}
+      POSTGRESQL_USER: ${{ vars.POSTGRESQL_USER }}
+      REDIS_HOST: ${{ vars.REDIS_HOST }}
+      REDIS_START_TIMEOUT_S: ${{ vars.REDIS_START_TIMEOUT_S }}
+      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+      CLIENT_ID: ${{ vars.CLIENT_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-        
-      - name: Install Node v18
-        uses: actions/setup-node@v1
+
+      - name: Log in to registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
         with:
-          node-version: 18.x
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: yarn
+          # username: ${{ secrets.DOCKERHUB_USERNAME }}
+          # password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Write .env
-        uses: DamianReeves/write-file-action@v1.0
+      - name: Build and push Container image
+        uses: docker/build-push-action@v5
         with:
-          path: .env
-          contents: |
-            DISCORD_BOT_TOKEN=${{ secrets.BOT_TOKEN }}
-            DISCORD_APP_ID=${{ secrets.CLIENT_ID }}
-            DEVELOPMENT_GUILD_ID=${{ secrets.DEV_GUILD }}
-            DATABASE_URL=${{secrets.MOCKDB}}
-          write-mode: overwrite
-
-      - name: Write apps/dashboard/.env
-        uses: DamianReeves/write-file-action@v1.0
-        with:
-          path: apps/dashboard/.env
-          contents: |
-            CLIENT_ID=${{ secrets.CLIENT_ID }}
-            CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}
-
-            APP_URI=http://localhost:3000
-            JWT_SECRET=1234
-          write-mode: overwrite
-
-      - name: Build Bot
-        run: cd apps/bot && yarn prisma:generate && yarn build
-
-      - name: Build Dashboard
-        run: cd apps/dashboard && yarn prisma:generate && yarn build
-
-      - name: Build Download
-        run: cd apps/download && yarn build
-
-      - name: Build Tasks
-        run: cd apps/tasks && yarn prisma:generate && yarn build
-        
-      - name: Run install
-        run: ./install.sh
+          context: .
+          file: ./Containerfile
+          build-args: |
+            POSTGRESQL_HOST=${{ env.POSTGRESQL_HOST }}
+            POSTGRESQL_START_TIMEOUT_S=${{ env.POSTGRESQL_START_TIMEOUT_S }}
+            DATABASE_NAME=${{ env.DATABASE_NAME }}
+            POSTGRESQL_USER=${{ env.POSTGRESQL_USER }}
+            REDIS_HOST=${{ env.REDIS_HOST }}
+            REDIS_START_TIMEOUT_S=${{ env.REDIS_START_TIMEOUT_S }}
+            DISCORD_BOT_TOKEN=${{ env.DISCORD_BOT_TOKEN }}
+            DISCORD_APP_ID=${{ env.DISCORD_APP_ID }}
+            CLIENT_ID=${{ env.CLIENT_ID }}
+            CLIENT_SECRET=${{ env.CLIENT_SECRET }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
