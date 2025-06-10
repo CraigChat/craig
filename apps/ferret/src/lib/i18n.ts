@@ -13,9 +13,15 @@ for (const [file, importer] of Object.entries(localeFiles)) {
   register(lang, () => importer());
 }
 
+function getLocale() {
+  const cookie = get(localeCookieName);
+  if (cookie === 'null') return undefined;
+  return cookie;
+}
+
 init({
   fallbackLocale: defaultLocale,
-  initialLocale: browser ? get(localeCookieName) || window.navigator.language || defaultLocale : defaultLocale,
+  initialLocale: browser ? getLocale() || window.navigator.language || defaultLocale : defaultLocale,
   formats: {
     number: {
       scientific: { notation: 'scientific' },
