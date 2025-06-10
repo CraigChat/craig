@@ -17,7 +17,7 @@
   "scripts": {
     "dev": "turbo dev --no-daemon",
     "inspect": "turbo inspect",
-    "build": "turbo build",
+    "build": "git submodule update --init && turbo build",
     "lint": "turbo lint",
     "format": "turbo format",
     "build-cook": "pnpm -F kitchen -F ennuizel-streamer run build-cook",
