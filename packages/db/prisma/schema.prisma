@@ -13,8 +13,9 @@ datasource db {
 model User {
   id             String  @id
 
-  rewardTier     Int     @default(0)
-  patronId       String?
+  rewardTier      Int     @default(0)
+  patronId        String?
+  tierManuallySet Boolean @default(false)
 
   webapp         Boolean @default(false)
 
@@ -22,6 +23,8 @@ model User {
   driveService   String  @default("google")
   driveFormat    String?
   driveContainer String?
+
+  entitlements   Entitlement[]
 
   createdAt      DateTime @db.Timestamptz(6) @default(now())
   updatedAt      DateTime @db.Timestamptz(6) @updatedAt
@@ -113,4 +116,19 @@ model Patreon {
 	tiers       String[]
   createdAt   DateTime  @db.Timestamptz(6) @default(now())
   updatedAt   DateTime  @db.Timestamptz(6) @updatedAt
+}
+
+
+model Entitlement {
+  userId              String
+  source              String
+  tier                Int
+  expiresAt           DateTime?
+  createdAt           DateTime  @default(now())
+  note                String?
+  sourceEntitlementId String?
+
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@id([userId, source])
 }
