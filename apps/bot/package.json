@@ -64,7 +64,7 @@
     "@types/node": "^18.19.86",
     "@types/qs": "^6.9.7",
     "@types/ws": "^8.5.4",
-    "slash-up": "^1.2.0",
+    "slash-up": "^1.4.2",
     "typescript": "^5.8.3",
     "undici-types": "^7.8.0"
   }
