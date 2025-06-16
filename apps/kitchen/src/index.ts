@@ -21,7 +21,7 @@ import { onedrivePreflight } from './jobs/upload/onedrive.js';
 import { REC_DIRECTORY } from './util/config.js';
 import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
-import { getDuration } from './util/process.js';
+import { getDuration, getNotes } from './util/process.js';
 
 const debug = process.env.NODE_ENV !== 'production';
 const app = fastify({
@@ -138,6 +138,23 @@ app.get<{ Params: { id: string } }>('/recordings/:id/duration', async (req, repl
     const recFileBase = path.join(REC_DIRECTORY, `${id}.ogg`);
     const duration = await getDuration({ recFileBase });
     return reply.status(200).send({ ok: true, duration: parseFloat(duration) });
+  } catch (e) {
+    return reply.status(500).send({ ok: false });
+  }
+});
+
+app.get<{ Params: { id: string } }>('/recordings/:id/notes', async (req, reply) => {
+  const { id } = req.params;
+
+  // Check recording ID
+  if (typeof id !== 'string' || id.includes('/') || id.includes('\\') || id.includes('.'))
+    return reply.status(400).send({ error: 'Invalid recording ID' });
+  if (!(await jobManager.recordingExists(id))) return reply.status(404).send({ error: 'Non-existant recording' });
+
+  try {
+    const recFileBase = path.join(REC_DIRECTORY, `${id}.ogg`);
+    const notes = await getNotes({ recFileBase });
+    return reply.status(200).send({ ok: true, notes });
   } catch (e) {
     return reply.status(500).send({ ok: false });
   }

@@ -105,7 +105,11 @@ const app = uWS
         timer,
         status: 200,
         data: txt,
-        headers: { 'content-disposition': `attachment; filename=${id}-info.txt` }
+        headers: {
+          'cache-control': 'max-age=120',
+          'content-disposition': `attachment; filename="craig-${id}-info.txt"`,
+          'content-length': txt.length.toString()
+        }
       });
     } catch (e) {
       send(res, { timer, status: 500, data: { ok: false } });

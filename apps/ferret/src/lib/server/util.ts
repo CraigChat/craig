@@ -184,7 +184,20 @@ export async function getRecordingDuration(recordingId: string) {
     const { duration }: { duration: number } = await response.json();
     return duration;
   } catch (e) {
-    logger.error(`Could not contact kitchen for fetching job recording duration ${recordingId}`, e);
+    logger.error(`Could not contact kitchen for fetching recording duration ${recordingId}`, e);
+    return false;
+  }
+}
+
+export async function getRecordingNotes(recordingId: string) {
+  try {
+    const response = await kitchenFetch(`/recordings/${recordingId}/notes`);
+    if (response.status !== 200) return false;
+
+    const { notes }: { notes: RecordingNote[] } = await response.json();
+    return notes;
+  } catch (e) {
+    logger.error(`Could not contact kitchen for fetching recording notes ${recordingId}`, e);
     return false;
   }
 }

@@ -19,5 +19,12 @@ export const GET: RequestHandler = async ({ url, params }) => {
   const duration = await getRecordingDuration(id);
   if (duration === false) return errorResponse(APIErrorCode.KITCHEN_UNAVAILABLE, { status: 503 });
 
-  return json({ duration });
+  return json(
+    { duration },
+    {
+      headers: {
+        'Cache-Control': 'max-age=120'
+      }
+    }
+  );
 };

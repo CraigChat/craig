@@ -21,7 +21,10 @@ export function streamRecording({ recFileBase, cancelSignal }: CommonProcessOpti
   return execaCommand(['cat', ...['header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '), { cancelSignal, buffer: false });
 }
 
-export async function getNotes({ recFileBase, cancelSignal }: CommonProcessOptions) {
+export async function getNotes({
+  recFileBase,
+  cancelSignal
+}: Omit<CommonProcessOptions, 'cancelSignal'> & { cancelSignal?: AbortSignal | undefined }) {
   const subprocess = execaCommand(
     [['cat', ...['header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '), './cook/extnotes -f json'].join(' | '),
     { cancelSignal, shell: true, cwd: ROOT_DIR }
