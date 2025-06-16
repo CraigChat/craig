@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    image: mcr.microsoft.com/devcontainers/typescript-node:1-18-bullseye
+    image: mcr.microsoft.com/devcontainers/typescript-node:22-bullseye
     volumes:
       - ../..:/workspaces:cached
 
