@@ -23,7 +23,7 @@
     "@discordjs/opus": "^0.10.0",
     "@influxdata/influxdb-client": "^1.24.0",
     "@prisma/client": "^5.12.1",
-    "@sentry/integrations": "^7.2.0",
+    "@sentry/integrations": "^7.114.0",
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
     "@snazzah/emoji-sync": "^0.1.2",
