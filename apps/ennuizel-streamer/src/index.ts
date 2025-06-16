@@ -14,18 +14,28 @@ import { getNotes, SEND_SIZE, streamController } from './util/process.js';
 import { testProcessOptions } from './util/processOptions.js';
 import { getInfoText, getRecordingInfo, recordingExists } from './util/recording.js';
 
-function send(
-  res: uWS.HttpResponse,
-  { status, data, timer }: { status: number; data: any | string; timer?: ReturnType<typeof requestHistogram.startTimer> }
-) {
+interface SendOptions {
+  status: number;
+  data: any | string;
+  timer?: ReturnType<typeof requestHistogram.startTimer>;
+  headers?: Record<string, string>;
+}
+
+function send(res: uWS.HttpResponse, { status, data, timer, headers }: SendOptions) {
   if (!res.aborted)
-    res.cork(() =>
-      res
-        .writeStatus(`${status} ${STATUS_CODES[status]}`)
-        .writeHeader('Content-Type', typeof data === 'string' ? 'text/plain' : 'application/json')
-        .writeHeader('Access-Control-Allow-Origin', '*')
-        .end(typeof data === 'string' ? data : JSON.stringify(data))
-    );
+    res.cork(() => {
+      res.writeStatus(`${status} ${STATUS_CODES[status]}`);
+
+      if (headers)
+        for (const header in headers) {
+          res.writeHeader(header, headers[header]);
+        }
+
+      if (!headers?.['content-type']) res.writeHeader('Content-Type', typeof data === 'string' ? 'text/plain' : 'application/json');
+      if (!headers?.['access-control-allow-origin']) res.writeHeader('Access-Control-Allow-Origin', '*');
+
+      res.end(typeof data === 'string' ? data : JSON.stringify(data));
+    });
   timer?.({ status });
 }
 
@@ -91,7 +101,12 @@ const app = uWS
       const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
       const notes = await getNotes({ recFileBase, cancelSignal: abortController.signal });
       const txt = await getInfoText(id, info, users, notes);
-      send(res, { timer, status: 200, data: txt });
+      send(res, {
+        timer,
+        status: 200,
+        data: txt,
+        headers: { 'content-disposition': `attachment; filename=${id}-info.txt` }
+      });
     } catch (e) {
       send(res, { timer, status: 500, data: { ok: false } });
     }
