@@ -4,7 +4,7 @@ import { join } from 'path';
 import { PassThrough } from 'stream';
 import { pipeline } from 'stream/promises';
 
-import { REC_DIRECTORY } from '$env/static/private';
+import { REC_DIRECTORY } from '$lib/server/config';
 import { errorResponse, getRecordingInfo, recordingExists } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
