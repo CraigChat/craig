@@ -5038,10 +5038,10 @@ parse-github-url@^1.0.2:
   resolved "https://registry.yarnpkg.com/parse-github-url/-/parse-github-url-1.0.2.tgz#242d3b65cbcdda14bb50439e3242acf6971db395"
   integrity sha512-kgBf6avCbO3Cn6+RnzRGLkUsv4ZVqv/VfAYkRsyBcgkshNvVBkRn1FEZcW0Jb+npXQWm2vHPnnOqFteZxRRGNw==
 
-parse-ms@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/parse-ms/-/parse-ms-3.0.0.tgz#3ea24a934913345fcc3656deda72df921da3a70e"
-  integrity sha512-Tpb8Z7r7XbbtBTrM9UhpkzzaMrqA2VXMT3YChzYltwV3P3pM6t8wl7TvpMnSTosz1aQAdVib7kdoys7vYOPerw==
+parse-ms@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/parse-ms/-/parse-ms-4.0.0.tgz#c0c058edd47c2a590151a718990533fd62803df4"
+  integrity sha512-TXfryirbmq34y8QBwgqCVLi+8oA3oWx2eAnSn62ITyEhEYaWRlVZ2DvMM9eZbMs/RfxPu/PK/aBLyGj4IrqMHw==
 
 path-exists@^3.0.0:
   version "3.0.0"
