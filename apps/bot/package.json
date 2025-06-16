@@ -40,7 +40,7 @@
     "eris": "github:CraigChat/dysnomia#69c2ec22f835fcea567d248b4b6999b9cb0854dc",
     "eventemitter3": "^4.0.7",
     "fastq": "^1.13.0",
-    "i18next": "^21.10.0",
+    "i18next": "^25.2.1",
     "i18next-fs-backend": "^1.1.4",
     "ioredis": "^5.0.6",
     "just-group-by": "^2.2.0",
