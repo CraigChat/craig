@@ -9,20 +9,9 @@
 		"ghcr.io/devcontainers/features/common-utils:2": {
 			"nonFreePackages": "true"
 		},
-		"ghcr.io/devcontainers-contrib/features/apt-packages:1": {
-			// Craig Dependencies: ffmpeg, flac, lame, vorbis-tools, opus-tools, node-gyp, libfltk1.3, libfltk1.3-dev
-			// Legacy dependencies: at
-			// Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies): libtool, yasm
-			// MinGW dependencies for FFmpeg Windows compilation: mingw-w64-tools, gcc-mingw-w64-i686, g++-mingw-w64-i686, libz-mingw-w64, libz-mingw-w64-dev
-      // Some dependencies for building windows things: fluid
-			"packages": "ffmpeg,flac,lame,vorbis-tools,opus-tools,node-gyp,libtool,yasm,libfltk1.3,libfltk1.3-dev,at,mingw-w64-tools,gcc-mingw-w64-i686,g++-mingw-w64-i686,libz-mingw-w64,libz-mingw-w64-dev,fluid"
-		},
 		"ghcr.io/devcontainers/features/python:1": {
 			"version": "3.10.13",
 			"installTools": "false"
-		},
-		"ghcr.io/devcontainers-contrib/features/prisma:2": {
-			"version": "latest"
 		},
 		"ghcr.io/dhoeric/features/act:1": {},
 		"ghcr.io/itsmechlark/features/redis-server:1": {
@@ -30,10 +19,6 @@
 		},
 		"ghcr.io/devcontainers/features/github-cli:1": {}
 	},
-	"overrideFeatureInstallOrder": [
-		"ghcr.io/devcontainers/features/common-utils",
-		"ghcr.io/devcontainers-contrib/features/apt-packages"
-	],
 	"customizations": {
 		"vscode": {
 			"extensions": [

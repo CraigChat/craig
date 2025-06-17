@@ -1,3 +1,15 @@
+# Install apt dependencies
+sudo apt update
+# Craig Dependencies
+sudo apt install -y ffmpeg flac lame vorbis-tools opus-tools node-gyp libfltk1.3 libfltk1.3-dev
+# Legacy dependencies
+sudo apt install -y at fluid
+# Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies)
+sudo apt install -y libtool yasm
+# MinGW dependencies for FFmpeg Windows compilation
+sudo apt install -y mingw-w64-tools gcc-mingw-w64-i686 g++-mingw-w64-i686 libz-mingw-w64 libz-mingw-w64-dev
+
+
 # Build cook dependencies
 ./apps/kitchen/scripts/build_cook.sh
 ./apps/ennuizel-streamer/scripts/build_cook.sh
