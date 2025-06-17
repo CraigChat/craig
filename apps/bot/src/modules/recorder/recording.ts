@@ -233,7 +233,7 @@ export default class Recording {
       { encoding: 'utf8' }
     );
     this.writer = new RecordingWriter(this, fileBase);
-    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
+    this.writeToLog(`Connected to channel ${this.connection?.channelID} at ${this.connection?.endpoint}`);
 
     this.timeout = setTimeout(async () => {
       if (this.state !== RecordingState.RECORDING) return;
@@ -388,6 +388,9 @@ export default class Recording {
   async connect() {
     const alreadyConnected = this.recorder.client.bot.voiceConnections.has(this.channel.guild.id);
 
+    if (alreadyConnected)
+      this.recorder.logger.warn(`Recording ${this.id} (channel: ${this.channel.id}, server: ${this.channel.guild.id}) was already connected`);
+
     if (!alreadyConnected) {
       this.connection?.removeAllListeners('connect');
       this.connection?.removeAllListeners('disconnect');
@@ -418,6 +421,9 @@ export default class Recording {
         this.writeToLog(`Debug: ${m}`, 'connection');
         this.recorder.logger.debug(`Recording ${this.id}`, m);
       });
+    }
+
+    if (!alreadyConnected || !this.connection || !this.receiver) {
       const receiver = connection.receive('opus');
       receiver.on('data', this.onData.bind(this));
       this.receiver = receiver;
