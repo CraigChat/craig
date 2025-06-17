@@ -182,7 +182,8 @@ export default class Recording {
         e
       );
       this.state = RecordingState.ERROR;
-      this.stateDescription = `Failed to connect to your channel: ${e}`;
+      this.stateDescription =
+        'Failed to connect to your channel, try again later. If the issue persists, report it in the [support server](<https://discord.gg/craig>).';
       await this.stop(true);
       await this.pushToActivity('Failed to connect!');
 
