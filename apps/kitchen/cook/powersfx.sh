@@ -641,7 +641,7 @@ fi
 
 # Handle each file
 c=0
-for i in *[0-9].flac
+for i in [0-9]-*.flac
 do
     if [ "$MIX" = "y" ]
     then
@@ -659,7 +659,7 @@ done
 if [ "$MIX" = "y" ]
 then
     c=0
-    for i in *[0-9].flac
+    for i in [0-9]-*.flac
     do
         FILTER="$FILTER"'[aud'"$c"']'
         c=$((c+1))
@@ -677,7 +677,7 @@ then
 <!DOCTYPE project PUBLIC "-//audacityproject-1.3.0//DTD//EN" "http://audacity.sourceforge.net/xml/audacityproject-1.3.0.dtd" >
 <project xmlns="http://audacity.sourceforge.net/xml/" projname="Craig" version="1.3.0" audacityversion="2.2.2" rate="48000.0">
 	<tags/>\n'
-        for i in *[0-9].flac
+        for i in [0-9]-*.flac
         do
             printf '\t<import filename="%s" offset="0.00000000" mute="0" solo="0" height="150" minimized="0" gain="1.0" pan="0.0"/>n' "${i%.flac}.ogg"
         done
@@ -688,7 +688,7 @@ fi
 # Clean up
 if [ "$KEEP" = "n" ]
 then
-    for i in *[0-9].flac
+    for i in [0-9]-*.flac
     do
         rm "$i"
     done
