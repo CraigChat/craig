@@ -33,6 +33,7 @@ export interface CraigBotConfig extends BaseConfig {
     emoji: string;
     downloadDomain: string;
     dashboardURL: string;
+    systemNotificationURL?: string;
     nowRecordingOpus?: string;
     homepage: string;
     recordingFolder: string;
