@@ -9,6 +9,7 @@ import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
 import fetch from 'node-fetch';
 import path from 'path';
+import semver from 'semver';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../../bot';
@@ -598,19 +599,45 @@ export default class Recording {
           data: { version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }
         });
 
-      await prisma.regionVoiceVersion.upsert({
-        where: { regionId },
-        update: {
-          version: voiceVersion,
-          endpoint: voiceEndpoint,
-          seenAt: new Date()
-        },
-        create: {
-          regionId,
-          version: voiceVersion,
-          endpoint: voiceEndpoint
-        }
+      // Update latest region voice version
+      const lastVoiceVersion = await prisma.regionVoiceVersion.findUnique({
+        where: { regionId }
       });
+
+      if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion))
+        await prisma.regionVoiceVersion.upsert({
+          where: { regionId },
+          update: {
+            version: voiceVersion,
+            endpoint: voiceEndpoint,
+            seenAt: new Date()
+          },
+          create: {
+            regionId,
+            version: voiceVersion,
+            endpoint: voiceEndpoint
+          }
+        });
+
+      // Update latest rtc worker version
+      const lastRtcWorkerVersion = await prisma.regionRtcVersion.findUnique({
+        where: { regionId }
+      });
+
+      if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
+        await prisma.regionVoiceVersion.upsert({
+          where: { regionId },
+          update: {
+            version: voiceVersion,
+            endpoint: voiceEndpoint,
+            seenAt: new Date()
+          },
+          create: {
+            regionId,
+            version: voiceVersion,
+            endpoint: voiceEndpoint
+          }
+        });
 
       await prisma.regionRtcVersion.upsert({
         where: { regionId },
