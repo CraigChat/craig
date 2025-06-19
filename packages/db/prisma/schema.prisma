@@ -11,46 +11,39 @@ datasource db {
 }
 
 model User {
-  id             String  @id
+  id String @id
 
   rewardTier      Int     @default(0)
   patronId        String?
   tierManuallySet Boolean @default(false)
 
-  webapp         Boolean @default(false)
+  webapp Boolean @default(false)
 
   driveEnabled   Boolean @default(false)
   driveService   String  @default("google")
   driveFormat    String?
   driveContainer String?
 
-  entitlements   Entitlement[]
+  entitlements Entitlement[]
 
-  createdAt      DateTime @db.Timestamptz(6) @default(now())
-  updatedAt      DateTime @db.Timestamptz(6) @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model Ban {
-  id             String  @id
-  type           Int     @default(0)
-  name           String?
-  reason         String?
-  createdAt      DateTime @db.Timestamptz(6) @default(now())
-  updatedAt      DateTime @db.Timestamptz(6) @updatedAt
+  id        String   @id
+  type      Int      @default(0)
+  name      String?
+  reason    String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model Guild {
   id          String   @id
   accessRoles String[]
-  createdAt   DateTime @db.Timestamptz(6) @default(now())
-  updatedAt   DateTime @db.Timestamptz(6) @updatedAt
-}
-
-model Blessing {
-  guildId    String   @id
-  userId     String
-  createdAt  DateTime @db.Timestamptz(6) @default(now())
-  updatedAt  DateTime @db.Timestamptz(6) @updatedAt
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model Recording {
@@ -64,7 +57,7 @@ model Recording {
   shardId      Int
   autorecorded Boolean   @default(false)
   rewardTier   Int       @default(0)
-  createdAt    DateTime  @db.Timestamptz(6) @default(now())
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
   endedAt      DateTime? @db.Timestamptz(6)
   errored      Boolean   @default(false)
   expiresAt    DateTime  @db.Timestamptz(6)
@@ -82,10 +75,12 @@ model AutoRecord {
   minimum       Int      @default(1)
   triggerUsers  String[]
   triggerRoles  String[]
-  updatedAt     DateTime @db.Timestamptz(6) @updatedAt
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
 
   @@index([clientId], type: Hash)
 }
+
+// Cloud Backup
 
 model GoogleDriveUser {
   id           String  @id
@@ -94,7 +89,7 @@ model GoogleDriveUser {
 }
 
 model MicrosoftUser {
-  id           String  @id
+  id           String @id
   refreshToken String
   token        String
   name         String
@@ -102,22 +97,30 @@ model MicrosoftUser {
 }
 
 model DropboxUser {
-  id           String  @id
+  id           String @id
   refreshToken String
   token        String
   name         String
 }
 
-model Patreon {
-  id          String    @id
-  name        String
-  email       String
-  cents       Int
-	tiers       String[]
-  createdAt   DateTime  @db.Timestamptz(6) @default(now())
-  updatedAt   DateTime  @db.Timestamptz(6) @updatedAt
+// Benefits & Entitlements
+
+model Blessing {
+  guildId   String   @id
+  userId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
 }
 
+model Patreon {
+  id        String   @id
+  name      String
+  email     String
+  cents     Int
+  tiers     String[]
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+}
 
 model Entitlement {
   userId              String
@@ -128,7 +131,47 @@ model Entitlement {
   note                String?
   sourceEntitlementId String?
 
-  user       User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@id([userId, source])
+}
+
+// Voice Server Tracking
+
+model VoiceRegion {
+  id     String   @id
+  seenAt DateTime @default(now())
+
+  rtcVersion   RegionRtcVersion?
+  voiceVersion RegionVoiceVersion?
+}
+
+model RegionRtcVersion {
+  regionId String      @id
+  version  String
+  endpoint String
+  seenAt   DateTime    @default(now())
+  region   VoiceRegion @relation(fields: [regionId], references: [id])
+}
+
+model RegionVoiceVersion {
+  regionId String      @id
+  version  String
+  endpoint String
+  seenAt   DateTime    @default(now())
+  region   VoiceRegion @relation(fields: [regionId], references: [id])
+}
+
+model RtcVersion {
+  version  String   @id
+  regionId String
+  endpoint String
+  seenAt   DateTime @default(now())
+}
+
+model VoiceVersion {
+  version  String   @id
+  regionId String
+  endpoint String
+  seenAt   DateTime @default(now())
 }
