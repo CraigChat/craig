@@ -625,33 +625,19 @@ export default class Recording {
       });
 
       if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
-        await prisma.regionVoiceVersion.upsert({
+        await prisma.regionRtcVersion.upsert({
           where: { regionId },
           update: {
-            version: voiceVersion,
+            version: rtcWorkerVersion,
             endpoint: voiceEndpoint,
             seenAt: new Date()
           },
           create: {
             regionId,
-            version: voiceVersion,
+            version: rtcWorkerVersion,
             endpoint: voiceEndpoint
           }
         });
-
-      await prisma.regionRtcVersion.upsert({
-        where: { regionId },
-        update: {
-          version: rtcWorkerVersion,
-          endpoint: voiceEndpoint,
-          seenAt: new Date()
-        },
-        create: {
-          regionId,
-          version: rtcWorkerVersion,
-          endpoint: voiceEndpoint
-        }
-      });
 
       if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
         const title = `New ${[
