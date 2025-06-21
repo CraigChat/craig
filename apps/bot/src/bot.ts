@@ -26,7 +26,7 @@ export interface CraigBotConfig extends BaseConfig {
   applicationID: string;
   prefix: string | string[];
   mentionPrefix: boolean;
-  status: Eris.ActivityPartial<Eris.BotActivityType>;
+  status: Eris.ActivityPartial<Eris.ActivityType>;
   kitchenURL?: string;
 
   craig: {
