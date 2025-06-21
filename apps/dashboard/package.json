@@ -27,7 +27,7 @@
     "dropbox": "^10.34.0",
     "googleapis": "^104.0.0",
     "jsonwebtoken": "^8.5.1",
-    "next": "12.1.6",
+    "next": "14.2.30",
     "node-fetch": "2.6.7",
     "postcss": "^8.4.14",
     "preact": "^10.9.0",
