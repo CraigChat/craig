@@ -8,6 +8,7 @@ export default class MetricsModule extends DexareModule<CraigBot> {
     recordingsStarted: 0,
     autorecordingsStarted: 0,
     commandsRan: 0,
+    gatewayEventsReceived: 0,
     commands: {} as Record<string, number>
   };
   constructor(client: any) {
@@ -42,7 +43,13 @@ export default class MetricsModule extends DexareModule<CraigBot> {
     return count;
   }
 
-  load() {}
+  load() {
+    this.registerEvent('rawWS', () => {
+      this.stats.gatewayEventsReceived++;
+    });
+  }
 
-  unload() {}
+  unload() {
+    this.unregisterAllEvents();
+  }
 }

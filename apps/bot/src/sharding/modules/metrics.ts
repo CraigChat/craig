@@ -149,6 +149,17 @@ export default class MetricsModule extends ShardManagerModule {
       }
     });
 
+    new Counter({
+      name: 'craig_bot_gateway_events_received_total',
+      help: 'Counter for total gateway events received per shard',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await collectFromShards('gatewayEventsReceived', this, manager);
+        } catch {}
+      }
+    });
+
     const cmdUsage = new Counter({
       name: 'craig_bot_command_usage_total',
       help: 'Counter for command usage per command',
