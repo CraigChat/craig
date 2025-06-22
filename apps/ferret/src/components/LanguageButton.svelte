@@ -7,6 +7,7 @@
   import beFlag from '@iconify-icons/twemoji/flag-belarus';
   import frFlag from '@iconify-icons/twemoji/flag-france';
   import deFlag from '@iconify-icons/twemoji/flag-germany';
+  import jaFlag from '@iconify-icons/twemoji/flag-japan';
   import nlFlag from '@iconify-icons/twemoji/flag-netherlands';
   import ruFlag from '@iconify-icons/twemoji/flag-russia';
   import arFlag from '@iconify-icons/twemoji/flag-saudi-arabia';
@@ -23,7 +24,7 @@
 
   import { localeCookieName } from '$lib/cookie';
 
-  const fullLocales = ['en', 'tr', 'nl'];
+  const fullLocales = ['en', 'tr', 'nl', 'ja'];
 
   const localeNames: Record<string, string> = {
     en: 'English',
@@ -36,7 +37,8 @@
     ru: 'Русский',
     tok: 'Toki Pona',
     tr: 'Türkçe',
-    uk: 'Український'
+    uk: 'Український',
+    ja: '日本語'
   };
 
   const localeFlags: Record<string, any> = {
@@ -50,6 +52,7 @@
     tr: trFlag,
     uk: ukFlag,
     nl: nlFlag,
+    ja: jaFlag,
     tok: {
       width: 468,
       height: 617,
