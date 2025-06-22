@@ -47,6 +47,7 @@ export async function processRecordingJob(job: Job) {
     const usedStreamTypes: StreamType[] = [];
     const pOpts = procOpts();
     const projectMode = job.options?.container === 'aupzip' || job.options?.container === 'sesxzip';
+    const localProcessingMode = job.options?.format?.startsWith('wavsfx') || job.options?.format?.startsWith('powersfx');
 
     async function createTrack(i: number) {
       const user = users[i];
@@ -99,7 +100,7 @@ export async function processRecordingJob(job: Job) {
         });
 
         // Reprocess unsuccessful tracks to avoid annoyance with project programs
-        if (projectMode && !success) await reEncodeTrack({ cancelSignal, audioWritePath });
+        if ((projectMode || localProcessingMode) && !success) await reEncodeTrack({ cancelSignal, audioWritePath });
 
         job.setState({
           type: 'encoding',
