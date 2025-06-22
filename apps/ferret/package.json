@@ -35,6 +35,7 @@
     "@iconify-icons/cib": "^1.2.4",
     "@iconify-icons/file-icons": "^1.2.3",
     "@iconify-icons/mdi": "^1.2.48",
+    "@iconify-icons/radix-icons": "^1.2.9",
     "@iconify-icons/simple-icons": "^1.2.74",
     "@iconify-icons/twemoji": "^1.2.8",
     "@iconify/svelte": "^5.0.0",

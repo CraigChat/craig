@@ -54,6 +54,10 @@ const PostJobRecordingSchema = z.object({
     ignoreTracks: z
       .array(z.number().finite())
       .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
+      .optional(),
+    skipDynaudnorm: z
+      .array(z.number().finite())
+      .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
       .optional()
   })
 });
@@ -64,6 +68,7 @@ export function parseRecordingOptions(
   options: z.infer<typeof PostJobRecordingSchema>['options']
 ): ValidateOptionsResult {
   const data: Kitchen.CreateJobOptions['options'] = {};
+  const trackNumbers = users.map((u) => u.track);
 
   // Check features
   if (options.container === 'mix' && !recording.features.mix) return { valid: false, code: APIErrorCode.FEATURE_UNAVAILABLE };
@@ -71,10 +76,14 @@ export function parseRecordingOptions(
 
   // Ignore tracks
   if (options.ignoreTracks) {
-    const trackNumbers = users.map((u) => u.track);
-    if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_FORMAT };
+    if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_TRACK };
     if (options.ignoreTracks.length === users.length) return { valid: false, code: APIErrorCode.NO_TRACKS_GIVEN };
     data.ignoreTracks = options.ignoreTracks;
+  }
+
+  // Skip dynaudnorm
+  if (options.skipDynaudnorm) {
+    if (options.skipDynaudnorm.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_TRACK };
   }
 
   // Self-extractors (powersfx will have exe container after parsing, else zip container)
@@ -88,6 +97,7 @@ export function parseRecordingOptions(
   if (options.container === 'aupzip' || options.container === 'sesxzip') {
     data.container = options.container;
     data.dynaudnorm = options.dynaudnorm;
+    data.skipDynaudnorm = options.skipDynaudnorm;
     return { valid: true, options: data };
   }
 
@@ -106,6 +116,7 @@ export function parseRecordingOptions(
     if (GENERIC_DOWNLOAD_FORMATS.includes(options.format as any)) {
       data.format = options.format;
       data.dynaudnorm = options.dynaudnorm;
+      data.skipDynaudnorm = options.skipDynaudnorm;
       return { valid: true, options: data };
     } else return { valid: false, code: APIErrorCode.INVALID_FORMAT };
   }

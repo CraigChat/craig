@@ -37,8 +37,9 @@ export interface CreateJobOptions {
 
     format?: FormatType;
     container?: ContainerType;
-    dynaudnorm?: boolean;
     ignoreTracks?: number[];
+    dynaudnorm?: boolean;
+    skipDynaudnorm?: number[];
 
     fg?: string;
     bg?: string;

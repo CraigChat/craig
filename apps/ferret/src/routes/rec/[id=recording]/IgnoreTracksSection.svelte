@@ -8,13 +8,17 @@
   import { page } from '$app/state';
   import RecordingUserChip from '$components/RecordingUserChip.svelte';
 
-  const users = page.data.users!;
+  const pageUsers = page.data.users!;
 
   interface Props {
+    name?: string;
     ignored: SvelteSet<number>;
+    allIgnoredText?: string;
+    previouslyIgnored?: SvelteSet<number>;
   }
 
-  let { ignored }: Props = $props();
+  let { name, ignored, allIgnoredText, previouslyIgnored }: Props = $props();
+  let users = $derived(previouslyIgnored ? pageUsers.filter((u) => !previouslyIgnored.has(u.track)) : pageUsers);
   let allUsersIgnored = $derived(users.length === ignored.size);
   let expanded = $state(false);
 </script>
@@ -28,7 +32,7 @@
     }}
   >
     <div class="flex w-full items-center gap-2 transition-colors group-hover:text-white">
-      <span class="font-medium">{$t('download.exclude_user.name')}</span>
+      <span class="font-medium">{name || $t('download.exclude_user.name')}</span>
       {#if ignored.size}
         <span class="rounded-full bg-white/10 bg-zinc-700 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
           {$t('download.exclude_user.count', { values: { count: ignored.size } })}
@@ -53,6 +57,6 @@
     {/if}
   </div>
   {#if allUsersIgnored}
-    <span class="text-xs text-red-500">{$t('download.exclude_user.all_excluded_warning')}</span>
+    <span class="text-xs text-red-500">{allIgnoredText || $t('download.exclude_user.all_excluded_warning')}</span>
   {/if}
 </div>

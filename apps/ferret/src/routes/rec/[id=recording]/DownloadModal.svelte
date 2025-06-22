@@ -2,6 +2,7 @@
   import Icon from '@iconify/svelte';
   import errorIcon from '@iconify-icons/mdi/error';
   import folderIcon from '@iconify-icons/mdi/folder';
+  import cornerIcon from '@iconify-icons/radix-icons/corner-bottom-left';
   import { onMount } from 'svelte';
   import { Tween } from 'svelte/motion';
   import { SvelteSet } from 'svelte/reactivity';
@@ -74,9 +75,19 @@
   let title = $derived(desc.title ?? buttonText);
   const firstUser = formatUser(users[0]) ?? '';
   let normalization = $state(false);
+  let excludeNormalization = new SvelteSet<number>();
   let canIgnore = $derived(!button.noIgnore && users.length > 1);
   let ignored = new SvelteSet<number>();
   let canDownload = $derived(ignored.size !== users.length);
+
+  $effect(() => {
+    if (excludeNormalization.size && !normalization) excludeNormalization.clear();
+  });
+  $effect(() => {
+    for (const track of ignored) {
+      if (excludeNormalization.has(track)) excludeNormalization.delete(track);
+    }
+  });
 
   let ennuizel = !!button.ennuizel;
   let ezTimerTween = new Tween(5);
@@ -97,7 +108,12 @@
         type: 'recording',
         options: {
           ...button.options,
-          ...(button.allowNorm ? { dynaudnorm: normalization } : {}),
+          ...(button.allowNorm
+            ? {
+                dynaudnorm: normalization,
+                ...(excludeNormalization ? { skipDynaudnorm: [...excludeNormalization] } : {})
+              }
+            : {}),
           ...(ignored.size && canIgnore ? { ignoreTracks: [...ignored] } : {})
         }
       });
@@ -174,6 +190,17 @@
             <label for="dl-dynaudnorm" class="w-full font-medium">{$t('download.modal.normalize_audio')}</label>
             <Checkbox id="dl-dynaudnorm" disabled={$jobPosting} bind:checked={normalization} />
           </div>
+          {#if normalization && ignored.size !== users.length && users.length - ignored.size > 1}
+            <div class="flex gap-1">
+              <Icon icon={cornerIcon} class="h-6 w-6 opacity-50" />
+              <IgnoreTracksSection
+                name={$t('download.exclude_user.exclude_from_normalization')}
+                ignored={excludeNormalization}
+                previouslyIgnored={ignored}
+                allIgnoredText={$t('download.exclude_user.all_excluded_normalization_warning')}
+              />
+            </div>
+          {/if}
         </div>
       {/if}
 
