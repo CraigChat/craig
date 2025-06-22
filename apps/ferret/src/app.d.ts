@@ -45,6 +45,7 @@ declare global {
       users?: Recording.RecordingUser[];
       key?: string;
       deleteKey?: string;
+      duration?: number | null;
     }
     // interface Platform {}
   }

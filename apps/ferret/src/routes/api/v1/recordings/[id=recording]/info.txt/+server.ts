@@ -1,4 +1,5 @@
-import { errorResponse, getInfoText, getRecordingInfo, getRecordingNotes, recordingExists } from '$lib/server/util';
+import { getRecordingNotesWithCache } from '$lib/server/data';
+import { errorResponse, getInfoText, getRecordingInfo, recordingExists } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
 import type { RequestHandler } from './$types';
@@ -16,7 +17,7 @@ export const GET = (async ({ url, params }) => {
   if (recording.info.key !== key) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
   if (recording.users.length !== 0 && !recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
 
-  const notes = await getRecordingNotes(id);
+  const notes = await getRecordingNotesWithCache(id, recExists.dataStats?.size);
   if (notes === false) return errorResponse(APIErrorCode.KITCHEN_UNAVAILABLE, { status: 503 });
   const info = getInfoText(id, recording.info, recording.users, notes);
 

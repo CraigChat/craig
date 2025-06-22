@@ -23,7 +23,7 @@
   }
 
   let loading = $state(false);
-  let duration: number | undefined = $state();
+  let duration: number | undefined = $state(page.data.duration ?? undefined);
 </script>
 
 {#if !duration}

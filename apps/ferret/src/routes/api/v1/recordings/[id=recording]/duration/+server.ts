@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 
-import { errorResponse, getRecordingDuration, recordingExists, validateKey } from '$lib/server/util';
+import { getRecordingDurationWithCache } from '$lib/server/data';
+import { errorResponse, recordingExists, validateKey } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
 import type { RequestHandler } from './$types';
@@ -16,7 +17,7 @@ export const GET: RequestHandler = async ({ url, params }) => {
   if (!recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
   if (!(await validateKey(id, key))) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
 
-  const duration = await getRecordingDuration(id);
+  const duration = await getRecordingDurationWithCache(id, recExists.dataStats?.size);
   if (duration === false) return errorResponse(APIErrorCode.KITCHEN_UNAVAILABLE, { status: 503 });
 
   return json(

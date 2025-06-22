@@ -48,15 +48,24 @@ export async function pathExists(path: string) {
   }
 }
 
+export async function getStatIfExists(path: string) {
+  try {
+    const stat = await fs.stat(path);
+    return stat.isFile() ? stat : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function recordingExists(recordingId: string) {
   const recFileBase = join(REC_DIRECTORY, `${recordingId}.ogg`);
-  const [infoExists, usersExists, dataExists] = await Promise.all([
+  const [infoExists, usersExists, dataStats] = await Promise.all([
     pathExists(`${recFileBase}.info`),
     pathExists(`${recFileBase}.users`),
-    pathExists(`${recFileBase}.data`)
+    getStatIfExists(`${recFileBase}.data`)
   ]);
 
-  return { available: infoExists && usersExists, dataExists };
+  return { available: infoExists && usersExists, dataExists: !!dataStats, dataStats };
 }
 
 export async function getRecordingInfo(recordingId: string) {

@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 
+import { getCachedRecordingDuration } from '$lib/server/data';
 import { deleteRecording, errorResponse, getRecordingInfo, recordingExists } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
@@ -18,10 +19,12 @@ export const GET: RequestHandler = async ({ url, params }) => {
   const recording = await getRecordingInfo(id);
   if (recording.info.key !== key) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
   if (recording.users.length !== 0 && !recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
+  const duration = await getCachedRecordingDuration(id, recExists.dataStats?.size);
 
   return json({
     recording: recording.cleanInfo,
-    users: withAvatars ? recording.users : recording.users.map(({ avatar: _, ...user }) => user)
+    users: withAvatars ? recording.users : recording.users.map(({ avatar: _, ...user }) => user),
+    ...(duration !== null ? { duration } : {})
   });
 };
 
