@@ -10,7 +10,7 @@
 </script>
 
 {#snippet supportServerLink()}
-  <a href="${SUPPORT_SERVER_URL}" target="_blank" class="underline underline-offset-2 transition-colors hover:text-blue-300">
+  <a href={SUPPORT_SERVER_URL} target="_blank" class="underline underline-offset-2 transition-colors hover:text-blue-300">
     {$t('footer.support_server')}
   </a>
 {/snippet}
