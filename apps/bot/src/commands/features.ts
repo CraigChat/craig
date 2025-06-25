@@ -64,7 +64,7 @@ export default class Features extends GeneralCommand {
       };
     }
 
-    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
+    const userData = await this.entitlements.getCurrentUser(ctx);
     const blessing = ctx.guildID ? await this.prisma.blessing.findFirst({ where: { guildId: ctx.guildID } }) : null;
     const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
 

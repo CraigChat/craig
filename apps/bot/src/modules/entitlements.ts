@@ -1,5 +1,6 @@
 import { DexareModule } from 'dexare';
 import Dysnomia from 'eris';
+import { CommandContext, ComponentContext } from 'slash-create';
 
 import type { CraigBot } from '../bot';
 import { prisma } from '../prisma';
@@ -13,6 +14,66 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
     });
 
     this.filePath = __filename;
+  }
+
+  async getCurrentUser(ctx: ComponentContext | CommandContext) {
+    const userId = ctx.user.id;
+
+    const dbEntitlement = await prisma.entitlement.findFirst({
+      where: { userId, source: 'discord' }
+    });
+
+    if (ctx.entitlements.length > 0) {
+      // Find highest tier entitlement from ctx
+      let maxTier = 0;
+      let bestEntitlement = null;
+      for (const ent of ctx.entitlements) {
+        const tier = this.getTierFromSKU(ent.sku_id);
+        if (tier !== undefined && (bestEntitlement === null || tier > maxTier)) {
+          maxTier = tier;
+          bestEntitlement = ent;
+        }
+      }
+      if (bestEntitlement && maxTier) {
+        const changed =
+          !dbEntitlement ||
+          dbEntitlement.tier !== maxTier ||
+          dbEntitlement.sourceEntitlementId !== bestEntitlement.id ||
+          (dbEntitlement.expiresAt?.toISOString() || null) !== (bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at).toISOString() : null);
+        if (changed) {
+          await prisma.entitlement.upsert({
+            where: {
+              userId_source: {
+                userId,
+                source: 'discord'
+              }
+            },
+            create: {
+              userId,
+              source: 'discord',
+              tier: maxTier,
+              sourceEntitlementId: bestEntitlement.id,
+              expiresAt: bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at) : null
+            },
+            update: {
+              tier: maxTier,
+              sourceEntitlementId: bestEntitlement.id,
+              expiresAt: bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at) : null
+            }
+          });
+        }
+      }
+    } else if (dbEntitlement)
+      await prisma.entitlement.delete({
+        where: {
+          userId_source: {
+            userId,
+            source: 'discord'
+          }
+        }
+      });
+
+    return await this.resolveUserEntitlement(userId);
   }
 
   async resolveUserEntitlement(userId: string) {
