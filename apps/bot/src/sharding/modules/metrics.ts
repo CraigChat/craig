@@ -280,12 +280,23 @@ export default class MetricsModule extends ShardManagerModule {
       labelNames: ['code']
     });
 
+    // Initialize the counter with some known codes
+    this.gatewayCloseCounter.inc({ code: '1000' }, 0);
+    this.gatewayCloseCounter.inc({ code: '1001' }, 0);
+    this.gatewayCloseCounter.inc({ code: '1006' }, 0);
+    this.gatewayCloseCounter.inc({ code: '1014' }, 0);
+    this.gatewayCloseCounter.inc({ code: '4000' }, 0);
+    this.gatewayCloseCounter.inc({ code: '4008' }, 0);
+    this.gatewayCloseCounter.inc({ code: '4009' }, 0);
+
     this.manager.on('disconnect', this.onShardDisconnect);
     this.server.listen(this.manager.options.metricsPort, () => logger?.info(`Metrics server started on port ${this.manager.options.metricsPort}`));
   }
 
   onShardDisconnect(shard: Shard, err: Error & { code: number }) {
-    if ('code' in err && typeof err.code === 'number') this.gatewayCloseCounter?.inc({ code: err.code.toString() });
+    try {
+      if (err && 'code' in err && typeof err.code === 'number') this.gatewayCloseCounter?.inc({ code: err.code.toString() });
+    } catch {}
   }
 
   unload() {
