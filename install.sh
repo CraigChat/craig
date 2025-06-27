@@ -126,80 +126,6 @@ install_node() {
   npm install -g pm2
 }
 
-create_env_file() {
-  local output_file="$1"
-  local variable_names=("${@:2}")
-
-  # recreate if it already exists
-  >"$output_file"
-
-  # output the name of the env variable and its value
-  for var_name in "${variable_names[@]}"; do
-    echo "$var_name=${!var_name}" >>"$output_file"
-  done
-
-}
-
-config_env() {
-  local env_names
-
-  info "Configuring environment..."
-
-  env_names=(
-    "DISCORD_BOT_TOKEN"
-    "DISCORD_APP_ID"
-    "DEVELOPMENT_GUILD_ID"
-  )
-  create_env_file "$craig_dir/.env" "${env_names[@]}"
-
-  env_names=(
-    "DATABASE_URL"
-  )
-  create_env_file "$craig_dir/prisma/.env" "${env_names[@]}"
-
-  env_names=(
-    "CLIENT_ID"
-    "CLIENT_SECRET"
-    "PATREON_CLIENT_ID"
-    "PATREON_CLIENT_SECRET"
-    "PATRON_TIER_MAP"
-    "PATREON_WEBHOOK_SECRET"
-    "GOOGLE_CLIENT_ID"
-    "GOOGLE_CLIENT_SECRET"
-    "MICROSOFT_CLIENT_ID"
-    "MICROSOFT_CLIENT_SECRET"
-    "DROPBOX_CLIENT_ID"
-    "DROPBOX_CLIENT_SECRET"
-    "APP_URI"
-    "JWT_SECRET"
-  )
-
-  create_env_file "$craig_dir/apps/dashboard/.env" "${env_names[@]}"
-
-  env_names=(
-    "API_PORT"
-    "API_HOMEPAGE"
-    "ENNUIZEL_BASE"
-    "TRUST_PROXY"
-    "SENTRY_DSN"
-    "SENTRY_HOST"
-    "SENTRY_SAMPLE_RATE"
-    "SENTRY_DSN_API"
-    "SENTRY_ENV"
-    "SENTRY_SAMPLE_RATE_API"
-    "INFLUX_URL"
-    "INFLUX_TOKEN"
-    "INFLUX_ORG"
-    "INFLUX_BUCKET"
-    "SERVER_NAME"
-    "REDIS_HOST"
-    "REDIS_PORT"
-  )
-
-  create_env_file "$craig_dir/apps/download/.env" "${env_names[@]}"
-
-}
-
 config_yarn() {
 
   info "Configuring yarn..."
@@ -253,9 +179,6 @@ config_cook() {
       exit 1
     fi
   fi
-
-  source "$craig_dir/install.config"
-
   # check if user is using linux
   OS="$(uname)"
   if [[ "${OS}" != "Linux" ]]; then
@@ -268,7 +191,6 @@ config_cook() {
 
   install_apt_packages
   install_node
-  config_env
   config_yarn
   config_cook
 
