@@ -31,6 +31,7 @@ const recIndicator = / *!?\[RECORDING\] */;
 
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
+const MAX_LATENCY_WARNING = 500;
 
 const BAD_MESSAGE_CODES = [
   404,
@@ -124,8 +125,10 @@ export default class Recording {
   lastSize = 0;
   usedMinutes = 0;
   unusedMinutes = 0;
+  latency: number | null = null;
   silenceWarned = false;
   maintenceWarned = false;
+  latencyWarned = false;
 
   constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
@@ -401,6 +404,7 @@ export default class Recording {
       this.connection?.removeAllListeners('error');
       this.connection?.removeAllListeners('warn');
       this.connection?.removeAllListeners('debug');
+      this.connection?.removeAllListeners('pong');
       this.connection?.removeAllListeners('ready');
       this.connection?.removeAllListeners('unknown');
       this.receiver?.removeAllListeners('data');
@@ -412,6 +416,7 @@ export default class Recording {
       connection.on('ready', this.onConnectionReady.bind(this));
       connection.on('connect', this.onConnectionConnect.bind(this));
       connection.on('disconnect', this.onConnectionDisconnect.bind(this));
+      connection.on('pong', this.onConnectionPong.bind(this));
       connection.on('resumed', this.onConnectionResumed.bind(this));
       connection.on('unknown', this.onConnectionUnknown.bind(this));
       connection.on('error', (err: any) => {
@@ -526,6 +531,15 @@ export default class Recording {
     if (!this.active) return;
     this.writeToLog(`Voice connection resumed (seq=${this.connection?.wsSequence})`, 'connection');
     this.recorder.logger.debug(`Recording ${this.id} resumed`);
+  }
+
+  async onConnectionPong(latency: number) {
+    this.latency = latency;
+    this.writeToLog(`Voice server latency: ${latency}ms`, 'connection');
+    if (latency && latency > MAX_LATENCY_WARNING && !this.latencyWarned) {
+      this.latencyWarned = true;
+      this.pushToActivity(`⚠️ High voice server latency: ${latency}ms, this may cause issues with the recording.`, true);
+    } else await this.updateMessage();
   }
 
   async onConnectionDisconnect(err?: Error) {
@@ -951,7 +965,8 @@ export default class Recording {
                 `**Recording ID:** \`${this.id}\``,
                 `**Channel:** ${this.channel.mention}`,
                 startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : '',
-                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''
+                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : '',
+                this.latency ? `**Voice Server Latency:** ${this.latency}ms${this.latency > MAX_LATENCY_WARNING ? ' ⚠️' : ''}` : ''
               ]
                 .filter((v) => !!v)
                 .join('\n')
