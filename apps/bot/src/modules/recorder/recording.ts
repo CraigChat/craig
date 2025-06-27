@@ -586,6 +586,8 @@ export default class Recording {
         ? voiceEndpoint.replace(/\d+?-[\da-f]+\.discord\.media$/, '')
         : voiceEndpoint.replace(/\d+\.discord\.media$/, '');
 
+      this.recorder.metrics.onVoiceServerConnect(regionId);
+
       const existingRegion = await prisma.voiceRegion.findUnique({ where: { id: regionId } });
 
       await prisma.voiceRegion.upsert({

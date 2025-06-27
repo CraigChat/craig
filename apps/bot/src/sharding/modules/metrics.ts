@@ -183,6 +183,26 @@ export default class MetricsModule extends ShardManagerModule {
     for (const command of ['autorecord', 'bless', 'features', 'info', 'join', 'note', 'recordings', 'server-settings', 'stop', 'unbless', 'webapp'])
       cmdUsage.inc({ command }, 0);
 
+    new Counter({
+      name: 'craig_bot_voice_regions_connected_total',
+      help: 'Counter for total voice server regions connected',
+      labelNames: ['region'],
+      async collect() {
+        try {
+          await timeout(
+            Promise.all(
+              Array.from(manager.shards.values()).map(async (shard) => {
+                if (shard.status === 'ready' || shard.status === 'resuming') {
+                  const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("voiceServersConnected")');
+                  for (const region in result) this.inc({ region }, result[region]);
+                }
+              })
+            )
+          );
+        } catch {}
+      }
+    });
+
     new Gauge({
       name: 'craig_bot_shard_latency_milliseconds',
       help: 'Gauge for millisecond latency per shard',

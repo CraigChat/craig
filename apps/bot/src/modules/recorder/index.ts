@@ -13,6 +13,7 @@ import type { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
 import { prisma } from '../../prisma';
 import { checkMaintenance } from '../../redis';
+import MetricsModule from '../metrics';
 import type UploadModule from '../upload';
 import Recording, { RecordingState } from './recording';
 
@@ -71,6 +72,11 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   get uploader() {
     // @ts-ignore
     return this.client.modules.get('upload') as UploadModule;
+  }
+
+  get metrics() {
+    // @ts-ignore
+    return this.client.modules.get('metrics') as MetricsModule;
   }
 
   async load() {
