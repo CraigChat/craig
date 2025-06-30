@@ -34,7 +34,7 @@
     "config": "^3.3.8",
     "cron": "^2.1.0",
     "dayjs": "^1.11.6",
-    "dbots": "^11.0.0",
+    "dbots": "^12.0.0",
     "dexare": "^3.0.1",
     "dotenv": "^16.0.3",
     "eris": "github:CraigChat/dysnomia#73f4e4424ef5465a592bc53ff6d9bce4957f5929",
