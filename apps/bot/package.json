@@ -50,7 +50,7 @@
     "prom-client": "^15.1.3",
     "semver": "^7.7.2",
     "slash-create": "^6.4.1",
-    "sodium-native": "^4.1.1",
+    "sodium-native": "^5.0.6",
     "winston": "^3.11.0",
     "ws": "^8.10.0"
   },
