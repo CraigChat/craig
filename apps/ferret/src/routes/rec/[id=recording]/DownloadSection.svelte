@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
   import lockIcon from '@iconify-icons/mdi/lock';
+  import warnIcon from '@iconify-icons/mdi/warning';
   import { fade, fly } from 'svelte/transition';
   import { t } from 'svelte-i18n';
   import Portal from 'svelte-portal';
@@ -20,9 +21,10 @@
   interface Props {
     emitter: RecordingPageEmitter;
     features: MinimalRecordingInfo['features'];
+    noUsers?: boolean;
   }
 
-  let { emitter, features }: Props = $props();
+  let { emitter, features, noUsers }: Props = $props();
 
   function onButtonClick(button: SectionButton, section: Translatable) {
     focusedButton = { ...button, section };
@@ -40,7 +42,17 @@
   }
 </script>
 
-{#if !$jobOpen}
+{#if noUsers}
+  <div class="z-[1] inline-flex flex-col justify-start rounded-2xl bg-zinc-900 shadow">
+    <div class="self-stretch p-6">
+      <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">{$t('download.no_users')}</h2>
+      <span class="text-sm sm:text-base">
+        <Icon icon={warnIcon} inline class="inline" />
+        {$t('download.no_users_description')}
+      </span>
+    </div>
+  </div>
+{:else if !$jobOpen}
   <div class="shadow-section z-[1] inline-flex flex-col justify-start rounded-2xl bg-zinc-900">
     <div class="self-stretch px-6 pb-3 pt-6">
       <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">{$t('download.sections.downloads')}</h2>

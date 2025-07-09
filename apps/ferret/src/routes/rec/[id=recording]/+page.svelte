@@ -34,7 +34,7 @@
   <SiteHeader />
   <RecordingHeader />
   <JobSections {emitter} />
-  <DownloadSection {emitter} features={data.recording.features} />
+  <DownloadSection {emitter} features={data.recording.features} noUsers={data.users.length === 0} />
   <SiteFooter />
 </section>
 

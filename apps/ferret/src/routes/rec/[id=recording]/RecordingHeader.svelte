@@ -187,19 +187,21 @@
       </div>
     </div>
   </div>
-  <div class="inline-flex w-full flex-col items-center justify-center gap-2 px-6 pb-4 pt-1 sm:items-start sm:pt-4">
-    <div class="font-display flex w-full justify-between gap-2 text-center text-base font-semibold text-neutral-300 sm:text-xl">
-      <span>
-        {$t('recording.users_recorded', { values: { count: users.length } })}
-      </span>
-      <DurationTag />
+  {#if users.length !== 0}
+    <div class="inline-flex w-full flex-col items-center justify-center gap-2 px-6 pb-4 pt-1 sm:items-start sm:pt-4">
+      <div class="font-display flex w-full justify-between gap-2 text-center text-base font-semibold text-neutral-300 sm:text-xl">
+        <span>
+          {$t('recording.users_recorded', { values: { count: users.length } })}
+        </span>
+        <DurationTag />
+      </div>
+      <div class="flex flex-wrap items-center justify-center gap-4 sm:justify-start">
+        {#each users as user}
+          <RecordingUserChip {user} />
+        {/each}
+      </div>
     </div>
-    <div class="flex flex-wrap items-center justify-center gap-4 sm:justify-start">
-      {#each users as user}
-        <RecordingUserChip {user} />
-      {/each}
-    </div>
-  </div>
+  {/if}
 </div>
 
 {#if showDeleteModal}
