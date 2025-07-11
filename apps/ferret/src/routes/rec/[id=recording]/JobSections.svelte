@@ -7,6 +7,7 @@
   import { page } from '$app/state';
   import Button from '$components/Button.svelte';
   import RecordingUserChip from '$components/RecordingUserChip.svelte';
+  import { loadingIcon } from '$lib/icons';
   import { jobOpen } from '$lib/recording/data';
   import { SSEClient } from '$lib/sse';
   import { toast } from '$lib/toaster';
@@ -499,6 +500,15 @@
             <span class="font-mono text-xs font-normal text-neutral-400 sm:text-sm">{jobState?.time}</span>
           {/if}
         </div>
+      </div>
+    {:else if status === 'running' && jobState?.runpodStatus}
+      <div class="flex items-center gap-2 self-stretch p-6">
+        {#if jobState.runpodStatus === 'IN_QUEUE'}
+          <div class="h-4 w-4 animate-pulse rounded-full bg-blue-600"></div>
+        {:else}
+          <Icon icon={loadingIcon} class="h-4 w-4 animate-spin rounded-full bg-green-400/10 text-green-400" />
+        {/if}
+        <span class="text-gray-200">{$t(jobState.runpodStatus === 'IN_QUEUE' ? 'job.transcription_queued' : 'job.state_type.transcribing')}</span>
       </div>
     {/if}
   </div>

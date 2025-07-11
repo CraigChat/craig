@@ -38,6 +38,11 @@ export const DROPBOX_CLIENT_ID = process.env.DROPBOX_CLIENT_ID;
 export const DROPBOX_CLIENT_SECRET = process.env.DROPBOX_CLIENT_SECRET;
 export const DROPBOX_FOLDER_NAME = process.env.DROPBOX_FOLDER_NAME;
 
+export const DOWNLOAD_URL_PREFIX = process.env.DOWNLOAD_URL_PREFIX;
+
+export const RUNPOD_TRANSCRIPTION_ENDPOINT_ID = process.env.RUNPOD_TRANSCRIPTION_ENDPOINT_ID;
+export const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
+
 export const REDIS_OPTIONS: RedisOptions = {
   host: process.env.REDIS_HOST || 'localhost',
   port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379,

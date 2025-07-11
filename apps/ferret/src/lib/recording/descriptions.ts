@@ -14,7 +14,7 @@ export interface Description {
 }
 
 export const descriptions: Record<string, Description> = {
-  '-:aupzip': {
+  'recording/-:aupzip': {
     file: '.aup.zip',
     zipContents: [
       {
@@ -34,7 +34,7 @@ export const descriptions: Record<string, Description> = {
     ],
     description: { t: 'download.modal.description.project', values: { software: 'Audacity', file: '.aup' } }
   },
-  '-:sesxzip': {
+  'recording/-:sesxzip': {
     file: '.sesx.zip',
     zipContents: [
       {
@@ -54,11 +54,11 @@ export const descriptions: Record<string, Description> = {
     ],
     description: { t: 'download.modal.description.project', values: { software: 'Adobe Audition', file: '.sesx' } }
   },
-  'powersfx:exe': {
+  'recording/powersfx:exe': {
     file: '.exe',
     description: { t: 'download.modal.description.executable' }
   },
-  'powersfxm:-': {
+  'recording/powersfxm:-': {
     file: '.powersfxm.zip',
     zipContents: [
       {
@@ -83,7 +83,7 @@ export const descriptions: Record<string, Description> = {
     ],
     description: { t: 'download.modal.description.script' }
   },
-  'powersfxu:-': {
+  'recording/powersfxu:-': {
     file: '.powersfxu.zip',
     zipContents: [
       {
@@ -112,5 +112,17 @@ export const descriptions: Record<string, Description> = {
   '/info.txt': {
     file: '-info.txt',
     description: { t: 'download.modal.description.infotxt' }
+  },
+  'transcription/txt:-': {
+    file: '.txt',
+    description: { t: 'download.modal.description.transcription_txt' }
+  },
+  'transcription/srt:-': {
+    file: '.srt',
+    description: { t: 'download.modal.description.transcription_srt' }
+  },
+  'transcription/vtt:-': {
+    file: '.vtt',
+    description: { t: 'download.modal.description.transcription_vtt' }
   }
 };

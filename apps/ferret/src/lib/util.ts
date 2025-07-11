@@ -143,6 +143,12 @@ export function getNameFromJob(job: MinimalJobInfo, t: (id: string) => string) {
       else if (job.options.format === 'webmvp8') return `${t('download.avatar_overlays.name')} / WebM`;
       return `${t('download.avatar_overlays.name')} / ${(job.options.format || '').toUpperCase()}`;
     }
+    case 'transcription': {
+      if (job.options.format === 'vtt') return `${t('download.sections.transcription')} / WebVTT (.vtt)`;
+      else if (job.options.format === 'srt') return `${t('download.sections.transcription')} / ${t('download.format_buttons.srt')} (.srt)`;
+      else if (job.options.format === 'txt') return `${t('download.sections.transcription')} / ${t('download.format_buttons.plain_text')}`;
+      else return `${t('download.sections.transcription')} / ${(job.options.format || '').toUpperCase()}`;
+    }
   }
   return '';
 }

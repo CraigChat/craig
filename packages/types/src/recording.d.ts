@@ -35,6 +35,7 @@ export interface RecordingInfoV1 {
     eccontinuous?: true;
     ecflac?: true;
     mp3?: true;
+    transcription?: true;
   };
 }
 
@@ -47,6 +48,7 @@ export interface RecordingUser {
   unknown: boolean;
   avatar?: string;
   avatarUrl?: string;
+  globalName?: string;
   dtype?: number;
 }
 

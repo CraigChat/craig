@@ -24,6 +24,7 @@ export type SectionButton = {
   text: Translatable;
   suffix?: string;
   icon?: IconifyIcon;
+  jobType?: Kitchen.JobType;
   options?: {
     format?: Kitchen.FormatType;
     container?: Kitchen.ContainerType;
@@ -123,4 +124,10 @@ export const audioButtons: SectionButtons = [
       }
     ]
   }
+];
+
+export const transcriptionButtons: SectionButton[] = [
+  { text: 'WebVTT', suffix: '(.vtt)', options: { format: 'vtt' } },
+  { text: { t: 'download.format_buttons.srt' }, suffix: '(.srt)', options: { format: 'srt' } },
+  { icon: textFileIcon, text: { t: 'download.format_buttons.plain_text' }, suffix: '(.txt)', options: { format: 'txt' } }
 ];

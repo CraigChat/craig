@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     fs: {
       allow: ['../../locale']
-    }
+    },
+    allowedHosts: ['.trycloudflare.com']
   }
 });

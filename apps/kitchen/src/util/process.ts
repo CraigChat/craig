@@ -441,3 +441,61 @@ export async function copyFFmpegLicense(writeStream: WriteStream, replaceValue =
   const license = await readFile('./cook/ffmpeg-lgpl21.txt', { encoding: 'utf8' });
   writeStream.write(license.replace(/^(.*)$/gm, replaceValue));
 }
+
+interface EncodeTranscriptionTrackOptions extends EncodeMixTrackOptions {
+  codec: StreamType;
+  job?: Job;
+}
+
+export async function encodeTranscriptionTrack({ recFileBase, codec, track, cancelSignal, audioWritePath, job }: EncodeTranscriptionTrackOptions) {
+  const duration = await getDuration({ recFileBase, cancelSignal });
+  const pOpts = procOpts();
+
+  const commands = [
+    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
+    `${pOpts} ./cook/oggcorrect ${track}`,
+    `${pOpts} ffmpeg -c:a ${codec === 'opus' ? 'libopus' : codec} -i - -f ogg -c:a libopus -ac 1 -ar 16000 -b:a 32k -application lowdelay -y "${audioWritePath}"`
+  ];
+
+  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
+  const childPids = await getChildPids(childProcess.pid!, cancelSignal);
+
+  const durationNum = parseFloat(duration);
+  let abortListener: ((event: Event) => void) | undefined;
+
+  try {
+    childProcess
+      .stderr!.on('data', (b) => {
+        const timemark = getTimemark(b.toString());
+        if (timemark) {
+          job?.setState({
+            type: 'encoding',
+            tracks: {
+              ...(job.state.tracks || {}),
+              [track]: { progress: (timemark[1] / durationNum) * 100, time: timemark[0] }
+            }
+          });
+        }
+      })
+      .once('error', () => {});
+
+    // Add abort handler that we can clean up later
+    abortListener = () => {
+      childProcess.stderr!.removeAllListeners('data');
+      killPids(childPids, recFileBase, `encodeTranscriptionTrack/${track}`);
+    };
+    cancelSignal.addEventListener('abort', abortListener);
+
+    const success = await childProcess
+      .then(() => true)
+      .catch(() => {
+        if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
+        return false;
+      });
+    return success;
+  } finally {
+    // Clean up event listeners and streams
+    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
+    childProcess.stderr.removeAllListeners();
+  }
+}

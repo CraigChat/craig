@@ -2,6 +2,7 @@
   import Icon from '@iconify/svelte';
   import errorIcon from '@iconify-icons/mdi/error';
   import folderIcon from '@iconify-icons/mdi/folder';
+  import infoIcon from '@iconify-icons/mdi/info';
   import cornerIcon from '@iconify-icons/radix-icons/corner-bottom-left';
   import { onMount } from 'svelte';
   import { Tween } from 'svelte/motion';
@@ -11,6 +12,7 @@
   import { page } from '$app/state';
   import Button from '$components/Button.svelte';
   import Checkbox from '$components/Checkbox.svelte';
+  import DynamicTranslatable from '$components/DynamicTranslatable.svelte';
   import Modal from '$components/Modal.svelte';
   import { PUBLIC_ENNUIZEL_API_HOSTNAME, PUBLIC_ENNUIZEL_URL } from '$env/static/public';
   import { ennuizelWarned } from '$lib/data';
@@ -45,7 +47,9 @@
   let extension = $derived(FormatToExt[button.options?.format ?? ''] ?? button.options?.format);
   let buttonText = $derived(convertT(button.text, $t));
   let sectionText = $derived(convertT(button.section, $t));
-  let descriptionKey = $derived(button.url ?? `${button.options?.format ?? '-'}:${button.options?.container ?? '-'}`);
+  let descriptionKey = $derived(
+    button.url ?? `${button.jobType ?? 'recording'}/${button.options?.format ?? '-'}:${button.options?.container ?? '-'}`
+  );
   let desc = $derived(
     descriptions[descriptionKey] ??
       (button.options?.container === 'mix'
@@ -105,7 +109,7 @@
       onclose?.();
     } else
       await postJob(emitter, onclose, recording, key, {
-        type: 'recording',
+        type: button.jobType || 'recording',
         options: {
           ...button.options,
           ...(button.allowNorm
@@ -123,6 +127,14 @@
     if (ennuizel) ezTimerTween.set(0, { duration: $ennuizelWarned ? 0 : 5000 });
   });
 </script>
+
+{#snippet runpod()}
+  <a href="https://runpod.io?ref=4ery0ian" target="_blank" class="underline transition-colors hover:text-purple-200">RunPod</a>
+{/snippet}
+
+{#snippet whisper()}
+  <a href="https://github.com/SYSTRAN/faster-whisper" target="_blank" class="underline transition-colors hover:text-purple-200">Faster Whisper</a>
+{/snippet}
 
 <Modal
   title={$t(ennuizel ? 'download.ennuizel_modal.header' : 'download.modal.header')}
@@ -179,6 +191,13 @@
           {desc.description ? convertT(desc.description, $t) : $t('download.modal.description.zip', { values: { file: buttonText } })}
         </span>
       </div>
+
+      {#if button.jobType === 'transcription'}
+        <div class="flex gap-2 rounded-lg bg-purple-600/20 px-4 py-2 text-white">
+          <Icon icon={infoIcon} class="h-6 w-6 text-purple-600" inline />
+          <span><DynamicTranslatable template={$t('download.modal.runpod_warn')} replacements={{ runpod, whisper }} /></span>
+        </div>
+      {/if}
 
       {#if button.allowNorm || canIgnore}
         <hr class="border-white/20" />

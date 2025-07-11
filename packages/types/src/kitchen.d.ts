@@ -13,10 +13,11 @@ export type RecordingFormatType =
   | 'ra'
   | `${'power' | 'wav'}sfx${'' | 'm' | 'u'}`;
 export type AvatarFormatTypes = 'mkvh264' | 'webmvp8';
-export type FormatType = RecordingFormatType | AvatarFormatTypes;
+export type TranscriptionFormatTypes = 'vtt' | 'srt' | 'txt';
+export type FormatType = RecordingFormatType | AvatarFormatTypes | TranscriptionFormatTypes;
 export type ContainerType = 'ogg' | 'matroska' | 'mix' | 'zip' | 'aupzip' | 'sesxzip' | 'exe';
 
-export type JobType = 'recording' | 'avatars';
+export type JobType = 'recording' | 'avatars' | 'transcription';
 export type JobStatus = 'idle' | 'running' | 'complete' | 'error' | 'cancelled' | 'queued';
 export type PostTask = 'download' | 'upload';
 
@@ -49,7 +50,7 @@ export interface CreateJobOptions {
 
 export interface JobState {
   position?: number;
-  type?: 'starting' | 'processing' | 'encoding' | 'writing' | 'uploading' | 'finalizing';
+  type?: 'starting' | 'processing' | 'encoding' | 'writing' | 'uploading' | 'transcribing' | 'finalizing';
   file?: string;
   track?: number;
   progress?: number;
@@ -57,6 +58,7 @@ export interface JobState {
   tracks?: {
     [track: number]: JobStateTrack;
   };
+  runpodStatus?: 'IN_QUEUE' | 'IN_PROGRESS';
 }
 
 export type JobTags = { queueBypass: boolean } & Record<string, any>;
@@ -74,6 +76,7 @@ export interface JobOutputData {
   uploadFileId?: string;
   uploadFileURL?: string;
   uploadService?: string;
+  transcriptionRequestId?: string;
 }
 
 export interface JobJSON {

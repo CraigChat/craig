@@ -102,7 +102,7 @@ app.post('/jobs', async (req, reply) => {
   if (typeof opts !== 'object') return reply.status(400).send({ error: 'Invalid options' });
 
   // Check job type
-  if (!['recording', 'avatars'].includes(opts.jobType)) return reply.status(400).send({ error: 'Invalid job type' });
+  if (!['recording', 'avatars', 'transcription'].includes(opts.jobType)) return reply.status(400).send({ error: 'Invalid job type' });
 
   // Check recording ID
   if (typeof opts.id !== 'string' || opts.id.includes('/') || opts.id.includes('\\') || opts.id.includes('.'))

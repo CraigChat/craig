@@ -6,7 +6,15 @@ import { EventEmitter } from 'eventemitter3';
 import throttle from 'just-throttle';
 import { nanoid } from 'nanoid';
 
-import { DOWNLOADS_DIRECTORY, OUTPUT_DIRECTORY, QUEUE_SIZE, REC_DIRECTORY, TMP_DIRECTORY } from '../util/config.js';
+import {
+  DOWNLOADS_DIRECTORY,
+  OUTPUT_DIRECTORY,
+  QUEUE_SIZE,
+  REC_DIRECTORY,
+  RUNPOD_API_KEY,
+  RUNPOD_TRANSCRIPTION_ENDPOINT_ID,
+  TMP_DIRECTORY
+} from '../util/config.js';
 import { formatError, FormatToExt, FormatToMime, pathExists } from '../util/index.js';
 import logger from '../util/logger.js';
 import { jobFinishedCount } from '../util/metrics.js';
@@ -15,6 +23,7 @@ import JobManager from './manager.js';
 import { postTasks } from './postTasks.js';
 import { processAvatarsJob } from './processing/avatars.js';
 import { processRecordingJob } from './processing/recording.js';
+import { processTranscriptionJob } from './processing/transcription.js';
 
 export class Job extends EventEmitter {
   id: string;
@@ -33,6 +42,7 @@ export class Job extends EventEmitter {
   abortController = new AbortController();
   state: Kitchen.JobState = {};
   outputData: Kitchen.JobOutputData = {};
+  extraFiles: string[] = [];
 
   status: Kitchen.JobStatus = 'idle';
   failReason?: string;
@@ -132,6 +142,9 @@ export class Job extends EventEmitter {
             return 'webm.zip';
         }
       }
+      case 'transcription': {
+        return this.options?.format || 'vtt';
+      }
     }
   }
 
@@ -157,6 +170,16 @@ export class Job extends EventEmitter {
       }
       case 'avatars':
         return 'application/zip';
+      case 'transcription':
+        switch (this.options?.format) {
+          case 'txt':
+            return 'plain/text';
+          case 'srt':
+            return 'application/x-subrip';
+          case 'vtt':
+          default:
+            return 'plain/vtt';
+        }
     }
   }
 
@@ -224,6 +247,11 @@ export class Job extends EventEmitter {
         .then(() => this.#doPostTask())
         .then(() => this.#onFinish())
         .catch((e) => this.#onError(e));
+    } else if (this.type === 'transcription') {
+      this.promise = processTranscriptionJob(this)
+        .then(() => this.#doPostTask())
+        .then(() => this.#onFinish())
+        .catch((e) => this.#onError(e));
     }
   }
 
@@ -247,13 +275,21 @@ export class Job extends EventEmitter {
       this.failReason = formatError(e).slice(0, 2000);
       this.abortController.abort(this.failReason);
       this.setStatus('error');
-      logger.info(`Job ${this.id} (${this.recordingId}) errored:`, e);
+      logger.error(`Job ${this.id} (${this.recordingId}) errored:`, e);
     }
+    if (this.outputData.transcriptionRequestId)
+      await fetch(`https://api.runpod.ai/v2/${RUNPOD_TRANSCRIPTION_ENDPOINT_ID}/cancel/${this.outputData.transcriptionRequestId}`, {
+        method: 'POST',
+        headers: { Authorization: RUNPOD_API_KEY || '' }
+      }).catch(() => {});
     await this.cleanup(true).catch((e) => logger.error(`Failed to clean up ${this.id}`, e));
   }
 
   async cleanup(includeOutput = false) {
     if (await pathExists(this.tmpDir)) await fs.rm(this.tmpDir, { recursive: true, force: true });
+    for (const file of this.extraFiles) {
+      if (await pathExists(file)) await fs.rm(file, { force: true });
+    }
     if (includeOutput) {
       if (await pathExists(this.outputFile)) await fs.rm(this.outputFile, { force: true });
       if (this.postTask === 'download') {

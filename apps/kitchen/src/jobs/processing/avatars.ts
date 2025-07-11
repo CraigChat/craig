@@ -18,13 +18,13 @@ const ARESAMPLE = 'aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_
 async function writeAvatar(user: RecordingUser, file: string) {
   if (user.avatar?.startsWith('data:')) return await fs.writeFile(file, Buffer.from(user.avatar.split(',')[1], 'base64'));
 
-  if (!user.id.includes('#') && AVATAR_CDN) {
-    const response = await fetch(`${AVATAR_CDN}/discord-avatars/${user.id}.png`);
+  if (user.avatarUrl?.startsWith('https://cdn.discordapp.com/avatars/')) {
+    const response = await fetch(user.avatarUrl);
     if (response.status === 200) return await fs.writeFile(file, Buffer.from(await response.arrayBuffer()));
   }
 
-  if (user.avatarUrl?.startsWith('https://cdn.discordapp.com/avatars/')) {
-    const response = await fetch(user.avatarUrl);
+  if (!user.id.includes('#') && AVATAR_CDN) {
+    const response = await fetch(`${AVATAR_CDN}/discord-avatars/${user.id}.png`);
     if (response.status === 200) return await fs.writeFile(file, Buffer.from(await response.arrayBuffer()));
   }
 
@@ -141,7 +141,7 @@ export async function processAvatarsJob(job: Job) {
     if (!success) job.outputData.usersWarned = [...(job.outputData.usersWarned || []), track];
   }
 
-  job.setState(job.options?.container === 'mix' ? { type: 'processing' } : { type: 'encoding', tracks: {} });
+  job.setState({ type: 'encoding', tracks: {} });
 
   await runParallelFunction({
     parallel: job.options?.parallel,

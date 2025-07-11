@@ -25,6 +25,9 @@ export function validateOptions(recording: Recording.RecordingInfo, users: Recor
     case 'avatars': {
       return parseAvatarsOptions(recording, users, parsed.data.options);
     }
+    case 'transcription': {
+      return parseTranscriptionOptions(recording, users, parsed.data.options);
+    }
   }
 
   return { valid: false, code: APIErrorCode.INVALID_BODY };
@@ -167,6 +170,7 @@ export function parseAvatarsOptions(
     const trackNumbers = users.map((u) => u.track);
     if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_FORMAT };
     if (options.ignoreTracks.length === users.length) return { valid: false, code: APIErrorCode.NO_TRACKS_GIVEN };
+    data.ignoreTracks = options.ignoreTracks;
   }
 
   // zod does enough validation, we passthru options here
@@ -179,8 +183,49 @@ export function parseAvatarsOptions(
 }
 
 /**
+ * Transcription Type
+ */
+
+const ALLOWED_TRANSCRIPTION_FORMATS = ['vtt', 'srt', 'txt'] as const;
+
+const PostJobTranscriptionSchema = z.object({
+  type: z.literal('transcription'),
+  options: z.object({
+    format: z.enum(ALLOWED_TRANSCRIPTION_FORMATS).optional(),
+    ignoreTracks: z
+      .array(z.number().finite())
+      .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
+      .optional()
+  })
+});
+
+export function parseTranscriptionOptions(
+  recording: Recording.RecordingInfo,
+  users: Recording.RecordingUser[],
+  options: z.infer<typeof PostJobTranscriptionSchema>['options']
+): ValidateOptionsResult {
+  const data: Kitchen.CreateJobOptions['options'] = {};
+
+  // Check features
+  if (!recording.features.transcription) return { valid: false, code: APIErrorCode.FEATURE_UNAVAILABLE };
+
+  // Ignore tracks
+  if (options.ignoreTracks) {
+    const trackNumbers = users.map((u) => u.track);
+    if (options.ignoreTracks.some((t) => !trackNumbers.includes(t))) return { valid: false, code: APIErrorCode.INVALID_FORMAT };
+    if (options.ignoreTracks.length === users.length) return { valid: false, code: APIErrorCode.NO_TRACKS_GIVEN };
+    data.ignoreTracks = options.ignoreTracks;
+  }
+
+  // zod does enough validation, we passthru options here
+  data.format = options.format as any;
+
+  return { valid: true, options: data };
+}
+
+/**
  * Overall schema definition
  */
 
-const PostJobBodySchema = z.discriminatedUnion('type', [PostJobRecordingSchema, PostJobAvatarsSchema]);
+const PostJobBodySchema = z.discriminatedUnion('type', [PostJobRecordingSchema, PostJobAvatarsSchema, PostJobTranscriptionSchema]);
 export type PostJobBody = z.infer<typeof PostJobBodySchema>;

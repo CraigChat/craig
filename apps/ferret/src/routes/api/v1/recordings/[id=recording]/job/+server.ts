@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { destr } from 'destr';
 
+import { dev } from '$app/environment';
 import { type PostJobBody, validateOptions } from '$lib/server/job';
 import { isStreamOpen } from '$lib/server/redis';
 import { cancelJob, createJob, errorResponse, getLatestJob, getRecordingInfo, minimizeJobInfo, recordingExists, validateKey } from '$lib/server/util';
@@ -72,7 +73,13 @@ export const POST: RequestHandler = async ({ url, params, request }) => {
     id,
     jobType: body.type,
     postTask: 'download',
-    options: parsedOptions.options
+    options: dev
+      ? {
+          ...parsedOptions.options,
+          parallel: true,
+          concurrency: 3
+        }
+      : parsedOptions.options
   });
   if (newJob === false) return errorResponse(APIErrorCode.KITCHEN_UNAVAILABLE, { status: 503 });
 

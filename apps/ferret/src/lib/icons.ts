@@ -32,6 +32,8 @@ export function getFileIcon(file: string) {
     case 'opus':
     case 'oga':
       return soundIcon;
+    case 'vtt':
+    case 'srt':
     case 'txt':
       return textIcon;
     case 'sh':
