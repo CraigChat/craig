@@ -193,7 +193,7 @@
       </div>
 
       {#if button.jobType === 'transcription'}
-        <div class="flex gap-2 rounded-lg bg-purple-600/20 px-4 py-2 text-white">
+        <div class="flex gap-2 rounded-lg bg-purple-600/20 px-4 py-2 text-sm text-white sm:text-base">
           <Icon icon={infoIcon} class="h-6 w-6 flex-none text-purple-600" inline />
           <span><DynamicTranslatable template={$t('download.modal.runpod_warn')} replacements={{ runpod, whisper }} /></span>
         </div>
