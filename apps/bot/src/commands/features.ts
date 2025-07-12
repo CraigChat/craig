@@ -34,7 +34,8 @@ export default class Features extends GeneralCommand {
       glowers: 'Avatar Overlays',
       eccontinuous: 'Continuous Mode via Webapp',
       ecflac: 'FLAC via Webapp',
-      mp3: 'Exporting to MP3'
+      mp3: 'Exporting to MP3',
+      transcription: 'Transcription'
     };
 
     return stripIndents`
