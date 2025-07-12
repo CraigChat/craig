@@ -144,7 +144,9 @@ start_app() {
 
 {
   # shellcheck disable=SC1091
-  source "$craig_dir/install.config"
+  set -o allexport
+  source "$craig_dir/.env"
+  set +o allexport
 
   start_redis
   start_postgresql

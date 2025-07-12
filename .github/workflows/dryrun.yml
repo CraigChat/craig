@@ -9,17 +9,6 @@ jobs:
   build:
     name: build container image
     runs-on: ubuntu-latest
-    env:
-      POSTGRESQL_HOST: ${{ vars.POSTGRESQL_HOST }}
-      POSTGRESQL_START_TIMEOUT_S: ${{ vars.POSTGRESQL_START_TIMEOUT_S }}
-      DATABASE_NAME: ${{ vars.DATABASE_NAME }}
-      POSTGRESQL_USER: ${{ vars.POSTGRESQL_USER }}
-      REDIS_HOST: ${{ vars.REDIS_HOST }}
-      REDIS_START_TIMEOUT_S: ${{ vars.REDIS_START_TIMEOUT_S }}
-      DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-      DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
-      CLIENT_ID: ${{ vars.CLIENT_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -40,17 +29,6 @@ jobs:
         with:
           context: .
           file: ./Containerfile
-          build-args: |
-            POSTGRESQL_HOST=${{ env.POSTGRESQL_HOST }}
-            POSTGRESQL_START_TIMEOUT_S=${{ env.POSTGRESQL_START_TIMEOUT_S }}
-            DATABASE_NAME=${{ env.DATABASE_NAME }}
-            POSTGRESQL_USER=${{ env.POSTGRESQL_USER }}
-            REDIS_HOST=${{ env.REDIS_HOST }}
-            REDIS_START_TIMEOUT_S=${{ env.REDIS_START_TIMEOUT_S }}
-            DISCORD_BOT_TOKEN=${{ env.DISCORD_BOT_TOKEN }}
-            DISCORD_APP_ID=${{ env.DISCORD_APP_ID }}
-            CLIENT_ID=${{ env.CLIENT_ID }}
-            CLIENT_SECRET=${{ env.CLIENT_SECRET }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
