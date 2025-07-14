@@ -129,6 +129,7 @@ export default class Recording {
   silenceWarned = false;
   maintenceWarned = false;
   latencyWarned = false;
+  zeroPacketWarned = false;
 
   constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
@@ -778,6 +779,16 @@ export default class Recording {
   async onData(data: Buffer, userID: string, timestamp: number) {
     if (!this.active) return;
     if (!userID) return;
+
+    // Check if the packet is mostly zeros (all but one byte are zero)
+    const zeroCount = data.reduce((acc, byte) => acc + (byte === 0 ? 1 : 0), 0);
+    if (zeroCount >= data.length - 1) {
+      if (!this.zeroPacketWarned) {
+        this.zeroPacketWarned = true;
+        this.writeToLog(`Received mostly zero audio packet from user ${userID}`, 'recording');
+      }
+      return;
+    }
 
     let recordingUser = this.users[userID];
     const chunkTime = process.hrtime(this.startTime!);
