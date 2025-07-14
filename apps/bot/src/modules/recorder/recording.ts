@@ -781,6 +781,7 @@ export default class Recording {
     if (!userID) return;
 
     // Check if the packet is mostly zeros (all but one byte are zero)
+    // Cloudflare voice servers (prefixed with `c-`) tend to do this for no reason at all
     const zeroCount = data.reduce((acc, byte) => acc + (byte === 0 ? 1 : 0), 0);
     if (zeroCount >= data.length - 1) {
       if (!this.zeroPacketWarned) {
