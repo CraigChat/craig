@@ -17,7 +17,7 @@
   function surveyAck() {
     show = false;
     $surveyAcked = SURVEY_ID;
-    window.plausible('surveyack');
+    window.plausible('surveyack', { u: `${location.origin}/rec/:id` });
   }
 </script>
 
