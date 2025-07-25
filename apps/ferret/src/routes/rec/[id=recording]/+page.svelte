@@ -4,6 +4,7 @@
 
   import SiteFooter from '$components/SiteFooter.svelte';
   import SiteHeader from '$components/SiteHeader.svelte';
+  import SurveyBanner from '$components/SurveyBanner.svelte';
   import { Toaster } from '$lib/toaster';
   import type { RecordingPageEvents } from '$lib/types';
 
@@ -32,6 +33,7 @@
 
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-4 p-2 sm:gap-8 sm:p-6">
   <SiteHeader />
+  <SurveyBanner />
   <RecordingHeader />
   <JobSections {emitter} />
   <DownloadSection {emitter} features={data.recording.features} noUsers={data.users.length === 0} />
