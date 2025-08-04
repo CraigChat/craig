@@ -23,6 +23,9 @@ RUN apt-get update && \
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 
+# Used for Docker-specific build logic in install.sh
+ENV container=docker
+
 WORKDIR /app
 
 # Copy the repo, particularly environment variables with discord API keys
@@ -36,12 +39,3 @@ EXPOSE 3000
 EXPOSE 5029
 # Start Craig
 CMD ["sh", "-c", "/app/install.sh && sleep infinity"]
-
-
-# Usage:
-
-# Build:
-# docker build -t craig .
-
-# Run:
-# docker run -i -p 3000:3000 -p 5029:5029 craig

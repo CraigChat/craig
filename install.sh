@@ -472,8 +472,12 @@ config_cook(){
     info "Skipping install: already completed"
   fi
 
-  start_redis
-  start_postgresql
+  # Docker spawns its own redis and postgresql, so skip DB start in that case
+  if [[ $container != "docker" ]]
+  then
+    start_redis
+    start_postgresql
+  fi
 
   if [[ ! -f "$INSTALL_MARKER" ]]; then
     config_env

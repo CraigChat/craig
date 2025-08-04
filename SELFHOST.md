@@ -80,6 +80,12 @@ and optionally:
 DEVELOPMENT_GUILD_ID
 ```
 
+If you are using Docker, change the database URL as follows:
+
+```
+DATABASE_URL=\"postgresql://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@db:5432/$DATABASE_NAME?schema=public\"
+```
+
 ### Optional and advanced configuration
 
 There are additional configuration variables in [install.config.example](install.config.example), such as Craig's PostgreSQL database username and password, Patreon ID, etc.
@@ -92,7 +98,7 @@ Changing some of these variables from their default values will break Craig, so 
 
 #### `install.config`
 
-- `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
+- `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment, such as within a Docker container. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
 - `API_HOMEPAGE`: This should be changed to the IP address or domain name of the machine running Craig so that download links are functional (e.g., `http://localhost:5029` or `http://192.168.0.10:5029`).
 
 #### `apps/bot/config/_default.js`

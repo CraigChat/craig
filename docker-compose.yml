@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: craig
+      POSTGRES_DB: craig
+      POSTGRES_USER: craig
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U craig"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - 'db_data:/var/lib/postgresql/data'
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+  craig:
+    build: .
+    ports:
+      - "3000:3000"
+      - "5029:5029"
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_started
+    volumes:
+      - 'craig_rec:/app/rec'
+      - './install.config:/app/install.config:ro'
+
+volumes:
+  db_data:
+  craig_rec:
