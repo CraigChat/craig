@@ -4,12 +4,12 @@ Craig can be installed and ran locally. Some use cases for this are:
 - Creating multiple instances of Craig
 
 ## Pre-requisites/dependencies
-Craig can only be ran on a Linux machine. The installation has been tested on a fresh install of **Ubuntu 22.04** and **Kubuntu 23.10**.
+Craig can only be ran on a Linux machine. The installation has been tested on a fresh install of **Ubuntu 22.04** and **Kubuntu 23.10**, as well as Docker.
 
 The following `apt` packages will be automatically installed by the install script [install.sh](install.sh):
 
 ```
-make inkscape ffmpeg flac fdkaac vorbis-tools opus-tools zip unzip lsb-release curl gpg redis postgresql sed coreutils build-essential 
+wget make inkscape ffmpeg flac fdkaac vorbis-tools opus-tools zip unzip lsb-release curl gpg redis postgresql dbus-x11 sed coreutils build-essential python-setuptools
 ```
 
 
@@ -80,6 +80,12 @@ and optionally:
 DEVELOPMENT_GUILD_ID
 ```
 
+If you are using Docker, change the database URL as follows:
+
+```
+DATABASE_URL=\"postgresql://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@db:5432/$DATABASE_NAME?schema=public\"
+```
+
 ### Optional and advanced configuration
 
 There are additional configuration variables in [install.config.example](install.config.example), such as Craig's PostgreSQL database username and password, Patreon ID, etc.
@@ -88,9 +94,35 @@ There are even more configuration options located in: [apps/bot/config/_default.
 
 Changing some of these variables from their default values will break Craig, so be careful.
 
+### Suggested self-host configuration changes
+
+#### `install.config`
+
+- `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment, such as within a Docker container. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
+- `API_HOMEPAGE`: This should be changed to the IP address or domain name of the machine running Craig so that download links are functional (e.g., `http://localhost:5029` or `http://192.168.0.10:5029`).
+
+#### `apps/bot/config/_default.js`
+
+- `dexare.craig.rewardTiers`: Self-hosters usually won't care about Patreon tiers. You can enable maximum rewards for all users by replacing `rewardTiers` with the following:
+```ts
+rewardTiers: {
+   [0]: {
+      recordHours: 24,
+      downloadExpiryHours: 720,
+      features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3'],
+      sizeLimitMult: 5
+   }
+}
+```
+
+
 ## 4. Run install script
 
-Go into the main directory and run the following:
+Go into the main directory.
+
+### If you are installing to a fresh Linux installation
+
+Run the following:
 
 ```sh
 ./install.sh
@@ -99,6 +131,14 @@ Go into the main directory and run the following:
 Note that the script will prompt for `sudo` privileges, in order to automatically install dependencies and configure PostgreSQL.
 
 The installation should take a while. Please make note of any errors or warnings. The install generates an output log located in the main directory: [install.log](install.log).
+
+### If you are installing to a Docker container
+
+Ensure Docker is running on the host machine, then run the following:
+
+```sh
+docker build -t craig .
+```
 
 ## 5. Invite Craig to a server
 
@@ -156,25 +196,7 @@ This might need to be done for other distributions as well.
 
 ### Restarting Craig after reboot
 
-By default, Craig will not automatically restart if you reboot your computer. You can re-run a modified version of [install.sh](install.sh) script so that the following steps are performed:
-
-- Make sure the Redis server is online
-- Make sure the PostgreSQL database is online
-- Start the application
-
-To speed up the restart (and avoid rebuilding Craig), you should comment out some unnecessary steps (function calls) in the install script:
-
-```sh
-# install_apt_packages
-# install_node
-start_redis
-start_postgresql
-# config_env
-# config_react
-# config_yarn
-# config_cook
-start_app
-```
+By default, Craig will not automatically restart if you reboot your computer. You can re-run the [install.sh](install.sh) script to restart the application.
 
 ### Monitoring, starting, and stopping Craig
 

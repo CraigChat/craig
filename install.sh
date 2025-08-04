@@ -6,7 +6,11 @@ set -e
 # Variable definitions
 ###################################################
 
+# Prevent interactive prompts during install
+DEBIAN_FRONTEND=noninteractive
+
 APT_DEPENDENCIES=(
+  wget              # cook
   make              # cook
   inkscape          # cook
   ffmpeg            # cook
@@ -31,6 +35,13 @@ APT_DEPENDENCIES=(
 # this lets us call the function from anywhere and it will work
 craig_dir=$(dirname "$(realpath "$0")")
 
+# Marker to skip install and config steps if they have already completed
+INSTALL_MARKER="$craig_dir/.installed"
+FORCE_INSTALL=0
+
+#Get the init system
+init_system=$(ps --no-headers -o comm 1)
+
 ###################################################
 # Function definitions
 ###################################################
@@ -42,6 +53,8 @@ Usage: install.sh [options]
 
 options:
     -h, --help       Display this message.
+    -f, --force-install
+                     Force application rebuild.
 
 Please modify file 'install_config' located in the main directory of Craig with 
 values for the Discord bot environment variables
@@ -92,10 +105,7 @@ install_apt_packages() {
   sudo apt-get -y upgrade
 
   info "Installing apt dependencies..."
-  for package in "${APT_DEPENDENCIES[@]}"
-  do
-    sudo apt-get -y install "$package"
-  done
+  sudo apt-get -y install "${APT_DEPENDENCIES[@]}"
 
   # Add redis repository to apt index and install it
   # for more info, see: https://redis.io/docs/install/install-redis/install-redis-on-linux/
@@ -137,8 +147,12 @@ start_redis() {
 
   if ! redis-cli ping | grep -q "PONG"
   then
-    sudo systemctl enable --now redis-server # is disabled by default
-
+    if [[ $init_system == "systemd" ]]
+    then
+      sudo systemctl enable --now redis-server # is disabled by default
+    else
+      redis-server --daemonize yes #in case there is no systemd. In the future we can check sysv, systemd and others
+    fi
     start_time_s=$(date +%s)
 
     while ! redis-cli ping | grep -q "PONG"
@@ -167,7 +181,12 @@ start_postgresql() {
 
   if ! pg_isready
   then
-    sudo systemctl enable --now postgresql # is enabled by default
+    if [[ $init_system ==  "systemd" ]]
+    then
+      sudo systemctl enable --now postgresql # is enabled by default
+    else
+      sudo /etc/init.d/postgresql start #in case there is no systemd. In the future we can check sysv, systemd and others
+    fi
 
     start_time_s=$(date +%s)
 
@@ -269,6 +288,7 @@ config_env() {
 
   env_names=(
     "API_PORT"
+    "API_HOST"
     "API_HOMEPAGE"
     "ENNUIZEL_BASE"
     "TRUST_PROXY"
@@ -288,6 +308,14 @@ config_env() {
   )
 
   create_env_file "$craig_dir/apps/download/.env" "${env_names[@]}"
+
+  env_names=(
+    "DISCORD_BOT_TOKEN"
+    "DISCORD_APP_ID"
+    "DEVELOPMENT_GUILD_ID"
+  )
+
+  create_env_file "$craig_dir/apps/bot/.env" "${env_names[@]}"
 
 }
 
@@ -310,8 +338,13 @@ config_react(){
   #   applicationID: '',
   # ----------------------------
 
-  sed -z -E -i "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')/\
-  \1'$DISCORD_BOT_TOKEN'\3'$DISCORD_APP_ID'/"\
+  # Extract protocol and domain from API_HOMEPAGE
+  DOWNLOAD_PROTOCOL=$(echo "$API_HOMEPAGE" | awk -F '://' '{print $1}')
+  DOWNLOAD_DOMAIN=$(echo "$API_HOMEPAGE" | awk -F '://' '{print $2}')
+
+  # Perform in-place replacement in the config file
+  sed -z -E -i'' "s/(dexare:.*token:\s*)('')(.*applicationID:\s*)('')(.*downloadProtocol:\s*)('https')(.*downloadDomain:\s*)('localhost:5029')/\
+  \1'${DISCORD_BOT_TOKEN}'\3'${DISCORD_APP_ID}'\5'${DOWNLOAD_PROTOCOL}'\7'${DOWNLOAD_DOMAIN//\//\\/}'/" \
   "$craig_dir/apps/bot/config/default.js"
 
 
@@ -390,12 +423,25 @@ config_cook(){
     case "$1" in
       -h | --help)
         usage ;;
+      -f|--force-install)
+        FORCE_INSTALL=1
+        shift ;;
       *)
         warning "Unrecognized option: '$1'"
         usage 1
         ;;
     esac
   done
+
+  # Remove the marker file to force a reinstall
+  if [[ "$FORCE_INSTALL" == "1" ]]; then
+    rm -f "$INSTALL_MARKER"
+  fi
+
+  # if root, install sudo
+  if [ "$(whoami)" == "root" ]; then
+    apt-get install -y sudo
+  fi
 
   # Prompt for sudo up front for installing
   # packages and configuring PostgreSQL
@@ -419,14 +465,30 @@ config_cook(){
   info "Now installing Craig..."
   info "Start time: $(date +%H:%M:%S)"
 
-  install_apt_packages
-  install_node
-  start_redis
-  start_postgresql
-  config_env
-  config_react
-  config_yarn
-  config_cook
+  if [[ ! -f "$INSTALL_MARKER" ]]; then
+    install_apt_packages
+    install_node
+  else
+    info "Skipping install: already completed"
+  fi
+
+  # Docker spawns its own redis and postgresql, so skip DB start in that case
+  if [[ $container != "docker" ]]
+  then
+    start_redis
+    start_postgresql
+  fi
+
+  if [[ ! -f "$INSTALL_MARKER" ]]; then
+    config_env
+    config_react
+    config_yarn
+    config_cook
+    touch "$INSTALL_MARKER"
+  else
+    info "Skipping config: already completed"
+  fi
+
   start_app
 
   info "Craig installation finished..."
