@@ -27,7 +27,8 @@ export default class Shard extends EventEmitter {
     this.manager = manager;
     this.env = Object.assign({}, process.env, {
       SHARD_ID: this.id,
-      SHARD_COUNT: this.manager.options.shardCount
+      SHARD_COUNT: this.manager.options.shardCount,
+      ...(this.manager.emojiSyncData ? { EMOJI_SYNC_DATA: JSON.stringify(this.manager.emojiSyncData) } : {})
     });
 
     this._exitListener = this._handleExit.bind(this, undefined);
@@ -138,12 +139,12 @@ export default class Shard extends EventEmitter {
             return;
           case 'disconnect':
             this.ready = false;
-            this.emit('disconnect', message.error);
+            this.emit('disconnect', message.d.error);
             this.manager.emit('disconnect', this, message.d.error);
             return;
           case 'reconnecting':
             this.ready = false;
-            this.emit('reconnecting', message.msg);
+            this.emit('reconnecting', message.d.msg);
             this.manager.emit('reconnecting', this, message.d.msg);
             return;
           case 'resumed':

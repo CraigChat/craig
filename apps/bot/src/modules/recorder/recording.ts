@@ -7,7 +7,9 @@ import { DexareClient } from 'dexare';
 import Eris from 'eris';
 import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
+import fetch from 'node-fetch';
 import path from 'path';
+import semver from 'semver';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../../bot';
@@ -29,6 +31,7 @@ const recIndicator = / *!?\[RECORDING\] */;
 
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
+const MAX_LATENCY_WARNING = 500;
 
 const BAD_MESSAGE_CODES = [
   404,
@@ -122,8 +125,11 @@ export default class Recording {
   lastSize = 0;
   usedMinutes = 0;
   unusedMinutes = 0;
+  latency: number | null = null;
   silenceWarned = false;
   maintenceWarned = false;
+  latencyWarned = false;
+  zeroPacketWarned = false;
 
   constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
@@ -182,7 +188,8 @@ export default class Recording {
         e
       );
       this.state = RecordingState.ERROR;
-      this.stateDescription = `Failed to connect to your channel: ${e}`;
+      this.stateDescription =
+        'Failed to connect to your channel, try again later. If the issue persists, report it in the [support server](<https://discord.gg/craig>).';
       await this.stop(true);
       await this.pushToActivity('Failed to connect!');
 
@@ -233,7 +240,7 @@ export default class Recording {
       { encoding: 'utf8' }
     );
     this.writer = new RecordingWriter(this, fileBase);
-    this.writeToLog(`Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint}`);
+    this.writeToLog(`Connected to channel ${this.connection?.channelID} at ${this.connection?.endpoint}`);
 
     this.timeout = setTimeout(async () => {
       if (this.state !== RecordingState.RECORDING) return;
@@ -388,6 +395,9 @@ export default class Recording {
   async connect() {
     const alreadyConnected = this.recorder.client.bot.voiceConnections.has(this.channel.guild.id);
 
+    if (alreadyConnected)
+      this.recorder.logger.warn(`Recording ${this.id} (channel: ${this.channel.id}, server: ${this.channel.guild.id}) was already connected`);
+
     if (!alreadyConnected) {
       this.connection?.removeAllListeners('connect');
       this.connection?.removeAllListeners('disconnect');
@@ -395,7 +405,9 @@ export default class Recording {
       this.connection?.removeAllListeners('error');
       this.connection?.removeAllListeners('warn');
       this.connection?.removeAllListeners('debug');
+      this.connection?.removeAllListeners('pong');
       this.connection?.removeAllListeners('ready');
+      this.connection?.removeAllListeners('unknown');
       this.receiver?.removeAllListeners('data');
     }
 
@@ -405,7 +417,9 @@ export default class Recording {
       connection.on('ready', this.onConnectionReady.bind(this));
       connection.on('connect', this.onConnectionConnect.bind(this));
       connection.on('disconnect', this.onConnectionDisconnect.bind(this));
+      connection.on('pong', this.onConnectionPong.bind(this));
       connection.on('resumed', this.onConnectionResumed.bind(this));
+      connection.on('unknown', this.onConnectionUnknown.bind(this));
       connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
@@ -418,11 +432,17 @@ export default class Recording {
         this.writeToLog(`Debug: ${m}`, 'connection');
         this.recorder.logger.debug(`Recording ${this.id}`, m);
       });
+    }
+
+    if (!alreadyConnected || !this.connection || !this.receiver) {
       const receiver = connection.receive('opus');
       receiver.on('data', this.onData.bind(this));
       this.receiver = receiver;
       this.connection = connection;
     }
+
+    // Get voice & rtc worker versions
+    connection.sendWS(16, {});
 
     const reconnected = this.state === RecordingState.RECONNECTING;
     this.state = RecordingState.RECORDING;
@@ -456,7 +476,8 @@ export default class Recording {
   }
 
   async playNowRecording() {
-    const filePath = path.join(__dirname, '../../../data/nowrecording.opus');
+    const fileName = this.recorder.client.config.craig.alistair ? 'nowrecording_alistair.opus' : 'nowrecording.opus';
+    const filePath = this.recorder.client.config.craig.nowRecordingOpus || path.join(__dirname, '../../../data', fileName);
 
     try {
       await access(filePath);
@@ -502,12 +523,24 @@ export default class Recording {
     this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode})`, 'connection');
     this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode})`);
     this.pushToActivity('Automatically reconnected.');
+
+    // Get voice & rtc worker versions
+    this.connection?.sendWS(16, {});
   }
 
   async onConnectionResumed() {
     if (!this.active) return;
     this.writeToLog(`Voice connection resumed (seq=${this.connection?.wsSequence})`, 'connection');
     this.recorder.logger.debug(`Recording ${this.id} resumed`);
+  }
+
+  async onConnectionPong(latency: number) {
+    this.latency = latency;
+    this.writeToLog(`Voice server latency: ${latency}ms`, 'connection');
+    if (latency && latency > MAX_LATENCY_WARNING && !this.latencyWarned) {
+      this.latencyWarned = true;
+      this.pushToActivity(`⚠️ High voice server latency: ${latency}ms, this may cause issues with the recording.`, true);
+    } else await this.updateMessage();
   }
 
   async onConnectionDisconnect(err?: Error) {
@@ -526,6 +559,150 @@ export default class Recording {
         await this.stop();
       } catch (e) {
         this.recorder.logger.debug(`Recording ${this.id} failed to stop after disconnect`, e);
+      }
+    }
+  }
+
+  async onConnectionUnknown(packet: any) {
+    const client = this.recorder.client;
+    if (!client.config.craig.systemNotificationURL) return;
+
+    if (
+      typeof packet === 'object' &&
+      'op' in packet &&
+      packet.op === 16 &&
+      typeof packet.d === 'object' &&
+      typeof packet.d.voice === 'string' &&
+      typeof packet.d.rtc_worker === 'string'
+    ) {
+      const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
+      const voiceEndpoint = this.connection?.endpoint?.hostname;
+      this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
+      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media')) {
+        return this.recorder.logger.warn(
+          `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
+        );
+      }
+      const regionId = voiceEndpoint.startsWith('c-')
+        ? voiceEndpoint.replace(/\d+?-[\da-f]+\.discord\.media$/, '')
+        : voiceEndpoint.replace(/\d+\.discord\.media$/, '');
+
+      this.recorder.metrics.onVoiceServerConnect(regionId);
+
+      const existingRegion = await prisma.voiceRegion.findUnique({ where: { id: regionId } });
+
+      await prisma.voiceRegion.upsert({
+        where: { id: regionId },
+        update: {},
+        create: { id: regionId }
+      });
+
+      // Detect and track versions
+      const voiceVersionSeen = await prisma.voiceVersion.findFirst({
+        where: { version: voiceVersion }
+      });
+
+      if (!voiceVersionSeen)
+        await prisma.voiceVersion.create({
+          data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
+        });
+
+      const rtcWorkerVersionSeen = await prisma.rtcVersion.findFirst({
+        where: { version: rtcWorkerVersion }
+      });
+
+      if (!rtcWorkerVersionSeen)
+        await prisma.rtcVersion.create({
+          data: { version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }
+        });
+
+      // Update latest region voice version
+      const lastVoiceVersion = await prisma.regionVoiceVersion.findUnique({
+        where: { regionId }
+      });
+
+      if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion))
+        await prisma.regionVoiceVersion.upsert({
+          where: { regionId },
+          update: {
+            version: voiceVersion,
+            endpoint: voiceEndpoint,
+            seenAt: new Date()
+          },
+          create: {
+            regionId,
+            version: voiceVersion,
+            endpoint: voiceEndpoint
+          }
+        });
+
+      // Update latest rtc worker version
+      const lastRtcWorkerVersion = await prisma.regionRtcVersion.findUnique({
+        where: { regionId }
+      });
+
+      if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
+        await prisma.regionRtcVersion.upsert({
+          where: { regionId },
+          update: {
+            version: rtcWorkerVersion,
+            endpoint: voiceEndpoint,
+            seenAt: new Date()
+          },
+          create: {
+            regionId,
+            version: rtcWorkerVersion,
+            endpoint: voiceEndpoint
+          }
+        });
+
+      if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
+        const title = `New ${[
+          !existingRegion ? 'Voice Region' : undefined,
+          !voiceVersionSeen ? 'Voice Version' : undefined,
+          !rtcWorkerVersionSeen ? 'RTC Worker Version' : undefined
+        ]
+          .filter((v) => !!v)
+          .join(', ')}`;
+        await fetch(`${client.config.craig.systemNotificationURL}?with_components=true`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            flags: MessageFlags.IS_COMPONENTS_V2,
+            components: [
+              {
+                type: ComponentType.CONTAINER,
+                accent_color: 5793266,
+                components: [
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: [
+                      `# 🔊 ${title}`,
+                      `**Region:** \`${regionId}\` ${!existingRegion ? '**🆕**' : ''}`,
+                      `**Voice Version:** ${voiceVersion} ${!voiceVersionSeen ? '**🆕**' : ''}`,
+                      `**RTC Worker Version:** ${rtcWorkerVersion} ${!rtcWorkerVersionSeen ? '**🆕**' : ''}`
+                    ].join('\n')
+                  },
+                  {
+                    type: ComponentType.SEPARATOR,
+                    divider: true,
+                    spacing: SeparatorSpacingSize.SMALL
+                  },
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: [
+                      `**Voice Server Endpoint:** \`${voiceEndpoint}\``,
+                      `**Bot**: <@${client.bot.user.id}> (${client.bot.user.id})`,
+                      `-# <t:${Math.floor(Date.now() / 1000)}:F>`
+                    ].join('\n')
+                  }
+                ]
+              }
+            ]
+          })
+        });
       }
     }
   }
@@ -602,6 +779,19 @@ export default class Recording {
   async onData(data: Buffer, userID: string, timestamp: number) {
     if (!this.active) return;
     if (!userID) return;
+
+    // Check if the packet is mostly zeros (all but one byte are zero)
+    // Cloudflare voice servers (prefixed with `c-`) tend to do this for no reason at all
+    if (data[0] === 0) {
+      const zeroCount = data.reduce((acc, byte) => acc + (byte === 0 ? 1 : 0), 0);
+      if (zeroCount >= data.length - 1) {
+        if (!this.zeroPacketWarned) {
+          this.zeroPacketWarned = true;
+          this.writeToLog(`Received mostly zero audio packet from user ${userID}`, 'recording');
+        }
+        return;
+      }
+    }
 
     let recordingUser = this.users[userID];
     const chunkTime = process.hrtime(this.startTime!);
@@ -791,7 +981,8 @@ export default class Recording {
                 `**Recording ID:** \`${this.id}\``,
                 `**Channel:** ${this.channel.mention}`,
                 startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : '',
-                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : ''
+                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : '',
+                this.latency ? `**Voice Server Latency:** ${this.latency}ms${this.latency > MAX_LATENCY_WARNING ? ' ⚠️' : ''}` : ''
               ]
                 .filter((v) => !!v)
                 .join('\n')

@@ -9,6 +9,7 @@ import { prisma } from '../prisma';
 import { checkMaintenance, processCooldown } from '../redis';
 import { reportAutorecordingError } from '../sentry';
 import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
+import EntitlementsModule from './entitlements';
 import type RecorderModule from './recorder';
 import Recording, { RecordingState } from './recorder/recording';
 import type SlashModule from './slash';
@@ -56,6 +57,11 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
   get recorder() {
     // @ts-ignore
     return this.client.modules.get('recorder') as RecorderModule<DexareClient<CraigBotConfig>>;
+  }
+
+  get entitlements() {
+    // @ts-ignore
+    return this.client.modules.get('entitlements') as EntitlementsModule;
   }
 
   get emojis() {

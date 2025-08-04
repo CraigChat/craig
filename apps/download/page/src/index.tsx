@@ -6,7 +6,7 @@ import '@fontsource/lexend/400.css';
 import '@fontsource/lexend/500.css';
 import '@fontsource/lexend/700.css';
 import '@fontsource/ubuntu-mono/400.css';
-import './index.sass';
+import './index.css';
 import './i18n';
 
 import * as Sentry from '@sentry/react';

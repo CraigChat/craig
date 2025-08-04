@@ -255,7 +255,7 @@ export default class Join extends GeneralCommand {
     }
 
     // Get rewards
-    const userData = await this.prisma.user.findFirst({ where: { id: ctx.user.id } });
+    const userData = await this.entitlements.getCurrentUser(ctx);
     const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
     const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
     const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);

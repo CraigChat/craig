@@ -25,19 +25,22 @@
     "run-job": "yarn manypkg run tasks run-job",
     "prisma:generate": "prisma generate && yarn manypkg run bot prisma:generate && yarn manypkg run dashboard prisma:generate && yarn manypkg run tasks prisma:generate",
     "prisma:deploy": "prisma migrate deploy",
-    "prisma:dev": "prisma migrate dev"
+    "prisma:dev": "prisma migrate dev",
+    "entitlement": "tsx scripts/manageEntitlements.ts"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/CraigChat/craig"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
     "@manypkg/cli": "^0.19.2",
     "dotenv-cli": "^7.4.1",
     "eslint": "^8.20.0",
     "eslint-config-snazzah": "^1.1.0",
     "prisma": "^5.12.1",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "tsx": "^4.19.4"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

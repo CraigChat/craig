@@ -8,6 +8,7 @@ import { SlashCreatorOptions } from 'slash-create';
 import { init as i18nInit } from './i18n';
 import { cron as influxCron } from './influx';
 import AutorecordModule from './modules/autorecord';
+import EntitlementsModule from './modules/entitlements';
 import LoggerModule from './modules/logger';
 import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
@@ -25,13 +26,16 @@ export interface CraigBotConfig extends BaseConfig {
   applicationID: string;
   prefix: string | string[];
   mentionPrefix: boolean;
-  status: Eris.ActivityPartial<Eris.BotActivityType>;
+  status: Eris.ActivityPartial<Eris.ActivityType>;
   kitchenURL?: string;
 
   craig: {
     emoji: string;
     downloadProtocol: string;
     downloadDomain: string;
+    dashboardURL: string;
+    systemNotificationURL?: string;
+    nowRecordingOpus?: string;
     homepage: string;
     recordingFolder: string;
     removeNickname: boolean;
@@ -47,6 +51,7 @@ export interface CraigBotConfig extends BaseConfig {
       connectUrl: string;
     };
     rewardTiers: { [tier: string]: RewardTier };
+    entitlementWebhookURLs?: { url: string; key: string }[];
   };
 
   logger: {
@@ -64,6 +69,7 @@ export interface RewardTier {
   downloadExpiryHours: number;
   features: string[];
   sizeLimitMult?: number;
+  discordSkuId?: string;
 }
 
 export class CraigBot extends DexareClient<CraigBotConfig> {
@@ -120,7 +126,7 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule);
+  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule, EntitlementsModule);
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   await i18nInit();

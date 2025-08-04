@@ -8,7 +8,9 @@ export default class MetricsModule extends DexareModule<CraigBot> {
     recordingsStarted: 0,
     autorecordingsStarted: 0,
     commandsRan: 0,
-    commands: {} as Record<string, number>
+    gatewayEventsReceived: 0,
+    commands: {} as Record<string, number>,
+    voiceServersConnected: {} as Record<string, number>
   };
   constructor(client: any) {
     super(client, {
@@ -30,11 +32,21 @@ export default class MetricsModule extends DexareModule<CraigBot> {
     if (auto) this.stats.autorecordingsStarted++;
   }
 
+  onVoiceServerConnect(region: string) {
+    if (!this.stats.voiceServersConnected[region]) this.stats.voiceServersConnected[region] = 1;
+    else this.stats.voiceServersConnected[region]++;
+  }
+
   collect(name: keyof typeof this.stats) {
     if (name === 'commands') {
       const commands = this.stats.commands;
       this.stats.commands = {};
       return commands;
+    }
+    if (name === 'voiceServersConnected') {
+      const stats = this.stats.voiceServersConnected;
+      this.stats.voiceServersConnected = {};
+      return stats;
     }
 
     const count = this.stats[name];
@@ -42,7 +54,13 @@ export default class MetricsModule extends DexareModule<CraigBot> {
     return count;
   }
 
-  load() {}
+  load() {
+    this.registerEvent('rawWS', () => {
+      this.stats.gatewayEventsReceived++;
+    });
+  }
 
-  unload() {}
+  unload() {
+    this.unregisterAllEvents();
+  }
 }

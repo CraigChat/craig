@@ -26,7 +26,7 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
   });
   await emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
   await emojis.sync();
-  process.env.EMOJI_SYNC_DATA = JSON.stringify(Array.from(emojis.emojis.values()));
+  manager.emojiSyncData = Array.from(emojis.emojis.values());
   logger.info('Starting to spawn...');
   await manager.spawnAllWithConcurrency();
   logger.info(

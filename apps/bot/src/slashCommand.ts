@@ -3,6 +3,7 @@ import { SlashCommand, SlashCommandOptions, SlashCreator } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from './bot';
 import AutorecordModule from './modules/autorecord';
+import EntitlementsModule from './modules/entitlements';
 import type RecorderModule from './modules/recorder';
 import type ShardingModule from './modules/sharding';
 import type SlashModule from './modules/slash';
@@ -24,6 +25,10 @@ export default abstract class GeneralCommand extends SlashCommand {
 
   get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {
     return this.client.modules.get('recorder') as RecorderModule<any>;
+  }
+
+  get entitlements(): EntitlementsModule {
+    return this.client.modules.get('entitlements') as EntitlementsModule;
   }
 
   get sharding(): ShardingModule {

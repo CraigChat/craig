@@ -4,17 +4,18 @@ import { Counter, Gauge, register } from 'prom-client';
 import * as logger from '../logger';
 import type ShardManager from '../manager';
 import ShardManagerModule from '../module';
+import Shard from '../shard';
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function setPropPerShard(prop: string, gauge: Gauge, manager: ShardManager) {
+function setPropPerShard(script: string, gauge: Gauge, manager: ShardManager) {
   return timeout(
     Promise.all(
       Array.from(manager.shards.values()).map(async (shard) => {
         if (shard.status === 'ready' || shard.status === 'resuming') {
-          const result: number = await shard.eval(prop);
+          const result: number = await shard.eval(script);
           gauge.set({ shard: shard.id.toString() }, result);
         }
       })
@@ -41,12 +42,30 @@ function timeout(p: Promise<any>, ms = 500) {
 
 export default class MetricsModule extends ShardManagerModule {
   server: http.Server;
+  gatewayCloseCounter?: Counter;
 
   constructor(manager: ShardManager) {
     super(manager, {
       name: 'metrics',
       description: 'Metrics server'
     });
+
+    this.onShardDisconnect = this.onShardDisconnect.bind(this);
+
+    this.server = http.createServer(async (req, res) => {
+      if (req.url === '/metrics') {
+        res.writeHead(200, { 'Content-Type': register.contentType });
+        res.write(await register.metrics());
+      }
+      res.end();
+    });
+    this.server.on('error', (e) => logger.error('Metrics server error:', e));
+    this.filePath = __filename;
+  }
+
+  load() {
+    if (!this.manager.options.metricsPort) return void logger.info('No metrics port defined, skipping...');
+    const manager = this.manager;
 
     new Gauge({
       name: 'craig_bot_shard_count',
@@ -130,6 +149,17 @@ export default class MetricsModule extends ShardManagerModule {
       }
     });
 
+    new Counter({
+      name: 'craig_bot_gateway_events_received_total',
+      help: 'Counter for total gateway events received per shard',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await collectFromShards('gatewayEventsReceived', this, manager);
+        } catch {}
+      }
+    });
+
     const cmdUsage = new Counter({
       name: 'craig_bot_command_usage_total',
       help: 'Counter for command usage per command',
@@ -153,6 +183,26 @@ export default class MetricsModule extends ShardManagerModule {
     for (const command of ['autorecord', 'bless', 'features', 'info', 'join', 'note', 'recordings', 'server-settings', 'stop', 'unbless', 'webapp'])
       cmdUsage.inc({ command }, 0);
 
+    new Counter({
+      name: 'craig_bot_voice_regions_connected_total',
+      help: 'Counter for total voice server regions connected',
+      labelNames: ['region'],
+      async collect() {
+        try {
+          await timeout(
+            Promise.all(
+              Array.from(manager.shards.values()).map(async (shard) => {
+                if (shard.status === 'ready' || shard.status === 'resuming') {
+                  const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("voiceServersConnected")');
+                  for (const region in result) this.inc({ region }, result[region]);
+                }
+              })
+            )
+          );
+        } catch {}
+      }
+    });
+
     new Gauge({
       name: 'craig_bot_shard_latency_milliseconds',
       help: 'Gauge for millisecond latency per shard',
@@ -171,6 +221,17 @@ export default class MetricsModule extends ShardManagerModule {
       async collect() {
         try {
           await setPropPerShard('process.uptime()', this, manager);
+        } catch {}
+      }
+    });
+
+    new Gauge({
+      name: 'craig_bot_shard_process_memory_bytes',
+      help: 'Memory usage of the shard process in bytes',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await setPropPerShard('process.memoryUsage().heapUsed', this, manager);
         } catch {}
       }
     });
@@ -233,23 +294,35 @@ export default class MetricsModule extends ShardManagerModule {
       }
     });
 
-    this.server = http.createServer(async (req, res) => {
-      if (req.url === '/metrics') {
-        res.writeHead(200, { 'Content-Type': register.contentType });
-        res.write(await register.metrics());
-      }
-      res.end();
+    this.gatewayCloseCounter = new Counter({
+      name: 'craig_bot_gateway_closes',
+      help: 'Counter for total gateway close events',
+      labelNames: ['code']
     });
-    this.server.on('error', (e) => logger.error('Metrics server error:', e));
-    this.filePath = __filename;
-  }
 
-  load() {
-    if (!this.manager.options.metricsPort) return void logger.info('No metrics port defined, skipping...');
+    // Initialize the counter with some known codes
+    this.gatewayCloseCounter.inc({ code: '1000' }, 0);
+    this.gatewayCloseCounter.inc({ code: '1001' }, 0);
+    this.gatewayCloseCounter.inc({ code: '1006' }, 0);
+    this.gatewayCloseCounter.inc({ code: '1014' }, 0);
+    this.gatewayCloseCounter.inc({ code: '4000' }, 0);
+    this.gatewayCloseCounter.inc({ code: '4008' }, 0);
+    this.gatewayCloseCounter.inc({ code: '4009' }, 0);
+
+    this.manager.on('disconnect', this.onShardDisconnect);
     this.server.listen(this.manager.options.metricsPort, () => logger?.info(`Metrics server started on port ${this.manager.options.metricsPort}`));
   }
 
+  onShardDisconnect(shard: Shard, err: Error & { code: number }) {
+    try {
+      if (err && 'code' in err && typeof err.code === 'number') this.gatewayCloseCounter?.inc({ code: err.code.toString() });
+    } catch {}
+  }
+
   unload() {
+    this.manager.removeListener('disconnect', this.onShardDisconnect);
+    this.gatewayCloseCounter = undefined;
+    register.clear();
     this.server.close();
     this.unregisterAllCommands();
   }

@@ -7,8 +7,6 @@ import type { CraigBot, CraigBotConfig } from '../bot';
 import { client as redis } from '../redis';
 import type RecorderModule from './recorder';
 
-const KEY = 'pending-upload-jobs';
-
 const SERVICES: Record<string, string> = {
   google: 'Google Drive',
   dropbox: 'Dropbox',
@@ -28,6 +26,7 @@ const SERVICE_ERROR_MESSAGES: Record<string, string> = {
 export default class UploadModule extends DexareModule<CraigBot> {
   running = false;
   interval: any;
+  KEY: string;
 
   constructor(client: any) {
     super(client, {
@@ -36,6 +35,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
     });
 
     this.filePath = __filename;
+    this.KEY = `pending-upload-jobs:${this.client.config.applicationID}`;
   }
 
   get trpc() {
@@ -88,17 +88,24 @@ export default class UploadModule extends DexareModule<CraigBot> {
       if (response.status > 299) {
         const error = (await response.json().catch(() => null))?.error ?? 'server_error';
         this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} (${response.status}, ${error})`);
-        await this.dm(userId, {
-          title: `Failed to upload to ${service}`,
-          description: `${
-            SERVICE_ERROR_MESSAGES[error] ?? SERVICE_ERROR_MESSAGES.server_error
-          } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-          color: ERROR_COLOR
-        });
+        await this.dm(
+          userId,
+          {
+            title: `Failed to upload to ${service}`,
+            description: `${
+              SERVICE_ERROR_MESSAGES[error] ?? SERVICE_ERROR_MESSAGES.server_error
+            } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+            color: ERROR_COLOR
+          },
+          {
+            label: 'Open Dashboard',
+            url: this.client.config.craig.dashboardURL
+          }
+        );
       } else if (response.status === 200) {
         const job = await response.json();
         this.logger.info(`Started an upload for recording ${recordingId} for user ${userId}`);
-        await redis.sadd(KEY, job.id);
+        await redis.sadd(this.KEY, job.id);
       }
     } catch (e) {
       this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} due to fetch error`, e);
@@ -155,7 +162,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
     if (this.running) return;
     this.running = true;
 
-    const pendingJobs = await redis.smembers(KEY);
+    const pendingJobs = await redis.smembers(this.KEY);
 
     for (const jobId of pendingJobs) {
       try {
@@ -202,11 +209,11 @@ export default class UploadModule extends DexareModule<CraigBot> {
                 }
               );
 
-            await redis.srem(KEY, jobId);
+            await redis.srem(this.KEY, jobId);
           }
         } else {
           this.logger.warn(`Failed to find pending job ${jobId}`);
-          await redis.srem(KEY, jobId);
+          await redis.srem(this.KEY, jobId);
         }
       } catch (e) {
         this.logger.error(`Failed to request kitchen for job info for job ${jobId}`, e);
