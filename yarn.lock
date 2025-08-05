@@ -529,10 +529,10 @@
     fastify-plugin "^4.0.0"
     ws "^8.0.0"
 
-"@fontsource/lexend@^4.5.10":
-  version "4.5.10"
-  resolved "https://registry.yarnpkg.com/@fontsource/lexend/-/lexend-4.5.10.tgz#a2ec4a7c251bf0162b6fdf9cad480c54587daabe"
-  integrity sha512-5FSyCRQ2ylL9aoxdjasNvEvTeaVStPuq1wHjOStvrKenv7XDpjEPr/TfW3jJyJ+yhOeZPl4qR96y7bFBX+uBzQ==
+"@fontsource/lexend@^5.2.9":
+  version "5.2.9"
+  resolved "https://registry.yarnpkg.com/@fontsource/lexend/-/lexend-5.2.9.tgz#c2be85d8ba846838357014d66079176cff3784aa"
+  integrity sha512-0a5xzwksBilec8Q+QwPvTFKFcXYw31oyf5CthPKd+C5NJZDl1aHw4FcMz9bcRMPhq0LXO69BXI8aVxmj15pzNA==
 
 "@fontsource/red-hat-text@^4.5.9":
   version "4.5.9"
