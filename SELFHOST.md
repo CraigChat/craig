@@ -198,6 +198,14 @@ This might need to be done for other distributions as well.
 
 By default, Craig will not automatically restart if you reboot your computer. To run the application on reboot:
 
+#### Set Permissions for the Install Script
+Restrict access to the install.sh script to prevent unauthorized modification, replacing `USERNAME` and `/path/to/craig/`:
+
+```bash
+sudo chown USERNAME:USERNAME /path/to/craig/install.sh
+sudo chmod 700 /path/to/craig/install.sh
+```
+
 #### Create a `visudo` entry:
 This allows the `install.sh` script to run without prompting for a password.
 
@@ -205,17 +213,12 @@ This allows the `install.sh` script to run without prompting for a password.
 sudo visudo
 ```
 
-Add the following line to the end of the visudo file, again replacing `USERNAME` with your user, and `/path/to/craig/`:
-```bash
-USERNAME ALL=(ALL) NOPASSWD: /path/to/craig/install.sh
-```
-
 #### Create a Systemd Service File: 
 ```bash
 sudo nano /etc/systemd/system/craig.service
 ```
 
-Paste the following content into the file, replacing `USERNAME` and `/path/to/craig/`:
+Paste the following content into the file, again replacing `USERNAME` and `/path/to/craig/`:
 
 ```
 [Unit]
