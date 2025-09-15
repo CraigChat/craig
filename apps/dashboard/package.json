@@ -16,7 +16,7 @@
     "prisma:generate": "prisma generate --schema=../../prisma/schema.prisma"
   },
   "dependencies": {
-    "@fontsource/lexend": "^4.5.10",
+    "@fontsource/lexend": "^5.2.10",
     "@fontsource/red-hat-text": "^4.5.9",
     "@fontsource/roboto": "^4.5.7",
     "@headlessui/react": "1.4.3",

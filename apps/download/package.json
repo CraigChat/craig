@@ -25,7 +25,7 @@
     "@fastify/rate-limit": "^7.0.0",
     "@fastify/static": "^6.5.0",
     "@fastify/websocket": "^7.1.2",
-    "@fontsource/lexend": "^4.5.10",
+    "@fontsource/lexend": "^5.2.10",
     "@fontsource/red-hat-text": "^4.5.9",
     "@fontsource/ubuntu-mono": "^4.5.10",
     "@influxdata/influxdb-client": "^1.24.0",
