@@ -440,3 +440,20 @@ export default abstract class TextCommand extends DexareCommand {
 export async function getSelfMember(guild: Eris.Guild, client: Eris.Client) {
   return (await guild.fetchMembers({ userIDs: [client.user.id] }).catch(() => []))[0] ?? null;
 }
+
+export function formatVoiceCode(vpc: string, rows = 2) {
+  const code = vpc.padEnd(rows * 15, '-');
+
+  const result: string[] = [];
+  for (const si in '-'.repeat(rows).split('')) {
+    const i = Number(si);
+    const row = code.slice(i * 15, (i + 1) * 15);
+
+    const part1 = row.slice(0, 5);
+    const part2 = row.slice(5, 10);
+    const part3 = row.slice(10, 15);
+    result.push(`\`${part1}\` \`${part2}\` \`${part3}\``);
+  }
+
+  return result.join('\n');
+}

@@ -40,5 +40,5 @@ export const FLAC_TAGS = Buffer.from([0x04, 0x00, 0x00, 0x41, 0x0a, 0x00, 0x00, 
 export function toBuffer(data: RawData) {
   if (data instanceof Buffer) return data;
   if (Array.isArray(data)) return Buffer.concat(data);
-  return Buffer.from(data);
+  return Buffer.from(data as any);
 }
