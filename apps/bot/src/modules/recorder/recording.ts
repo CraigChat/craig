@@ -1025,7 +1025,16 @@ export default class Recording {
                   custom_id: `rec:${this.id}:note`,
                   disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
                   emoji: this.emojis.getPartial('addnote')
-                }
+                },
+                ...(this.connection?.daveProtocolVersion && this.connection.daveProtocolVersion > 0 ? [
+                  {
+                    type: ComponentType.BUTTON,
+                    style: ButtonStyle.SECONDARY,
+                    custom_id: `rec:${this.id}:e2ee`,
+                    disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                    emoji: this.emojis.getPartial('e2ee')
+                  }
+                ] : [])
               ]
             }
           ]
