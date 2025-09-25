@@ -97,8 +97,17 @@ export function disableComponents(components: AnyComponent[]) {
 
   function disableButtons(comps: AnyComponent[]) {
     for (const comp of comps) {
-      if (comp.type === ComponentType.BUTTON) comp.disabled = true;
+      if (
+        comp.type === ComponentType.BUTTON ||
+        comp.type === ComponentType.STRING_SELECT ||
+        comp.type === ComponentType.USER_SELECT ||
+        comp.type === ComponentType.ROLE_SELECT ||
+        comp.type === ComponentType.CHANNEL_SELECT ||
+        comp.type === ComponentType.MENTIONABLE_SELECT
+      )
+        comp.disabled = true;
       if ('components' in comp && Array.isArray(comp.components)) disableButtons(comp.components);
+      if ('accessory' in comp && comp.accessory.type === ComponentType.BUTTON) comp.accessory.disabled = true;
     }
   }
 
@@ -207,7 +216,9 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Delete recording',
-                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${
+                  recording.accessKey
+                }&delete=${recording.deleteKey}`,
                 emoji: emojis.getPartial('delete')
               }
             ]

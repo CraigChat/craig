@@ -1,8 +1,8 @@
+import { EmojiManager } from '@snazzah/emoji-sync';
+import config from 'config';
 import EventEmitter from 'eventemitter3';
 import groupBy from 'just-group-by';
 import range from 'just-range';
-import { EmojiManager } from '@snazzah/emoji-sync';
-import config from 'config';
 import path from 'path';
 
 import { wait } from '../util';

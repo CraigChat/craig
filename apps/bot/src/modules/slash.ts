@@ -1,7 +1,19 @@
+import type { DAVESession } from '@snazzah/davey';
 import { EmojiManager } from '@snazzah/emoji-sync';
 import { BaseConfig, DexareClient, DexareModule } from 'dexare';
 import path from 'node:path';
-import { AnyComponent, ButtonStyle, ComponentActionRow, ComponentContext, ComponentType, GatewayServer, MessageFlags, SlashCreator, SlashCreatorOptions, TextInputStyle } from 'slash-create';
+import {
+  AnyComponent,
+  ButtonStyle,
+  ComponentActionRow,
+  ComponentContext,
+  ComponentType,
+  GatewayServer,
+  MessageFlags,
+  SlashCreator,
+  SlashCreatorOptions,
+  TextInputStyle
+} from 'slash-create';
 
 import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
@@ -10,7 +22,6 @@ import { reportErrorFromCommand } from '../sentry';
 import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
-import type { DAVESession } from '@snazzah/davey';
 
 export interface SlashConfig extends BaseConfig {
   applicationID: string;
@@ -140,9 +151,11 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
               ephemeral: true
             });
           try {
-            recording.note(modalCtx.values.note as string || '');
+            recording.note((modalCtx.values.note as string) || '');
             recording.pushToActivity(
-              `${ctx.user.mention} added a note.${modalCtx.values.note ? ` - ${cutoffText((modalCtx.values.note as string).replace(/\n/g, ' '), 100)}` : ''}`
+              `${ctx.user.mention} added a note.${
+                modalCtx.values.note ? ` - ${cutoffText((modalCtx.values.note as string).replace(/\n/g, ' '), 100)}` : ''
+              }`
             );
             return modalCtx.send({
               content: 'Added the note to the recording!',
@@ -165,33 +178,39 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: `This voice call is ${this.emojis.getMarkdown('e2ee')} **end-to-end encrypted**, [Learn more here](https://support.discord.com/hc/en-us/articles/25968222946071-End-to-End-Encryption-for-Audio-and-Video).`
+            content: `This voice call is ${this.emojis.getMarkdown(
+              'e2ee'
+            )} **end-to-end encrypted**, [Learn more here](https://support.discord.com/hc/en-us/articles/25968222946071-End-to-End-Encryption-for-Audio-and-Video).`
           },
           {
             type: ComponentType.SEPARATOR
           },
-          ...(inCall ? [
-            {
-              type: ComponentType.TEXT_DISPLAY,
-              content: `### Voice Privacy Code\nSince <t:${Math.floor(Date.now() / 1000)}:R>\n${vpc ? formatVoiceCode(vpc) : 'Unknown (might be transitioning the call, try again later)'}\n-# A new code is generated when people join or leave this call.\n`
-            },
-            {
-              type: ComponentType.ACTION_ROW,
-              components: [
+          ...((inCall
+            ? [
                 {
-                  type: ComponentType.BUTTON,
-                  style: ButtonStyle.SECONDARY,
-                  label: 'View Verification Code',
-                  custom_id: `rec:${recording.id}:verificationcode`,
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: `### Voice Privacy Code\nSince <t:${Math.floor(Date.now() / 1000)}:R>\n${
+                    vpc ? formatVoiceCode(vpc) : 'Unknown (might be transitioning the call, try again later)'
+                  }\n-# A new code is generated when people join or leave this call.\n`
+                },
+                {
+                  type: ComponentType.ACTION_ROW,
+                  components: [
+                    {
+                      type: ComponentType.BUTTON,
+                      style: ButtonStyle.SECONDARY,
+                      label: 'View Verification Code',
+                      custom_id: `rec:${recording.id}:verificationcode`
+                    }
+                  ]
                 }
               ]
-            }
-          ] : [
-            {
-              type: ComponentType.TEXT_DISPLAY,
-              content: "-# You aren't in this voice channel right now to be able to view the privacy code."
-            }
-          ]) as AnyComponent[]
+            : [
+                {
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: "-# You aren't in this voice channel right now to be able to view the privacy code."
+                }
+              ]) as AnyComponent[])
         ]
       });
     } else if (action === 'verificationcode') {
@@ -209,7 +228,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
           });
         } catch {
           await ctx.send({
-            content: "An error occurred when trying to get the verification code, try again later.",
+            content: 'An error occurred when trying to get the verification code, try again later.',
             ephemeral: true
           });
         }

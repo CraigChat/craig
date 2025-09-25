@@ -866,8 +866,7 @@ export default class Recording {
       const lastPacket = this.userPackets[userID][this.userPackets[userID].length - 1];
       this.userPackets[userID].push({ data, timestamp, time });
       // Reorder packets
-      if (lastPacket.timestamp > timestamp)
-        this.userPackets[userID].sort((a, b) => a.timestamp - b.timestamp);
+      if (lastPacket.timestamp > timestamp) this.userPackets[userID].sort((a, b) => a.timestamp - b.timestamp);
     } else this.userPackets[userID].push({ data, timestamp, time });
 
     // Flush packets if its getting long
@@ -1026,15 +1025,17 @@ export default class Recording {
                   disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
                   emoji: this.emojis.getPartial('addnote')
                 },
-                ...(this.connection?.daveProtocolVersion && this.connection.daveProtocolVersion > 0 ? [
-                  {
-                    type: ComponentType.BUTTON,
-                    style: ButtonStyle.SECONDARY,
-                    custom_id: `rec:${this.id}:e2ee`,
-                    disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
-                    emoji: this.emojis.getPartial('e2ee')
-                  }
-                ] : [])
+                ...(this.connection?.daveProtocolVersion && this.connection.daveProtocolVersion > 0
+                  ? [
+                      {
+                        type: ComponentType.BUTTON,
+                        style: ButtonStyle.SECONDARY,
+                        custom_id: `rec:${this.id}:e2ee`,
+                        disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                        emoji: this.emojis.getPartial('e2ee')
+                      }
+                    ]
+                  : [])
               ]
             }
           ]

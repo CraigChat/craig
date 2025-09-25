@@ -78,7 +78,7 @@ export default class ServerSettings extends GeneralCommand {
             {
               type: CommandOptionType.SUB_COMMAND,
               name: 'reset',
-              description: "Reset the bot's server profile.",
+              description: "Reset the bot's server profile."
             }
           ]
         }
@@ -224,8 +224,16 @@ export default class ServerSettings extends GeneralCommand {
 
             try {
               const [avatarData, bannerData] = await Promise.all([
-                avatar ? `data:${avatar.content_type};base64,${await fetch(avatar.url).then((r) => r.arrayBuffer()).then((b) => Buffer.from(b as any, 'binary').toString('base64'))}` : undefined,
-                banner ? `data:${banner.content_type};base64,${await fetch(banner.url).then((r) => r.arrayBuffer()).then((b) => Buffer.from(b as any, 'binary').toString('base64'))}` : undefined,
+                avatar
+                  ? `data:${avatar.content_type};base64,${await fetch(avatar.url)
+                      .then((r) => r.arrayBuffer())
+                      .then((b) => Buffer.from(b as any, 'binary').toString('base64'))}`
+                  : undefined,
+                banner
+                  ? `data:${banner.content_type};base64,${await fetch(banner.url)
+                      .then((r) => r.arrayBuffer())
+                      .then((b) => Buffer.from(b as any, 'binary').toString('base64'))}`
+                  : undefined
               ]);
 
               await this.client.bot.editGuildMember(ctx.guildID!, '@me', { avatar: avatarData, banner: bannerData });
@@ -248,7 +256,7 @@ export default class ServerSettings extends GeneralCommand {
               await this.client.bot.editGuildMember(ctx.guildID!, '@me', { avatar: null, banner: null });
 
               return {
-                content: "Reset my server profile.",
+                content: 'Reset my server profile.',
                 ephemeral: true
               };
             } catch (e) {
