@@ -29,7 +29,7 @@
     "@snazzah/davey": "^0.1.7",
     "@snazzah/emoji-sync": "^0.1.2",
     "@trpc/client": "^9.26.2",
-    "axios": "^0.27.2",
+    "axios": "^1.12.2",
     "chalk": "4",
     "common-tags": "^1.8.2",
     "config": "^3.3.8",
