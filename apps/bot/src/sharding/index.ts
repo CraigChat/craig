@@ -1,6 +1,4 @@
-import { EmojiManager } from '@snazzah/emoji-sync';
 import config from 'config';
-import path from 'path';
 
 import * as logger from './logger';
 import ShardManager from './manager';
@@ -20,20 +18,14 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
 
 (async () => {
   logger.info('Fetching emojis...');
-  const emojis = new EmojiManager({
-    token: config.get('dexare.token'),
-    applicationId: config.get('dexare.applicationID')
-  });
-  await emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
-  await emojis.sync();
-  manager.emojiSyncData = Array.from(emojis.emojis.values());
+  await manager.syncEmojis();
   logger.info('Starting to spawn...');
+  // PM2 graceful start/shutdown
+  if (process.send) process.send('ready');
   await manager.spawnAllWithConcurrency();
   logger.info(
     `Spawned ${manager.shards.size} shards in ${Array.from(manager.shards.values())
       .map((shard) => shard.guildCount)
       .reduce((acc, val) => acc + val, 0)} guilds.`
   );
-  // PM2 graceful start/shutdown
-  if (process.send) process.send('ready');
 })();
