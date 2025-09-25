@@ -1,6 +1,5 @@
 .git/
 node_modules/
-prisma/migrations/
 build/
 dist/
 *.log

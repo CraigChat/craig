@@ -41,10 +41,22 @@ WORKDIR /app
 #     mkswap /swapfile && \
 #     swapon /swapfile
 
+# Accept build arguments for environment variables needed during build
+ARG CLIENT_ID
+ARG CLIENT_SECRET
+ARG DISCORD_BOT_TOKEN
+ARG DISCORD_APP_ID
+ARG DEVELOPMENT_GUILD_ID
+
 # Set environment variables
 ENV CC=gcc-10
 ENV CXX=g++-10
 ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV CLIENT_ID=${CLIENT_ID}
+ENV CLIENT_SECRET=${CLIENT_SECRET}
+ENV DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+ENV DISCORD_APP_ID=${DISCORD_APP_ID}
+ENV DEVELOPMENT_GUILD_ID=${DEVELOPMENT_GUILD_ID}
 
 COPY . .
 

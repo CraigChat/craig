@@ -15,7 +15,7 @@ CREATE TABLE "Guild" (
     "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "Guild_pkey" PRIMARY KEY ("guildId")
+    CONSTRAINT "Guild_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable

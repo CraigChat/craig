@@ -130,14 +130,21 @@ config_yarn() {
 
   info "Configuring yarn..."
 
+  # Make sure NVM environment is loaded
+  # shellcheck disable=SC1090
+  source ~/.nvm/nvm.sh || true
+  nvm use "$NODE_VERSION"
+
   # install dependencies
   yarn install
+
+  # rebuild native modules to ensure compatibility
+  npm rebuild
 
   # build
   yarn run build
 
-  # sync Discord slash commands globally
-  yarn run sync
+  # Note: Discord slash commands will be deployed at runtime by run.sh
 
   # only sync Discord slash commands to the guild
   # specified by DEVELOPMENT_GUILD_ID in install.config

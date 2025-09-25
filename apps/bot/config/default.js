@@ -3,7 +3,11 @@ env = require('dotenv').config();
 
 module.exports = {
   // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
-  redis: {},
+  redis: {
+    host: 'redis',
+    port: 6379,
+    keyPrefix: 'craig:'
+  },
   // redis: {
   //   host: 'localhost',
   //   port: 6379,

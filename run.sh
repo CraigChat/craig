@@ -69,6 +69,9 @@ start_postgresql() {
   local start_time_s
   local current_time_s
 
+  # Set password for PostgreSQL authentication
+  export PGPASSWORD="$POSTGRESQL_PASSWORD"
+
   info "Starting PostgreSQL server..."
 
   set +e
@@ -145,7 +148,9 @@ start_app() {
 {
   # shellcheck disable=SC1091
   set -o allexport
-  source "$craig_dir/.env"
+  if [ -f "$craig_dir/.env" ]; then
+    source "$craig_dir/.env"
+  fi
   set +o allexport
 
   start_redis
@@ -156,6 +161,40 @@ start_app() {
   yarn prisma:deploy
 
   start_app
+
+  # Give the bot a moment to initialize before deploying slash commands
+  info "Waiting for bot to initialize before deploying slash commands..."
+  sleep 10
+
+  # Deploy Discord slash commands now that the bot is running
+  info "Deploying Discord slash commands..."
+  cd "$craig_dir/apps/bot"
+  # shellcheck disable=SC1090
+  source ~/.nvm/nvm.sh || true
+  nvm use "$NODE_VERSION"
+
+  if [ -n "$DEVELOPMENT_GUILD_ID" ]; then
+    info "Deploying slash commands to development guild..."
+    if yarn run sync:dev; then
+      info "✅ Development slash commands deployed successfully"
+    else
+      warning "❌ Development slash command deployment failed, trying global deployment..."
+      if yarn run sync; then
+        info "✅ Global slash commands deployed successfully"
+      else
+        warning "❌ Slash command deployment failed - commands can be deployed manually later"
+      fi
+    fi
+  else
+    info "Deploying slash commands globally..."
+    if yarn run sync; then
+      info "✅ Global slash commands deployed successfully"
+    else
+      warning "❌ Slash command deployment failed - commands can be deployed manually later"
+    fi
+  fi
+
+  cd "$craig_dir"
 } 2>&1 | tee "$craig_dir/running.log"
 
 tail -f /dev/null
