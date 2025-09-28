@@ -55,11 +55,11 @@ const PostJobRecordingSchema = z.object({
     format: z.enum(ALLOWED_RECORDING_FORMATS).optional(),
     dynaudnorm: z.boolean().optional(),
     ignoreTracks: z
-      .array(z.number().finite())
+      .array(z.number())
       .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
       .optional(),
     skipDynaudnorm: z
-      .array(z.number().finite())
+      .array(z.number())
       .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
       .optional()
   })
@@ -149,7 +149,7 @@ const PostJobAvatarsSchema = z.object({
       .optional(),
     transparent: z.boolean().optional(),
     ignoreTracks: z
-      .array(z.number().finite())
+      .array(z.number())
       .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
       .optional()
   })
@@ -193,7 +193,7 @@ const PostJobTranscriptionSchema = z.object({
   options: z.object({
     format: z.enum(ALLOWED_TRANSCRIPTION_FORMATS).optional(),
     ignoreTracks: z
-      .array(z.number().finite())
+      .array(z.number())
       .refine((arr) => arr.length === new Set(arr).size, 'Array elements must be unique')
       .optional()
   })
