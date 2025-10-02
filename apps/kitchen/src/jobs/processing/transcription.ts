@@ -39,6 +39,10 @@ interface RunpodCompleteResponse {
   workerId: string;
   output: TranscriptionResult | TranscriptionResult[];
 }
+interface RunpodTimedOutResponse {
+  id: string;
+  status: 'TIMED_OUT';
+}
 
 interface TranscriptionResult {
   detected_language: string;
@@ -60,7 +64,7 @@ interface TranscriptionResult {
   translation: null;
 }
 
-type RunpodResponse = RunpodQueuedResponse | RunpodProcessingResponse | RunpodErrorResponse | RunpodCompleteResponse;
+type RunpodResponse = RunpodQueuedResponse | RunpodProcessingResponse | RunpodErrorResponse | RunpodCompleteResponse | RunpodTimedOutResponse;
 
 function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', transcriptions: TranscriptionResult[], names: string[]): string {
   const allSegments: {
@@ -202,7 +206,7 @@ export async function processTranscriptionJob(job: Job) {
   job.outputData.transcriptionRequestId = runpodResponse.id;
   logger.info(`Job ${job.id} started runpod request ${runpodResponse.id}`);
 
-  while (runpodResponse.status !== 'COMPLETED' && runpodResponse.status !== 'FAILED') {
+  while (runpodResponse.status !== 'COMPLETED' && runpodResponse.status !== 'FAILED' && runpodResponse.status !== 'TIMED_OUT') {
     job.setState({
       type: 'transcribing',
       runpodStatus: runpodResponse.status
@@ -219,6 +223,7 @@ export async function processTranscriptionJob(job: Job) {
   }
 
   if (runpodResponse.status === 'FAILED') throw new Error(`Runpod transcription failed (${runpodResponse.id}): ${runpodResponse.error}`);
+  if (runpodResponse.status === 'TIMED_OUT') throw new Error(`Runpod transcription timed out (${runpodResponse.id})`);
 
   await fs.writeFile(
     job.outputFile,
