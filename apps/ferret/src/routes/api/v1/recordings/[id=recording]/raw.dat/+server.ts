@@ -2,7 +2,6 @@ import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import { join } from 'path';
 import { PassThrough } from 'stream';
-import { pipeline } from 'stream/promises';
 
 import { REC_DIRECTORY } from '$lib/server/config';
 import { errorResponse, getRecordingInfo, recordingExists } from '$lib/server/util';
@@ -10,7 +9,7 @@ import { APIErrorCode } from '$lib/types';
 
 import type { RequestHandler } from './$types';
 
-export const GET = (async ({ url, params }) => {
+export const GET: RequestHandler = async ({ url, params, request }) => {
   const key = url.searchParams.get('key') ?? '';
   const id = params.id;
 
@@ -29,20 +28,40 @@ export const GET = (async ({ url, params }) => {
   const sizes = await Promise.all(files.map((file) => stat(file)));
   const totalSize = sizes.reduce((total, stats) => total + stats.size, 0);
 
-  const outputStream = new PassThrough();
-
-  // Create a ReadableStream from the PassThrough
+  const abortController = new AbortController();
   const readableStream = new ReadableStream({
-    start(controller) {
-      outputStream.on('data', (chunk: Uint8Array) => {
-        controller.enqueue(chunk);
-      });
-      outputStream.on('end', () => {
+    async start(controller) {
+      const openStreams = [];
+      try {
+        for (const file of files) {
+          if (request.signal.aborted || abortController.signal.aborted) break;
+          const stream = createReadStream(file);
+          openStreams.push(stream);
+
+          for await (const chunk of stream) {
+            if (request.signal.aborted || abortController.signal.aborted) {
+              for (const s of openStreams) {
+                try { s.destroy(); } catch {}
+              }
+              controller.close();
+              return;
+            }
+            controller.enqueue(new Uint8Array(chunk));
+          }
+          stream.close();
+
+          openStreams.pop();
+        }
+
         controller.close();
-      });
-      outputStream.on('error', (err: Error) => {
-        controller.error(err);
-      });
+      } catch (err) {
+        for (const s of openStreams)
+          try { s.destroy(); } catch  {}
+        controller.error(err instanceof Error ? err : new Error(String(err)));
+      }
+    },
+    cancel() {
+      abortController.abort();
     }
   });
 
@@ -55,17 +74,5 @@ export const GET = (async ({ url, params }) => {
     }
   });
 
-  (async () => {
-    try {
-      for (const file of files) {
-        const readStream = createReadStream(file);
-        await pipeline(readStream, outputStream, { end: false });
-      }
-      outputStream.end();
-    } catch (err) {
-      outputStream.destroy(err instanceof Error ? err : new Error(String(err)));
-    }
-  })();
-
   return response;
-}) satisfies RequestHandler;
+};
