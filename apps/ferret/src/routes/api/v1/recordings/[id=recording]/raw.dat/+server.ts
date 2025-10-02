@@ -1,7 +1,6 @@
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import { join } from 'path';
-import { PassThrough } from 'stream';
 
 import { REC_DIRECTORY } from '$lib/server/config';
 import { errorResponse, getRecordingInfo, recordingExists } from '$lib/server/util';
