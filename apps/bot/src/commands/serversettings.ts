@@ -168,6 +168,7 @@ export default class ServerSettings extends GeneralCommand {
             };
           }
         }
+        break;
       }
       case 'bot-profile': {
         switch (ctx.subcommands[1]) {
@@ -243,8 +244,6 @@ export default class ServerSettings extends GeneralCommand {
                 ephemeral: true
               };
             } catch (e) {
-              console.log(e);
-
               return {
                 content: 'Could not update server my profile, you may have updated it too frequently.',
                 ephemeral: true
@@ -260,8 +259,6 @@ export default class ServerSettings extends GeneralCommand {
                 ephemeral: true
               };
             } catch (e) {
-              console.log(e);
-
               return {
                 content: 'Could not update server my profile, you may have updated it too frequently.',
                 ephemeral: true
