@@ -123,7 +123,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       if (user && user.id !== patron.discordId) {
         console.info(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
         // await prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } });
-        await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } });
+        await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
         await resolveUserEntitlement(user.id, null);
       }
     }
