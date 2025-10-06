@@ -7,6 +7,7 @@
   import Portal from 'svelte-portal';
 
   import FormatButton from '$components/FormatButton.svelte';
+  import RequiresTier from '$components/RequiresTier.svelte';
   import { device } from '$lib/device';
   import { jobOpen } from '$lib/recording/data';
   import { audioButtons, type FocusedButton, type SectionButton, transcriptionButtons } from '$lib/recording/sections';
@@ -95,12 +96,12 @@
       {/each}
     </div>
 
-    {#if features.includes('transcription')}
-      <div class="flex flex-col items-stretch justify-start gap-3 p-6">
-        <div class="inline-flex items-center gap-1 self-stretch">
-          <h3 class="font-display text-xl font-semibold text-neutral-100">{$t('download.sections.transcription')}</h3>
-          <span class="rounded-full bg-amber-400 px-2 py-1 text-xs font-bold uppercase text-black">{$t('common.new')}</span>
-        </div>
+    <div class="flex flex-col items-stretch justify-start gap-3 p-6">
+      <div class="inline-flex items-center gap-1 self-stretch">
+        <h3 class="font-display text-xl font-semibold text-neutral-100">{$t('download.sections.transcription')}</h3>
+        <span class="rounded-full bg-amber-400 px-2 py-1 text-xs font-bold uppercase text-black">{$t('common.new')}</span>
+      </div>
+      {#if features.includes('transcription')}
         <div class="inline-flex flex-wrap items-start justify-start gap-3 self-stretch">
           {#each transcriptionButtons as button}
             {@const featureAvailable = !button.features || !button.features.map((f) => features.includes(f)).includes(false)}
@@ -116,8 +117,10 @@
             {/if}
           {/each}
         </div>
-      </div>
-    {/if}
+      {:else}
+        <RequiresTier minTier={30} />
+      {/if}
+    </div>
 
     <div class="flex flex-col items-stretch justify-start gap-3 p-6">
       <div class="inline-flex items-center justify-between self-stretch">
