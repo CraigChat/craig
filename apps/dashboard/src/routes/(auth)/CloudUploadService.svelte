@@ -69,8 +69,8 @@
       } else {
         await invalidateAll();
         const serviceName = 'mainServiceName' in service ? service.mainServiceName : service.name;
-        toast.success($t('cloud_upload.disconnected_service', { values: { service: serviceName } }), {
-          description: $t('cloud_upload.revoke_app_perms', { values: { service: serviceName } }),
+        toast.success($t('cloud_backup.disconnected_service', { values: { service: serviceName } }), {
+          description: $t('cloud_backup.revoke_app_perms', { values: { service: serviceName } }),
           action: {
             label: $t('common.manage'),
             onClick: () => open(service.settingsUrl, '_blank')
@@ -95,7 +95,7 @@
       if (!response.ok) {
         const err: APIErrorResponse = await response.json().catch(() => null);
         const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
-        toast.error(`${$t(`cloud_upload.settings_error`)}: ${$t(`errors.${responseError}`)}`);
+        toast.error(`${$t(`cloud_backup.settings_error`)}: ${$t(`errors.${responseError}`)}`);
       } else await invalidateAll();
     } catch (e) {}
     loading = false;
@@ -114,11 +114,11 @@
       {@const service = services.find((s) => s.id === driveService)!}
       <Icon icon={service.icon} class="size-8 flex-none sm:size-10" />
       <div class="flex flex-col">
-        <span class="text-xs text-neutral-400 sm:text-sm">{$t('cloud_upload.upload_service')}</span>
+        <span class="text-xs text-neutral-400 sm:text-sm">{$t('cloud_backup.upload_service')}</span>
         <span class="text-lg/4 sm:text-xl/4">{service.name}</span>
       </div>
     {:else}
-      <span class="text-lg sm:text-xl">{$t('cloud_upload.select_service')}…</span>
+      <span class="text-lg sm:text-xl">{$t('cloud_backup.select_service')}…</span>
     {/if}
   </div>
   <Icon icon={rightIcon} class="size-6" />
@@ -126,7 +126,7 @@
 
 {#if showModal}
   <Modal onclose={() => (showModal = false)} allowClose={!loading || !disabled}>
-    <InnerModal title={$t('cloud_upload.select_service')}>
+    <InnerModal title={$t('cloud_backup.select_service')}>
       {#each services as service (service.id)}
         <div
           class="flex flex-col justify-between gap-2 rounded-md bg-neutral-900 px-3 py-2 text-left font-medium text-neutral-300 transition sm:flex-row sm:items-center"

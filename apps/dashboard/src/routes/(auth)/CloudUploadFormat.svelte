@@ -95,7 +95,7 @@
       if (!response.ok) {
         const err: APIErrorResponse = await response.json().catch(() => null);
         const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
-        toast.error(`${$t(`cloud_upload.settings_error`)}: ${$t(`errors.${responseError}`)}`);
+        toast.error(`${$t(`cloud_backup.settings_error`)}: ${$t(`errors.${responseError}`)}`);
       } else await invalidateAll();
     } catch (e) {}
     loading = false;
@@ -116,12 +116,12 @@
     {#if currentFormat}
       <Icon icon={currentFormat.icon ?? sections.find((s) => s.id === currentFormat.section)!.icon} class="size-8 flex-none sm:size-10" />
       <div class="flex flex-col">
-        <span class="text-xs text-neutral-400 sm:text-sm">{$t('cloud_upload.upload_format')}</span>
+        <span class="text-xs text-neutral-400 sm:text-sm">{$t('cloud_backup.upload_format')}</span>
         <span class="text-lg/4 sm:text-xl/4">{convertT(currentFormat.text, $t)}</span>
         <span class="text-xs/4">{$t(`format_sections.${currentFormat.section}`)}</span>
       </div>
     {:else}
-      <span class="text-lg sm:text-xl">{$t('cloud_upload.select_format')}…</span>
+      <span class="text-lg sm:text-xl">{$t('cloud_backup.select_format')}…</span>
     {/if}
   </div>
   <Icon icon={rightIcon} class="size-6" />
@@ -129,7 +129,7 @@
 
 {#if showModal}
   <Modal onclose={() => (showModal = false)} allowClose={!loading || !disabled}>
-    <InnerModal title={$t('cloud_upload.select_format')}>
+    <InnerModal title={$t('cloud_backup.select_format')}>
       {#each sections as section (section.id)}
         {@const sectionFormats = formats.filter((f) => f.section === section.id)}
         <div class="flex flex-col gap-2">

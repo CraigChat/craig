@@ -11,6 +11,7 @@
 
   import { invalidateAll, replaceState } from '$app/navigation';
   import { page } from '$app/state';
+  import DynamicTranslatable from '$components/DynamicTranslatable.svelte';
   import Footer from '$components/Footer.svelte';
   import RequiresTier from '$components/RequiresTier.svelte';
   import SwitchField from '$components/SwitchField.svelte';
@@ -57,7 +58,7 @@
       if (!response.ok) {
         const err: APIErrorResponse = await response.json().catch(() => null);
         const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
-        toast.error(`${$t(`cloud_upload.settings_error`)}: ${$t(`errors.${responseError}`)}`);
+        toast.error(`${$t(`cloud_backup.settings_error`)}: ${$t(`errors.${responseError}`)}`);
       } else await invalidateAll();
     } catch (e) {}
     loading = false;
@@ -74,6 +75,10 @@
     }
   });
 </script>
+
+{#snippet supportServer()}
+  <a href="https://discord.gg/craig" target="_blank" class="text-blue-400 hover:underline">support server</a>
+{/snippet}
 
 {#if user.banner_color}
   <div
@@ -214,15 +219,28 @@
     {/if}
   </div>
 
-  <h2 class="mb-2 mt-10 text-xl font-bold text-white sm:text-2xl">{$t('headers.cloud_upload')}</h2>
+  {#if tier === 0}
+    <h3 class="mb-2 mt-4 text-lg font-bold text-neutral-200 sm:text-xl">{$t('supporter_troubleshoot.header')}</h3>
+    <span>
+      {$t('supporter_troubleshoot.line_1')}
+    </span>
+    <span>
+      {$t('supporter_troubleshoot.line_2')}
+    </span>
+    <span>
+      <DynamicTranslatable template={$t('supporter_troubleshoot.line_3')} replacements={{ support_server: supportServer }} />
+    </span>
+  {/if}
+
+  <h2 class="mb-2 mt-10 text-xl font-bold text-white sm:text-2xl">{$t('headers.cloud_backup')}</h2>
   {#if tier === 0}
     <RequiresTier minTier={10} />
   {:else}
     <SwitchField
-      label={$t('cloud_upload.enable')}
+      label={$t('cloud_backup.enable')}
       bind:checked={() => data.data.driveEnabled, (v) => setSettings({ driveEnabled: v })}
       disabled={loading}
-      description={$t('cloud_upload.enable_desc')}
+      description={$t('cloud_backup.enable_desc')}
     />
     <CloudUploadService connections={data.connections} driveService={data.data.driveService as any} disabled={loading} />
     <CloudUploadFormat
