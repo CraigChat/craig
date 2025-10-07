@@ -23,7 +23,10 @@
     "build-cook": "pnpm -F kitchen -F ennuizel-streamer run build-cook",
     "sync": "pnpm -F bot run sync",
     "sync:dev": "pnpm -F bot run sync:dev",
-    "db:deploy": "dotenv -c -- pnpm -F db run db:migrate:deploy"
+    "db:deploy": "dotenv -c -- pnpm -F db run db:migrate:deploy",
+    "db:push": "dotenv -c -- pnpm -F db run db:push",
+    "db:migrate:dev": "dotenv -c -- pnpm -F db run db:migrate:dev",
+    "prisma": "dotenv -c -- pnpm -F db run prisma"
   },
   "repository": {
     "type": "git",

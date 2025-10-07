@@ -71,9 +71,17 @@
 		},
 		"9001": {
 			"label": "Ennuizel Streamer"
+		},
+		"57131": {
+			"label": "Dashboard (Development)",
+			"onAutoForward": "openPreview"
+		},
+		"47131": {
+			"label": "Dashboard (Preview)",
+			"onAutoForward": "openPreview"
 		}
 	},
-	"forwardPorts": [9000, 5173, 4173, 9001]
+	"forwardPorts": [9000, 5173, 4173, 9001, 57131, 47131]
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 
