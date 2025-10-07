@@ -12,5 +12,8 @@ export default defineConfig({
     },
     allowedHosts: ['.trycloudflare.com'],
     port: 57131
+  },
+  ssr: {
+    external: ['@craig/db']
   }
 });

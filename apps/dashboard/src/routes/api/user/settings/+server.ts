@@ -9,7 +9,6 @@ import { rateLimitRequest } from '$lib/server/redis';
 import { errorResponse } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 import { prisma } from '@craig/db';
-import { id } from 'zod/locales';
 
 const Schema = z
   .object({

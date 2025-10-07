@@ -8,7 +8,7 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "prisma generate && tsup src/index.ts --format esm --dts",
+    "build": "prisma generate && tsup-node src/index.ts --format esm --dts",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
@@ -23,6 +23,6 @@
   },
   "devDependencies": {
     "prisma": "^6.16.3",
-    "tsup": "^8.4.0"
+    "tsup": "^8.5.0"
   }
 }
