@@ -1,6 +1,5 @@
 -- AlterTable
-ALTER TABLE "User" ADD COLUMN     "driveOptions" JSONB,
-ADD COLUMN     "tierManuallySet" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "User" ADD COLUMN     "driveOptions" JSONB;
 
 -- CreateTable
 CREATE TABLE "UserToken" (
