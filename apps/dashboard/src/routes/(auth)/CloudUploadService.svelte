@@ -118,14 +118,14 @@
     <InnerModal title={$t('cloud_backup.select_service')}>
       {#each services as service (service.id)}
         <div
-          class="flex flex-col justify-between gap-2 rounded-md bg-neutral-900 px-3 py-2 text-left font-medium text-neutral-300 transition sm:flex-row sm:items-center"
+          class="flex flex-col justify-between gap-2 rounded-md bg-zinc-800 px-3 py-2 text-left font-medium text-zinc-300 transition sm:flex-row sm:items-center"
         >
           <button class="group flex items-center gap-2" disabled={loading || disabled} onclick={() => onSetService(service.id)}>
             {#if connections[service.id]}
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                class={cn('size-6 rounded-full bg-neutral-950 transition group-disabled:opacity-50', {
+                class={cn('size-6 rounded-full bg-zinc-950 transition group-disabled:opacity-50', {
                   'bg-teal-600': service.id === driveService,
                   'group-enabled:cursor-pointer': service.id !== driveService
                 })}
@@ -141,7 +141,7 @@
             <div class="flex flex-col items-start text-left">
               <span class="text-lg">{service.name}</span>
               {#if connections[service.id]?.name}
-                <span class="-mt-1 text-xs text-neutral-400">{connections[service.id]?.name}</span>
+                <span class="-mt-1 text-xs text-zinc-400">{connections[service.id]?.name}</span>
               {/if}
             </div>
           </button>

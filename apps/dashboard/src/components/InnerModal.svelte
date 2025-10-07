@@ -27,7 +27,7 @@
   {@render children?.()}
 </div>
 
-<div class={cn('flex w-full items-center justify-between bg-zinc-950/40 px-6 py-3', _class)}>
+<div class={cn('flex w-full items-center justify-between bg-zinc-950/50 px-6 py-3', _class)}>
   <span></span>
   <div class="flex gap-2">
     {@render buttons?.()}

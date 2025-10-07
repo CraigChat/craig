@@ -30,7 +30,7 @@
     <div
       transition:scale={{ duration: 250, opacity: 0, start: 0.95 }}
       class={cn(
-        'relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-neutral-950 text-neutral-300 shadow-lg ring-2 ring-black/50 md:rounded-b-lg',
+        'relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-zinc-300 shadow-lg ring-2 ring-black/50 md:rounded-b-lg',
         wrapperClass
       )}
     >

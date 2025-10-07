@@ -119,7 +119,7 @@
       {#each sections as section (section.id)}
         {@const sectionFormats = formats.filter((f) => f.section === section.id)}
         <div class="flex flex-col gap-2">
-          <h3 class="font-medium text-neutral-400 sm:text-lg">{$t(`format_sections.${section.id}`)}</h3>
+          <h3 class="font-medium text-zinc-300">{$t(`format_sections.${section.id}`)}</h3>
           {#if section.minTier && rewardTier !== -1 && (!rewardTier || rewardTier < section.minTier)}
             <RequiresTier minTier={section.minTier} />
           {:else}
@@ -140,8 +140,9 @@
         </div>
       {/each}
 
-      <div class="mt-4 flex flex-col gap-2">
-        <h3 class="mb-2 text-lg font-medium text-white sm:text-xl">{$t('cloud_backup.upload_options')}</h3>
+      <hr class="border-white/20" />
+
+      <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
           <SwitchField
             label={$t('cloud_backup.exclude_bots')}
