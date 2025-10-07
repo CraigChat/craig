@@ -51,8 +51,8 @@
 {#if showModal}
   <Modal class="ring-red-950/25" onclose={() => (showModal = false)} allowClose={!disconnecting}>
     <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-gradient-to-b from-red-600 to-transparent opacity-25"></div>
-    <InnerModal title="Are you sure you want to disconnect your Patreon account?" class="z-[1]">
-      <span>Your benefits may be revoked if you disconnect your Patreon account.</span>
+    <InnerModal title={$t('disconnect_patreon.header')} class="z-[1]">
+      <span>{$t('disconnect_patreon.text')}</span>
 
       {#snippet buttons()}
         <Button disabled={disconnecting} onclick={() => (showModal = false)}>
