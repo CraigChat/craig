@@ -246,6 +246,7 @@
     <CloudUploadFormat
       driveFormat={data.data.driveFormat}
       driveContainer={data.data.driveContainer}
+      driveOptions={data.data.driveOptions}
       rewardTier={data.data.rewardTier}
       disabled={loading}
     />

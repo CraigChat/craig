@@ -1,4 +1,5 @@
 import { prisma, type User } from "@craig/db";
+import type { DriveOptions } from "@craig/types";
 
 export async function getUserData(userId: string) {
   const [userData, entitlements, patreon, google, microsoft, dropbox] = await Promise.all([
@@ -11,6 +12,7 @@ export async function getUserData(userId: string) {
         driveService: true,
         driveContainer: true,
         driveFormat: true,
+        driveOptions: true,
         patronId: true
       }
     }),
@@ -35,7 +37,8 @@ export async function getUserData(userId: string) {
       driveEnabled: userData?.driveEnabled ?? false,
       driveService: userData?.driveService ?? 'google',
       driveContainer: userData?.driveContainer ?? null,
-      driveFormat: userData?.driveFormat ?? null
+      driveFormat: userData?.driveFormat ?? null,
+      driveOptions: (userData?.driveOptions as DriveOptions | undefined) ?? null
     },
     entitlements,
     connections: {

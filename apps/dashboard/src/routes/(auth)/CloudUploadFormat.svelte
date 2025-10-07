@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { DriveOptions } from '@craig/types';
   import Icon from '@iconify/svelte';
   import auditionIcon from '@iconify-icons/file-icons/adobe-audition';
   import audacityIcon from '@iconify-icons/file-icons/audacity';
@@ -6,25 +7,24 @@
   import audioIcon from '@iconify-icons/mdi/file-music';
   import zipIcon from '@iconify-icons/mdi/folder-zip';
   import { t } from 'svelte-i18n';
-  import { toast } from 'svelte-sonner';
 
-  import { invalidateAll } from '$app/navigation';
   import Button from '$components/Button.svelte';
   import FormatButton from '$components/FormatButton.svelte';
   import InnerModal from '$components/InnerModal.svelte';
   import Modal from '$components/Modal.svelte';
   import RequiresTier from '$components/RequiresTier.svelte';
+  import SwitchField from '$components/SwitchField.svelte';
+  import { savingSettings, updateSettings } from '$lib/data';
   import { loadingIcon } from '$lib/icons';
-  import { APIErrorCode, type APIErrorResponse } from '$lib/types';
   import { convertT } from '$lib/util';
 
   let showModal = $state(false);
-  let loading = $state(false);
 
   interface Props {
     disabled?: boolean;
     driveFormat?: string | null;
     driveContainer?: string | null;
+    driveOptions?: DriveOptions | null;
     rewardTier?: number;
   }
 
@@ -83,25 +83,11 @@
   ];
 
   async function onSetFormat(format: (typeof formats)[number]) {
-    loading = true;
-    try {
-      const [driveFormat, driveContainer] = format.id.split('-');
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driveFormat, driveContainer })
-      }).catch(() => null);
-      if (!response) return;
-      if (!response.ok) {
-        const err: APIErrorResponse = await response.json().catch(() => null);
-        const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
-        toast.error(`${$t(`cloud_backup.settings_error`)}: ${$t(`errors.${responseError}`)}`);
-      } else await invalidateAll();
-    } catch (e) {}
-    loading = false;
+    const [driveFormat, driveContainer] = format.id.split('-');
+    await updateSettings({ driveFormat, driveContainer });
   }
 
-  let { disabled = false, driveContainer, driveFormat, rewardTier }: Props = $props();
+  let { disabled = false, driveContainer, driveFormat, driveOptions, rewardTier }: Props = $props();
 
   let currentFormatId = $derived(`${driveFormat}-${driveContainer}`);
   let currentFormat = $derived(formats.find((f) => currentFormatId === f.id));
@@ -128,7 +114,7 @@
 </button>
 
 {#if showModal}
-  <Modal onclose={() => (showModal = false)} allowClose={!loading || !disabled}>
+  <Modal onclose={() => (showModal = false)} allowClose={!$savingSettings || !disabled}>
     <InnerModal title={$t('cloud_backup.select_format')}>
       {#each sections as section (section.id)}
         {@const sectionFormats = formats.filter((f) => f.section === section.id)}
@@ -143,7 +129,7 @@
                   icon={format.icon}
                   suffix={format.suffix}
                   selected={currentFormatId === format.id}
-                  disabled={loading || disabled}
+                  disabled={$savingSettings || disabled}
                   onclick={() => onSetFormat(format)}
                 >
                   {convertT(format.text, $t)}
@@ -154,16 +140,28 @@
         </div>
       {/each}
 
+      <div class="mt-4 flex flex-col gap-2">
+        <h3 class="mb-2 text-lg font-medium text-white sm:text-xl">{$t('cloud_backup.upload_options')}</h3>
+        <div class="flex items-center justify-between">
+          <SwitchField
+            label={$t('cloud_backup.exclude_bots')}
+            bind:checked={() => driveOptions?.excludeBots ?? false, (v) => updateSettings({ driveOptions: { excludeBots: v } })}
+            disabled={$savingSettings || disabled}
+            description={$t('cloud_backup.exclude_bots_desc')}
+          />
+        </div>
+      </div>
+
       {#snippet buttons()}
-        <Button disabled={loading || disabled} onclick={() => (showModal = false)}>
+        <Button disabled={$savingSettings || disabled} onclick={() => (showModal = false)}>
           <div class="relative">
-            <span class="transition-opacity" class:opacity-0={loading || disabled}>
+            <span class="transition-opacity" class:opacity-0={$savingSettings || disabled}>
               {$t('common.close')}
             </span>
             <div
               class="pointer-events-none absolute bottom-0 left-0 right-0 top-0 flex scale-150 items-center justify-center transition-opacity"
-              class:opacity-0={!loading || disabled}
-              class:opacity-100={loading || disabled}
+              class:opacity-0={!$savingSettings || disabled}
+              class:opacity-100={$savingSettings || disabled}
             >
               <Icon icon={loadingIcon} class="animate-spin" />
             </div>

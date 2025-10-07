@@ -10,6 +10,7 @@ import type {
   KitchenJobsResponse,
   KitchenStatsResponse
 } from '@craig/types/kitchen';
+import type { DriveOptions } from '@craig/types';
 import fastify from 'fastify';
 import path from 'path';
 import { writeHeapSnapshot } from 'v8';
@@ -22,6 +23,7 @@ import { REC_DIRECTORY } from './util/config.js';
 import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
 import { getDuration, getNotes } from './util/process.js';
+import { getRecordingUsers } from './util/recording.js';
 
 const debug = process.env.NODE_ENV !== 'production';
 const app = fastify({
@@ -219,9 +221,30 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
 
   const format: FormatType = (user.driveFormat as FormatType) || 'flac';
   const container: ContainerType = (user.driveContainer as ContainerType) || 'zip';
+  const driveOptions: DriveOptions = (user.driveOptions as DriveOptions) ?? {};
 
   try {
     logger.info(`Creating upload on recording ${id} for user ${userId}`);
+
+    const jobOptions: CreateJobOptions['options'] = {
+      format,
+      container
+    };
+
+    if (driveOptions?.excludeBots) {
+      // Load recording users to determine which tracks are bots
+      const recFileBase = path.join(REC_DIRECTORY, `${id}.ogg`);
+      const users = await getRecordingUsers(recFileBase, false).catch(() => null);
+      if (users) {
+        const botTracks = users.filter((u) => u.bot).map((u) => u.track);
+        if (botTracks.length > 0 && botTracks.length < users.length)
+          jobOptions.ignoreTracks = botTracks;
+        else if (botTracks.length === users.length)
+          // all tracks are bots
+          return send(204);
+      }
+    }
+
     const job = jobManager.createJob({
       jobType: 'recording',
       id,
@@ -229,10 +252,7 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
       postTask: 'upload',
       postTaskOptions,
       tags: { queueBypass: true },
-      options: {
-        format,
-        container
-      }
+      options: jobOptions
     });
     await job.run();
     return send(200, job);

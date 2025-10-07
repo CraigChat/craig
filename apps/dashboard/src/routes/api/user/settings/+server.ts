@@ -16,6 +16,11 @@ const Schema = z
     driveFormat: z.literal(['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', 'wav8']).optional(),
     driveContainer: z.literal(['aupzip', 'sesxzip', 'zip', 'mix']).optional(),
     driveEnabled: z.boolean().optional(),
+    driveOptions: z
+      .object({
+        excludeBots: z.boolean().optional()
+      })
+      .optional(),
     webapp: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
@@ -51,7 +56,15 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
   if (!parsed.success) return errorResponse(APIErrorCode.INVALID_BODY, { status: 400 }, { errors: z.treeifyError(parsed.error) });
 
   const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if ((parsed.data.driveService || parsed.data.driveContainer || parsed.data.driveFormat || typeof parsed.data.driveEnabled === 'boolean') && !user?.rewardTier)
+
+  if (
+    (parsed.data.driveService ||
+      parsed.data.driveContainer ||
+      parsed.data.driveFormat ||
+      typeof parsed.data.driveEnabled === 'boolean' ||
+      parsed.data.driveOptions !== undefined) &&
+    !user?.rewardTier
+  )
     return errorResponse(APIErrorCode.NOT_SUPPORTER, { status: 400 });
 
   const { driveContainer: container, driveFormat: format } = parsed.data;

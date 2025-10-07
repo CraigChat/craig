@@ -11,6 +11,7 @@
   import Button from '$components/Button.svelte';
   import InnerModal from '$components/InnerModal.svelte';
   import Modal from '$components/Modal.svelte';
+  import { updateSettings } from '$lib/data';
   import { loadingIcon } from '$lib/icons';
   import { GOOGLE_OAUTH_URL, MICROSOFT_OAUTH_URL } from '$lib/oauth';
   import { APIErrorCode, type APIErrorResponse, type ConnectionsData } from '$lib/types';
@@ -85,19 +86,7 @@
   async function onSetService(serviceId: (typeof services)[number]['id']) {
     if (serviceId === driveService) return;
     loading = true;
-    try {
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driveService: serviceId })
-      }).catch(() => null);
-      if (!response) return;
-      if (!response.ok) {
-        const err: APIErrorResponse = await response.json().catch(() => null);
-        const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
-        toast.error(`${$t(`cloud_backup.settings_error`)}: ${$t(`errors.${responseError}`)}`);
-      } else await invalidateAll();
-    } catch (e) {}
+    await updateSettings({ driveService: serviceId });
     loading = false;
   }
 
