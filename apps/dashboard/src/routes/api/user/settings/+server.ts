@@ -12,7 +12,7 @@ import { prisma } from '@craig/db';
 
 const Schema = z
   .object({
-    driveService: z.literal(['google', 'onedrive', 'dropbox']).optional(),
+    driveService: z.literal(['google', 'onedrive', 'dropbox', 'box']).optional(),
     driveFormat: z.literal(['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', 'wav8']).optional(),
     driveContainer: z.literal(['aupzip', 'sesxzip', 'zip', 'mix']).optional(),
     driveEnabled: z.boolean().optional(),

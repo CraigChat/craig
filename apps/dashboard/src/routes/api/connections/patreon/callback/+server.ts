@@ -106,5 +106,5 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       create: { id: auth.id, patronId: me.data.id }
     });
 
-  return redirect(307, '/?r=patreon_linked');
+  return redirect(307, '/?r=account_linked&from=patreon');
 };

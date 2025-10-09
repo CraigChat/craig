@@ -58,5 +58,5 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     create: { id: user.id, driveService: 'dropbox' }
   });
 
-  return redirect(307, '/?r=dropbox_linked');
+  return redirect(307, '/?r=account_linked&from=dropbox');
 };

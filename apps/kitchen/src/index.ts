@@ -24,6 +24,7 @@ import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
 import { getDuration, getNotes } from './util/process.js';
 import { getRecordingUsers } from './util/recording.js';
+import { boxPreflight } from './jobs/upload/box.js';
 
 const debug = process.env.NODE_ENV !== 'production';
 const app = fastify({
@@ -200,7 +201,7 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
         logger.info(`Failed google upload preflight on recording ${id} for user ${userId}`);
         return send(400, { error: 'auth_invalidated' });
       }
-      postTaskOptions.googleFolderId = result.folderId;
+      postTaskOptions.uploadFolderId = result.folderId;
       break;
     }
     case 'onedrive': {
@@ -217,6 +218,16 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
       }
       break;
     }
+    case 'box': {
+      const result = await boxPreflight(userId);
+      if (!result) {
+        logger.info(`Failed box upload preflight on recording ${id} for user ${userId}`);
+        return send(400, { error: 'auth_invalidated' });
+      }
+      postTaskOptions.uploadFolderId = result.folderId;
+      break;
+    }
+    default: return send(204); // unhandled service
   }
 
   const format: FormatType = (user.driveFormat as FormatType) || 'flac';

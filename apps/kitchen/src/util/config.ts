@@ -40,6 +40,9 @@ export const DROPBOX_FOLDER_NAME = process.env.DROPBOX_FOLDER_NAME;
 
 export const DOWNLOAD_URL_PREFIX = process.env.DOWNLOAD_URL_PREFIX;
 
+export const BOX_CLIENT_ID = process.env.BOX_CLIENT_ID;
+export const BOX_CLIENT_SECRET = process.env.BOX_CLIENT_SECRET;
+
 export const RUNPOD_TRANSCRIPTION_ENDPOINT_ID = process.env.RUNPOD_TRANSCRIPTION_ENDPOINT_ID;
 export const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
 

@@ -29,6 +29,7 @@ export interface CreateJobOptions {
   postTaskOptions?: {
     userId?: string;
     googleFolderId?: string;
+    uploadFolderId?: string;
   };
   from?: string;
   tags?: JobTags;

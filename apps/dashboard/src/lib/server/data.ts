@@ -2,7 +2,7 @@ import { prisma, type User } from "@craig/db";
 import type { DriveOptions } from "@craig/types";
 
 export async function getUserData(userId: string) {
-  const [userData, entitlements, patreon, google, microsoft, dropbox] = await Promise.all([
+  const [userData, entitlements, patreon, google, microsoft, dropbox, box] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -27,7 +27,8 @@ export async function getUserData(userId: string) {
     prisma.patreon.findUnique({ where: { id: userId } }),
     prisma.googleDriveUser.findUnique({ where: { id: userId } }),
     prisma.microsoftUser.findUnique({ where: { id: userId } }),
-    prisma.dropboxUser.findUnique({ where: { id: userId } })
+    prisma.dropboxUser.findUnique({ where: { id: userId } }),
+    prisma.boxUser.findUnique({ where: { id: userId } })
   ]);
 
   return {
@@ -48,13 +49,14 @@ export async function getUserData(userId: string) {
       } : null,
       google: google ? { connected: true, name: null } : null,
       onedrive: microsoft ? { connected: true, name: microsoft.name } : null,
-      dropbox: dropbox ? { connected: true, name: dropbox.name } : null
+      dropbox: dropbox ? { connected: true, name: dropbox.name } : null,
+      box: box ? { connected: true, name: box.name } : null
     }
   }
 }
 
 export async function setNextAvailableService(user: User, exclude: string) {
-  const services = ['google', 'onedrive', 'dropbox'].filter((s) => s !== exclude);
+  const services = ['google', 'onedrive', 'dropbox', 'box'].filter((s) => s !== exclude);
 
   for (const service of services) {
     let serviceData;
@@ -67,6 +69,9 @@ export async function setNextAvailableService(user: User, exclude: string) {
         break;
       case 'dropbox':
         serviceData = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
+        break;
+      case 'box':
+        serviceData = await prisma.boxUser.findUnique({ where: { id: user.id } });
         break;
     }
 

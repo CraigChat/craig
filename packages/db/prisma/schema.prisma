@@ -113,6 +113,13 @@ model DropboxUser {
   name         String
 }
 
+model BoxUser {
+  id           String @id
+  refreshToken String
+  token        String
+  name         String
+}
+
 // Benefits & Entitlements
 
 model Blessing {

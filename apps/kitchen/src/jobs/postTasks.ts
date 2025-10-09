@@ -10,6 +10,7 @@ import type { Job } from './job.js';
 import { dropboxUpload } from './upload/dropbox.js';
 import { googleUpload } from './upload/google.js';
 import { onedriveUpload } from './upload/onedrive.js';
+import { boxUpload } from './upload/box.js';
 
 export const postTasks: { [name: string]: (job: Job) => Promise<void> } = {
   download: moveToDownloads,
@@ -57,6 +58,10 @@ async function cloudUpload(job: Job) {
       }
       case 'dropbox': {
         await dropboxUpload(job, info, fileName);
+        break;
+      }
+      case 'box': {
+        await boxUpload(job, info, fileName);
         break;
       }
     }

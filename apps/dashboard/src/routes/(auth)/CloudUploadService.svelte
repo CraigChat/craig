@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
+  import boxIcon from '@iconify-icons/logos/box';
   import dropboxIcon from '@iconify-icons/logos/dropbox';
   import googleDriveIcon from '@iconify-icons/logos/google-drive';
   import onedriveIcon from '@iconify-icons/logos/microsoft-onedrive';
@@ -13,7 +14,7 @@
   import Modal from '$components/Modal.svelte';
   import { updateSettings } from '$lib/data';
   import { loadingIcon } from '$lib/icons';
-  import { GOOGLE_OAUTH_URL, MICROSOFT_OAUTH_URL } from '$lib/oauth';
+  import { BOX_OAUTH_URL, GOOGLE_OAUTH_URL, MICROSOFT_OAUTH_URL } from '$lib/oauth';
   import { APIErrorCode, type APIErrorResponse, type ConnectionsData } from '$lib/types';
   import { cn } from '$lib/util';
 
@@ -52,6 +53,13 @@
       name: 'Dropbox',
       oauthUrl: '/api/connections/dropbox/connect',
       settingsUrl: 'https://www.dropbox.com/account/connected_apps'
+    },
+    {
+      id: 'box',
+      icon: boxIcon,
+      name: 'Box',
+      oauthUrl: BOX_OAUTH_URL,
+      settingsUrl: 'https://app.box.com/integrations?myIntegrations=true'
     }
   ] as const;
 

@@ -37,7 +37,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   if (!user || user.rewardTier === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
-  if (error) return redirect(307, `/?error=${error}&from=dropbox`);
+  if (error) return redirect(307, `/?error=${error}&from=microsoft`);
   const code = url.searchParams.get('code');
   if (!code || typeof code !== 'string') return redirect(307, '/');
 
@@ -77,7 +77,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     });
   } catch (e) {
     console.error('Failed to get Microsoft info', e);
-    return redirect(307, '/?error=__NO_USER_DATA&from=dropbox');
+    return redirect(307, '/?error=__NO_USER_DATA&from=microsoft');
   }
 
   await prisma.user.upsert({
@@ -86,5 +86,5 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     create: { id: user.id, driveService: 'onedrive' }
   });
 
-  return redirect(307, '/?r=microsoft_linked');
+  return redirect(307, '/?r=account_linked&from=microsoft');
 };

@@ -46,5 +46,5 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     create: { id: user.id, driveService: 'google' }
   });
 
-  return redirect(307, '/?r=google_linked');
+  return redirect(307, '/?r=account_linked&from=google');
 };

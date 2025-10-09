@@ -34,13 +34,14 @@
   const patreon = $derived(data.connections.patreon);
   const responseQuery = $derived(page.url.searchParams.get('r'));
   const errorQuery = $derived(page.url.searchParams.get('error'));
-  const errorFromQuery = $derived(page.url.searchParams.get('from'));
+  const fromQuery = $derived(page.url.searchParams.get('from'));
 
   const services: any = {
     google: 'Google',
     dropbox: 'Dropbox',
     microsoft: 'Microsoft',
-    patreon: 'Patreon'
+    patreon: 'Patreon',
+    box: 'Box'
   };
 
   let loading = $state(false);
@@ -66,7 +67,7 @@
 
   onMount(async () => {
     await tick();
-    if (responseQuery || errorQuery || errorFromQuery) {
+    if (responseQuery || errorQuery || fromQuery) {
       const url = new URL(location.href);
       url.searchParams.delete('r');
       url.searchParams.delete('error');
@@ -137,15 +138,15 @@
   {#if responseQuery}
     <div class="mb-4 flex flex-col items-center gap-2 rounded-lg border-2 border-green-600 bg-green-500/25 p-4 text-center text-white sm:flex-row">
       <Icon icon={checkIcon} class="size-6" />
-      <span>{$t(`connection_responses.${responseQuery}`)}</span>
+      <span>{$t(`connection_responses.${responseQuery}`, { values: { service: services[fromQuery!] ?? '<unknown>' } })}</span>
     </div>
   {:else if errorQuery}
     <div class="mb-4 flex flex-col items-center gap-2 rounded-lg border-2 border-red-600 bg-red-500/25 p-4 text-center text-white sm:flex-row">
       <Icon icon={xIcon} class="size-6" />
-      <b>{$t('connection_responses.connect_failed', { values: { service: services[errorFromQuery!] ?? '<unknown>' } })}</b>
+      <b>{$t('connection_responses.connect_failed', { values: { service: services[fromQuery!] ?? '<unknown>' } })}</b>
       <span
         >{errorQuery?.startsWith('__')
-          ? $t(`connection_errors.${errorQuery.slice(2)}`, { values: { service: services[errorFromQuery!] ?? '<unknown>' } })
+          ? $t(`connection_errors.${errorQuery.slice(2)}`, { values: { service: services[fromQuery!] ?? '<unknown>' } })
           : errorQuery}</span
       >
     </div>

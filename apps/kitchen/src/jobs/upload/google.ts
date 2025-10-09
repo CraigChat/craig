@@ -74,7 +74,7 @@ export async function googleUpload(job: Job, info: RecordingInfo, fileName: stri
   const oAuth2Client = createOAuthClient(driveUser);
   const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 
-  const folderId = job.postTaskOptions?.googleFolderId || (await findCraigDirectoryInGoogleDrive(drive, userId));
+  const folderId = job.postTaskOptions?.uploadFolderId || job.postTaskOptions?.googleFolderId || (await findCraigDirectoryInGoogleDrive(drive, userId));
   if (!folderId) throw new UploadError('Your Google authentication was invalidated, please re-authenticate.');
   const mimeType = job.getMimeType();
 
