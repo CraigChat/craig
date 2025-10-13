@@ -256,6 +256,10 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
       }
     }
 
+    if (driveOptions?.includeTranscription && (user.rewardTier === -1 || user.rewardTier >= 30) && container !== 'mix') {
+      jobOptions.includeTranscription = driveOptions.includeTranscription;
+    }
+
     const job = jobManager.createJob({
       jobType: 'recording',
       id,

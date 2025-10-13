@@ -18,7 +18,8 @@ const Schema = z
     driveEnabled: z.boolean().optional(),
     driveOptions: z
       .object({
-        excludeBots: z.boolean().optional()
+        excludeBots: z.boolean().optional(),
+        includeTranscription: z.literal([null, 'vtt', 'srt', 'txt']).optional()
       })
       .optional(),
     webapp: z.boolean().optional(),
@@ -75,10 +76,15 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
       return errorResponse(APIErrorCode.NEED_HIGHER_TIER, { status: 400 });
   }
 
+  if (parsed.data.driveOptions?.includeTranscription && !(user && (user.rewardTier >= 30 || user.rewardTier === -1)))
+    return errorResponse(APIErrorCode.NEED_HIGHER_TIER, { status: 400 });
+
+
+  const driveOptions = { ...(user?.driveOptions ?? {}), ...(parsed.data.driveOptions ?? {}) };
   await prisma.user.upsert({
     where: { id: auth.id },
-    create: { id: auth.id, ...parsed.data },
-    update: { ...parsed.data }
+    create: { id: auth.id, ...parsed.data, driveOptions },
+    update: { ...parsed.data, driveOptions }
   });
 
   return json({ ok: true });

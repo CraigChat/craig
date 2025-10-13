@@ -13,6 +13,7 @@
   import InnerModal from '$components/InnerModal.svelte';
   import Modal from '$components/Modal.svelte';
   import RequiresTier from '$components/RequiresTier.svelte';
+  import SpreadSelect from '$components/SpreadSelect.svelte';
   import SwitchField from '$components/SwitchField.svelte';
   import { savingSettings, updateSettings } from '$lib/data';
   import { loadingIcon } from '$lib/icons';
@@ -121,7 +122,7 @@
         <div class="flex flex-col gap-2">
           <h3 class="font-medium text-zinc-300">{$t(`format_sections.${section.id}`)}</h3>
           {#if section.minTier && rewardTier !== -1 && (!rewardTier || rewardTier < section.minTier)}
-            <RequiresTier minTier={section.minTier} />
+            <RequiresTier minTier={section.minTier} small />
           {:else}
             <div class="flex flex-wrap gap-2">
               {#each sectionFormats as format (format.id)}
@@ -142,14 +143,32 @@
 
       <hr class="border-white/20" />
 
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center justify-between">
-          <SwitchField
-            label={$t('cloud_backup.exclude_bots')}
-            bind:checked={() => driveOptions?.excludeBots ?? false, (v) => updateSettings({ driveOptions: { excludeBots: v } })}
-            disabled={$savingSettings || disabled}
-            description={$t('cloud_backup.exclude_bots_desc')}
-          />
+      <div class="flex flex-col gap-4">
+        <SwitchField
+          label={$t('cloud_backup.exclude_bots')}
+          bind:checked={() => driveOptions?.excludeBots ?? false, (v) => updateSettings({ driveOptions: { excludeBots: v } })}
+          disabled={$savingSettings || disabled}
+          description={$t('cloud_backup.exclude_bots_desc')}
+        />
+        <div class="flex w-full flex-col gap-2">
+          <div class="flex flex-1 flex-col gap-1">
+            <span class="text-base font-medium leading-none text-neutral-200 peer-disabled:cursor-not-allowed sm:text-lg">
+              {$t('cloud_backup.include_transcription')}
+            </span>
+            <p class="text-sm text-neutral-400">
+              {$t('cloud_backup.include_transcription_desc')}
+            </p>
+          </div>
+          {#if rewardTier !== -1 && (!rewardTier || rewardTier < 30)}
+            <RequiresTier minTier={30} small />
+          {:else}
+            <SpreadSelect
+              options={[null, 'vtt', 'srt', 'txt']}
+              disabled={$savingSettings || disabled}
+              displayOptions={['No', 'WebVTT (.vtt)', `${$t('format_buttons.srt')} (.srt)`, `${$t('format_buttons.plain_text')} (.txt)`]}
+              bind:selected={() => driveOptions?.includeTranscription ?? null, (v) => updateSettings({ driveOptions: { includeTranscription: v } })}
+            />
+          {/if}
         </div>
       </div>
 

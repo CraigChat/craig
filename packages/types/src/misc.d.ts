@@ -1,3 +1,5 @@
+import { TranscriptionFormatTypes } from "./kitchen";
+
 type PlausibleInitOptions = {
   readonly hashMode?: boolean;
   readonly trackLocalhost?: boolean;
@@ -27,4 +29,5 @@ export type PlausibleTrackEvent = ((eventName: string, options?: PlausibleEventO
 
 export interface DriveOptions {
   excludeBots?: boolean;
+  includeTranscription?: TranscriptionFormatTypes | null;
 }

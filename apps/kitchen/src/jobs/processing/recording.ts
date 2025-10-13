@@ -25,6 +25,7 @@ import {
 import { procOpts } from '../../util/processOptions.js';
 import { getInfoText, getRecordingInfo } from '../../util/recording.js';
 import { Job } from '../job.js';
+import { backgroundTranscription } from './transcription.js';
 
 // TODO ogg/mkv container handling (??)
 
@@ -43,7 +44,7 @@ export async function processRecordingJob(job: Job) {
     const { info, users } = await getRecordingInfo(recFileBase, false);
     const streamTypes = await getStreamTypes({ recFileBase, cancelSignal });
     const notes = await getNotes({ recFileBase, cancelSignal });
-    const trackFiles: string[] = [];
+    const trackFiles: [number, string][] = [];
     const usedStreamTypes: StreamType[] = [];
     const pOpts = procOpts();
     const projectMode = job.options?.container === 'aupzip' || job.options?.container === 'sesxzip';
@@ -58,7 +59,7 @@ export async function processRecordingJob(job: Job) {
       let audioDir = tmpDir;
       if (job.options?.container === 'mix') {
         const audioWritePath = path.join(audioDir, `${fileName}.ogg`);
-        trackFiles.push(audioWritePath);
+        trackFiles.push([track, audioWritePath]);
         usedStreamTypes.push(streamTypes[i]);
         job.setState({
           type: job.state.type,
@@ -86,7 +87,7 @@ export async function processRecordingJob(job: Job) {
         });
         if (projectMode) audioDir = path.join(tmpDir, `${job.recordingId}_data`);
         const [audioWritePath, encodeCommand] = getEncodeOptions(audioDir, fileName, job.options?.format);
-        trackFiles.push(audioWritePath);
+        trackFiles.push([track, audioWritePath]);
         usedStreamTypes.push(streamTypes[i]);
         const success = await encodeTrack({
           recFileBase,
@@ -175,7 +176,7 @@ export async function processRecordingJob(job: Job) {
 
     switch (job.options?.container) {
       case 'mix': {
-        const tracks = zip(trackFiles, usedStreamTypes);
+        const tracks = zip(trackFiles.map(([, f]) => f), usedStreamTypes);
         job.setState({ type: 'encoding', progress: 0 });
         await encodeMix({
           recFileBase,
@@ -233,7 +234,7 @@ export async function processRecordingJob(job: Job) {
                   ]
                 : []),
               ...trackFiles.map(
-                (file) =>
+                ([, file]) =>
                   `\t<import filename="${path.basename(file)}" offset="0.00000000" mute="0" solo="0" height="150" minimized="0" gain="1.0" pan="0.0"/>`
               ),
               '</project>'
@@ -243,7 +244,7 @@ export async function processRecordingJob(job: Job) {
             break;
           }
           case 'sesxzip': {
-            const durations = await Promise.all(trackFiles.map((file) => getFileDuration({ cancelSignal, file })));
+            const durations = await Promise.all(trackFiles.map(([, file]) => getFileDuration({ cancelSignal, file })));
             const absoluteDuration = Number(durations.sort((a, b) => Number(b) - Number(a))[0]);
             const now = new Date().toISOString();
 
@@ -255,7 +256,7 @@ export async function processRecordingJob(job: Job) {
                   absoluteDuration * 48000
                 )}" sampleRate="48000">
                   <tracks>
-                    ${trackFiles.map((file, i) => {
+                    ${trackFiles.map(([, file], i) => {
                       const duration = Math.ceil(Number(durations[i]) * 48000);
                       return stripIndent`
                         <audioTrack automationLaneOpenState="false" id="${i + 10001}" index="${i + 1}" select="true" visible="true">
@@ -332,13 +333,22 @@ export async function processRecordingJob(job: Job) {
                 </session>
 
                 <files>
-                  ${trackFiles.map((file, i) => `<file id="${i}" relativePath="${job.recordingId}_data/${path.basename(file)}"/>`)}
+                  ${trackFiles.map(([, file], i) => `<file id="${i}" relativePath="${job.recordingId}_data/${path.basename(file)}"/>`)}
                 </files>
               </sesx>
             `;
 
             await fs.writeFile(path.join(tmpDir, `${job.recordingId}.sesx`), output);
             break;
+          }
+        }
+
+        if (job.options?.includeTranscription) {
+          try {
+            const transcription = await backgroundTranscription(job, trackFiles, users);
+            await fs.writeFile(path.join(tmpDir, `transcription.${job.options?.includeTranscription ?? 'vtt'}`), transcription);
+          } catch (e) {
+            logger.warn(`Job ${job.id} failed to include transcription, moving on...`, e);
           }
         }
 

@@ -42,6 +42,7 @@ export interface CreateJobOptions {
     ignoreTracks?: number[];
     dynaudnorm?: boolean;
     skipDynaudnorm?: number[];
+    includeTranscription?: TranscriptionFormatTypes;
 
     fg?: string;
     bg?: string;

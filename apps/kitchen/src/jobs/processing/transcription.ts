@@ -10,6 +10,7 @@ import logger from '../../util/logger.js';
 import { encodeTranscriptionTrack, getStreamTypes } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
 import { Job } from '../job.js';
+import { RecordingUser } from '@craig/types/recording';
 
 interface RunpodQueuedResponse {
   id: string;
@@ -183,15 +184,44 @@ export async function processTranscriptionJob(job: Job) {
     })
   );
 
+  const runpodResponse = await runRunpodRequest(job, writtenTracks.map(([, fileName]) => fileName));
+
+  await fs.writeFile(
+    job.outputFile,
+    makeTranscriptionFile(
+      (job.options?.format as TranscriptionFormatTypes) || 'vtt',
+      Array.isArray(runpodResponse.output) ? runpodResponse.output : [runpodResponse.output],
+      writtenTracks.map(([i]) => users[i].globalName || users[i].username)
+    )
+  );
+}
+
+async function runRunpodRequest(job: Job, fileNames: string[]) {
+  let lastError;
+  for (let i = 0; i < 5; i++) {
+    try {
+      const response = await _runRunpodRequest(job, fileNames);
+      return response;
+    } catch (e) {
+      if ((e as Error).message.includes('CUDA failed with error CUDA-capable device(s) is/are busy or unavailable')) {
+        logger.warn(`CUDA failed to start for job ${job.id} (${job.recordingId}), retrying [${i + 1}]...`);
+        lastError = e;
+      } else throw e;
+    }
+  }
+  throw lastError;
+}
+
+async function _runRunpodRequest(job: Job, fileNames: string[]) {
   const response = await fetch(`https://api.runpod.ai/v2/${RUNPOD_TRANSCRIPTION_ENDPOINT_ID}/run`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: RUNPOD_API_KEY
+      Authorization: RUNPOD_API_KEY!
     },
     body: JSON.stringify({
       input: {
-        audios: writtenTracks.map(([, fileName]) => `${DOWNLOAD_URL_PREFIX}${fileName}`),
+        audios: fileNames.map((fileName) => `${DOWNLOAD_URL_PREFIX}${fileName}`),
         model: 'turbo',
         transcription: 'none',
         word_timestamps: true,
@@ -213,10 +243,10 @@ export async function processTranscriptionJob(job: Job) {
     });
 
     await wait(3000);
-    if (cancelSignal.aborted) throw new Error('Job aborted');
+    if (job.abortController.signal.aborted) throw new Error('Job aborted');
 
     const response = await fetch(`https://api.runpod.ai/v2/${RUNPOD_TRANSCRIPTION_ENDPOINT_ID}/status/${runpodResponse.id}`, {
-      headers: { Authorization: RUNPOD_API_KEY }
+      headers: { Authorization: RUNPOD_API_KEY! }
     });
     if (!response.ok) throw new Error(`Runpod responded with a ${response.status}`);
     runpodResponse = await response.json();
@@ -225,12 +255,32 @@ export async function processTranscriptionJob(job: Job) {
   if (runpodResponse.status === 'FAILED') throw new Error(`Runpod transcription failed (${runpodResponse.id}): ${runpodResponse.error}`);
   if (runpodResponse.status === 'TIMED_OUT') throw new Error(`Runpod transcription timed out (${runpodResponse.id})`);
 
-  await fs.writeFile(
-    job.outputFile,
-    makeTranscriptionFile(
-      (job.options?.format as TranscriptionFormatTypes) || 'vtt',
-      Array.isArray(runpodResponse.output) ? runpodResponse.output : [runpodResponse.output],
-      writtenTracks.map(([i]) => users[i].globalName || users[i].username)
-    )
+  return runpodResponse;
+}
+
+export async function backgroundTranscription(job: Job, writtenTracks: [number, string][], users: RecordingUser[]) {
+  if (!RUNPOD_API_KEY || !RUNPOD_TRANSCRIPTION_ENDPOINT_ID || !DOWNLOAD_URL_PREFIX) throw new Error('Missing environment variables.');
+
+  const cancelSignal = job.abortController.signal;
+  const outputFileNames: [number, string][] = [];
+
+  // Copy files to download so runpod can get them
+  await Promise.all(
+    writtenTracks.map(([track, filePath]) => {
+      const fileName = path.basename(filePath);
+      const toPath = path.join(DOWNLOADS_DIRECTORY, `${nanoid(40)}-${fileName}`);
+      if (cancelSignal.aborted) throw new Error('Job aborted');
+      job.extraFiles.push(toPath);
+      outputFileNames.push([track, path.basename(toPath)]);
+      return fs.copyFile(filePath, toPath);
+    })
+  );
+
+  const runpodResponse = await runRunpodRequest(job, outputFileNames.map(([, fileName]) => fileName));
+
+  return makeTranscriptionFile(
+    job.options?.includeTranscription || 'vtt',
+    Array.isArray(runpodResponse.output) ? runpodResponse.output : [runpodResponse.output],
+    writtenTracks.map(([i]) => users[i - 1].globalName || users[i - 1].username)
   );
 }
