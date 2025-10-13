@@ -28,8 +28,16 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
     await prisma.patreon.delete({ where: { id: patron.id } });
     const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
     if (user) {
-      await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
-      console.info(new Date().toISOString(), `Re-evaluating rewards for user ${user.id}`);
+      if (body.data.attributes.patron_status === 'active_patron')
+        await prisma.entitlement.update({
+          where: { userId_source: { userId: user.id, source: 'patreon' } },
+          data: { expiresAt: new Date(body.data.attributes.next_charge_date) }
+        }).catch(() => {});
+      else
+        await prisma.entitlement.delete({
+          where: { userId_source: { userId: user.id, source: 'patreon' } }
+        }).catch(() => {});
+      console.info(new Date().toISOString(), `Re-evaluating rewards for user ${user.id} (${body.data.attributes.patron_status})`);
       await resolveUserEntitlement(user.id);
     }
   } else if (event === 'members:pledge:create' || event === 'members:pledge:update') {

@@ -47,6 +47,8 @@ export interface PatreonMember {
     last_charge_status: string;
     lifetime_support_cents: number;
     currently_entitled_amount_cents: number;
+    next_charge_date: string;
+    pledge_relationship_start: string;
     patron_status: 'active_patron' | 'declined_patron' | 'former_patron' | null;
   },
   id: string;
