@@ -40,7 +40,9 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
           for await (const chunk of stream) {
             if (request.signal.aborted || abortController.signal.aborted) {
               for (const s of openStreams) {
-                try { s.destroy(); } catch {}
+                try {
+                  s.destroy();
+                } catch {}
               }
               controller.close();
               return;
@@ -55,7 +57,9 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
         controller.close();
       } catch (err) {
         for (const s of openStreams)
-          try { s.destroy(); } catch  {}
+          try {
+            s.destroy();
+          } catch {}
         controller.error(err instanceof Error ? err : new Error(String(err)));
       }
     },

@@ -1,11 +1,11 @@
-import { open, readFile, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { open, readFile, stat } from 'node:fs/promises';
 
 import { prisma } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 
 import { BOX_CLIENT_ID, BOX_CLIENT_SECRET } from '../../util/config.js';
-import { getRecordingDescription, UploadError, wait } from '../../util/index.js';
+import { UploadError, wait } from '../../util/index.js';
 import logger from '../../util/logger.js';
 import { Job } from '../job.js';
 
@@ -30,7 +30,7 @@ function formatTimestamp(date: Date): string {
 
 interface BoxUploadSession {
   id: string;
-  type: 'upload_session',
+  type: 'upload_session';
   num_parts_processed: number;
   part_size: number;
   session_endpoints: {
@@ -40,14 +40,9 @@ interface BoxUploadSession {
     log_event: string;
     status: string;
     upload_part: string;
-  },
+  };
   session_expires_at: string;
   total_parts: number;
-}
-
-interface BoxPreflightResponse {
-  upload_token: string;
-  upload_url: string;
 }
 
 async function getRefreshedBoxAccessToken(accessToken: string, refreshToken: string, userId: string) {
@@ -79,13 +74,16 @@ async function getRefreshedBoxAccessToken(accessToken: string, refreshToken: str
 async function findCraigDirectory(accessToken: string, userId: string) {
   try {
     // Search for the folder
-    const searchResponse = await fetch(`https://api.box.com/2.0/search?${new URLSearchParams({
+    const searchResponse = await fetch(
+      `https://api.box.com/2.0/search?${new URLSearchParams({
         type: 'folder',
         query: 'Craig',
         limit: '1'
-      }).toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+      }).toString()}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      }
+    );
 
     if (searchResponse.status !== 200) {
       const data = await searchResponse.json().catch(() => null);
@@ -96,11 +94,14 @@ async function findCraigDirectory(accessToken: string, userId: string) {
     if (searchResults.entries.length > 0) return searchResults.entries[0].id;
 
     // Sometimes the index isnt updated yet, so just search the root folder
-    const folderResponse = await fetch(`https://api.box.com/2.0/folders/0/items?${new URLSearchParams({
+    const folderResponse = await fetch(
+      `https://api.box.com/2.0/folders/0/items?${new URLSearchParams({
         fields: 'id,type,name'
-      }).toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+      }).toString()}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      }
+    );
 
     if (folderResponse.status !== 200) {
       const data = await folderResponse.json().catch(() => null);
@@ -116,8 +117,8 @@ async function findCraigDirectory(accessToken: string, userId: string) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({
-       name: 'Craig',
-       parent: { id: '0' }
+        name: 'Craig',
+        parent: { id: '0' }
       })
     });
 
@@ -170,7 +171,7 @@ async function chunkUpload(job: Job, session: BoxUploadSession, accessToken: str
       headers: {
         'Content-Length': length.toString(),
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Digest': `sha=${partDigest}`
+        Digest: `sha=${partDigest}`
       },
       body: buffer,
       signal: job.abortController.signal
@@ -193,24 +194,21 @@ async function chunkUpload(job: Job, session: BoxUploadSession, accessToken: str
 
   let commitResponse;
   do {
-    commitResponse = await fetch(
-      session.session_endpoints.commit,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'Digest': `sha=${fullDigest}`
-        },
-        body: JSON.stringify({
-          parts,
-          attributes: {
-            content_created_at: formatTimestamp(new Date(info.startTime)),
-          }
-        }),
-        signal: job.abortController.signal
-      }
-    );
+    commitResponse = await fetch(session.session_endpoints.commit, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        Digest: `sha=${fullDigest}`
+      },
+      body: JSON.stringify({
+        parts,
+        attributes: {
+          content_created_at: formatTimestamp(new Date(info.startTime))
+        }
+      }),
+      signal: job.abortController.signal
+    });
 
     if (commitResponse.status === 202) {
       const retryAfter = parseInt(commitResponse.headers.get('retry-after') || '5');
@@ -221,6 +219,7 @@ async function chunkUpload(job: Job, session: BoxUploadSession, accessToken: str
       const data = await commitResponse.json().catch(() => null);
       throw new UploadError(`Box Error (${commitResponse.status}): ${data?.code || 'UnexpectedError'}`);
     }
+    // eslint-disable-next-line no-constant-condition
   } while (true);
 
   const data = await commitResponse.json();
@@ -243,13 +242,12 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
   if (!folderId) throw new UploadError('Your Box authentication was invalidated, please re-authenticate.');
   const fileSize = (await stat(job.outputFile)).size;
 
-  console.log(`uploading file ${fileName} - ${fileSize}`)
   if (fileSize < MIN_SIZE_FOR_CHUNKED_UPLOAD) {
     const buffer = await readFile(job.outputFile);
 
     const preflightResponse = await fetch('https://api.box.com/2.0/files/content', {
       method: 'OPTIONS',
-      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: `${fileName}.${job.getExtension()}`,
         size: fileSize,
@@ -268,16 +266,19 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
     const { upload_url } = await preflightResponse.json();
 
     const formData = new FormData();
-    formData.append('attributes', JSON.stringify({
-      name: `${fileName}.${job.getExtension()}`,
-      content_created_at: formatTimestamp(new Date(info.startTime)),
-      parent: { id: folderId }
-    }));
+    formData.append(
+      'attributes',
+      JSON.stringify({
+        name: `${fileName}.${job.getExtension()}`,
+        content_created_at: formatTimestamp(new Date(info.startTime)),
+        parent: { id: folderId }
+      })
+    );
     formData.append('file', new Blob([new Uint8Array(buffer)]));
 
     const uploadResponse = await fetch(upload_url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
       body: formData,
       signal: job.abortController.signal
     });
@@ -289,23 +290,20 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
       job.outputData.uploadFileURL = `https://app.box.com/file/${file.id}`;
     } else {
       const data = await uploadResponse.json().catch(() => null);
-      console.log({ data })
+      console.log({ data });
       throw new UploadError(`Box Error (${uploadResponse.status}): ${data?.code || 'UnexpectedError'}`);
     }
   } else {
-    const uploadSession = await fetch(
-      'https://upload.box.com/api/2.0/files/upload_sessions',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-        body: JSON.stringify({
-          file_name: `${fileName}.${job.getExtension()}`,
-          file_size: fileSize,
-          folder_id: folderId
-        }),
-        signal: job.abortController.signal
-      }
-    );
+    const uploadSession = await fetch('https://upload.box.com/api/2.0/files/upload_sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({
+        file_name: `${fileName}.${job.getExtension()}`,
+        file_size: fileSize,
+        folder_id: folderId
+      }),
+      signal: job.abortController.signal
+    });
 
     if (uploadSession.status === 409 || uploadSession.status === 403) {
       logger.error(

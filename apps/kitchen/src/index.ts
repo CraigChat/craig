@@ -2,6 +2,7 @@ import './util/env.js';
 
 import { prisma, type User } from '@craig/db';
 import { startMetricsServer } from '@craig/metrics';
+import type { DriveOptions } from '@craig/types';
 import type {
   ContainerType,
   CreateJobOptions,
@@ -10,12 +11,12 @@ import type {
   KitchenJobsResponse,
   KitchenStatsResponse
 } from '@craig/types/kitchen';
-import type { DriveOptions } from '@craig/types';
 import fastify from 'fastify';
 import path from 'path';
 import { writeHeapSnapshot } from 'v8';
 
 import JobManager from './jobs/manager.js';
+import { boxPreflight } from './jobs/upload/box.js';
 import { dropboxPreflight } from './jobs/upload/dropbox.js';
 import { googlePreflight } from './jobs/upload/google.js';
 import { onedrivePreflight } from './jobs/upload/onedrive.js';
@@ -24,7 +25,6 @@ import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
 import { getDuration, getNotes } from './util/process.js';
 import { getRecordingUsers } from './util/recording.js';
-import { boxPreflight } from './jobs/upload/box.js';
 
 const debug = process.env.NODE_ENV !== 'production';
 const app = fastify({
@@ -227,7 +227,8 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
       postTaskOptions.uploadFolderId = result.folderId;
       break;
     }
-    default: return send(204); // unhandled service
+    default:
+      return send(204); // unhandled service
   }
 
   const format: FormatType = (user.driveFormat as FormatType) || 'flac';
@@ -248,8 +249,7 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
       const users = await getRecordingUsers(recFileBase, false).catch(() => null);
       if (users) {
         const botTracks = users.filter((u) => u.bot).map((u) => u.track);
-        if (botTracks.length > 0 && botTracks.length < users.length)
-          jobOptions.ignoreTracks = botTracks;
+        if (botTracks.length > 0 && botTracks.length < users.length) jobOptions.ignoreTracks = botTracks;
         else if (botTracks.length === users.length)
           // all tracks are bots
           return send(204);

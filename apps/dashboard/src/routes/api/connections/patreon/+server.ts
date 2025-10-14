@@ -1,17 +1,14 @@
-import { checkAuth } from "$lib/server/discord";
-import { rateLimitRequest } from "$lib/server/redis";
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { prisma } from "@craig/db";
-import { resolveUserEntitlement } from "$lib/server/patreon";
-import { errorResponse } from "$lib/server/util";
-import { APIErrorCode } from "$lib/types";
+import { checkAuth } from '$lib/server/discord';
+import { rateLimitRequest } from '$lib/server/redis';
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { prisma } from '@craig/db';
+import { resolveUserEntitlement } from '$lib/server/patreon';
+import { errorResponse } from '$lib/server/util';
+import { APIErrorCode } from '$lib/types';
 
 export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'disconnect-patreon', limit: 5, window: 60 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'disconnect-patreon', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');

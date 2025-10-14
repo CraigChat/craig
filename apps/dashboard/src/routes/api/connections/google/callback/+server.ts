@@ -1,16 +1,13 @@
-import { checkAuth } from "$lib/server/discord";
-import { rateLimitRequest } from "$lib/server/redis";
-import { redirect } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { googleScopes } from "$lib/oauth";
-import { prisma } from "@craig/db";
+import { checkAuth } from '$lib/server/discord';
+import { rateLimitRequest } from '$lib/server/redis';
+import { redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { googleScopes } from '$lib/oauth';
+import { prisma } from '@craig/db';
 import { googleOAuth2Client } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'connect-google', limit: 5, window: 60 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-google', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -26,8 +23,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   try {
     const { tokens } = await googleOAuth2Client.getToken(code);
-    if (!('access_token' in tokens))
-      return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=google`);
+    if (!('access_token' in tokens)) return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=google`);
     if (tokens.scope!.split(' ').sort().join(' ') !== googleScopes.sort().join(' ')) return redirect(307, '/?error=__INVALID_SCOPE&from=google');
 
     await prisma.googleDriveUser.upsert({

@@ -13,8 +13,8 @@
     "build": "rimraf dist && tsup-node src/index.ts --format esm",
     "build-cook": "./scripts/build_cook.sh",
     "dev": "dotenv -e ../../.env -e .env -c -- tsx src/index",
-    "lint": "eslint .",
-    "format": "eslint . --fix"
+    "lint": "eslint src",
+    "format": "eslint src --fix"
   },
   "dependencies": {
     "@craig/metrics": "workspace:*",

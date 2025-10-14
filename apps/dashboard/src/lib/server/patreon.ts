@@ -1,5 +1,5 @@
-import { env } from "$env/dynamic/private";
-import { prisma } from "@craig/db";
+import { env } from '$env/dynamic/private';
+import { prisma } from '@craig/db';
 
 const tierMap: { [tier: string]: number } = JSON.parse(env.PATREON_TIER_MAP ?? '{}');
 export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
@@ -34,8 +34,8 @@ export interface PatreonUser {
       discord: {
         user_id: string;
       } | null;
-    }
-  }
+    };
+  };
 }
 
 export interface PatreonMember {
@@ -50,21 +50,21 @@ export interface PatreonMember {
     next_charge_date: string;
     pledge_relationship_start: string;
     patron_status: 'active_patron' | 'declined_patron' | 'former_patron' | null;
-  },
+  };
   id: string;
   relationships: {
     currently_entitled_tiers: {
       data: {
         id: string;
         type: 'tier';
-      }[]
-    },
+      }[];
+    };
     user?: {
       data: {
         id: string;
         type: 'user';
-      }
-    }
+      };
+    };
   };
   type: 'member';
 }

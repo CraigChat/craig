@@ -3,11 +3,7 @@ import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
 import jwt from 'jsonwebtoken';
 
-import {
-  DISCORD_CLIENT_SECRET,
-  DISCORD_REDIRECT_URI,
-  JWT_SECRET
-} from '$env/static/private';
+import { DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, JWT_SECRET } from '$env/static/private';
 import { PUBLIC_DISCORD_CLIENT_ID } from '$env/static/public';
 
 import { cacheData } from './redis';

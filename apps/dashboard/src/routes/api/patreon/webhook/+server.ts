@@ -1,9 +1,9 @@
-import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
 import { createHmac } from 'node:crypto';
-import { PATREON_WEBHOOK_SECRET } from "$env/static/private";
-import { determineRewardTier, resolveUserEntitlement, type PatreonWebhookBody } from "$lib/server/patreon";
-import { prisma } from "@craig/db";
+import { PATREON_WEBHOOK_SECRET } from '$env/static/private';
+import { determineRewardTier, resolveUserEntitlement, type PatreonWebhookBody } from '$lib/server/patreon';
+import { prisma } from '@craig/db';
 
 type PatreonEvent = `members:pledge:${'create' | 'update' | 'delete'}`;
 
@@ -29,14 +29,18 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
     const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
     if (user) {
       if (body.data.attributes.patron_status === 'active_patron')
-        await prisma.entitlement.update({
-          where: { userId_source: { userId: user.id, source: 'patreon' } },
-          data: { expiresAt: new Date(body.data.attributes.next_charge_date) }
-        }).catch(() => {});
+        await prisma.entitlement
+          .update({
+            where: { userId_source: { userId: user.id, source: 'patreon' } },
+            data: { expiresAt: new Date(body.data.attributes.next_charge_date) }
+          })
+          .catch(() => {});
       else
-        await prisma.entitlement.delete({
-          where: { userId_source: { userId: user.id, source: 'patreon' } }
-        }).catch(() => {});
+        await prisma.entitlement
+          .delete({
+            where: { userId_source: { userId: user.id, source: 'patreon' } }
+          })
+          .catch(() => {});
       console.info(new Date().toISOString(), `Re-evaluating rewards for user ${user.id} (${body.data.attributes.patron_status})`);
       await resolveUserEntitlement(user.id);
     }
@@ -73,7 +77,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
       if (user && user.id !== patron.discordId) {
         console.info(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
-        await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});;
+        await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
         await resolveUserEntitlement(user.id, null);
       }
     }

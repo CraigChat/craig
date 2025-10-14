@@ -7,10 +7,10 @@ import { pathExists } from '../util/index.js';
 import logger from '../util/logger.js';
 import { getRecordingInfo } from '../util/recording.js';
 import type { Job } from './job.js';
+import { boxUpload } from './upload/box.js';
 import { dropboxUpload } from './upload/dropbox.js';
 import { googleUpload } from './upload/google.js';
 import { onedriveUpload } from './upload/onedrive.js';
-import { boxUpload } from './upload/box.js';
 
 export const postTasks: { [name: string]: (job: Job) => Promise<void> } = {
   download: moveToDownloads,

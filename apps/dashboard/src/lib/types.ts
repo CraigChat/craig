@@ -1,4 +1,4 @@
-import type { getUserData } from "./server/data";
+import type { getUserData } from './server/data';
 
 export enum APIErrorCode {
   UNKNOWN_ERROR = 'unknown',
@@ -19,4 +19,4 @@ export interface APIErrorResponse {
   code: APIErrorCode;
 }
 
-export type ConnectionsData = Awaited<ReturnType<typeof getUserData>>['connections']
+export type ConnectionsData = Awaited<ReturnType<typeof getUserData>>['connections'];

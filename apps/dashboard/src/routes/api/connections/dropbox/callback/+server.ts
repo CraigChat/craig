@@ -1,19 +1,16 @@
 import { Dropbox } from 'dropbox';
-import { DROPBOX_CLIENT_SECRET } from "$env/static/private";
-import { PUBLIC_DROPBOX_CLIENT_ID } from "$env/static/public";
-import { checkAuth } from "$lib/server/discord";
-import { rateLimitRequest } from "$lib/server/redis";
-import { redirect } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { toRedirectUri } from "$lib/oauth";
-import { prisma } from "@craig/db";
+import { DROPBOX_CLIENT_SECRET } from '$env/static/private';
+import { PUBLIC_DROPBOX_CLIENT_ID } from '$env/static/public';
+import { checkAuth } from '$lib/server/discord';
+import { rateLimitRequest } from '$lib/server/redis';
+import { redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { toRedirectUri } from '$lib/oauth';
+import { prisma } from '@craig/db';
 import { dbxAuth, dropboxScopes } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'connect-dropbox', limit: 5, window: 60 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');

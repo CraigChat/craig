@@ -1,12 +1,12 @@
 import { Dropbox, DropboxAuth } from 'dropbox';
-import { DROPBOX_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET, PATREON_CLIENT_SECRET } from "$env/static/private";
-import { PUBLIC_DROPBOX_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_PATREON_CLIENT_ID } from "$env/static/public";
-import { checkAuth } from "$lib/server/discord";
-import { rateLimitRequest } from "$lib/server/redis";
-import { redirect } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { microsoftScopes, toRedirectUri } from "$lib/oauth";
-import { prisma } from "@craig/db";
+import { DROPBOX_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET, PATREON_CLIENT_SECRET } from '$env/static/private';
+import { PUBLIC_DROPBOX_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_PATREON_CLIENT_ID } from '$env/static/public';
+import { checkAuth } from '$lib/server/discord';
+import { rateLimitRequest } from '$lib/server/redis';
+import { redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { microsoftScopes, toRedirectUri } from '$lib/oauth';
+import { prisma } from '@craig/db';
 
 export interface MicrosoftOAuthResponse {
   token_type: string;
@@ -24,10 +24,7 @@ export interface MicrosoftUser {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'connect-dropbox', limit: 5, window: 60 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -56,24 +53,28 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       body
     }).then((res) => res.json());
 
-    if (!response.access_token || typeof response.access_token !== 'string')
-      return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
-    if (!response.refresh_token || typeof response.refresh_token !== 'string')
-      return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
+    if (!response.access_token || typeof response.access_token !== 'string') return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
+    if (!response.refresh_token || typeof response.refresh_token !== 'string') return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
     const scopesRecieved = response.scope.split(' ');
-    if (microsoftScopes.find((s) => s !== 'offline_access' && !scopesRecieved.includes(s))) return redirect(307, `/?error=__INVALID_SCOPE&from=microsoft`);
+    if (microsoftScopes.find((s) => s !== 'offline_access' && !scopesRecieved.includes(s)))
+      return redirect(307, `/?error=__INVALID_SCOPE&from=microsoft`);
 
     const me: MicrosoftUser = await fetch('https://graph.microsoft.com/v1.0/me', {
       headers: { Authorization: `${response.token_type} ${response.access_token}` }
     }).then((res) => res.json());
 
-    if (!('displayName' in me) || !('userPrincipalName' in me))
-      return redirect(307, `/?error=__NO_USER_DATA&from=microsoft`);
+    if (!('displayName' in me) || !('userPrincipalName' in me)) return redirect(307, `/?error=__NO_USER_DATA&from=microsoft`);
 
     await prisma.microsoftUser.upsert({
       where: { id: user.id },
       update: { token: response.access_token, refreshToken: response.refresh_token, name: me.displayName, username: me.userPrincipalName },
-      create: { id: user.id, token: response.access_token, refreshToken: response.refresh_token, name: me.displayName, username: me.userPrincipalName }
+      create: {
+        id: user.id,
+        token: response.access_token,
+        refreshToken: response.refresh_token,
+        name: me.displayName,
+        username: me.userPrincipalName
+      }
     });
   } catch (e) {
     console.error('Failed to get Microsoft info', e);

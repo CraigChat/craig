@@ -22,7 +22,7 @@ const Schema = z
         includeTranscription: z.literal([null, 'vtt', 'srt', 'txt']).optional()
       })
       .optional(),
-    webapp: z.boolean().optional(),
+    webapp: z.boolean().optional()
   })
   .superRefine((data, ctx) => {
     if (data.driveFormat !== undefined && data.driveContainer === undefined)
@@ -40,10 +40,7 @@ const Schema = z
   });
 
 export const POST: RequestHandler = async ({ cookies, getClientAddress, request }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'user-settings', limit: 20, window: 10 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'user-settings', limit: 20, window: 10 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -78,7 +75,6 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
 
   if (parsed.data.driveOptions?.includeTranscription && !(user && (user.rewardTier >= 30 || user.rewardTier === -1)))
     return errorResponse(APIErrorCode.NEED_HIGHER_TIER, { status: 400 });
-
 
   const driveOptions = { ...(user?.driveOptions ?? {}), ...(parsed.data.driveOptions ?? {}) };
   await prisma.user.upsert({

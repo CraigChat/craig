@@ -42,4 +42,3 @@ export function convertToTimeMark(seconds: number, includeHours?: boolean): stri
 
   return `${hours === 0 && !includeHours ? '' : `${formattedHours}:`}${formattedMinutes}:${formattedSeconds}`;
 }
-

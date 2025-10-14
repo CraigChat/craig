@@ -1,9 +1,9 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
-import type { Recording } from '@craig/types';
+import type { Recording, PlausibleTrackEvent } from '@craig/types';
 
 import type { MinimalRecordingInfo } from '$lib/types';
-import type { PlausibleTrackEvent } from '@craig/types';
+
 declare global {
   namespace App {
     // interface Error {}

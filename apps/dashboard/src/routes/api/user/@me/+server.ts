@@ -11,10 +11,7 @@ import { APIErrorCode } from '$lib/types';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, isDataRequest }) => {
   if (!isDataRequest) {
-    const rlResponse = await rateLimitRequest(
-      { cookies, getClientAddress },
-      { prefix: 'me', limit: 30, window: 60 }
-    );
+    const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'me', limit: 30, window: 60 });
     if (rlResponse) return rlResponse;
   }
 

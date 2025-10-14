@@ -17,10 +17,7 @@ const USER_URL = 'https://discord.com/api/users/@me';
 const SCOPES = ['identify', 'guilds', 'guilds.members.read'];
 
 export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'login', limit: 10, window: 60 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'login', limit: 10, window: 60 });
   if (rlResponse) return rlResponse;
 
   const error = url.searchParams.get('error');
@@ -38,8 +35,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     const state = randomBytes(32).toString('hex');
     const nextParam = url.searchParams.get('next');
     let validatedNext: string | null = null;
-    if (nextParam && typeof nextParam === 'string' && nextParam.startsWith('/'))
-      validatedNext = nextParam;
+    if (nextParam && typeof nextParam === 'string' && nextParam.startsWith('/')) validatedNext = nextParam;
 
     await redis.set(`oauth_state:${state}`, JSON.stringify({ next: validatedNext }), 'EX', 300);
 
@@ -47,14 +43,16 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
       client_id: PUBLIC_DISCORD_CLIENT_ID,
       redirect_uri: DISCORD_REDIRECT_URI,
       response_type: 'code',
-      ...(nextParam === 'add_bot' ? {
-        permissions: INVITE_PERMISSIONS_BITFIELD,
-        scope: [...SCOPES, 'bot', 'applications.commands'].join(' '),
-        integration_type: '0'
-      } : {
-        scope: SCOPES.join(' '),
-        prompt: 'none'
-      }),
+      ...(nextParam === 'add_bot'
+        ? {
+            permissions: INVITE_PERMISSIONS_BITFIELD,
+            scope: [...SCOPES, 'bot', 'applications.commands'].join(' '),
+            integration_type: '0'
+          }
+        : {
+            scope: SCOPES.join(' '),
+            prompt: 'none'
+          }),
       state
     });
     return new Response(null, {
@@ -76,8 +74,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   try {
     const parsed = JSON.parse(stored);
     // const guildId = url.searchParams.get('guild_id');
-    if (parsed?.next && typeof parsed.next === 'string' && parsed.next.startsWith('/'))
-      redirectTo = parsed.next;
+    if (parsed?.next && typeof parsed.next === 'string' && parsed.next.startsWith('/')) redirectTo = parsed.next;
     // else if (guildId) redirectTo = `/servers/${guildId}/onboarding`;
   } catch {}
 
@@ -96,8 +93,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   if (!tokenRes.ok) return json({ error: 'Failed to get token' });
   const tokenData = await tokenRes.json();
 
-  if (tokenData.scope.split(' ').toSorted().join(' ') !== SCOPES.toSorted().join(' '))
-    return json({ error: 'Bad scope' }, { status: 400 });
+  if (tokenData.scope.split(' ').toSorted().join(' ') !== SCOPES.toSorted().join(' ')) return json({ error: 'Bad scope' }, { status: 400 });
 
   const userRes = await fetch(USER_URL, {
     headers: { Authorization: `Bearer ${tokenData.access_token}` }

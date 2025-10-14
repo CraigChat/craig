@@ -1,4 +1,10 @@
-import { PUBLIC_BASE_URL, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_PATREON_CLIENT_ID, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_BOX_CLIENT_ID } from "$env/static/public";
+import {
+  PUBLIC_BASE_URL,
+  PUBLIC_MICROSOFT_CLIENT_ID,
+  PUBLIC_PATREON_CLIENT_ID,
+  PUBLIC_GOOGLE_CLIENT_ID,
+  PUBLIC_BOX_CLIENT_ID
+} from '$env/static/public';
 
 export const toRedirectUri = (service: string) => `${PUBLIC_BASE_URL}/api/connections/${service}/callback`;
 

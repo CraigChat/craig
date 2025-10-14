@@ -10,6 +10,7 @@ import he from 'he';
 import zip from 'just-zip-it';
 
 import { fileNameFromUser, FormatToCommand, getEncodeOptions, runParallelFunction } from '../../util/index.js';
+import logger from '../../util/logger.js';
 import {
   copyFFmpegLicense,
   DEF_TIMEOUT,
@@ -176,7 +177,10 @@ export async function processRecordingJob(job: Job) {
 
     switch (job.options?.container) {
       case 'mix': {
-        const tracks = zip(trackFiles.map(([, f]) => f), usedStreamTypes);
+        const tracks = zip(
+          trackFiles.map(([, f]) => f),
+          usedStreamTypes
+        );
         job.setState({ type: 'encoding', progress: 0 });
         await encodeMix({
           recFileBase,

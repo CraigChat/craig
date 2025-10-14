@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { TranscriptionFormatTypes } from '@craig/types/kitchen';
+import { RecordingUser } from '@craig/types/recording';
 import { nanoid } from 'nanoid';
 
 import { DOWNLOAD_URL_PREFIX, DOWNLOADS_DIRECTORY, RUNPOD_API_KEY, RUNPOD_TRANSCRIPTION_ENDPOINT_ID } from '../../util/config.js';
@@ -10,7 +11,6 @@ import logger from '../../util/logger.js';
 import { encodeTranscriptionTrack, getStreamTypes } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
 import { Job } from '../job.js';
-import { RecordingUser } from '@craig/types/recording';
 
 interface RunpodQueuedResponse {
   id: string;
@@ -184,7 +184,10 @@ export async function processTranscriptionJob(job: Job) {
     })
   );
 
-  const runpodResponse = await runRunpodRequest(job, writtenTracks.map(([, fileName]) => fileName));
+  const runpodResponse = await runRunpodRequest(
+    job,
+    writtenTracks.map(([, fileName]) => fileName)
+  );
 
   await fs.writeFile(
     job.outputFile,
@@ -276,7 +279,10 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
     })
   );
 
-  const runpodResponse = await runRunpodRequest(job, outputFileNames.map(([, fileName]) => fileName));
+  const runpodResponse = await runRunpodRequest(
+    job,
+    outputFileNames.map(([, fileName]) => fileName)
+  );
 
   return makeTranscriptionFile(
     job.options?.includeTranscription || 'vtt',

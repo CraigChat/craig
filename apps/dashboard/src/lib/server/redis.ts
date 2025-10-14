@@ -43,11 +43,7 @@ export type RateLimitResult = {
   reset: number;
 };
 
-export async function rateLimit(
-  key: string,
-  limit: number,
-  ttlSeconds: number
-): Promise<RateLimitResult> {
+export async function rateLimit(key: string, limit: number, ttlSeconds: number): Promise<RateLimitResult> {
   try {
     const current = await redis.incr(key);
     if (current === 1) await redis.expire(key, ttlSeconds);

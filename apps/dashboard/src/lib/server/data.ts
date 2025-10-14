@@ -1,5 +1,5 @@
-import { prisma, type User } from "@craig/db";
-import type { DriveOptions } from "@craig/types";
+import { prisma, type User } from '@craig/db';
+import type { DriveOptions } from '@craig/types';
 
 export async function getUserData(userId: string) {
   const [userData, entitlements, patreon, google, microsoft, dropbox, box] = await Promise.all([
@@ -43,16 +43,18 @@ export async function getUserData(userId: string) {
     },
     entitlements,
     connections: {
-      patreon: userData?.patronId ? {
-        id: userData.patronId,
-        name: patreon?.name
-      } : null,
+      patreon: userData?.patronId
+        ? {
+            id: userData.patronId,
+            name: patreon?.name
+          }
+        : null,
       google: google ? { connected: true, name: null } : null,
       onedrive: microsoft ? { connected: true, name: microsoft.name } : null,
       dropbox: dropbox ? { connected: true, name: dropbox.name } : null,
       box: box ? { connected: true, name: box.name } : null
     }
-  }
+  };
 }
 
 export async function setNextAvailableService(user: User, exclude: string) {

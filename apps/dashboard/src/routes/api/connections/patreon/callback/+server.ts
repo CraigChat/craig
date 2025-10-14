@@ -1,18 +1,15 @@
-import { PATREON_CLIENT_SECRET } from "$env/static/private";
-import { PUBLIC_PATREON_CLIENT_ID } from "$env/static/public";
-import { checkAuth } from "$lib/server/discord";
-import { rateLimitRequest } from "$lib/server/redis";
-import { redirect } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { PATREON_REDIRECT_URI } from "$lib/oauth";
-import { prisma } from "@craig/db";
-import { determineRewardTier, resolveUserEntitlement, type PatreonIdentifyResponse } from "$lib/server/patreon";
+import { PATREON_CLIENT_SECRET } from '$env/static/private';
+import { PUBLIC_PATREON_CLIENT_ID } from '$env/static/public';
+import { checkAuth } from '$lib/server/discord';
+import { rateLimitRequest } from '$lib/server/redis';
+import { redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { PATREON_REDIRECT_URI } from '$lib/oauth';
+import { prisma } from '@craig/db';
+import { determineRewardTier, resolveUserEntitlement, type PatreonIdentifyResponse } from '$lib/server/patreon';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'connect-patreon', limit: 5, window: 60 }
-  );
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-patreon', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -39,13 +36,15 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     body
   }).then((res) => res.json());
 
-  if (!access_token || typeof access_token !== 'string')
-    return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
+  if (!access_token || typeof access_token !== 'string') return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
 
   // Fetch Patreon user
-  const me: PatreonIdentifyResponse = await fetch('https://www.patreon.com/api/oauth2/v2/identity?fields[user]=social_connections,full_name,email&include=memberships', {
-    headers: { Authorization: `${token_type} ${access_token}` }
-  }).then((res) => res.json());
+  const me: PatreonIdentifyResponse = await fetch(
+    'https://www.patreon.com/api/oauth2/v2/identity?fields[user]=social_connections,full_name,email&include=memberships',
+    {
+      headers: { Authorization: `${token_type} ${access_token}` }
+    }
+  ).then((res) => res.json());
   if (!('data' in me)) return redirect(307, '/?error=__NO_USER_DATA&from=patreon');
 
   const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });

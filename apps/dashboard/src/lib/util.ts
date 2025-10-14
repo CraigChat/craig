@@ -28,30 +28,24 @@ export const CDN_URL = 'https://cdn.discordapp.com';
 export const AVATAR_PLACEHOLDER = `${CDN_URL}/embed/avatars/0.png`;
 
 export const CDNEndpoints = {
-  BANNER: (id: string, hash: string) =>
-    `${CDN_URL}/banners/${id}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}`,
+  BANNER: (id: string, hash: string) => `${CDN_URL}/banners/${id}/${hash}.${hash.startsWith('a_') ? 'gif' : 'png'}`,
   CUSTOM_EMOJI: (emojiID: string) => `${CDN_URL}/emojis/${emojiID}.png`,
   DEFAULT_AVATAR: (n: number) => `${CDN_URL}/embed/avatars/${n}.png`,
   GUILD_AVATAR: (guildID: string, userID: string, hash: string, animate = true) =>
     `${CDN_URL}/guilds/${guildID}/users/${userID}/avatars/${hash}.${hash.startsWith('a_') && animate ? 'gif' : 'png'}`,
-  ICON: (guildID: string, hash: string, animate = true) =>
-    `${CDN_URL}/icons/${guildID}/${hash}.${hash.startsWith('a_') && animate ? 'gif' : 'png'}`,
-  GUILD_TAG_BADGE: (guildID: string, badgeHash: string) =>
-    `${CDN_URL}/guild-tag-badges/${guildID}/${badgeHash}.png`,
-  ROLE_ICON: (roleID: string, roleIcon: string) =>
-    `${CDN_URL}/role-icons/${roleID}/${roleIcon}.png`,
+  ICON: (guildID: string, hash: string, animate = true) => `${CDN_URL}/icons/${guildID}/${hash}.${hash.startsWith('a_') && animate ? 'gif' : 'png'}`,
+  GUILD_TAG_BADGE: (guildID: string, badgeHash: string) => `${CDN_URL}/guild-tag-badges/${guildID}/${badgeHash}.png`,
+  ROLE_ICON: (roleID: string, roleIcon: string) => `${CDN_URL}/role-icons/${roleID}/${roleIcon}.png`,
   SOUNDBOARD_SOUNDS: (soundID: string) => `${CDN_URL}/soundboard-sounds/${soundID}`,
   AVATAR: (userID: string, hash: string, animate = true) =>
     `${CDN_URL}/avatars/${userID}/${hash}.${hash.startsWith('a_') && animate ? 'gif' : 'png'}`,
-  AVATAR_DECORATION: (userDecoration: string) =>
-    `${CDN_URL}/avatar-decoration-presets/${userDecoration}.png`,
-  NAMEPLATE: (asset: string, suffix = 'img.png') =>
-    `${CDN_URL}/assets/collectibles/${asset}${suffix}`,
+  AVATAR_DECORATION: (userDecoration: string) => `${CDN_URL}/avatar-decoration-presets/${userDecoration}.png`,
+  NAMEPLATE: (asset: string, suffix = 'img.png') => `${CDN_URL}/assets/collectibles/${asset}${suffix}`,
   CLAN_BADGE: (guildId: string, badge: string) => `${CDN_URL}/clan-badges/${guildId}/${badge}.png`
 };
 
 export function getAvatar(user: MinimalDiscordUser) {
-  if (user.avatar && (user.avatar.startsWith(CDN_URL))) return user.avatar;
+  if (user.avatar && user.avatar.startsWith(CDN_URL)) return user.avatar;
   return `${CDN_URL}/avatars/${user.id}/${user.avatar}.png`;
 }
 

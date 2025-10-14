@@ -18,7 +18,7 @@ declare global {
       };
       data?: {
         rewardTier?: number;
-      }
+      };
     }
     // interface Platform {}
   }

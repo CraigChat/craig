@@ -1,4 +1,3 @@
-
 import { toast } from 'svelte-sonner';
 
 import { invalidateAll } from '$app/navigation';

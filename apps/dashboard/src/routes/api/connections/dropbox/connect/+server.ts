@@ -1,15 +1,12 @@
-import { checkAuth } from "$lib/server/discord";
-import { rateLimitRequest } from "$lib/server/redis";
-import { redirect } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
-import { prisma } from "@craig/db";
+import { checkAuth } from '$lib/server/discord';
+import { rateLimitRequest } from '$lib/server/redis';
+import { redirect } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { prisma } from '@craig/db';
 import { dbxAuth, dropboxScopes, toRedirectUri } from '$lib/server/oauth';
 
-export const GET: RequestHandler = async ({ cookies, getClientAddress, }) => {
-  const rlResponse = await rateLimitRequest(
-    { cookies, getClientAddress },
-    { prefix: 'connect-dropbox', limit: 20, window: 60 }
-  );
+export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -18,5 +15,5 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, }) => {
   const user = await prisma.user.findUnique({ where: { id: auth.id } });
   if (!user || user.rewardTier === 0) return redirect(307, '/');
 
-  return redirect(307, await dbxAuth.getAuthenticationUrl(toRedirectUri('dropbox'), '', 'code', 'offline', dropboxScopes, 'none', false) as string);
+  return redirect(307, (await dbxAuth.getAuthenticationUrl(toRedirectUri('dropbox'), '', 'code', 'offline', dropboxScopes, 'none', false)) as string);
 };
