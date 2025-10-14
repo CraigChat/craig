@@ -91,7 +91,7 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col p-2 sm:px-6">
   {#if user.banner}
     <img
-      src={CDNEndpoints.BANNER(user.id, user.banner)}
+      src="{CDNEndpoints.BANNER(user.id, user.banner)}?size=1024"
       alt="Banner"
       class="z-[1] h-24 rounded-lg object-cover object-center"
       style={user.banner_color ? `background-color: ${user.banner_color}` : undefined}
