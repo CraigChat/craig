@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream, WriteStream } from 'node:fs';
 import { readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { RecordingNote, StreamType } from '@craig/types/recording';
+import { RecordingInfo, RecordingNote, RecordingUser, StreamType } from '@craig/types/recording';
 import { execaCommand } from 'execa';
 
 import { Job } from '../jobs/job.js';
@@ -429,9 +429,31 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
 
 interface RecordingWriteOptions extends CommonProcessOptions {
   writeStream: WriteStream;
+  id: string;
+  info: RecordingInfo;
+  users: RecordingUser[];
 }
 
-export async function recordingWrite({ recFileBase, cancelSignal, writeStream }: RecordingWriteOptions) {
+export async function recordingWrite({ recFileBase, cancelSignal, writeStream, id, info, users }: RecordingWriteOptions) {
+  // Transform the recording info to append before anything
+  const writtenInfo = {
+    format: info.format,
+    id,
+    clientId: info.clientId,
+    guild: info.guild,
+    guildExtra: info.guildExtra,
+    channel: info.channel,
+    channelExtra: info.channelExtra,
+    requester: info.requester,
+    requesterExtra: info.requesterExtra,
+    requesterId: info.requesterId,
+    startTime: info.startTime,
+    expiresAfter: info.expiresAfter,
+    autorecorded: info.autorecorded,
+    tracks: users.reduce((p, u) => ({ ...p, [u.track]: { id: u.id, username: u.username, discriminator: u.discriminator, globalName: u.globalName, bot: u.bot, unknown: u.unknown } }), {} as Record<string, any>)
+  };
+  writeStream.write(`${JSON.stringify(writtenInfo)}\n`);
+
   const recProcess = streamRecording({ recFileBase, cancelSignal });
   recProcess.stdout!.pipe(writeStream);
   await recProcess;

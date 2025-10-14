@@ -201,7 +201,7 @@ export async function processRecordingJob(job: Job) {
 
         job.setState({ type: 'writing', file: 'raw.dat' });
         const rawDatStream = addWriteStream(path.join(tmpDir, 'raw.dat'));
-        await recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream });
+        await recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream, id, info, users });
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
@@ -362,7 +362,7 @@ export async function processRecordingJob(job: Job) {
 
         job.setState({ type: 'writing', file: 'raw.dat' });
         const rawDatStream = addWriteStream(path.join(tmpDir, 'raw.dat'));
-        await recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream });
+        await recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream, id, info, users });
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
