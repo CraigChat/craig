@@ -30,5 +30,10 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
 
+    - name: Copy .env files
+      run: |
+        cp ./apps/ferret/.env.example ./apps/ferret/.env
+        cp ./apps/dashboard/.env.example ./apps/dashboard/.env
+
     - name: Build all apps
       run: pnpm build
