@@ -6,7 +6,7 @@
   "tabWidth": 2,
   "useTabs": false,
   "trailingComma": "none",
-  "svelteBracketNewLine": true,
+  "bracketSameLine": false,
   "svelteAllowShorthand": true,
   "svelteIndentScriptAndStyle": true,
 	"overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }],
