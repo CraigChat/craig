@@ -62,6 +62,7 @@
     "tailwindcss": "^3",
     "tslib": "^2.8.1",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vite-plugin-devtools-json": "^1.0.0"
   }
 }
