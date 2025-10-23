@@ -450,7 +450,13 @@ export async function recordingWrite({ recFileBase, cancelSignal, writeStream, i
     startTime: info.startTime,
     expiresAfter: info.expiresAfter,
     autorecorded: info.autorecorded,
-    tracks: users.reduce((p, u) => ({ ...p, [u.track]: { id: u.id, username: u.username, discriminator: u.discriminator, globalName: u.globalName, bot: u.bot, unknown: u.unknown } }), {} as Record<string, any>)
+    tracks: users.reduce(
+      (p, u) => ({
+        ...p,
+        [u.track]: { id: u.id, username: u.username, discriminator: u.discriminator, globalName: u.globalName, bot: u.bot, unknown: u.unknown }
+      }),
+      {} as Record<string, any>
+    )
   };
   writeStream.write(`${JSON.stringify(writtenInfo)}\n`);
 
