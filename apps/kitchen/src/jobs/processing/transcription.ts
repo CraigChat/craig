@@ -111,10 +111,12 @@ function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', segments: Correcte
     }
 
     if (format === 'vtt')
-      text += `<v ${seg.speaker.replace(/>/g, '_')}>${seg.words.map((w) => {
-        const leadingSpace = w.word[0] === ' ';
-        return `${leadingSpace ? ' ' : ''}<${formatTime(w.start)}><c>${w.word.slice(leadingSpace ? 1 : 0)}</c>`;
-      }).join('')}</v>\n\n`;
+      text += `<v ${seg.speaker.replace(/>/g, '_')}>${seg.words
+        .map((w) => {
+          const leadingSpace = w.word[0] === ' ';
+          return `${leadingSpace ? ' ' : ''}<${formatTime(w.start)}><c>${w.word.slice(leadingSpace ? 1 : 0)}</c>`;
+        })
+        .join('')}</v>\n\n`;
     else text += `${seg.speaker}: ${seg.text.trim()}\n\n`;
   });
 

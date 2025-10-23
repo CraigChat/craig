@@ -1,6 +1,6 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
-import type { Recording, PlausibleTrackEvent } from '@craig/types';
+import type { PlausibleTrackEvent, Recording } from '@craig/types';
 
 import type { MinimalRecordingInfo } from '$lib/types';
 
