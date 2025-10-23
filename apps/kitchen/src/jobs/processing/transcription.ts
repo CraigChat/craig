@@ -38,7 +38,7 @@ interface RunpodCompleteResponse {
   id: string;
   status: 'COMPLETED';
   workerId: string;
-  output: TranscriptionResult | TranscriptionResult[];
+  output: TranscriptionCorrectorResult;
 }
 interface RunpodTimedOutResponse {
   id: string;
@@ -65,32 +65,29 @@ interface TranscriptionResult {
   translation: null;
 }
 
+interface CorrectedSegment {
+  track: number;
+  start: number;
+  end: number;
+  text: string;
+  words: {
+    track: number;
+    word: string;
+    start: number;
+    end: number;
+  }[];
+}
+
+interface TranscriptionCorrectorResult {
+  corrected_segments: CorrectedSegment[];
+  change_count: number;
+  results: TranscriptionResult[];
+}
+
 type RunpodResponse = RunpodQueuedResponse | RunpodProcessingResponse | RunpodErrorResponse | RunpodCompleteResponse | RunpodTimedOutResponse;
 
-function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', transcriptions: TranscriptionResult[], names: string[]): string {
-  const allSegments: {
-    end: number;
-    id: number;
-    seek: number;
-    start: number;
-    text: string;
-    words: {
-      end: number;
-      start: number;
-      word: string;
-    }[];
-    speaker: string;
-  }[] = [];
-
-  transcriptions.forEach((track: any, i: number) => {
-    const speaker = names[i] || `User ${i + 1}`;
-    track.segments.forEach((seg: any) => {
-      allSegments.push({
-        ...seg,
-        speaker
-      });
-    });
-  });
+function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', segments: CorrectedSegment[], names: string[]): string {
+  const allSegments = segments.map((s) => ({ ...s, speaker: names[s.track] || `User ${s.track + 1}` }));
 
   // Sort by start time
   allSegments.sort((a, b) => a.start - b.start);
@@ -114,7 +111,10 @@ function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', transcriptions: Tr
     }
 
     if (format === 'vtt')
-      text += `<v ${seg.speaker.replace(/>/g, '_')}>${seg.words.map((w) => `<${formatTime(w.start)}><c>${w.word.trim()}</c>`).join(' ')}</v>\n\n`;
+      text += `<v ${seg.speaker.replace(/>/g, '_')}>${seg.words.map((w) => {
+        const leadingSpace = w.word[0] === ' ';
+        return `${leadingSpace ? ' ' : ''}<${formatTime(w.start)}><c>${w.word.slice(leadingSpace ? 1 : 0)}</c>`;
+      }).join('')}</v>\n\n`;
     else text += `${seg.speaker}: ${seg.text.trim()}\n\n`;
   });
 
@@ -193,7 +193,7 @@ export async function processTranscriptionJob(job: Job) {
     job.outputFile,
     makeTranscriptionFile(
       (job.options?.format as TranscriptionFormatTypes) || 'vtt',
-      Array.isArray(runpodResponse.output) ? runpodResponse.output : [runpodResponse.output],
+      runpodResponse.output.corrected_segments,
       writtenTracks.map(([i]) => users[i].globalName || users[i].username)
     )
   );
@@ -228,7 +228,8 @@ async function _runRunpodRequest(job: Job, fileNames: string[]) {
         model: 'turbo',
         transcription: 'none',
         word_timestamps: true,
-        enable_vad: true
+        enable_vad: true,
+        transcription_corrector: true
       }
     })
   });
@@ -286,7 +287,7 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
 
   return makeTranscriptionFile(
     job.options?.includeTranscription || 'vtt',
-    Array.isArray(runpodResponse.output) ? runpodResponse.output : [runpodResponse.output],
+    runpodResponse.output.corrected_segments,
     writtenTracks.map(([i]) => users[i - 1].globalName || users[i - 1].username)
   );
 }
