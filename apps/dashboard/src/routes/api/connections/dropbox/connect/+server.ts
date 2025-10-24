@@ -1,12 +1,16 @@
 import { checkAuth } from '$lib/server/discord';
 import { rateLimitRequest } from '$lib/server/redis';
 import { redirect } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
+import { env as envPub } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 import { prisma } from '@craig/db';
 import { dbxAuth, dropboxScopes, toRedirectUri } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
-  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 20, window: 60 });
+  if (!envPub.PUBLIC_DROPBOX_CLIENT_ID || env.DROPBOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=dropbox');
+
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox-url', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');

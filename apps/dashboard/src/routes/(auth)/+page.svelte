@@ -36,7 +36,7 @@
   const errorQuery = $derived(page.url.searchParams.get('error'));
   const fromQuery = $derived(page.url.searchParams.get('from'));
 
-  const services: any = {
+  const services: Record<string, string> = {
     google: 'Google',
     dropbox: 'Dropbox',
     microsoft: 'Microsoft',
@@ -167,58 +167,58 @@
       {/if}
       <span class="sm:text-lg">{$t(`supporter_tiers.${tier}`, { default: `Unknown Tier (${tier})` })}</span>
     </div>
-    {#if env.PUBLIC_PATREON_URL}
-      {#if tier === 0}
-        <a
-          class="flex items-center gap-1 font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
-          href="https://patreon.com/{env.PUBLIC_PATREON_URL}"
-          target="_blank"
-        >
-          <Icon icon={starIcon} class="size-5 text-teal-500" />
-          <span>{$t('supporter_status.cta')}</span>
-        </a>
-      {:else if bestEntitlement?.source === 'patreon'}
-        <a
-          class="font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
-          href="https://www.patreon.com/settings/memberships/{env.PUBLIC_PATREON_URL}"
-          target="_blank"
-        >
-          {$t('supporter_status.manage')}
-        </a>
-      {:else if bestEntitlement?.source === 'developer'}
-        <span class="text-neutral-400">{$t('supporter_status.dev_tier')}</span>
-      {/if}
-    {/if}
-  </div>
-
-  <div class="flex flex-col items-center justify-between gap-2 rounded-lg border-2 border-neutral-600 bg-black/25 p-4 text-white sm:flex-row">
-    <div class="flex items-center gap-2">
-      <Icon icon={patreonIcon} class="size-6 sm:size-8" />
-      <div class="flex flex-col items-start text-left">
-        <span class="text-lg">Patreon</span>
-        {#if patreon}
-          <a
-            class="-mt-1 text-xs font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
-            href="https://patreon.com/user/{patreon.id}"
-            target="_blank"
-          >
-            {patreon.name ?? $t('common.profile')}
-          </a>
-        {/if}
-      </div>
-    </div>
-
-    {#if patreon}
-      <DisconnectPatreonButton />
-    {:else}
+    {#if tier === 0 && env.PUBLIC_PATREON_URL}
       <a
-        class="cursor-pointer rounded-md bg-teal-500/25 px-3 py-1 font-medium text-teal-500 transition hover:bg-teal-500/50 hover:text-white active:scale-[.98]"
-        href={PATREON_OAUTH_URL}
+        class="flex items-center gap-1 font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
+        href="https://patreon.com/{env.PUBLIC_PATREON_URL}"
+        target="_blank"
       >
-        {$t('common.connect')}
+        <Icon icon={starIcon} class="size-5 text-teal-500" />
+        <span>{$t('supporter_status.cta')}</span>
       </a>
+    {:else if bestEntitlement?.source === 'patreon' && env.PUBLIC_PATREON_URL}
+      <a
+        class="font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
+        href="https://www.patreon.com/settings/memberships/{env.PUBLIC_PATREON_URL}"
+        target="_blank"
+      >
+        {$t('supporter_status.manage')}
+      </a>
+    {:else if bestEntitlement?.source === 'developer'}
+      <span class="text-neutral-400">{$t('supporter_status.dev_tier')}</span>
     {/if}
   </div>
+
+  {#if env.PUBLIC_PATREON_CLIENT_ID}
+    <div class="flex flex-col items-center justify-between gap-2 rounded-lg border-2 border-neutral-600 bg-black/25 p-4 text-white sm:flex-row">
+      <div class="flex items-center gap-2">
+        <Icon icon={patreonIcon} class="size-6 sm:size-8" />
+        <div class="flex flex-col items-start text-left">
+          <span class="text-lg">Patreon</span>
+          {#if patreon}
+            <a
+              class="-mt-1 text-xs font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
+              href="https://patreon.com/user/{patreon.id}"
+              target="_blank"
+            >
+              {patreon.name ?? $t('common.profile')}
+            </a>
+          {/if}
+        </div>
+      </div>
+
+      {#if patreon}
+        <DisconnectPatreonButton />
+      {:else}
+        <a
+          class="cursor-pointer rounded-md bg-teal-500/25 px-3 py-1 font-medium text-teal-500 transition hover:bg-teal-500/50 hover:text-white active:scale-[.98]"
+          href={PATREON_OAUTH_URL}
+        >
+          {$t('common.connect')}
+        </a>
+      {/if}
+    </div>
+  {/if}
 
   {#if tier === 0}
     <h3 class="mb-2 mt-4 text-lg font-bold text-neutral-200 sm:text-xl">{$t('supporter_troubleshoot.header')}</h3>

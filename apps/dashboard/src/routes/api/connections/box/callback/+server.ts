@@ -1,6 +1,6 @@
 import { Dropbox, DropboxAuth } from 'dropbox';
-import { BOX_CLIENT_SECRET } from '$env/static/private';
-import { PUBLIC_BOX_CLIENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/private';
+import { env as envPub } from '$env/dynamic/public';
 import { checkAuth } from '$lib/server/discord';
 import { rateLimitRequest } from '$lib/server/redis';
 import { redirect } from '@sveltejs/kit';
@@ -22,6 +22,8 @@ export interface BoxUser {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
+  if (!envPub.PUBLIC_BOX_CLIENT_ID || env.BOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=box');
+
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-box', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
@@ -38,8 +40,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   try {
     const body = new URLSearchParams({
-      client_id: PUBLIC_BOX_CLIENT_ID,
-      client_secret: BOX_CLIENT_SECRET,
+      client_id: envPub.PUBLIC_BOX_CLIENT_ID,
+      client_secret: env.BOX_CLIENT_SECRET,
       code,
       grant_type: 'authorization_code'
     }).toString();
