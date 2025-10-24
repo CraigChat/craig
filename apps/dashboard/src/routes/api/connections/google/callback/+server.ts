@@ -1,12 +1,16 @@
 import { checkAuth } from '$lib/server/discord';
 import { rateLimitRequest } from '$lib/server/redis';
 import { redirect } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
+import { env as envPub } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 import { googleScopes } from '$lib/oauth';
 import { prisma } from '@craig/db';
 import { googleOAuth2Client } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
+  if (!envPub.PUBLIC_GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=google');
+
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-google', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 

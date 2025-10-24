@@ -1,6 +1,5 @@
-import { Dropbox, DropboxAuth } from 'dropbox';
-import { DROPBOX_CLIENT_SECRET, MICROSOFT_CLIENT_SECRET, PATREON_CLIENT_SECRET } from '$env/static/private';
-import { PUBLIC_DROPBOX_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_PATREON_CLIENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/private';
+import { env as envPub } from '$env/dynamic/public';
 import { checkAuth } from '$lib/server/discord';
 import { rateLimitRequest } from '$lib/server/redis';
 import { redirect } from '@sveltejs/kit';
@@ -24,7 +23,9 @@ export interface MicrosoftUser {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 5, window: 60 });
+  if (!envPub.PUBLIC_MICROSOFT_CLIENT_ID || env.MICROSOFT_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=microsoft');
+
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-microsoft', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -40,8 +41,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   try {
     const body = new URLSearchParams({
-      client_id: PUBLIC_MICROSOFT_CLIENT_ID,
-      client_secret: MICROSOFT_CLIENT_SECRET,
+      client_id: envPub.PUBLIC_MICROSOFT_CLIENT_ID,
+      client_secret: env.MICROSOFT_CLIENT_SECRET,
       grant_type: 'authorization_code',
       redirect_uri: toRedirectUri('microsoft'),
       code

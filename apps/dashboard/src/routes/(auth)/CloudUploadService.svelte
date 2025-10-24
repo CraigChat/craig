@@ -12,6 +12,7 @@
   import Button from '$components/Button.svelte';
   import InnerModal from '$components/InnerModal.svelte';
   import Modal from '$components/Modal.svelte';
+  import { env } from '$env/dynamic/public';
   import { updateSettings } from '$lib/data';
   import { loadingIcon } from '$lib/icons';
   import { BOX_OAUTH_URL, GOOGLE_OAUTH_URL, MICROSOFT_OAUTH_URL } from '$lib/oauth';
@@ -35,7 +36,8 @@
       oauthUrl: GOOGLE_OAUTH_URL,
       settingsUrl: 'https://myaccount.google.com/connections',
 
-      mainServiceName: 'Google'
+      mainServiceName: 'Google',
+      enabled: !!env.PUBLIC_GOOGLE_CLIENT_ID
     },
     {
       id: 'onedrive',
@@ -45,21 +47,26 @@
       settingsUrl: 'https://microsoft.com/consent',
 
       apiId: 'microsoft',
-      mainServiceName: 'Microsoft'
+      mainServiceName: 'Microsoft',
+      enabled: !!env.PUBLIC_MICROSOFT_CLIENT_ID
     },
     {
       id: 'dropbox',
       icon: dropboxIcon,
       name: 'Dropbox',
       oauthUrl: '/api/connections/dropbox/connect',
-      settingsUrl: 'https://www.dropbox.com/account/connected_apps'
+      settingsUrl: 'https://www.dropbox.com/account/connected_apps',
+
+      enabled: !!env.PUBLIC_DROPBOX_CLIENT_ID
     },
     {
       id: 'box',
       icon: boxIcon,
       name: 'Box',
       oauthUrl: BOX_OAUTH_URL,
-      settingsUrl: 'https://app.box.com/integrations?myIntegrations=true'
+      settingsUrl: 'https://app.box.com/integrations?myIntegrations=true',
+
+      enabled: !!env.PUBLIC_BOX_CLIENT_ID
     }
   ] as const;
 
@@ -125,53 +132,55 @@
   <Modal onclose={() => (showModal = false)} allowClose={!loading || !disabled}>
     <InnerModal title={$t('cloud_backup.select_service')}>
       {#each services as service (service.id)}
-        <div
-          class="flex flex-col justify-between gap-2 rounded-md bg-zinc-800 px-3 py-2 text-left font-medium text-zinc-300 transition sm:flex-row sm:items-center"
-        >
-          <button class="group flex items-center gap-2" disabled={loading || disabled} onclick={() => onSetService(service.id)}>
-            {#if connections[service.id]}
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                class={cn('size-6 rounded-full bg-zinc-950 transition group-disabled:opacity-50', {
-                  'bg-teal-600': service.id === driveService,
-                  'group-enabled:cursor-pointer': service.id !== driveService
-                })}
-              >
-                {#if service.id === driveService}
-                  <path class="stroke-white" d="M7 13l3 3 7-7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                {:else}
-                  <circle class="fill-transparent transition-colors group-enabled:group-hover:fill-zinc-500" cx="12" cy="12" r="6"></circle>
+        {#if service.enabled}
+          <div
+            class="flex flex-col justify-between gap-2 rounded-md bg-zinc-800 px-3 py-2 text-left font-medium text-zinc-300 transition sm:flex-row sm:items-center"
+          >
+            <button class="group flex items-center gap-2" disabled={loading || disabled} onclick={() => onSetService(service.id)}>
+              {#if connections[service.id]}
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  class={cn('size-6 rounded-full bg-zinc-950 transition group-disabled:opacity-50', {
+                    'bg-teal-600': service.id === driveService,
+                    'group-enabled:cursor-pointer': service.id !== driveService
+                  })}
+                >
+                  {#if service.id === driveService}
+                    <path class="stroke-white" d="M7 13l3 3 7-7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  {:else}
+                    <circle class="fill-transparent transition-colors group-enabled:group-hover:fill-zinc-500" cx="12" cy="12" r="6"></circle>
+                  {/if}
+                </svg>
+              {/if}
+              <Icon icon={service.icon} class="size-8 flex-none" />
+              <div class="flex flex-col items-start text-left">
+                <span class="text-lg">{service.name}</span>
+                {#if connections[service.id]?.name}
+                  <span class="-mt-1 text-xs text-zinc-400">{connections[service.id]?.name}</span>
                 {/if}
-              </svg>
-            {/if}
-            <Icon icon={service.icon} class="size-8 flex-none" />
-            <div class="flex flex-col items-start text-left">
-              <span class="text-lg">{service.name}</span>
-              {#if connections[service.id]?.name}
-                <span class="-mt-1 text-xs text-zinc-400">{connections[service.id]?.name}</span>
+              </div>
+            </button>
+            <div class="flex flex-col">
+              {#if !connections[service.id]}
+                <a
+                  class="cursor-pointer rounded-md bg-teal-500/25 px-3 py-1 text-center font-medium text-teal-500 transition hover:bg-teal-500/50 hover:text-white active:scale-[.98]"
+                  href={service.oauthUrl}
+                >
+                  {$t('common.connect')}
+                </a>
+              {:else}
+                <button
+                  {disabled}
+                  class="cursor-pointer px-3 py-1 font-medium text-neutral-200 transition hover:text-red-500 hover:underline disabled:opacity-50"
+                  onclick={() => onDisconnect(service.id)}
+                >
+                  {$t('common.disconnect')}
+                </button>
               {/if}
             </div>
-          </button>
-          <div class="flex flex-col">
-            {#if !connections[service.id]}
-              <a
-                class="cursor-pointer rounded-md bg-teal-500/25 px-3 py-1 text-center font-medium text-teal-500 transition hover:bg-teal-500/50 hover:text-white active:scale-[.98]"
-                href={service.oauthUrl}
-              >
-                {$t('common.connect')}
-              </a>
-            {:else}
-              <button
-                {disabled}
-                class="cursor-pointer px-3 py-1 font-medium text-neutral-200 transition hover:text-red-500 hover:underline disabled:opacity-50"
-                onclick={() => onDisconnect(service.id)}
-              >
-                {$t('common.disconnect')}
-              </button>
-            {/if}
           </div>
-        </div>
+        {/if}
       {/each}
 
       {#snippet buttons()}

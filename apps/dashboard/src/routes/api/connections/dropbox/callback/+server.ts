@@ -1,6 +1,6 @@
 import { Dropbox } from 'dropbox';
-import { DROPBOX_CLIENT_SECRET } from '$env/static/private';
-import { PUBLIC_DROPBOX_CLIENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/private';
+import { env as envPub } from '$env/dynamic/public';
 import { checkAuth } from '$lib/server/discord';
 import { rateLimitRequest } from '$lib/server/redis';
 import { redirect } from '@sveltejs/kit';
@@ -10,6 +10,8 @@ import { prisma } from '@craig/db';
 import { dbxAuth, dropboxScopes } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
+  if (!envPub.PUBLIC_DROPBOX_CLIENT_ID || env.DROPBOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=dropbox');
+
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
@@ -33,8 +35,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     const dbx = new Dropbox({
       accessToken: tokens.access_token,
-      clientId: PUBLIC_DROPBOX_CLIENT_ID,
-      clientSecret: DROPBOX_CLIENT_SECRET
+      clientId: envPub.PUBLIC_DROPBOX_CLIENT_ID,
+      clientSecret: env.DROPBOX_CLIENT_SECRET
     });
 
     const dropboxUser = await dbx.usersGetCurrentAccount();
