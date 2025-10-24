@@ -96,3 +96,20 @@ export interface APIErrorResponse {
   error: string;
   code: APIErrorCode;
 }
+
+export interface StatusIncident {
+  id: string;
+  title: string;
+  status: string;
+  services: {
+    id: string;
+    status: string;
+  }[];
+  startedAt: string;
+  endedAt: string | null;
+  comments: {
+    message: string;
+    author: string;
+    createdAt: string;
+  }[];
+}

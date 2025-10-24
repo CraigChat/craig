@@ -2,6 +2,7 @@
   import Emittery from 'emittery';
   import { onMount } from 'svelte';
 
+  import MaintenanceBanner from '$components/MaintenanceBanner.svelte';
   import SiteFooter from '$components/SiteFooter.svelte';
   import SiteHeader from '$components/SiteHeader.svelte';
   import SurveyBanner from '$components/SurveyBanner.svelte';
@@ -34,6 +35,7 @@
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-4 p-2 sm:gap-8 sm:p-6">
   <SiteHeader />
   <SurveyBanner />
+  <MaintenanceBanner />
   <RecordingHeader />
   <JobSections {emitter} />
   <DownloadSection {emitter} features={data.recording.features} noUsers={data.users.length === 0} />

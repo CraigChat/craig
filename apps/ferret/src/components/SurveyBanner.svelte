@@ -7,7 +7,7 @@
 
   const SURVEY_ID = '07-2025';
   const URL = 'https://forms.gle/cjie55nZH7kHo4n39';
-  const SURVEY_END_DATE = '2025-08-08T04:00:00.000Z';
+  const SURVEY_END_DATE = '2026-08-08T04:00:00.000Z';
   const surveyAcked = persisted<string | null>('craig-survey', null);
   let show = $state(false);
   onMount(() => {
@@ -32,13 +32,13 @@
       <a
         href={URL}
         target="_blank"
-        class="flex items-center gap-1 rounded-md bg-teal-600 px-2 py-1 transition-all hover:bg-teal-700 active:opacity-75"
+        class="flex items-center gap-1 whitespace-nowrap rounded-md bg-teal-600 px-2 py-1 transition-all hover:bg-teal-700 active:opacity-75"
         onclick={surveyAck}
       >
         <span>{$t('survey.cta')}</span>
         <Icon icon={outLinkIcon} class="flex-none" />
       </a>
-      <button class="rounded-md px-2 py-1 transition-all hover:bg-zinc-700/50 active:opacity-75" onclick={surveyAck}>
+      <button class="rounded-md px-2 py-1 transition-all hover:bg-white/10 active:opacity-75" onclick={surveyAck}>
         {$t('common.dismiss')}
       </button>
     </div>
