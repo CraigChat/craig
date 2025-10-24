@@ -68,7 +68,7 @@
           target="_blank"
           class="flex items-center gap-1 whitespace-nowrap rounded-md bg-blue-600 px-2 py-1 transition-all hover:bg-blue-700 active:opacity-75"
         >
-          <span>Status Page</span>
+          <span>{$t('maintenance.status_page')}</span>
           <Icon icon={outLinkIcon} class="flex-none" />
         </a>
         <button class="rounded-md px-2 py-1 transition-all hover:bg-white/10 active:opacity-75" onclick={() => dismissMaintenance(maintenance.id)}>
