@@ -7,7 +7,7 @@
 
   const SURVEY_ID = '07-2025';
   const URL = 'https://forms.gle/cjie55nZH7kHo4n39';
-  const SURVEY_END_DATE = '2026-08-08T04:00:00.000Z';
+  const SURVEY_END_DATE = '2025-08-08T04:00:00.000Z';
   const surveyAcked = persisted<string | null>('craig-survey', null);
   let show = $state(false);
   onMount(() => {
