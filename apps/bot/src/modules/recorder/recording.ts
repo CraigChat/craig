@@ -407,6 +407,7 @@ export default class Recording {
       this.connection?.removeAllListeners('debug');
       this.connection?.removeAllListeners('pong');
       this.connection?.removeAllListeners('ready');
+      this.connection?.removeAllListeners('transitioned');
       this.connection?.removeAllListeners('unknown');
       this.receiver?.removeAllListeners('data');
     }
@@ -420,6 +421,9 @@ export default class Recording {
       connection.on('pong', this.onConnectionPong.bind(this));
       connection.on('resumed', this.onConnectionResumed.bind(this));
       connection.on('unknown', this.onConnectionUnknown.bind(this));
+      connection.on('transitioned', (transitionId: number) => {
+        this.writeToLog(`DAVE session transitioned to ${transitionId} (v${this.connection?.daveProtocolVersion})`, 'connection');
+      });
       connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
@@ -502,6 +506,10 @@ export default class Recording {
     }
   }
 
+  async onVoiceChannelEffectSend(effect: Eris.VoiceChannelEffect) {
+    // TODO add soundboard sounds in a .ogg.soundboard file
+  }
+
   async onConnectionConnect() {
     if (!this.active) return;
     this.writeToLog(
@@ -520,8 +528,8 @@ export default class Recording {
 
   async onConnectionReady() {
     if (!this.active) return;
-    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode})`, 'connection');
-    this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode})`);
+    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`);
     this.pushToActivity('Automatically reconnected.');
 
     // Get voice & rtc worker versions
