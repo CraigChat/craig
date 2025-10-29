@@ -32,13 +32,18 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   }).toString();
 
   // Exchange code
-  const { access_token = null, token_type = 'Bearer' } = await fetch('https://www.patreon.com/api/oauth2/token', {
+  const response = await fetch('https://www.patreon.com/api/oauth2/token', {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     method: 'POST',
     body
-  }).then((res) => res.json());
+  });
+  const tokenResponse = await response.json();
+  const { access_token = null, token_type = 'Bearer' } = tokenResponse;
 
-  if (!access_token || typeof access_token !== 'string') return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
+  if (!access_token || typeof access_token !== 'string') {
+    console.error(`Failed to link user ${auth.id} patreon (${response.status})`, tokenResponse);
+    return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
+  }
 
   // Fetch Patreon user
   const me: PatreonIdentifyResponse = await fetch(
