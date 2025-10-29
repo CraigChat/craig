@@ -22,7 +22,7 @@ export interface BoxUser {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_BOX_CLIENT_ID || env.BOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=box');
+  if (!envPub.PUBLIC_BOX_CLIENT_ID || !env.BOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=box');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-box', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;

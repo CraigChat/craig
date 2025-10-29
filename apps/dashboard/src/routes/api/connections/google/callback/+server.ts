@@ -9,7 +9,7 @@ import { prisma } from '@craig/db';
 import { googleOAuth2Client } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=google');
+  if (!envPub.PUBLIC_GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=google');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-google', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;

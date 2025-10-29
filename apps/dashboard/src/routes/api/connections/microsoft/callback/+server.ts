@@ -23,7 +23,7 @@ export interface MicrosoftUser {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_MICROSOFT_CLIENT_ID || env.MICROSOFT_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=microsoft');
+  if (!envPub.PUBLIC_MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=microsoft');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-microsoft', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;

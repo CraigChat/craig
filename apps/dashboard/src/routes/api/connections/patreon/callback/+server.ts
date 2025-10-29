@@ -9,7 +9,7 @@ import { prisma } from '@craig/db';
 import { determineRewardTier, resolveUserEntitlement, type PatreonIdentifyResponse } from '$lib/server/patreon';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_PATREON_CLIENT_ID || env.PATREON_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
+  if (!envPub.PUBLIC_PATREON_CLIENT_ID || !env.PATREON_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-patreon', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
@@ -32,18 +32,13 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   }).toString();
 
   // Exchange code
-  const response = await fetch('https://www.patreon.com/api/oauth2/token', {
+  const { access_token = null, token_type = 'Bearer' } = await fetch('https://www.patreon.com/api/oauth2/token', {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     method: 'POST',
     body
-  });
-  const tokenResponse = await response.json();
-  const { access_token = null, token_type = 'Bearer' } = tokenResponse;
+  }).then((res) => res.json());
 
-  if (!access_token || typeof access_token !== 'string') {
-    console.error(`Failed to link user ${auth.id} patreon (${response.status})`, tokenResponse);
-    return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
-  }
+  if (!access_token || typeof access_token !== 'string') return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
 
   // Fetch Patreon user
   const me: PatreonIdentifyResponse = await fetch(

@@ -10,7 +10,7 @@ import { prisma } from '@craig/db';
 import { dbxAuth, dropboxScopes } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_DROPBOX_CLIENT_ID || env.DROPBOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=dropbox');
+  if (!envPub.PUBLIC_DROPBOX_CLIENT_ID || !env.DROPBOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=dropbox');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
