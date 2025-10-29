@@ -3,6 +3,7 @@ import { createHTTPServer } from '@trpc/server/adapters/standalone';
 import { z } from 'zod';
 
 import { driveUpload } from './queries/driveUpload';
+import { s3Upload } from './queries/s3Upload';
 
 export const appRouter = trpc.router().query('driveUpload', {
   input: z.object({
@@ -11,6 +12,14 @@ export const appRouter = trpc.router().query('driveUpload', {
   }),
   resolve: async ({ input }) => {
     return await driveUpload(input);
+  }
+}).query('s3Upload', {
+  input: z.object({
+    recordingId: z.string(),
+    userId: z.string()
+  }),
+  resolve: async ({ input }) => {
+    return await s3Upload(input);
   }
 });
 

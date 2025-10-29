@@ -11,7 +11,8 @@ const SERVICES: Record<string, string> = {
   google: 'Google Drive',
   dropbox: 'Dropbox',
   onedrive: 'OneDrive',
-  box: 'Box'
+  box: 'Box',
+  s3: 'S3'
 };
 
 const ERROR_COLOR = 0xe74c3c;
@@ -119,7 +120,8 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
   async uploadWithTrpc(recordingId: string, userId: string, driveService: string) {
     const service = SERVICES[driveService] ?? driveService;
-    const response = await this.trpc.query('driveUpload', { recordingId, userId }).catch(() => null);
+    const queryName = driveService === 's3' ? 's3Upload' : 'driveUpload';
+    const response = await this.trpc.query(queryName, { recordingId, userId }).catch(() => null);
 
     if (!response) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: Could not connect to the server`);

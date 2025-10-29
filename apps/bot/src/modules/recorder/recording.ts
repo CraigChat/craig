@@ -118,6 +118,7 @@ export default class Recording {
   bytesWritten = 0;
   hardLimitHit = false;
   writer: RecordingWriter | null = null;
+  participantJoinTimes: Map<string, Date> = new Map(); // Track when participants joined for payment calculation
 
   timeout: any;
   usageInterval: any;
@@ -280,6 +281,22 @@ export default class Recording {
     await this.playNowRecording();
     this.updateMessage();
 
+    // Send consent message if configured
+    const consentMessage = this.recorder.client.config.craig.consentMessage;
+    if (consentMessage && this.messageChannelID) {
+      try {
+        const channel = this.recorder.client.bot.channels.get(this.messageChannelID);
+        if (channel && 'createMessage' in channel) {
+          await (channel as any).createMessage({
+            content: consentMessage,
+            allowedMentions: { everyone: false, roles: false, users: false }
+          });
+        }
+      } catch (e) {
+        this.recorder.logger.warn(`Failed to send consent message for recording ${this.id}`, e);
+      }
+    }
+
     await prisma.recording.create({
       data: {
         id: this.id,
@@ -298,6 +315,14 @@ export default class Recording {
     });
 
     if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
+
+    // Initialize participant tracking for users already in channel
+    const voiceMembers = this.channel.voiceMembers;
+    for (const [userId, member] of voiceMembers.entries()) {
+      if (!member.user.bot && userId !== this.recorder.client.bot.user.id) {
+        this.participantJoinTimes.set(userId, this.startedAt || new Date());
+      }
+    }
 
     onRecordingStart(this.user.id, this.channel.guild.id, this.autorecorded);
   }
@@ -331,11 +356,12 @@ export default class Recording {
 
       this.recorder.recordings.delete(this.channel.guild.id);
 
-      if (this.rewards && this.startedAt && this.started)
+      const endedAt = new Date();
+      if (this.rewards && this.startedAt && this.started) {
         await prisma.recording
           .upsert({
             where: { id: this.id },
-            update: { endedAt: new Date() },
+            update: { endedAt },
             create: {
               id: this.id,
               accessKey: this.accessKey,
@@ -349,10 +375,14 @@ export default class Recording {
               autorecorded: this.autorecorded,
               expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
               createdAt: this.startedAt,
-              endedAt: new Date()
+              endedAt
             }
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
+      }
+
+      // Store endedAt for payment calculation
+      (this as any).endedAt = endedAt;
 
       if (this.startedAt && this.startTime) {
         const timestamp = process.hrtime(this.startTime!);
@@ -376,8 +406,10 @@ export default class Recording {
           }
       }
 
-      if (this.started)
+      if (this.started) {
         await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id} to ${this.user.id}`, e));
+        await this.calculateParticipantPayments().catch((e) => this.recorder.logger.error(`Failed to calculate payments for recording ${this.id}`, e));
+      }
     } catch (e) {
       // This is pretty bad, make sure to clean up any reference
       this.recorder.logger.error(`Failed to stop recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`, e);
@@ -387,9 +419,90 @@ export default class Recording {
 
   async uploadToDrive() {
     const user = await prisma.user.findUnique({ where: { id: this.user.id } });
-    if (!user || !user.driveEnabled) return;
+    if (!user) return;
 
-    await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
+    if (user.driveEnabled) {
+      await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
+    }
+
+    if (user.s3Enabled) {
+      await this.recorder.uploader.upload(this.id, this.user.id, 's3');
+    }
+  }
+
+  async calculateParticipantPayments() {
+    const endedAt = (this as any).endedAt || new Date();
+    if (!this.startedAt) return;
+
+    // Process participants still in channel (those with no leftAt)
+    const now = endedAt;
+    for (const [userId, joinTime] of this.participantJoinTimes.entries()) {
+      const durationSeconds = Math.floor((now.getTime() - joinTime.getTime()) / 1000);
+      
+      // Update or create participant record
+      const existing = await prisma.recordingParticipant.findFirst({
+        where: {
+          recordingId: this.id,
+          userId,
+          leftAt: null
+        }
+      });
+
+      if (existing) {
+        await prisma.recordingParticipant.update({
+          where: { id: existing.id },
+          data: {
+            leftAt: now,
+            durationSeconds
+          }
+        }).catch(() => {});
+      } else {
+        await prisma.recordingParticipant.create({
+          data: {
+            recordingId: this.id,
+            userId,
+            joinedAt: joinTime,
+            leftAt: now,
+            durationSeconds
+          }
+        }).catch(() => {});
+      }
+    }
+
+    // Get all participants for this recording
+    const participants = await prisma.recordingParticipant.findMany({
+      where: { recordingId: this.id }
+    });
+
+    // Get payment config from tasks service (we'll need to read it from config)
+    // For now, use a default rate - this should ideally come from config
+    const ratePerMinuteCents = 10; // $0.10 per minute default
+    const minimumMinutesForPayment = 1;
+
+    // Calculate payments for all participants
+    for (const participant of participants) {
+      const minutes = Math.floor(participant.durationSeconds / 60);
+      
+      if (minutes < minimumMinutesForPayment) continue;
+
+      const paymentCents = minutes * ratePerMinuteCents;
+
+      // Update participant with payment amount
+      await prisma.recordingParticipant.update({
+        where: { id: participant.id },
+        data: { paymentCents }
+      }).catch(() => {});
+
+      // Add to user's balance
+      await prisma.user.update({
+        where: { id: participant.userId },
+        data: {
+          balanceCents: {
+            increment: paymentCents
+          }
+        }
+      }).catch(() => {});
+    }
   }
 
   async connect() {
@@ -503,6 +616,61 @@ export default class Recording {
         this.pushToActivity('I was undeafened.');
       }
       this.logWrite(`${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(member.voiceState)} -> ${JSON.stringify(oldState)}\n`);
+      return;
+    }
+
+    // Track participants for payment system
+    if (!this.active || !this.started) return;
+
+    const wasInChannel = oldState.channelID === this.channel.id;
+    const isInChannel = member.voiceState.channelID === this.channel.id;
+    const userId = member.id;
+
+    // Skip bots
+    if (member.user.bot) return;
+
+    // User joined the recording channel
+    if (!wasInChannel && isInChannel) {
+      const joinTime = new Date();
+      this.participantJoinTimes.set(userId, joinTime);
+      
+      // Create participant record if it doesn't exist
+      const existing = await prisma.recordingParticipant.findFirst({
+        where: { recordingId: this.id, userId, leftAt: null }
+      });
+
+      if (!existing) {
+        await prisma.recordingParticipant.create({
+          data: {
+            recordingId: this.id,
+            userId,
+            joinedAt: joinTime
+          }
+        }).catch(() => {});
+      }
+    }
+
+    // User left the recording channel
+    if (wasInChannel && !isInChannel) {
+      const joinTime = this.participantJoinTimes.get(userId);
+      if (joinTime) {
+        const now = new Date();
+        const durationSeconds = Math.floor((now.getTime() - joinTime.getTime()) / 1000);
+        this.participantJoinTimes.delete(userId);
+
+        // Update participant record with leave time and duration
+        await prisma.recordingParticipant.updateMany({
+          where: {
+            recordingId: this.id,
+            userId,
+            leftAt: null
+          },
+          data: {
+            leftAt: now,
+            durationSeconds
+          }
+        }).catch(() => {});
+      }
     }
   }
 

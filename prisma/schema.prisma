@@ -24,7 +24,18 @@ model User {
   driveFormat    String?
   driveContainer String?
 
+  s3Enabled  Boolean @default(false)
+  s3Bucket   String?
+  s3Region   String?
+  s3Format   String?
+  s3Container String?
+
+  balanceCents Int     @default(0)
+  pendingPayoutCents Int @default(0)
+
   entitlements Entitlement[]
+  recordingParticipants RecordingParticipant[]
+  payoutTransactions PayoutTransaction[]
 
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
@@ -61,6 +72,10 @@ model Recording {
   endedAt      DateTime? @db.Timestamptz(6)
   errored      Boolean   @default(false)
   expiresAt    DateTime  @db.Timestamptz(6)
+  s3Uploaded   Boolean   @default(false)
+  s3Url        String?
+
+  participants RecordingParticipant[]
 
   @@index([userId, createdAt(sort: Desc)])
 }
@@ -101,6 +116,14 @@ model DropboxUser {
   refreshToken String
   token        String
   name         String
+}
+
+model S3User {
+  id       String @id
+  accessKeyId String
+  secretAccessKey String // Encrypted in practice
+  bucket   String
+  region   String  @default("us-east-1")
 }
 
 // Benefits & Entitlements
@@ -174,4 +197,38 @@ model VoiceVersion {
   regionId String
   endpoint String
   seenAt   DateTime @default(now())
+}
+
+// Payment & Participation Tracking
+
+model RecordingParticipant {
+  id          String   @id @default(cuid())
+  recordingId String
+  userId      String
+  joinedAt    DateTime @default(now()) @db.Timestamptz(6)
+  leftAt      DateTime? @db.Timestamptz(6)
+  durationSeconds Int  @default(0)
+  paymentCents     Int @default(0)
+
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([recordingId])
+}
+
+model PayoutTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amountCents Int
+  gateway      String   // 'crypto', 'paypal', 'stripe', etc.
+  gatewayData  String?  // JSON data for gateway-specific info (wallet address, etc.)
+  status      String   @default("pending") // 'pending', 'processing', 'completed', 'failed'
+  processedAt DateTime? @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
 }

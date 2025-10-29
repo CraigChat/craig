@@ -28,6 +28,8 @@
     "config": "^3.3.8",
     "cron": "^2.1.0",
     "dayjs": "^1.11.6",
+    "@aws-sdk/client-s3": "^3.490.0",
+    "@aws-sdk/s3-request-presigner": "^3.490.0",
     "dropbox": "^10.34.0",
     "googleapis": "^104.0.0",
     "lodash.isequal": "^4.5.0",

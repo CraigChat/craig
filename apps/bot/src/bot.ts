@@ -44,6 +44,7 @@ export interface CraigBotConfig extends BaseConfig {
     sizeLimitWeb: number;
     sizeLimitWebOpus: number;
     inviteID?: string;
+    consentMessage?: string | null;
     webapp: {
       on: boolean;
       url: string;

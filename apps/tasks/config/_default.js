@@ -27,6 +27,21 @@ module.exports = {
     folderName: 'CraigChat'
   },
 
+  // For S3 upload
+  s3: {
+    // Default bucket and region (can be overridden per user)
+    defaultBucket: '',
+    defaultRegion: 'us-east-1'
+  },
+
+  // Payment configuration
+  payment: {
+    // Payment rate: cents per minute of participation
+    ratePerMinuteCents: 10, // $0.10 per minute by default
+    // Minimum minutes before payment is calculated
+    minimumMinutesForPayment: 1
+  },
+
   // for refresh patrons job
   patreon: {
     campaignId: 0,

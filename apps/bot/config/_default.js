@@ -66,7 +66,7 @@ module.exports = {
     prefix: ['craig', ':craig:', 'craig,', ':craig:,'],
     mentionPrefix: true,
 
-    craig: {
+      craig: {
       // The craig emoji ID
       emoji: '297187944295301122',
       // The protocol to get downloads from
@@ -77,6 +77,10 @@ module.exports = {
       homepage: 'https://craig.chat/',
       // The dashboard URL
       dashboardURL: 'https://my.craig.chat',
+      // Custom consent message when bot joins (for getting consent from participants)
+      // Set to null or empty string to disable
+      consentMessage: null,
+      // Example: '⚠️ Recording has started. By staying in this voice channel, you consent to being recorded.',
       // Record disk size limit, in bytes
       sizeLimit: 536870912,
       // Record disk size limit for Opus web users, in bytes
