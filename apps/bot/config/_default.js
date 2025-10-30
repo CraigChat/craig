@@ -2,7 +2,12 @@ const Eris = require('eris');
 
 module.exports = {
   // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
-  redis: {},
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379,
+    keyPrefix: process.env.REDIS_PREFIX || 'craig:',
+    password: process.env.REDIS_PASSWORD || undefined
+  },
   // redis: {
   //   host: 'localhost',
   //   port: 6379,

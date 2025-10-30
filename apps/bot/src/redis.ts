@@ -5,6 +5,7 @@ const redisConfig: RedisOptions = config.get('redis');
 export const client = new Redis({
   host: redisConfig.host || 'localhost',
   port: redisConfig.port || 6379,
+  password: redisConfig.password || '',
   keyPrefix: redisConfig.keyPrefix || 'craig:',
   lazyConnect: true
 });
