@@ -106,21 +106,17 @@ export async function s3Upload({
     startDate.getMonth() + 1
   }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}`;
 
+  // Upload is unconditional (global S3). Use user overrides when available, else defaults
   const user = await prisma.user.findFirst({ where: { id: userId } });
-  if (!user) return { error: 'user_not_found', notify: false };
-  if (user.rewardTier === 0) return { error: 'user_not_allowed', notify: false };
-  if (!user.s3Enabled) return { error: 'not_enabled', notify: false };
-
-  const bucket = user.s3Bucket || s3Config.defaultBucket;
-  const region = user.s3Region || s3Config.defaultRegion;
-  const format = user.s3Format || 'flac';
-  const container = user.s3Container || 'zip';
+  const bucket = (user?.s3Bucket) || s3Config.defaultBucket;
+  const region = (user?.s3Region) || process.env.AWS_REGION || s3Config.defaultRegion;
+  const format = (user?.s3Format) || 'flac';
+  const container = (user?.s3Container) || 'zip';
 
   if (!bucket) return { error: 'bucket_not_configured', notify: false };
 
-  // Get S3 credentials from S3User table
+  // Credentials: use per-user S3User if present; otherwise fall back to env AWS creds
   const s3User = await prisma.s3User.findFirst({ where: { id: userId } });
-  if (!s3User) return { error: 's3_credentials_not_found', notify: false };
 
   logger.info(`Uploading ${recordingId} to S3 for ${userId} (bucket: ${bucket}, region: ${region}, ${format}.${container})`);
   const start = Date.now();
@@ -140,10 +136,11 @@ export async function s3Upload({
     // Create S3 client
     const s3Client = new S3Client({
       region,
-      credentials: {
-        accessKeyId: s3User.accessKeyId,
-        secretAccessKey: s3User.secretAccessKey
-      }
+      credentials: s3User
+        ? { accessKeyId: s3User.accessKeyId, secretAccessKey: s3User.secretAccessKey }
+        : (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+            ? { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY }
+            : undefined)
     });
 
     child = await cook(recordingId, format, container);

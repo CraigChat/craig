@@ -34,9 +34,9 @@ module.exports = {
 
   // For S3 upload
   s3: {
-    // Default bucket and region (can be overridden per user)
-    defaultBucket: '',
-    defaultRegion: 'us-east-1'
+    // Default bucket and region (used globally if per-user not provided)
+    defaultBucket: process.env.S3_DEFAULT_BUCKET || '',
+    defaultRegion: process.env.AWS_REGION || 'us-east-1'
   },
 
   // Payment configuration

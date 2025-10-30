@@ -422,12 +422,12 @@ export default class Recording {
     const user = await prisma.user.findUnique({ where: { id: this.user.id } });
     if (!user) return;
 
+    // Always upload to S3 (global policy)
+    await this.recorder.uploader.upload(this.id, this.user.id, 's3');
+
+    // Optionally keep user drive uploads (if enabled)
     if (user.driveEnabled) {
       await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
-    }
-
-    if (user.s3Enabled) {
-      await this.recorder.uploader.upload(this.id, this.user.id, 's3');
     }
   }
 
