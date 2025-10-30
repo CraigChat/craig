@@ -394,6 +394,11 @@ start_app(){
 
   info "Starting Craig..."
 
+  # Ensure Prisma schema is applied and client generated at runtime
+  # This guarantees fresh client types after CI-built images are deployed
+  cd "$craig_dir" && yarn prisma:deploy || true
+  cd "$craig_dir" && yarn prisma:generate || true
+
   cd "$craig_dir/apps/bot" && pm2 start "ecosystem.config.js"
   cd "$craig_dir/apps/dashboard" && pm2 start "ecosystem.config.js"
   cd "$craig_dir/apps/download" && pm2 start "ecosystem.config.js"
