@@ -22,7 +22,7 @@ MICROSOFT_CLIENT_ID=test
 MICROSOFT_CLIENT_SECRET=test
 DROPBOX_CLIENT_ID=test
 DROPBOX_CLIENT_SECRET=test
-APP_URI=http://localhost:3000
+APP_URI=http://localhost:3222
 JWT_SECRET=1234
 
 ##################################################

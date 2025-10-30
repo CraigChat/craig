@@ -1,40 +1,34 @@
 services:
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: craig
-      POSTGRES_DB: craig
-      POSTGRES_USER: craig
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U craig"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - 'db_data:/var/lib/postgresql/data'
-  redis:
-    image: redis
-    restart: always
-    ports:
-      - "6379:6379"
   craig:
     build: .
+    # Or use: image: docker.io/vroles/craig:latest
+    container_name: craig
     ports:
-      - "3000:3000"
-      - "5029:5029"
-    depends_on:
-      db:
-        condition: service_healthy
-        restart: true
-      redis:
-        condition: service_started
+      - "3222:3222"  # Dashboard
+      - "5029:5029"  # API
     volumes:
-      - 'craig_rec:/app/rec'
-      - './install.config:/app/install.config:ro'
+      - craig_rec:/app/rec
+      - ./install.config:/app/install.config:ro
+    networks:
+      - craig-network
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - PORT=3222
+    # Remove depends_on if using external Redis/Postgres
+    # depends_on:
+    #   redis:
+    #     condition: service_started
+    restart: unless-stopped
 
 volumes:
-  db_data:
   craig_rec:
+    driver: local
+
+networks:
+  craig-network:
+    driver: bridge
+    # If Postgres/Redis are on a different network, use external:
+    # external: true
+    # name: your-existing-network-name
