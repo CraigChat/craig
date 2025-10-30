@@ -24,9 +24,9 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
   const dbPatron = await prisma.patreon.findUnique({ where: { id: patron.id } });
 
   if (event === 'members:pledge:delete') {
-    console.info(new Date().toISOString(), `Deleted patron ${patron.id}`);
-    await prisma.patreon.delete({ where: { id: patron.id } });
     const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
+    console.info(new Date().toISOString(), `Deleted patron ${patron.id} (${body.data.attributes.patron_status}, user ${user?.id})`);
+    if (body.data.attributes.patron_status !== 'active_patron') await prisma.patreon.delete({ where: { id: patron.id } });
     if (user) {
       if (body.data.attributes.patron_status === 'active_patron')
         await prisma.entitlement
