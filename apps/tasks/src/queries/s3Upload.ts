@@ -213,7 +213,7 @@ export async function s3Upload({
 
     return {
       error: null,
-      notify: true,
+      notify: false,
       id: key,
       url
     };

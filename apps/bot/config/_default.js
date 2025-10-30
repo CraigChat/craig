@@ -84,8 +84,8 @@ module.exports = {
       dashboardURL: 'https://my.craig.chat',
       // Custom consent message when bot joins (for getting consent from participants)
       // Set to null or empty string to disable
-      consentMessage: null,
-      // Example: '⚠️ Recording has started. By staying in this voice channel, you consent to being recorded.',
+      consentMessage:
+        '⚠️ Recording has started. By staying in this voice channel, you consent to being recorded. Learn more: Terms (https://example.com/terms) • Privacy (https://example.com/privacy)',
       // Record disk size limit, in bytes
       sizeLimit: 536870912,
       // Record disk size limit for Opus web users, in bytes

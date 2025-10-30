@@ -119,6 +119,7 @@ export default class Recording {
   hardLimitHit = false;
   writer: RecordingWriter | null = null;
   participantJoinTimes: Map<string, Date> = new Map(); // Track when participants joined for payment calculation
+  consentNotified: Set<string> = new Set();
 
   timeout: any;
   usageInterval: any;
@@ -281,20 +282,20 @@ export default class Recording {
     await this.playNowRecording();
     this.updateMessage();
 
-    // Send consent message if configured
+    // Send consent message if configured: DM to all current human members; no channel posting
     const consentMessage = this.recorder.client.config.craig.consentMessage;
-    if (consentMessage && this.messageChannelID) {
+    if (consentMessage) {
       try {
-        const guild = this.channel.guild;
-        const channel = guild.channels.get(this.messageChannelID);
-        if (channel && 'createMessage' in channel) {
-          await (channel as any).createMessage({
-            content: consentMessage,
-            allowedMentions: { everyone: false, roles: false, users: false }
-          });
+        for (const [uid, member] of this.channel.voiceMembers.entries()) {
+          if (member.user.bot) continue;
+          const id = String(uid);
+          if (this.consentNotified.has(id)) continue;
+          const dm = await member.user.getDMChannel().catch(() => null);
+          if (dm) await dm.createMessage(consentMessage).catch(() => null);
+          this.consentNotified.add(id);
         }
       } catch (e) {
-        this.recorder.logger.warn(`Failed to send consent message for recording ${this.id}`, e);
+        this.recorder.logger.warn(`Failed to send consent DMs for recording ${this.id}`, e);
       }
     }
 
@@ -634,6 +635,13 @@ export default class Recording {
     if (!wasInChannel && isInChannel) {
       const joinTime = new Date();
       this.participantJoinTimes.set(userId, joinTime);
+      // DM consent on join if not already notified
+      const consent = this.recorder.client.config.craig.consentMessage;
+      if (consent && !member.user.bot && !this.consentNotified.has(userId)) {
+        const dm = await member.user.getDMChannel().catch(() => null);
+        if (dm) await dm.createMessage(consent).catch(() => null);
+        this.consentNotified.add(userId);
+      }
       
       // Create participant record if it doesn't exist
       const existing = await prisma.recordingParticipant.findFirst({

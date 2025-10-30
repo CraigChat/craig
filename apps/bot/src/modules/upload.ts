@@ -144,20 +144,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
       return;
     }
 
-    if (response.notify) {
-      await this.dm(
-        userId,
-        {
-          title: `Uploaded to ${service}`,
-          description: `Recording \`${recordingId}\` was uploaded to ${service}.`,
-          color: SUCCESS_COLOR
-        },
-        {
-          label: `Open in ${service}`,
-          url: response.url!
-        }
-      );
-    }
+    // Do not send success embeds or download buttons
   }
 
   async onTick() {
