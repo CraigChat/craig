@@ -52,11 +52,15 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const token = sign(me, config.jwtSecret, { expiresIn: '7d' });
 
+  console.log('OAuth success:', { userId: me.id, username: me.username });
+  console.log('JWT Secret length:', config.jwtSecret.length);
+  console.log('Cookie name:', config.cookieName);
+
   res.setHeader(
     'Set-Cookie',
     serialize(config.cookieName, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
+      secure: false, // Disable secure for testing
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 7
