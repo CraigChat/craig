@@ -236,12 +236,15 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       const consentMessage = this.client.config.craig.consentMessage;
       if (consentMessage && recording.messageChannelID) {
         try {
-          const channel = this.client.bot.channels.get(recording.messageChannelID);
-          if (channel && 'createMessage' in channel) {
-            await (channel as any).createMessage({
-              content: consentMessage,
-              allowedMentions: { everyone: false, roles: false, users: false }
-            });
+          const guild = this.client.bot.guilds.get(guildId);
+          if (guild) {
+            const channel = guild.channels.get(recording.messageChannelID);
+            if (channel && 'createMessage' in channel) {
+              await (channel as any).createMessage({
+                content: consentMessage,
+                allowedMentions: { everyone: false, roles: false, users: false }
+              });
+            }
           }
         } catch (e) {
           this.logger.warn(`Failed to send consent message for autorecord ${recording.id}`, e);

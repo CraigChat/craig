@@ -40,6 +40,27 @@ type TRPCRouter = Router<
         url?: string | undefined;
       }
     >
+  > &
+  Record<
+    's3Upload',
+    Procedure<
+      unknown,
+      unknown,
+      {
+        recordingId: string;
+        userId: string;
+      },
+      {
+        recordingId: string;
+        userId: string;
+      },
+      {
+        error: string | null;
+        notify: boolean;
+        id?: string | undefined;
+        url?: string | undefined;
+      }
+    >
   >,
   any,
   any,

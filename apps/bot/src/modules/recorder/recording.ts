@@ -285,7 +285,8 @@ export default class Recording {
     const consentMessage = this.recorder.client.config.craig.consentMessage;
     if (consentMessage && this.messageChannelID) {
       try {
-        const channel = this.recorder.client.bot.channels.get(this.messageChannelID);
+        const guild = this.channel.guild;
+        const channel = guild.channels.get(this.messageChannelID);
         if (channel && 'createMessage' in channel) {
           await (channel as any).createMessage({
             content: consentMessage,
@@ -319,8 +320,8 @@ export default class Recording {
     // Initialize participant tracking for users already in channel
     const voiceMembers = this.channel.voiceMembers;
     for (const [userId, member] of voiceMembers.entries()) {
-      if (!member.user.bot && userId !== this.recorder.client.bot.user.id) {
-        this.participantJoinTimes.set(userId, this.startedAt || new Date());
+      if (!member.user.bot && String(userId) !== this.recorder.client.bot.user.id) {
+        this.participantJoinTimes.set(String(userId), this.startedAt || new Date());
       }
     }
 
@@ -622,7 +623,7 @@ export default class Recording {
     // Track participants for payment system
     if (!this.active || !this.started) return;
 
-    const wasInChannel = oldState.channelID === this.channel.id;
+    const wasInChannel = (oldState as any).channelID === this.channel.id;
     const isInChannel = member.voiceState.channelID === this.channel.id;
     const userId = member.id;
 
