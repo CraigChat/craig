@@ -24,14 +24,16 @@ import { getAvatarUrl, parseUser } from '../utils';
 import { DiscordUser } from '../utils/types';
 
 interface Props {
-  user: DiscordUser;
-  rewardTier: number | null;
-  patronId: string | null;
-  patron: Patreon | null;
-  drive: DriveProps;
-  googleDrive: boolean;
-  microsoft: boolean;
-  dropbox: boolean;
+  user?: DiscordUser;
+  rewardTier?: number | null;
+  patronId?: string | null;
+  patron?: Patreon | null;
+  drive?: DriveProps;
+  googleDrive?: boolean;
+  microsoft?: boolean;
+  dropbox?: boolean;
+  error?: string;
+  stack?: string;
 }
 
 interface DriveProps {
@@ -115,6 +117,24 @@ const serviceNames: { [key: string]: string } = {
 };
 
 export default function Index(props: Props) {
+  // Show error page if there's an error
+  if (props.error) {
+    return (
+      <div className="min-h-screen bg-red-900 text-white p-8">
+        <h1 className="text-2xl font-bold mb-4">Dashboard Error</h1>
+        <p className="mb-4">Error: {props.error}</p>
+        {props.stack && (
+          <details className="mt-4">
+            <summary className="cursor-pointer">Stack Trace</summary>
+            <pre className="mt-2 text-xs bg-red-800 p-2 rounded overflow-auto">
+              {props.stack}
+            </pre>
+          </details>
+        )}
+      </div>
+    );
+  }
+
   const [modalParsed, setModalParsed] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('Modal');
@@ -446,37 +466,52 @@ export default function Index(props: Props) {
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async function (ctx) {
-  const user = parseUser(ctx.req);
+  try {
+    const user = parseUser(ctx.req);
 
-  if (!user)
+    if (!user) {
+      console.log('No user found, redirecting to login');
+      return {
+        redirect: {
+          destination: '/login',
+          permanent: false
+        }
+      };
+    }
+
+    console.log('User found:', user.id, user.username);
+    console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    const patron = dbUser && dbUser.patronId ? await prisma.patreon.findUnique({ where: { id: dbUser.patronId } }) : null;
+    const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
+    const microsoft = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
+    const dropbox = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
+
     return {
-      redirect: {
-        destination: '/login',
-        permanent: false
+      props: {
+        user,
+        rewardTier: dbUser?.rewardTier || 0,
+        patronId: dbUser?.patronId || null,
+        patron,
+        drive: {
+          enabled: dbUser?.driveEnabled || false,
+          service: dbUser?.driveService || 'google',
+          format: dbUser?.driveFormat || 'flac',
+          container: dbUser?.driveContainer || 'zip'
+        },
+        googleDrive: !!googleDrive,
+        microsoft: !!microsoft,
+        dropbox: !!dropbox
       }
     };
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-  const patron = dbUser && dbUser.patronId ? await prisma.patreon.findUnique({ where: { id: dbUser.patronId } }) : null;
-  const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
-  const microsoft = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
-  const dropbox = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
-
-  return {
-    props: {
-      user,
-      rewardTier: dbUser?.rewardTier || 0,
-      patronId: dbUser?.patronId || null,
-      patron,
-      drive: {
-        enabled: dbUser?.driveEnabled || false,
-        service: dbUser?.driveService || 'google',
-        format: dbUser?.driveFormat || 'flac',
-        container: dbUser?.driveContainer || 'zip'
-      },
-      googleDrive: !!googleDrive,
-      microsoft: !!microsoft,
-      dropbox: !!dropbox
-    }
-  };
+  } catch (error) {
+    console.error('Error in getServerSideProps:', error);
+    return {
+      props: {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      }
+    };
+  }
 };
