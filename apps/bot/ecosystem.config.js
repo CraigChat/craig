@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'Craig',
       script: 'dist/sharding/index.js',
-      wait_ready: true,
+      wait_ready: false,
       kill_timeout: 3000,
       out_file: '/dev/stdout',
       error_file: '/dev/stderr',
