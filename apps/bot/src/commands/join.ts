@@ -396,27 +396,6 @@ export default class Join extends GeneralCommand {
           To bring up the recording link again, use the \`/recordings\` command.
         `,
         ephemeral: true,
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Download',
-                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-                emoji: this.emojis.getPartial('download') || undefined
-              },
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Delete recording',
-                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
-                emoji: this.emojis.getPartial('delete') || undefined
-              }
-            ]
-          }
-        ]
       });
   }
 }

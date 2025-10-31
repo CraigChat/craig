@@ -204,24 +204,6 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
           },
           {
             type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Download',
-                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
-                emoji: emojis.getPartial('download')
-              },
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Delete recording',
-                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${
-                  recording.accessKey
-                }&delete=${recording.deleteKey}`,
-                emoji: emojis.getPartial('delete')
-              }
-            ]
           },
           ...(recording.messageChannelID && recording.messageID
             ? [
