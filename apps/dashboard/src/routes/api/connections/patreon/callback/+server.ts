@@ -42,7 +42,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   // Fetch Patreon user
   const me: PatreonIdentifyResponse = await fetch(
-    'https://www.patreon.com/api/oauth2/v2/identity?fields[user]=social_connections,full_name,email&include=memberships',
+    'https://www.patreon.com/api/oauth2/v2/identity?fields[user]=social_connections,full_name,email&include=memberships&fields[member]=full_name,currently_entitled_amount_cents,patron_status,email&include[member]=currently_entitled_tiers',
     {
       headers: { Authorization: `${token_type} ${access_token}` }
     }
