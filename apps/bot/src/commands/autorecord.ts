@@ -252,7 +252,7 @@ export default class AutoRecord extends GeneralCommand {
         });
 
         return {
-          content: `Auto-recording on <#${channel}> has been activated. Please make sure you can receive DMs from me.`,
+          content: `Auto-recording on <#${channel}> has been activated.`,
           ephemeral: true
         };
       }

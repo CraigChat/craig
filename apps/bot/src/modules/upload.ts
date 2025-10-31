@@ -89,20 +89,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
       if (response.status > 299) {
         const error = (await response.json().catch(() => null))?.error ?? 'server_error';
         this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} (${response.status}, ${error})`);
-        await this.dm(
-          userId,
-          {
-            title: `Failed to upload to ${service}`,
-            description: `${
-              SERVICE_ERROR_MESSAGES[error] ?? SERVICE_ERROR_MESSAGES.server_error
-            } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-            color: ERROR_COLOR
-          },
-          {
-            label: 'Open Dashboard',
-            url: this.client.config.craig.dashboardURL
-          }
-        );
+        // DM removed per user request - errors logged only
       } else if (response.status === 200) {
         const job = await response.json();
         this.logger.info(`Started an upload for recording ${recordingId} for user ${userId}`);
@@ -110,11 +97,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
       }
     } catch (e) {
       this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} due to fetch error`, e);
-      await this.dm(userId, {
-        title: `Failed to upload to ${service}`,
-        description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-        color: ERROR_COLOR
-      });
+      // DM removed per user request - errors logged only
     }
   }
 
@@ -125,22 +108,13 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
     if (!response) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: Could not connect to the server`);
-      await this.dm(userId, {
-        title: `Failed to upload to ${service}`,
-        description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording to ${service}.`,
-        color: ERROR_COLOR
-      });
+      // DM removed per user request - errors logged only
       return;
     }
 
     if (response.error) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: ${response.error}`);
-      if (response.notify)
-        await this.dm(userId, {
-          title: `Failed to upload to ${service}`,
-          description: `Failed to upload recording \`${recordingId}\` to ${service}. You may need to manually upload it to ${service}, or possibly re-connect to ${service}.\n\n- **\`${response.error}\`**`,
-          color: ERROR_COLOR
-        });
+      // DM removed per user request - errors logged only
       return;
     }
 
@@ -170,33 +144,14 @@ export default class UploadModule extends DexareModule<CraigBot> {
             const driveService = job.outputData.uploadService;
             const service = SERVICES[driveService] ?? driveService;
 
-            if (job.status === 'error')
-              await this.dm(userId, {
-                title: `Failed to upload to ${service}`,
-                description: `${
-                  job.outputData.uploadError ? 'An error occurred while uploading.' : 'An error occurred while creating the download.'
-                } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-                color: ERROR_COLOR
-              });
-            else if (job.status === 'cancelled')
-              await this.dm(userId, {
-                title: `Failed to upload to ${service}`,
-                description: `The download was cancelled, possibly due to server maintenance. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-                color: ERROR_COLOR
-              });
-            else if (job.status === 'complete')
-              await this.dm(
-                userId,
-                {
-                  title: `Uploaded to ${service}`,
-                  description: `Recording \`${recordingId}\` was uploaded to ${service}.`,
-                  color: SUCCESS_COLOR
-                },
-                {
-                  label: `Open in ${service}`,
-                  url: job.outputData.uploadFileURL
-                }
-              );
+            // All DM notifications removed per user request - errors/success logged only
+            if (job.status === 'error') {
+              this.logger.error(`Upload job ${jobId} failed for recording ${recordingId} to ${service}`);
+            } else if (job.status === 'cancelled') {
+              this.logger.warn(`Upload job ${jobId} cancelled for recording ${recordingId} to ${service}`);
+            } else if (job.status === 'complete') {
+              this.logger.info(`Upload job ${jobId} completed for recording ${recordingId} to ${service}`);
+            }
 
             await redis.srem(this.KEY, jobId);
           }

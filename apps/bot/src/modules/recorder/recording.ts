@@ -119,7 +119,6 @@ export default class Recording {
   hardLimitHit = false;
   writer: RecordingWriter | null = null;
   participantJoinTimes: Map<string, Date> = new Map(); // Track when participants joined for payment calculation
-  consentNotified: Set<string> = new Set();
 
   timeout: any;
   usageInterval: any;
@@ -172,8 +171,23 @@ export default class Recording {
       if (okay) return;
     }
 
-    const dmChannel = await this.user.getDMChannel().catch(() => null);
-    if (dmChannel) await dmChannel.createMessage(`⚠️ Warning for recording \`${this.id}\`: ${text}`).catch(() => null);
+    // Send warning to channel if available instead of DM
+    if (this.messageChannelID) {
+      try {
+        const guild = this.recorder.client.bot.guilds.get(this.channel.guild.id);
+        if (guild) {
+          const channel = guild.channels.get(this.messageChannelID);
+          if (channel && 'createMessage' in channel) {
+            await (channel as any).createMessage({
+              content: `⚠️ <@${this.user.id}>: Warning for recording \`${this.id}\`: ${text}`,
+              allowedMentions: { users: [this.user.id] }
+            }).catch(() => null);
+          }
+        }
+      } catch (e) {
+        // Ignore errors sending warning
+      }
+    }
   }
 
   async start(parsedRewards: ParsedRewards, webapp = false) {
@@ -282,20 +296,32 @@ export default class Recording {
     await this.playNowRecording();
     this.updateMessage();
 
-    // Send consent message if configured: DM to all current human members; no channel posting
+    // Send consent message + recording started in channel if configured
     const consentMessage = this.recorder.client.config.craig.consentMessage;
-    if (consentMessage) {
+    if (consentMessage && this.messageChannelID) {
       try {
-        for (const [uid, member] of this.channel.voiceMembers.entries()) {
-          if (member.user.bot) continue;
-          const id = String(uid);
-          if (this.consentNotified.has(id)) continue;
-          const dm = await member.user.getDMChannel().catch(() => null);
-          if (dm) await dm.createMessage(consentMessage).catch(() => null);
-          this.consentNotified.add(id);
+        const channel = this.recorder.client.bot.guilds.get(this.channel.guild.id)?.channels.get(this.messageChannelID);
+        if (channel && 'createMessage' in channel) {
+          await (channel as any).createMessage({
+            content: `${consentMessage}\n\n🔴 **Recording started.**`,
+            allowedMentions: { everyone: false, roles: false, users: false }
+          });
         }
       } catch (e) {
-        this.recorder.logger.warn(`Failed to send consent DMs for recording ${this.id}`, e);
+        this.recorder.logger.warn(`Failed to send consent message for recording ${this.id}`, e);
+      }
+    } else if (this.messageChannelID) {
+      // Send recording started message even if no consent message
+      try {
+        const channel = this.recorder.client.bot.guilds.get(this.channel.guild.id)?.channels.get(this.messageChannelID);
+        if (channel && 'createMessage' in channel) {
+          await (channel as any).createMessage({
+            content: '🔴 **Recording started.**',
+            allowedMentions: { everyone: false, roles: false, users: false }
+          });
+        }
+      } catch (e) {
+        this.recorder.logger.warn(`Failed to send recording started message for recording ${this.id}`, e);
       }
     }
 
@@ -411,6 +437,21 @@ export default class Recording {
       if (this.started) {
         await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id} to ${this.user.id}`, e));
         await this.calculateParticipantPayments().catch((e) => this.recorder.logger.error(`Failed to calculate payments for recording ${this.id}`, e));
+        
+        // Send recording stopped message
+        if (this.messageChannelID) {
+          try {
+            const channel = this.recorder.client.bot.guilds.get(this.channel.guild.id)?.channels.get(this.messageChannelID);
+            if (channel && 'createMessage' in channel) {
+              await (channel as any).createMessage({
+                content: '⏹️ **Recording stopped.**',
+                allowedMentions: { everyone: false, roles: false, users: false }
+              });
+            }
+          } catch (e) {
+            this.recorder.logger.warn(`Failed to send recording stopped message for recording ${this.id}`, e);
+          }
+        }
       }
     } catch (e) {
       // This is pretty bad, make sure to clean up any reference
@@ -635,13 +676,6 @@ export default class Recording {
     if (!wasInChannel && isInChannel) {
       const joinTime = new Date();
       this.participantJoinTimes.set(userId, joinTime);
-      // DM consent on join if not already notified
-      const consent = this.recorder.client.config.craig.consentMessage;
-      if (consent && !member.user.bot && !this.consentNotified.has(userId)) {
-        const dm = await member.user.getDMChannel().catch(() => null);
-        if (dm) await dm.createMessage(consent).catch(() => null);
-        this.consentNotified.add(userId);
-      }
       
       // Create participant record if it doesn't exist
       const existing = await prisma.recordingParticipant.findFirst({

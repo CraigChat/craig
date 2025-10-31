@@ -184,24 +184,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       channel.leave();
     }
 
-    // Warn users
-    const userIds = [...new Set<string>(badRecordings.map((r) => r.userId))];
-    for (const userId of userIds) {
-      const user = this.client.bot.users.get(userId);
-      if (!user) continue;
-
-      const dmChannel = await user.getDMChannel().catch(() => null);
-      if (!dmChannel) continue;
-
-      await dmChannel
-        .createMessage(
-          `**⚠️ The following recordings have abruptly ended, please start a new recording from the slash command as the recording interface is no longer valid.**\n\n${badRecordings
-            .filter((r) => r.userId === userId)
-            .map((r) => `- \`${r.id}\` in <#${r.channelId}>`)
-            .join('\n')}`
-        )
-        .catch(() => null);
-    }
+    // Note: DM warnings removed per user request - errors will be logged only
 
     // Delete errored recordings
     for (const recording of badRecordings) {

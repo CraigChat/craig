@@ -8,7 +8,7 @@ import type { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
 import { checkMaintenance, processCooldown } from '../redis';
 import { reportAutorecordingError } from '../sentry';
-import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
+import { cutoffText, getSelfMember, parseRewards } from '../util';
 import EntitlementsModule from './entitlements';
 import type RecorderModule from './recorder';
 import Recording, { RecordingState } from './recorder/recording';
@@ -232,16 +232,19 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         }
       }
 
-      // Send consent message for autorecord if configured
+      // Send consent message + recording started for autorecord if configured
       const consentMessage = this.client.config.craig.consentMessage;
-      if (consentMessage && recording.messageChannelID) {
+      if (recording.messageChannelID) {
         try {
           const guild = this.client.bot.guilds.get(guildId);
           if (guild) {
             const channel = guild.channels.get(recording.messageChannelID);
             if (channel && 'createMessage' in channel) {
+              const message = consentMessage 
+                ? `${consentMessage}\n\n🔴 **Recording started.**`
+                : '🔴 **Recording started.**';
               await (channel as any).createMessage({
-                content: consentMessage,
+                content: message,
                 allowedMentions: { everyone: false, roles: false, users: false }
               });
             }
@@ -301,9 +304,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         return;
       }
 
-      // Try to DM user
-      const dmChannel = await member.user.getDMChannel().catch(() => null);
-      if (dmChannel) await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
+      // Note: Download messages removed per user request - no DMs sent
     }
   }
 

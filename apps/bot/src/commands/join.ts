@@ -5,7 +5,7 @@ import Recording, { RecordingState } from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
 import { reportRecordingError } from '../sentry';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
+import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, parseRewards, stripIndentsAndLines } from '../util';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -290,14 +290,6 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
-    // Check for DM permissions
-    const dmChannel = await member.user.getDMChannel().catch(() => null);
-    if (!dmChannel) {
-      return {
-        content: "I can't DM you, so I can't record. I need to be able to DM you to send you the download link.",
-        ephemeral: true
-      };
-    }
 
     // Nickname the bot
     const selfUser = await getSelfMember(guild, this.client.bot);
@@ -357,45 +349,10 @@ export default class Join extends GeneralCommand {
       return;
     }
 
-    // Send DM
-    const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
-
-    if (dmMessage)
-      await ctx.sendFollowUp({
-        content: `Started recording in <#${channel!.id}>.`,
-        ephemeral: true,
-        components: [
-          {
-            type: ComponentType.ACTION_ROW,
-            components: [
-              {
-                type: ComponentType.BUTTON,
-                style: ButtonStyle.LINK,
-                label: 'Jump to DM',
-                url: `https://discord.com/channels/@me/${dmChannel.id}/${dmMessage.id}`,
-                emoji: this.emojis.getPartial('jump') || undefined
-              }
-            ]
-          }
-        ]
-      });
-    else
-      await ctx.sendFollowUp({
-        content: stripIndentsAndLines`
-          Started recording in <#${channel!.id}>.
-          I was unable to send you a DM with the download link. I need to be able to DM you to send you the download link in the future.
-
-          **Recording ID:** \`${recording.id}\`
-          **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-          ${
-            recording.webapp
-              ? `**Webapp URL:** ${this.client.config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
-              : ''
-          }
-
-          To bring up the recording link again, use the \`/recordings\` command.
-        `,
-        ephemeral: true,
-      });
+    // Recording started - status message will be sent in channel by recording.ts
+    await ctx.sendFollowUp({
+      content: `Started recording in <#${channel!.id}>.`,
+      ephemeral: true
+    });
   }
 }

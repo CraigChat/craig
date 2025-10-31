@@ -60,7 +60,7 @@ export default class Webapp extends GeneralCommand {
         });
 
         return {
-          content: 'Enabled the Craig Webapp in future recordings. You should get a Webapp link in your recording DM.',
+          content: 'Enabled the Craig Webapp in future recordings. You can access it through the recording interface.',
           ephemeral: true
         };
       }
