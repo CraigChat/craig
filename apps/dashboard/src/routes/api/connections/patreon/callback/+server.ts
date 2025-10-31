@@ -49,7 +49,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   ).then((res) => res.json());
   if (!('data' in me)) return redirect(307, '/?error=__NO_USER_DATA&from=patreon');
 
-  console.log(`User ${auth.id} connected patreon user ${me.data.id}`, JSON.stringify(me, null, 2));
+  // console.log(`User ${auth.id} connected patreon user ${me.data.id}`, JSON.stringify(me, null, 2));
+  console.log(`User ${auth.id} connected patreon user ${me.data.id}`);
 
   const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });
   if (otherUser && otherUser.id !== auth.id) await prisma.user.update({ where: { id: otherUser.id }, data: { patronId: null } });
@@ -63,8 +64,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     const patron = await prisma.patreon.upsert({
       where: { id: me.data.id },
       update: {
-        name: me.data.attributes.full_name ?? membership.attributes.full_name ?? '',
-        email: me.data.attributes.email ?? membership.attributes.email ?? '',
+        name: me.data.attributes.full_name ?? membership.attributes.full_name ?? undefined,
+        email: me.data.attributes.email ?? membership.attributes.email ?? undefined,
         cents: membership.attributes.currently_entitled_amount_cents
       },
       create: {
@@ -76,7 +77,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     });
 
     const patreonTier = determineRewardTier(patron.tiers);
-    if (patreonTier !== 0)
+    if (patreonTier !== 0) {
       await prisma.entitlement.upsert({
         where: {
           userId_source: {
@@ -95,6 +96,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
           sourceEntitlementId: membership.id
         }
       });
+      console.log(`User ${auth.id} tier resolved to ${patreonTier}`);
+    }
 
     await prisma.user.upsert({
       where: { id: auth.id },
