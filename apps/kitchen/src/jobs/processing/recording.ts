@@ -349,7 +349,8 @@ export async function processRecordingJob(job: Job) {
 
         if (job.options?.includeTranscription) {
           try {
-            const transcription = await backgroundTranscription(job, trackFiles, users);
+            const dataStat = await fs.stat(`${recFileBase}.data`);
+            const transcription = await backgroundTranscription(job, trackFiles, users, dataStat.size);
             await fs.writeFile(path.join(tmpDir, `transcription.${job.options?.includeTranscription ?? 'vtt'}`), transcription);
           } catch (e) {
             logger.warn(`Job ${job.id} failed to include transcription, moving on...`, e);

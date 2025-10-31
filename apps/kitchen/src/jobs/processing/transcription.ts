@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 import { DOWNLOAD_URL_PREFIX, DOWNLOADS_DIRECTORY, RUNPOD_API_KEY, RUNPOD_TRANSCRIPTION_ENDPOINT_ID } from '../../util/config.js';
 import { fileNameFromUser, runParallelFunction, wait } from '../../util/index.js';
 import logger from '../../util/logger.js';
+import { redis } from '../../util/redis.js';
 import { encodeTranscriptionTrack, getStreamTypes } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
 import { Job } from '../job.js';
@@ -123,21 +124,60 @@ function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', segments: Correcte
   return text.trim();
 }
 
+function sortKeyTracks(includedTracks: number[]): string {
+  return [...includedTracks].sort((a, b) => a - b).join(',');
+}
+
+async function getCachedTranscription(recordingId: string, dataSize: number, includedTracks: number[]) {
+  const cacheKey = `transcription_segments:${recordingId}:${dataSize}:${sortKeyTracks(includedTracks)}`;
+  const cached = await redis.get(cacheKey);
+  if (!cached) return null;
+  try {
+    const segments: CorrectedSegment[] = JSON.parse(cached);
+    return segments;
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedTranscription(recordingId: string, dataSize: number, includedTracks: number[], segments: CorrectedSegment[]) {
+  const cacheKey = `transcription_segments:${recordingId}:${dataSize}:${sortKeyTracks(includedTracks)}`;
+  await redis.set(cacheKey, JSON.stringify(segments), 'EX', 30 * 24 * 60 * 60);
+}
+
 export async function processTranscriptionJob(job: Job) {
   if (!RUNPOD_API_KEY || !RUNPOD_TRANSCRIPTION_ENDPOINT_ID || !DOWNLOAD_URL_PREFIX) throw new Error('Missing environment variables.');
 
   const { recFileBase, tmpDir } = job;
   const cancelSignal = job.abortController.signal;
 
-  const users = await getRecordingUsers(recFileBase);
+  const users = await getRecordingUsers(recFileBase, false);
   const streamTypes = await getStreamTypes({ recFileBase, cancelSignal });
   const writtenTracks: [number, string][] = [];
+  const dataStat = await fs.stat(`${recFileBase}.data`);
+  const includedUsers = users.filter((u) => !(job.options?.ignoreTracks?.includes(u.track)));
+  const includedTracks = includedUsers.map((u) => u.track);
+
+  // Get cached segments, if any
+  const cachedSegments = await getCachedTranscription(job.recordingId, dataStat.size, includedTracks);
+  if (cachedSegments) {
+    await fs.writeFile(
+      job.outputFile,
+      makeTranscriptionFile(
+        (job.options?.format as TranscriptionFormatTypes) || 'vtt',
+        cachedSegments,
+        includedUsers.map((u) => u.globalName || u.username)
+      )
+    );
+    return;
+  }
 
   async function createTrack(i: number) {
     const user = users[i];
     const track = i + 1;
-    const fileName = `${nanoid(40)}-${fileNameFromUser(track, user)}.opus`;
     if (job.options?.ignoreTracks?.includes(track)) return;
+
+    const fileName = `${nanoid(40)}-${fileNameFromUser(track, user)}.opus`;
 
     job.setState({
       type: job.state.type,
@@ -146,6 +186,7 @@ export async function processTranscriptionJob(job: Job) {
         [track]: { progress: 0, processing: true }
       }
     });
+
     const audioWritePath = path.join(tmpDir, fileName);
     writtenTracks.push([i, fileName]);
     const success = await encodeTranscriptionTrack({
@@ -177,7 +218,7 @@ export async function processTranscriptionJob(job: Job) {
   if (cancelSignal.aborted) throw new Error('Job aborted');
   // Move files to download so runpod can get them
   await Promise.all(
-    writtenTracks.map(([, fileName]) => {
+    writtenTracks.sort((a, b) => a[0] - b[0]).map(([, fileName]) => {
       const fromPath = path.join(tmpDir, fileName);
       const toPath = path.join(DOWNLOADS_DIRECTORY, fileName);
       if (cancelSignal.aborted) throw new Error('Job aborted');
@@ -190,12 +231,14 @@ export async function processTranscriptionJob(job: Job) {
     job,
     writtenTracks.map(([, fileName]) => fileName)
   );
+  const segments = runpodResponse.output.corrected_segments;
+  await setCachedTranscription(job.recordingId, dataStat.size, includedTracks, segments);
 
   await fs.writeFile(
     job.outputFile,
     makeTranscriptionFile(
       (job.options?.format as TranscriptionFormatTypes) || 'vtt',
-      runpodResponse.output.corrected_segments,
+      segments,
       writtenTracks.map(([i]) => users[i].globalName || users[i].username)
     )
   );
@@ -264,11 +307,21 @@ async function _runRunpodRequest(job: Job, fileNames: string[]) {
   return runpodResponse;
 }
 
-export async function backgroundTranscription(job: Job, writtenTracks: [number, string][], users: RecordingUser[]) {
+export async function backgroundTranscription(job: Job, writtenTracks: [number, string][], users: RecordingUser[], dataSize: number) {
   if (!RUNPOD_API_KEY || !RUNPOD_TRANSCRIPTION_ENDPOINT_ID || !DOWNLOAD_URL_PREFIX) throw new Error('Missing environment variables.');
 
   const cancelSignal = job.abortController.signal;
   const outputFileNames: [number, string][] = [];
+  const includedTracks = writtenTracks.map(([t]) => t);
+
+  // Get cached segments, if any
+  const cachedSegments = await getCachedTranscription(job.recordingId, dataSize, includedTracks);
+  if (cachedSegments)
+    return makeTranscriptionFile(
+      job.options?.includeTranscription || 'vtt',
+      cachedSegments,
+      writtenTracks.map(([i]) => users[i - 1].globalName || users[i - 1].username)
+    );
 
   // Copy files to download so runpod can get them
   await Promise.all(
@@ -286,10 +339,12 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
     job,
     outputFileNames.map(([, fileName]) => fileName)
   );
+  const segments = runpodResponse.output.corrected_segments;
+  await setCachedTranscription(job.recordingId, dataSize, includedTracks, segments);
 
   return makeTranscriptionFile(
     job.options?.includeTranscription || 'vtt',
-    runpodResponse.output.corrected_segments,
+    segments,
     writtenTracks.map(([i]) => users[i - 1].globalName || users[i - 1].username)
   );
 }
