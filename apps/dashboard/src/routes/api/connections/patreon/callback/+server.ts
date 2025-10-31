@@ -49,7 +49,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   ).then((res) => res.json());
   if (!('data' in me)) return redirect(307, '/?error=__NO_USER_DATA&from=patreon');
 
-  console.log(`User ${auth.id} connected patreon user ${me.data.id}`, me);
+  console.log(`User ${auth.id} connected patreon user ${me.data.id}`, JSON.stringify(me, null, 2));
 
   const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });
   if (otherUser && otherUser.id !== auth.id) await prisma.user.update({ where: { id: otherUser.id }, data: { patronId: null } });
