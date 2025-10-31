@@ -311,7 +311,7 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
         await uploadSession.text().catch(() => null)
       );
       throw new UploadError('The recording could not be uploaded to Box due to exceeding a storage/file size limit on the account.');
-    } else if (uploadSession.status !== 200) {
+    } else if (uploadSession.status !== 200 && uploadSession.status !== 201) {
       logger.error(
         `Box error while creating upload session for recording ${job.recordingId} for user ${userId} (${uploadSession.status})`,
         await uploadSession.text().catch(() => null)
