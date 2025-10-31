@@ -205,14 +205,15 @@ const app = uWS
     drain(ws) {
       ws.getUserData().controller?.onDrain();
     },
-    close: (ws) => {
+    close: (ws, code, message) => {
       const data = ws.getUserData();
       if (!data.ready) data.cancelTimeout();
       data.left = true;
       data.controller?.onEnd();
       openStreams.dec();
       openStreamCount--;
-      logger.info(`WS close (${openStreamCount})`);
+      const reason = message ? Buffer.from(message).toString() : '';
+      logger.info(`WS close (${openStreamCount}) code=${code} reason=${reason} buffered=${ws.getBufferedAmount()}`);
     }
   })
   .listen(HOST, PORT, async (token) => {

@@ -66,6 +66,10 @@ class WebSocketStream extends Transform {
   private shouldPause = false;
   private waitingForBackpressure = false;
   private wsEnded = false;
+  // Finalization/EOF coordination
+  private ending = false;
+  private finalSeq = -1;
+  private finalTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly ws: WebSocket<WebsocketData>,
@@ -86,9 +90,8 @@ class WebSocketStream extends Transform {
 
   private setData(chunk: Buffer) {
     this.buffer = Buffer.concat([this.buffer, chunk]);
-    while (this.buffer.length >= SEND_SIZE - 4 && !this.ws.getUserData().left) {
+    while (this.buffer.length >= SEND_SIZE - 4 && !this.ws.getUserData().left)
       this.sendBuffer();
-    }
   }
 
   private sendBuffer() {
@@ -131,11 +134,8 @@ class WebSocketStream extends Transform {
 
   setPaused(value: boolean): boolean {
     this.shouldPause = value;
-    if (value) {
-      this.pause();
-    } else if (!this.waitingForBackpressure) {
-      this.resume();
-    }
+    if (value) this.pause();
+    else if (!this.waitingForBackpressure) this.resume();
     return value;
   }
 
@@ -153,24 +153,36 @@ class WebSocketStream extends Transform {
       acksRecieved.inc();
       if (this.sending <= this.ackd + MAX_ACK) {
         this.shouldPause = false;
-        if (!this.waitingForBackpressure) {
-          this.resume();
-        }
+        if (!this.waitingForBackpressure) this.resume();
       }
+      if (this.ending) this.maybeClose();
     }
   }
 
   onDrain() {
     logger.info(`[${this.id}-${this.track}] Backpressure drained (${this.ws.getBufferedAmount()})`);
     this.waitingForBackpressure = false;
-    if (!this.shouldPause) {
-      this.resume();
+    if (!this.shouldPause) this.resume();
+    if (this.ending) this.maybeClose();
+  }
+
+  private maybeClose() {
+    if (this.wsEnded || this.ws.getUserData().left) return;
+    if (this.waitingForBackpressure) return;
+    if (this.ending && this.ackd >= this.finalSeq) {
+      if (this.finalTimer) {
+        clearTimeout(this.finalTimer);
+        this.finalTimer = undefined;
+      }
+      logger.info(`[${this.id}-${this.track}] Final ACK received (ackd=${this.ackd} finalSeq=${this.finalSeq}); closing stream`);
+      this.endStream();
     }
   }
 
   endStream(code = 1000) {
     if (!this.wsEnded) {
       this.wsEnded = true;
+      logger.info(`[${this.id}-${this.track}] Ending stream (code=${code}) buffered=${this.ws.getBufferedAmount()} lastSent=${this.sending - 1} ackd=${this.ackd}`);
       try {
         if (!this.ws.getUserData().left) {
           this.ws.end(code);
@@ -187,11 +199,28 @@ class WebSocketStream extends Transform {
 
   _final(callback: (error?: Error | null) => void) {
     try {
-      while (this.buffer.length > 4 && !this.ws.getUserData().left) {
-        this.sendBuffer();
-      }
-      this.sendBuffer();
-      this.endStream();
+      // Flush full chunks
+      while (this.buffer.length >= SEND_SIZE - 4 && !this.ws.getUserData().left) this.sendBuffer();
+
+      // Send remaining partial content
+      if (this.buffer.length > 0 && !this.ws.getUserData().left) this.sendBuffer();
+
+      // Send end frame
+      if (!this.ws.getUserData().left) this.sendBuffer();
+
+      this.ending = true;
+      this.finalSeq = this.sending - 1;
+      logger.info(`[${this.id}-${this.track}] Sent final frame; finalSeq=${this.finalSeq} ackd=${this.ackd} buffered=${this.ws.getBufferedAmount()}`);
+
+      this.maybeClose();
+
+      // Force close after a bit if it hangs
+      if (!this.wsEnded)
+        this.finalTimer = setTimeout(() => {
+          logger.warn(`[${this.id}-${this.track}] Final ACK timeout; closing socket (ackd=${this.ackd} expected=${this.finalSeq})`);
+          this.endStream();
+        }, 3000);
+
       callback();
     } catch (e) {
       callback(e instanceof Error ? e : new Error(String(e)));
