@@ -47,6 +47,18 @@ module.exports = {
     minimumMinutesForPayment: 1
   },
 
+  // Stripe configuration for payouts
+  stripe: {
+    // Stripe secret key (get from https://dashboard.stripe.com/apikeys)
+    secretKey: process.env.STRIPE_SECRET_KEY || '',
+    // Stripe publishable key (for frontend if needed)
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+    // Minimum payout amount in cents (e.g., 1000 = $10.00)
+    minimumPayoutCents: process.env.STRIPE_MINIMUM_PAYOUT_CENTS ? parseInt(process.env.STRIPE_MINIMUM_PAYOUT_CENTS, 10) : 1000,
+    // Webhook secret for verifying webhook signatures
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || ''
+  },
+
   // for refresh patrons job
   patreon: {
     campaignId: 0,

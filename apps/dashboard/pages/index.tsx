@@ -32,6 +32,10 @@ interface Props {
   googleDrive?: boolean;
   microsoft?: boolean;
   dropbox?: boolean;
+  balanceCents?: number;
+  pendingPayoutCents?: number;
+  stripeConnected?: boolean;
+  minimumPayoutCents?: number;
   error?: string;
   stack?: string;
 }
@@ -141,6 +145,13 @@ export default function Index(props: Props) {
   const [modalContent, setModalContent] = useState('');
 
   const [patronUnlinkOpen, setPatronUnlinkOpen] = useState(false);
+  
+  // Payout state
+  const [balanceCents, setBalanceCents] = useState(props.balanceCents || 0);
+  const [pendingPayoutCents, setPendingPayoutCents] = useState(props.pendingPayoutCents || 0);
+  const [stripeConnected, setStripeConnected] = useState(props.stripeConnected || false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutLoading, setPayoutLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [drive, setDrive] = useState(props.drive);
@@ -427,6 +438,142 @@ export default function Index(props: Props) {
                 </>
               )}
             </Section>
+            <Section title="Payouts" big>
+              <div className="flex flex-col w-full gap-4">
+                <div className="bg-zinc-800 rounded p-4">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-300">Available Balance:</span>
+                      <span className="font-medium text-green-400">
+                        ${((balanceCents - pendingPayoutCents) / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-300">Pending Payouts:</span>
+                      <span className="font-medium text-yellow-400">
+                        ${(pendingPayoutCents / 100).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-zinc-700 pt-2 mt-2">
+                      <span className="text-zinc-300">Total Balance:</span>
+                      <span className="font-medium">
+                        ${(balanceCents / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <Row title="Stripe Account">
+                  {stripeConnected ? (
+                    <Button 
+                      type="transparent" 
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/stripe/onboard', { method: 'POST' });
+                          const data = await res.json();
+                          if (data.url) {
+                            location.href = data.url;
+                          } else {
+                            setModalTitle('Error');
+                            setModalContent(data.error || 'Failed to open Stripe dashboard');
+                            setModalOpen(true);
+                          }
+                        } catch (e: any) {
+                          setModalTitle('Error');
+                          setModalContent(e.message || 'Failed to connect to Stripe');
+                          setModalOpen(true);
+                        }
+                      }}
+                    >
+                      Manage Account
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="brand" 
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/stripe/onboard', { method: 'POST' });
+                          const data = await res.json();
+                          if (data.url) {
+                            location.href = data.url;
+                          } else {
+                            setModalTitle('Error');
+                            setModalContent(data.error || 'Failed to create Stripe account');
+                            setModalOpen(true);
+                          }
+                        } catch (e: any) {
+                          setModalTitle('Error');
+                          setModalContent(e.message || 'Failed to connect to Stripe');
+                          setModalOpen(true);
+                        }
+                      }}
+                    >
+                      Connect Stripe
+                    </Button>
+                  )}
+                </Row>
+                
+                {stripeConnected && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm text-zinc-300">
+                      Payout Amount (min: ${((props.minimumPayoutCents || 1000) / 100).toFixed(2)})
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min={(props.minimumPayoutCents || 1000) / 100}
+                        max={(balanceCents - pendingPayoutCents) / 100}
+                        value={payoutAmount}
+                        onChange={(e) => setPayoutAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="flex-1 bg-zinc-800 text-white px-3 py-2 rounded border border-zinc-600 focus:border-teal-500 focus:outline-none"
+                        disabled={payoutLoading}
+                      />
+                      <Button
+                        type="brand"
+                        disabled={payoutLoading || !payoutAmount || parseFloat(payoutAmount) < (props.minimumPayoutCents || 1000) / 100 || parseFloat(payoutAmount) > (balanceCents - pendingPayoutCents) / 100}
+                        onClick={async () => {
+                          const amount = Math.round(parseFloat(payoutAmount) * 100);
+                          if (isNaN(amount) || amount <= 0) return;
+                          
+                          setPayoutLoading(true);
+                          try {
+                            const res = await fetch('/api/stripe/payout', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ amountCents: amount })
+                            });
+                            const data = await res.json();
+                            
+                            if (res.ok) {
+                              setBalanceCents(b => b - amount);
+                              setPendingPayoutCents(p => p + amount);
+                              setPayoutAmount('');
+                              setModalTitle('Payout Requested');
+                              setModalContent(`Your payout of $${(amount / 100).toFixed(2)} has been initiated. It will be processed and deposited to your connected bank account.`);
+                              setModalOpen(true);
+                            } else {
+                              setModalTitle('Payout Failed');
+                              setModalContent(data.error || 'Failed to process payout');
+                              setModalOpen(true);
+                            }
+                          } catch (e: any) {
+                            setModalTitle('Error');
+                            setModalContent(e.message || 'Failed to request payout');
+                            setModalOpen(true);
+                          } finally {
+                            setPayoutLoading(false);
+                          }
+                        }}
+                      >
+                        Request Payout
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Section>
             <Button type="danger" onClick={() => (location.href = '/api/logout')}>
               Logout
             </Button>
@@ -487,6 +634,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
     const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
     const microsoft = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
     const dropbox = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
+    
+    // Get minimum payout from config (default to 1000 cents = $10.00)
+    const minimumPayoutCents = parseInt(process.env.STRIPE_MINIMUM_PAYOUT_CENTS || '1000', 10);
 
     return {
       props: {
@@ -502,7 +652,11 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
         },
         googleDrive: !!googleDrive,
         microsoft: !!microsoft,
-        dropbox: !!dropbox
+        dropbox: !!dropbox,
+        balanceCents: dbUser?.balanceCents || 0,
+        pendingPayoutCents: dbUser?.pendingPayoutCents || 0,
+        stripeConnected: !!dbUser?.stripeAccountId,
+        minimumPayoutCents
       }
     };
   } catch (error) {

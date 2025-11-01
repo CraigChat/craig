@@ -304,7 +304,6 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         return;
       }
 
-      // Note: Download messages removed per user request - no DMs sent
     }
   }
 

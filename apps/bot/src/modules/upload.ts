@@ -89,7 +89,6 @@ export default class UploadModule extends DexareModule<CraigBot> {
       if (response.status > 299) {
         const error = (await response.json().catch(() => null))?.error ?? 'server_error';
         this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} (${response.status}, ${error})`);
-        // DM removed per user request - errors logged only
       } else if (response.status === 200) {
         const job = await response.json();
         this.logger.info(`Started an upload for recording ${recordingId} for user ${userId}`);
@@ -97,7 +96,6 @@ export default class UploadModule extends DexareModule<CraigBot> {
       }
     } catch (e) {
       this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} due to fetch error`, e);
-      // DM removed per user request - errors logged only
     }
   }
 
@@ -108,17 +106,14 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
     if (!response) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: Could not connect to the server`);
-      // DM removed per user request - errors logged only
       return;
     }
 
     if (response.error) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: ${response.error}`);
-      // DM removed per user request - errors logged only
       return;
     }
 
-    // Do not send success embeds or download buttons
   }
 
   async onTick() {

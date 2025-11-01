@@ -32,6 +32,8 @@ model User {
 
   balanceCents Int     @default(0)
   pendingPayoutCents Int @default(0)
+  
+  stripeAccountId String? // Stripe Connect account ID for payouts
 
   entitlements Entitlement[]
   recordingParticipants RecordingParticipant[]
@@ -222,13 +224,16 @@ model PayoutTransaction {
   userId      String
   amountCents Int
   gateway      String   // 'crypto', 'paypal', 'stripe', etc.
-  gatewayData  String?  // JSON data for gateway-specific info (wallet address, etc.)
+  gatewayData  String?  // JSON data for gateway-specific info (wallet address, Stripe transfer/payout IDs, etc.)
   status      String   @default("pending") // 'pending', 'processing', 'completed', 'failed'
   processedAt DateTime? @db.Timestamptz(6)
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  stripeTransferId String? // Stripe Transfer ID for tracking
+  stripePayoutId String? // Stripe Payout ID if applicable
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
+  @@index([stripeTransferId])
 }
