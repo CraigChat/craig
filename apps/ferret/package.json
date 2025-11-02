@@ -8,7 +8,7 @@
     "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7002 build",
     "dev": "dotenv -e ../../.env -e .env -c -- vite dev --host",
     "build": "dotenv -e ../../.env -e .env -c -- vite build",
-    "preview": "dotenv -e ../../.env -e .env -c -- vite preview",
+    "preview": "dotenv -e ../../.env -e .env -c -- vite preview --host",
     "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
     "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 reload ecosystem.config.cjs --update-env",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
