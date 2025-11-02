@@ -17,6 +17,7 @@
     "format": "eslint . --fix"
   },
   "dependencies": {
+    "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
     "destr": "^2.0.5",
     "emittery": "^1.2.0",

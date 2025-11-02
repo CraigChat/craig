@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { prisma } from '@craig/db';
 import type { Kitchen, Recording } from '@craig/types';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 import { json } from '@sveltejs/kit';
@@ -10,6 +11,7 @@ import { APIErrorCode, type MinimalJobInfo, type MinimalJobUpdate, type MinimalR
 
 import { debug, KITCHEN_URL, REC_DIRECTORY } from './config';
 import { logger } from './logger';
+import { redis } from './redis';
 
 export function kitchenUrl(p: string) {
   return new URL(p, KITCHEN_URL);
@@ -84,6 +86,7 @@ export async function getRecordingInfo(recordingId: string) {
     })()
   ]);
 
+  const extraFeatures = await getExtraFeatures(info.requesterId);
   const cleanInfo: MinimalRecordingInfo = {
     id: recordingId,
     autorecorded: info.autorecorded,
@@ -98,7 +101,12 @@ export async function getRecordingInfo(recordingId: string) {
       id: info.requesterId,
       ...info.requesterExtra
     },
-    features: (Object.keys(info.features) as (keyof Recording.RecordingInfoV1['features'])[]).filter((f) => info.features[f])
+    features: [
+      ...new Set([
+        ...(Object.keys(info.features) as (keyof Recording.RecordingInfoV1['features'])[]).filter((f) => info.features[f]),
+        ...extraFeatures as (keyof Recording.RecordingInfoV1['features'])[]
+      ])
+    ]
   };
 
   return { info, users, cleanInfo };
@@ -117,6 +125,33 @@ export async function deleteRecording(recordingId: string) {
   logger.info(`Manually deleting recording ${recordingId}`);
   const recFileBase = join(REC_DIRECTORY, `${recordingId}.ogg`);
   await Promise.all(['data', 'header1', 'header2'].map((ext) => fs.unlink(`${recFileBase}.${ext}`)));
+}
+
+export async function getExtraFeatures(userId: string): Promise<string[]> {
+  const cacheKey = `extra_features:${userId}`;
+
+  const cached = await redis.get(cacheKey);
+  if (cached !== null) return JSON.parse(cached);
+
+  const features: string[] = [];
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { rewardTier: true }
+    });
+
+    const rewardTier = user?.rewardTier ?? 0;
+
+    if (rewardTier > 0 || rewardTier === -1) features.push('glowers');
+    if (rewardTier >= 30 || rewardTier === -1) features.push('transcription');
+    if (rewardTier >= 100 || rewardTier === -1) features.push('mp3');
+  } catch (e) {
+    console.error(`Failed to get reward tier for ${userId}`, e);
+  }
+  await redis.set(cacheKey, JSON.stringify(features), 'EX', 60);
+
+  return features;
 }
 
 export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: object) {

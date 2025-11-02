@@ -234,6 +234,9 @@ importers:
 
   apps/ferret:
     dependencies:
+      '@craig/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@craig/logger':
         specifier: workspace:*
         version: link:../../packages/logger
