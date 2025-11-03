@@ -90,8 +90,7 @@ class WebSocketStream extends Transform {
 
   private setData(chunk: Buffer) {
     this.buffer = Buffer.concat([this.buffer, chunk]);
-    while (this.buffer.length >= SEND_SIZE - 4 && !this.ws.getUserData().left)
-      this.sendBuffer();
+    while (this.buffer.length >= SEND_SIZE - 4 && !this.ws.getUserData().left) this.sendBuffer();
   }
 
   private sendBuffer() {
@@ -182,7 +181,9 @@ class WebSocketStream extends Transform {
   endStream(code = 1000) {
     if (!this.wsEnded) {
       this.wsEnded = true;
-      logger.info(`[${this.id}-${this.track}] Ending stream (code=${code}) buffered=${this.ws.getBufferedAmount()} lastSent=${this.sending - 1} ackd=${this.ackd}`);
+      logger.info(
+        `[${this.id}-${this.track}] Ending stream (code=${code}) buffered=${this.ws.getBufferedAmount()} lastSent=${this.sending - 1} ackd=${this.ackd}`
+      );
       try {
         if (!this.ws.getUserData().left) {
           this.ws.end(code);

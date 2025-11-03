@@ -104,7 +104,7 @@ export async function getRecordingInfo(recordingId: string) {
     features: [
       ...new Set([
         ...(Object.keys(info.features) as (keyof Recording.RecordingInfoV1['features'])[]).filter((f) => info.features[f]),
-        ...extraFeatures as (keyof Recording.RecordingInfoV1['features'])[]
+        ...(extraFeatures as (keyof Recording.RecordingInfoV1['features'])[])
       ])
     ]
   };

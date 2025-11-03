@@ -8,9 +8,9 @@ import { nanoid } from 'nanoid';
 import { DOWNLOAD_URL_PREFIX, DOWNLOADS_DIRECTORY, RUNPOD_API_KEY, RUNPOD_TRANSCRIPTION_ENDPOINT_ID } from '../../util/config.js';
 import { fileNameFromUser, runParallelFunction, wait } from '../../util/index.js';
 import logger from '../../util/logger.js';
-import { redis } from '../../util/redis.js';
 import { encodeTranscriptionTrack, getStreamTypes } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
+import { redis } from '../../util/redis.js';
 import { Job } from '../job.js';
 
 interface RunpodQueuedResponse {
@@ -155,7 +155,7 @@ export async function processTranscriptionJob(job: Job) {
   const streamTypes = await getStreamTypes({ recFileBase, cancelSignal });
   const writtenTracks: [number, string][] = [];
   const dataStat = await fs.stat(`${recFileBase}.data`);
-  const includedUsers = users.filter((u) => !(job.options?.ignoreTracks?.includes(u.track)));
+  const includedUsers = users.filter((u) => !job.options?.ignoreTracks?.includes(u.track));
   const includedTracks = includedUsers.map((u) => u.track);
 
   // Get cached segments, if any
@@ -218,13 +218,15 @@ export async function processTranscriptionJob(job: Job) {
   if (cancelSignal.aborted) throw new Error('Job aborted');
   // Move files to download so runpod can get them
   await Promise.all(
-    writtenTracks.sort((a, b) => a[0] - b[0]).map(([, fileName]) => {
-      const fromPath = path.join(tmpDir, fileName);
-      const toPath = path.join(DOWNLOADS_DIRECTORY, fileName);
-      if (cancelSignal.aborted) throw new Error('Job aborted');
-      job.extraFiles.push(toPath);
-      return fs.rename(fromPath, toPath);
-    })
+    writtenTracks
+      .sort((a, b) => a[0] - b[0])
+      .map(([, fileName]) => {
+        const fromPath = path.join(tmpDir, fileName);
+        const toPath = path.join(DOWNLOADS_DIRECTORY, fileName);
+        if (cancelSignal.aborted) throw new Error('Job aborted');
+        job.extraFiles.push(toPath);
+        return fs.rename(fromPath, toPath);
+      })
   );
 
   const runpodResponse = await runRunpodRequest(
