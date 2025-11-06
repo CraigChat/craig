@@ -169,7 +169,8 @@ async function chunkUpload(job: Job, session: BoxUploadSession, accessToken: str
     const res = await fetch(session.session_endpoints.upload_part, {
       method: 'PUT',
       headers: {
-        'Content-Length': length.toString(),
+        'Content-Type': 'application/octet-stream',
+        Authorization: `Bearer ${accessToken}`,
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         Digest: `sha=${partDigest}`
       },
@@ -256,9 +257,10 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
       signal: job.abortController.signal
     });
 
-    if (preflightResponse.status === 409)
-      throw new UploadError('The recording could not be uploaded to Box possibly due to exceeding a storage limit on the account.');
-    else if (preflightResponse.status !== 200) {
+    if (preflightResponse.status === 409) {
+      const data = await preflightResponse.json().catch(() => null);
+      throw new UploadError(`The recording could not be uploaded to Box possibly due to exceeding a storage limit on the account. (${data.code})`);
+    } else if (preflightResponse.status !== 200) {
       const data = await preflightResponse.json().catch(() => null);
       throw new UploadError(`Box Error (${preflightResponse.status}): ${data?.code || 'UnexpectedError'}`);
     }
