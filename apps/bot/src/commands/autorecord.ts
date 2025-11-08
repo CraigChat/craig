@@ -71,6 +71,11 @@ export default class AutoRecord extends GeneralCommand {
               required: true
             }
           ]
+        },
+        {
+          type: CommandOptionType.SUB_COMMAND,
+          name: 'prune',
+          description: 'Remove auto-record rules for channels that no longer exist.'
         }
       ]
     });
@@ -272,6 +277,20 @@ export default class AutoRecord extends GeneralCommand {
 
         return {
           content: `Auto-recording on <#${channel}> has been deactivated.`,
+          ephemeral: true
+        };
+      }
+      case 'prune': {
+        const result = await this.prisma.autoRecord.deleteMany({
+          where: {
+            guildId: ctx.guildID,
+            clientId: this.client.bot.user.id,
+            channelId: { notIn: guild.channels.map(c => c.id) }
+          }
+        });
+
+        return {
+          content: `Pruned ${result.count} auto-record rules for non-existent channels.`,
           ephemeral: true
         };
       }
