@@ -21,6 +21,7 @@ import type RecorderModule from '.';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { WebappClient } from './webapp';
 import RecordingWriter from './writer';
+import type { DAVESession } from '@snazzah/davey';
 
 dayjs.extend(duration);
 
@@ -422,7 +423,8 @@ export default class Recording {
       connection.on('resumed', this.onConnectionResumed.bind(this));
       connection.on('unknown', this.onConnectionUnknown.bind(this));
       connection.on('transitioned', (transitionId: number) => {
-        this.writeToLog(`DAVE session transitioned to ${transitionId} (v${this.connection?.daveProtocolVersion})`, 'connection');
+        const session: DAVESession = this.connection?.daveSession as any;
+        this.writeToLog(`DAVE session transitioned to ${transitionId} (v${this.connection?.daveProtocolVersion}, users: ${session?.getUserIds().join(', ')})`, 'connection');
       });
       connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
