@@ -4,7 +4,7 @@ import prisma from '../../../lib/prisma';
 import { parseUser } from '../../../utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-06-20'
+  apiVersion: '2023-10-16'
 });
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
