@@ -85,7 +85,7 @@ module.exports = {
       // Custom consent message when bot joins (for getting consent from participants)
       // Set to null or empty string to disable
       consentMessage:
-        '⚠️ Recording has started. By staying in this voice channel, you consent to being recorded. Learn more: Terms (https://example.com/terms) • Privacy (https://example.com/privacy)',
+        '⚠️ Recording has started. By staying in this voice channel, you consent to being recorded. Learn more: Terms (https://app.termly.io/policy-viewer/policy.html?policyUUID=1f9c2dc0-d885-46ac-8971-6a84adced52e) • Privacy (https://app.termly.io/policy-viewer/policy.html?policyUUID=71d7e121-da10-46c9-b5f5-9397578a480b)',
       // Record disk size limit, in bytes
       sizeLimit: 536870912,
       // Record disk size limit for Opus web users, in bytes
