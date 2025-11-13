@@ -47,8 +47,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   // Handle the event
   try {
     switch (event.type) {
-      case 'transfer.paid':
-      case 'transfer.succeeded': {
+      case 'transfer.created': {
         const transfer = event.data.object as Stripe.Transfer;
         const metadata = transfer.metadata;
         
@@ -81,8 +80,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         break;
       }
 
-      case 'transfer.failed':
-      case 'transfer.canceled': {
+      case 'transfer.reversed': {
         const transfer = event.data.object as Stripe.Transfer;
         const metadata = transfer.metadata;
         
