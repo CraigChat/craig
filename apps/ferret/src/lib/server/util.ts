@@ -86,7 +86,7 @@ export async function getRecordingInfo(recordingId: string) {
     })()
   ]);
 
-  const extraFeatures = await getExtraFeatures(info.requesterId);
+  const extraFeatures = await getExtraFeatures(info.requesterId, info.guildExtra.id);
   const cleanInfo: MinimalRecordingInfo = {
     id: recordingId,
     autorecorded: info.autorecorded,
@@ -130,8 +130,16 @@ export async function deleteRecording(recordingId: string) {
   await Promise.all(['data', 'header1', 'header2'].map((ext) => fs.unlink(`${recFileBase}.${ext}`)));
 }
 
-export async function getExtraFeatures(userId: string): Promise<string[]> {
-  const cacheKey = `extra_features:${userId}`;
+function rewardTierToFeatures(rewardTier: number) {
+  const features: string[] = [];
+  if (rewardTier > 0 || rewardTier === -1) features.push('glowers');
+  if (rewardTier >= 30 || rewardTier === -1) features.push('transcription');
+  if (rewardTier >= 100 || rewardTier === -1) features.push('mp3');
+  return features;
+}
+
+async function getFeaturesFromUser(userId: string): Promise<string[]> {
+  const cacheKey = `extra_features:user:${userId}`;
 
   const cached = await redis.get(cacheKey);
   if (cached !== null) return JSON.parse(cached);
@@ -145,16 +153,46 @@ export async function getExtraFeatures(userId: string): Promise<string[]> {
     });
 
     const rewardTier = user?.rewardTier ?? 0;
-
-    if (rewardTier > 0 || rewardTier === -1) features.push('glowers');
-    if (rewardTier >= 30 || rewardTier === -1) features.push('transcription');
-    if (rewardTier >= 100 || rewardTier === -1) features.push('mp3');
+    features.push(...rewardTierToFeatures(rewardTier));
   } catch (e) {
-    console.error(`Failed to get reward tier for ${userId}`, e);
+    logger.error(`Failed to get reward tier for user ${userId}`, e);
   }
   await redis.set(cacheKey, JSON.stringify(features), 'EX', 60);
 
   return features;
+}
+
+async function getFeaturesFromGuild(guildId: string): Promise<string[]> {
+  const cacheKey = `extra_features:guild:${guildId}`;
+
+  const cached = await redis.get(cacheKey);
+  if (cached !== null) return JSON.parse(cached);
+
+  const features: string[] = [];
+
+  try {
+    const blessing = await prisma.blessing.findFirst({ where: { guildId } });
+    const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+
+    const rewardTier = blessingUser?.rewardTier ?? 0;
+    features.push(...rewardTierToFeatures(rewardTier));
+  } catch (e) {
+    logger.error(`Failed to get reward tier for guild ${guildId}`, e);
+  }
+  await redis.set(cacheKey, JSON.stringify(features), 'EX', 60);
+
+  return features;
+}
+
+export async function getExtraFeatures(userId: string, guildId: string) {
+  return [
+    ...new Set(
+      (await Promise.all([
+        getFeaturesFromUser(userId),
+        getFeaturesFromGuild(guildId)
+      ])).flat()
+    )
+  ]
 }
 
 export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: object) {
