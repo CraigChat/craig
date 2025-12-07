@@ -347,7 +347,7 @@ export async function processRecordingJob(job: Job) {
           }
         }
 
-        if (job.options?.includeTranscription) {
+        if (job.options?.includeTranscription && trackFiles.length > 0) {
           try {
             const dataStat = await fs.stat(`${recFileBase}.data`);
             const transcription = await backgroundTranscription(job, trackFiles, users, dataStat.size);

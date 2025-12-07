@@ -109,8 +109,7 @@ export async function getRecordingInfo(recordingId: string) {
     ]
   };
 
-  for (const feature of extraFeatures)
-    info.features[feature as keyof typeof info['features']] = true;
+  for (const feature of extraFeatures) info.features[feature as keyof (typeof info)['features']] = true;
 
   return { info, users, cleanInfo };
 }
@@ -185,14 +184,7 @@ async function getFeaturesFromGuild(guildId: string): Promise<string[]> {
 }
 
 export async function getExtraFeatures(userId: string, guildId: string) {
-  return [
-    ...new Set(
-      (await Promise.all([
-        getFeaturesFromUser(userId),
-        getFeaturesFromGuild(guildId)
-      ])).flat()
-    )
-  ]
+  return [...new Set((await Promise.all([getFeaturesFromUser(userId), getFeaturesFromGuild(guildId)])).flat())];
 }
 
 export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: object) {
