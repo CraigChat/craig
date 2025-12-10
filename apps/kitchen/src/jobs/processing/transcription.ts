@@ -231,14 +231,7 @@ export async function processTranscriptionJob(job: Job) {
 
   // Write an empty file and avoid runpod
   if (writtenTracks.length === 0)
-    await fs.writeFile(
-    job.outputFile,
-      makeTranscriptionFile(
-        (job.options?.format as TranscriptionFormatTypes) || 'vtt',
-        [],
-        []
-      )
-    );
+    await fs.writeFile(job.outputFile, makeTranscriptionFile((job.options?.format as TranscriptionFormatTypes) || 'vtt', [], []));
 
   const runpodResponse = await runRunpodRequest(
     job,
