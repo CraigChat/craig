@@ -24,6 +24,27 @@ const webhookPayloadParser = (req: NextApiRequest) =>
   }) as Promise<string>;
 
 export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
+
+async function resolveUserEntitlement(userId: string, patronId?: string | null) {
+  const entitlements = await prisma.entitlement.findMany({
+    where: {
+      userId,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
+    },
+    select: { tier: true }
+  });
+  const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      rewardTier: maxTier,
+      ...(maxTier === 0 ? { driveEnabled: false } : {}),
+      ...(patronId !== undefined ? { patronId } : {})
+    }
+  });
+}
+
 const formatPatron = (body: any) => {
   const id = body.data.relationships.user?.data?.id;
   if (!id) return null;
@@ -63,8 +84,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     console.info(new Date().toISOString(), `Deleted patron ${patron.id}`);
     const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
     if (user && user.rewardTier > 0) {
-      console.info(new Date().toISOString(), `Resetting rewards for user ${user.id}`);
-      await prisma.user.update({ where: { id: user.id }, data: { rewardTier: 0, driveEnabled: false } });
+      await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
+      console.info(new Date().toISOString(), `Re-evaluating rewards for user ${user.id}`);
+      await resolveUserEntitlement(user.id);
     }
   } else if (event === 'members:pledge:create' || event === 'members:pledge:update') {
     const patron = formatPatron(body);
@@ -100,16 +122,43 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
       if (user && user.id !== patron.discordId) {
         console.info(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
-        await prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } });
+        // await prisma.user.update({ where: { id: user.id }, data: { patronId: undefined, rewardTier: 0, driveEnabled: false } });
+        await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
+        await resolveUserEntitlement(user.id, null);
       }
+    }
 
-      const tier = determineRewardTier(patron.tiers);
-      console.info(new Date().toISOString(), `Upserting user ${patron.discordId} for patron ${patron.id} (${patron.name}, tier=${tier})`);
-      await prisma.user.upsert({
-        where: { id: patron.discordId },
-        update: { patronId: patron.id, rewardTier: tier },
-        create: { id: patron.discordId, patronId: patron.id, rewardTier: tier }
+    const userId = patron.discordId ?? (await prisma.user.findFirst({ where: { patronId: patron.id } }))?.id;
+    if (!userId) return;
+
+    const tier = determineRewardTier(patron.tiers);
+    if (tier !== 0) {
+      await prisma.entitlement.upsert({
+        where: {
+          userId_source: {
+            userId,
+            source: 'patreon'
+          }
+        },
+        update: {
+          tier,
+          expiresAt: null,
+          sourceEntitlementId: body.data.id
+        },
+        create: {
+          user: {
+            connectOrCreate: {
+              where: { id: userId },
+              create: { id: userId, patronId: patron.id }
+            }
+          },
+          source: 'patreon',
+          tier,
+          sourceEntitlementId: body.data.id
+        }
       });
+      console.info(new Date().toISOString(), `Re-evaluating user ${userId} for patron ${patron.id} (${patron.name}, tier=${tier})`);
+      await resolveUserEntitlement(userId, patron.id);
     }
   }
 };

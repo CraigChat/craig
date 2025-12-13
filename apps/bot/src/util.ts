@@ -97,8 +97,17 @@ export function disableComponents(components: AnyComponent[]) {
 
   function disableButtons(comps: AnyComponent[]) {
     for (const comp of comps) {
-      if (comp.type === ComponentType.BUTTON) comp.disabled = true;
+      if (
+        comp.type === ComponentType.BUTTON ||
+        comp.type === ComponentType.STRING_SELECT ||
+        comp.type === ComponentType.USER_SELECT ||
+        comp.type === ComponentType.ROLE_SELECT ||
+        comp.type === ComponentType.CHANNEL_SELECT ||
+        comp.type === ComponentType.MENTIONABLE_SELECT
+      )
+        comp.disabled = true;
       if ('components' in comp && Array.isArray(comp.components)) disableButtons(comp.components);
+      if ('accessory' in comp && comp.accessory.type === ComponentType.BUTTON) comp.accessory.disabled = true;
     }
   }
 
@@ -200,14 +209,16 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Download',
-                url: `${config.craig.downloadProtocol}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
                 emoji: emojis.getPartial('download')
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: 'Delete recording',
-                url: `${config.craig.downloadProtocol}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${
+                  recording.accessKey
+                }&delete=${recording.deleteKey}`,
                 emoji: emojis.getPartial('delete')
               }
             ]
@@ -328,9 +339,8 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
       ]
     } as EditMessageOptions;
 
-  const downloadProtocol = client.config.craig.downloadProtocol;
   const downloadDomain = client.config.craig.downloadDomain;
-  const baseUrl = `${downloadProtocol}://${downloadDomain}`;
+  const baseUrl = `${client.config.craig.downloadProtocol ?? 'https'}://${downloadDomain}`;
   const emojis = (client.modules.get('slash') as SlashModule<any>).emojis;
   const MAX_PAGE_AMOUNT = 5;
   const pages = Math.ceil(recordings.length / MAX_PAGE_AMOUNT);
@@ -439,4 +449,21 @@ export default abstract class TextCommand extends DexareCommand {
 
 export async function getSelfMember(guild: Eris.Guild, client: Eris.Client) {
   return (await guild.fetchMembers({ userIDs: [client.user.id] }).catch(() => []))[0] ?? null;
+}
+
+export function formatVoiceCode(vpc: string, rows = 2) {
+  const code = vpc.padEnd(rows * 15, '-');
+
+  const result: string[] = [];
+  for (const si in '-'.repeat(rows).split('')) {
+    const i = Number(si);
+    const row = code.slice(i * 15, (i + 1) * 15);
+
+    const part1 = row.slice(0, 5);
+    const part2 = row.slice(5, 10);
+    const part3 = row.slice(10, 15);
+    result.push(`\`${part1}\` \`${part2}\` \`${part3}\``);
+  }
+
+  return result.join('\n');
 }

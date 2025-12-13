@@ -94,7 +94,7 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
-    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
       this.client.commands.logger.warn(
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was ratelimited.`
@@ -243,7 +243,7 @@ export default class Join extends GeneralCommand {
     }
 
     // Check guild-wide cooldown
-    const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}`, 30, 2);
+    const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}:${this.client?.bot?.user?.id}`, 30, 2);
     if (guildCooldown !== true) {
       this.client.commands.logger.warn(
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was server-ratelimited. (${ctx.guildID})`

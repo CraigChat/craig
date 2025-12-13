@@ -315,6 +315,28 @@
     "@discordjs/node-pre-gyp" "^0.4.5"
     node-addon-api "^8.1.0"
 
+"@emnapi/core@^1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.5.0.tgz#85cd84537ec989cebb2343606a1ee663ce4edaf0"
+  integrity sha512-sbP8GzB1WDzacS8fgNPpHlp6C9VZe+SJP3F90W9rLemaQj2PzIuTEl1qDOYQf58YIpyjViI24y9aPWCjEzY2cg==
+  dependencies:
+    "@emnapi/wasi-threads" "1.1.0"
+    tslib "^2.4.0"
+
+"@emnapi/runtime@^1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.5.0.tgz#9aebfcb9b17195dce3ab53c86787a6b7d058db73"
+  integrity sha512-97/BJ3iXHww3djw6hYIfErCZFee7qCtrneuLa20UXFCOTCfBM2cvQHjWJ2EG0s0MtdNwInarqCTz35i4wWXHsQ==
+  dependencies:
+    tslib "^2.4.0"
+
+"@emnapi/wasi-threads@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/wasi-threads/-/wasi-threads-1.1.0.tgz#60b2102fddc9ccb78607e4a3cf8403ea69be41bf"
+  integrity sha512-WI0DdZ8xFSbgMjR1sFsKABJ/C5OnRrjT06JXbZKexJGrDuPTzZdDYfFlsgcCXCyf+suG5QU2e/y1Wo2V/OapLQ==
+  dependencies:
+    tslib "^2.4.0"
+
 "@esbuild/aix-ppc64@0.25.5":
   version "0.25.5"
   resolved "https://registry.yarnpkg.com/@esbuild/aix-ppc64/-/aix-ppc64-0.25.5.tgz#4e0f91776c2b340e75558f60552195f6fad09f18"
@@ -742,6 +764,15 @@
   resolved "https://registry.yarnpkg.com/@mdn/browser-compat-data/-/browser-compat-data-4.1.8.tgz#26b38739ac734b70246da33b4fb0209ccd03b674"
   integrity sha512-iY8qGU+yJvscccvWLyWPKfF9BSLmSFth5HBNjSNtIfoyUrQV3lTZml+zyKWRymMYCgvos6LiSqMj1RDEj3TehA==
 
+"@napi-rs/wasm-runtime@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@napi-rs/wasm-runtime/-/wasm-runtime-1.0.7.tgz#dcfea99a75f06209a235f3d941e3460a51e9b14c"
+  integrity sha512-SeDnOO0Tk7Okiq6DbXmmBODgOAb9dp9gjlphokTUxmt8U3liIP1ZsozBahH69j/RJv+Rfs6IwUKHTgQYJ/HBAw==
+  dependencies:
+    "@emnapi/core" "^1.5.0"
+    "@emnapi/runtime" "^1.5.0"
+    "@tybys/wasm-util" "^0.10.1"
+
 "@next/env@12.1.6":
   version "12.1.6"
   resolved "https://registry.yarnpkg.com/@next/env/-/env-12.1.6.tgz#5f44823a78335355f00f1687cfc4f1dafa3eca08"
@@ -1067,6 +1098,98 @@
   resolved "https://registry.yarnpkg.com/@sindresorhus/is/-/is-0.14.0.tgz#9fb3a3cf3132328151f353de4632e01e52102bea"
   integrity sha512-9NET910DNaIPngYnLLPeg+Ogzqsi9uM4mSboU5y6p8S5DzMTVEsJZrawi+BoDNUVBa2DhJqQYUFvMDfgU062LQ==
 
+"@snazzah/davey-android-arm-eabi@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-android-arm-eabi/-/davey-android-arm-eabi-0.1.8.tgz#6eea3eda092da668e059263a2e15c8642455fb51"
+  integrity sha512-kRrrU2AldUEG8+Qqj+d5bofm1xzHEX2e657TFHOzKXObU7igqINFL61opcb30cMHcnMTGthV3bFFlh6ky0xrqw==
+
+"@snazzah/davey-android-arm64@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-android-arm64/-/davey-android-arm64-0.1.8.tgz#06b97b711c4ae1f5d7c0e5eb0551ce03a8d16db2"
+  integrity sha512-ttGznhY/vy0aUI+wwvt9Ati0U4gujKKjVwBOaOY6Ug+DKaPIc3Sah73XMXoX9QB9TyUBkH7lxvhpI+VneIcg4w==
+
+"@snazzah/davey-darwin-arm64@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-darwin-arm64/-/davey-darwin-arm64-0.1.8.tgz#21966fa518e3b9c146435e96445c12f3f52ff840"
+  integrity sha512-c75j0DuAWZ20XgaTVCXzks2Gl9L0+dC0ID1NSdvoOqBRCphjHBUSf1te2hdWJKI3Dq1uPaJ00JL6fYUkpb+Wxw==
+
+"@snazzah/davey-darwin-x64@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-darwin-x64/-/davey-darwin-x64-0.1.8.tgz#47ad8b1cbeb264ead8b30648d22f3e0dc6629454"
+  integrity sha512-/SAvTmkEc73R4JSAfwVGMcVzwtjvmduaZHWnF49fCO1iFGR688U8k4W1obM9JkaNoLg4LPvU4HGMuDvfxh/gUA==
+
+"@snazzah/davey-freebsd-x64@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-freebsd-x64/-/davey-freebsd-x64-0.1.8.tgz#fd2d2fb8c494033ea6519d7a673981c34fba0829"
+  integrity sha512-91gPSY0gcbq/o7yqpBfWyrck7yZ4nciH3LJlk55tpC+NExedWUtH2HvsqVqqoS8TmNu+1msT0+5nJsq65flWPQ==
+
+"@snazzah/davey-linux-arm-gnueabihf@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-linux-arm-gnueabihf/-/davey-linux-arm-gnueabihf-0.1.8.tgz#e515801da6c262c6c914f7f1e042120baf8bb6f1"
+  integrity sha512-nJQOsykF5XFngsxxv6zKQX0bPfqE2YotlcPajHKVR7COSbrYgFXZ+Cck+nILiDqpCU+4fk7ae+8Knx181qbWYg==
+
+"@snazzah/davey-linux-arm64-gnu@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-linux-arm64-gnu/-/davey-linux-arm64-gnu-0.1.8.tgz#c51103e29daa0e9b6cb3cf631ee13219e9d4b80b"
+  integrity sha512-IaALezD2F3Qt2n1GL5Wm2aQEjeiJI6gzSEhEHYiqyZUM/LygCyRXSDkoPAvHGuu3Xwy5m58Z20pfukxA49xbGQ==
+
+"@snazzah/davey-linux-arm64-musl@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-linux-arm64-musl/-/davey-linux-arm64-musl-0.1.8.tgz#f5b085763edb5464e1f11a781ec4db91fe222a4e"
+  integrity sha512-OhEwQmZ/ntiqHoSAxRe1qVfELdKMREqwlf52vhPMFVa4XNyT6jNYXGanTMjYX2+jhH9SlJ7cqsADm1VFvjRnGA==
+
+"@snazzah/davey-linux-x64-gnu@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-linux-x64-gnu/-/davey-linux-x64-gnu-0.1.8.tgz#205d73eacab4409cf406b870c4de486d189b89f1"
+  integrity sha512-yghgG7iXZUHy734Cq3PcgrbRnLhhB233JNTX5VPRxRqdwFAg2MzAJ2iSWpP12K6hSqKq9hw0sdt8CNpr0mEXjQ==
+
+"@snazzah/davey-linux-x64-musl@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-linux-x64-musl/-/davey-linux-x64-musl-0.1.8.tgz#cf5eb6fad309022f06859ac2ac139124392c6d38"
+  integrity sha512-WwCiAge27ZOEu7NRx5NFjpCAkGcUGHGtoROBY4ElRYE0Tp3DfuzWU06qSu6JBQPlzhTTBN29X2/kGP8iRUwqnQ==
+
+"@snazzah/davey-wasm32-wasi@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-wasm32-wasi/-/davey-wasm32-wasi-0.1.8.tgz#c751838b99da898e950d96ec273158c5eeaffa6a"
+  integrity sha512-VAUY6eMhiS4HkHDh0SCjVbwf2SUR/cHs0IzS02p4lYwuUaqPFQnraxMNZ6R2MNOK8NmtPbCpWvi7kYMxMJuL2A==
+  dependencies:
+    "@napi-rs/wasm-runtime" "^1.0.7"
+
+"@snazzah/davey-win32-arm64-msvc@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-win32-arm64-msvc/-/davey-win32-arm64-msvc-0.1.8.tgz#70e0afce7c85c30d60517530ae7d4ffd18151924"
+  integrity sha512-4ZcEhyfuRH+ni4pHBrgm+2zumwgaac5+OGOKHEGezJmUd3omn/iKpcj9Z0+Y9qQ8UGslzBrgesW46ENXoOfv2Q==
+
+"@snazzah/davey-win32-ia32-msvc@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-win32-ia32-msvc/-/davey-win32-ia32-msvc-0.1.8.tgz#5b9af9947b1d8114a1e589eccc6af7d5c09eed2c"
+  integrity sha512-znL43C+hxocxLgk/zbgCukOSNW14HYQE5G6fNeWtANHVCstkTN7hrJVbZfBnuKD+Jw1RbCs4gxLsYja1n1iZnA==
+
+"@snazzah/davey-win32-x64-msvc@0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey-win32-x64-msvc/-/davey-win32-x64-msvc-0.1.8.tgz#3258f4b12f1ce3cedc7919474915422a81c7edda"
+  integrity sha512-JKIco1miwtM4NgVwU/H9TJdUaSlJ+kdtydy3+tiV9cmJv0u1SM2NpwjV85H44xAQWW2zcRBHP0ZDriciHw09qQ==
+
+"@snazzah/davey@^0.1.6", "@snazzah/davey@^0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@snazzah/davey/-/davey-0.1.8.tgz#0e066ab85d6e68dd963b06e24c0aba7bc4ff1f2f"
+  integrity sha512-f4NkCtU/4r9DUohp636qkZkxCF19v8Xq6W/1m4IKY2emZm+M2IdhWIv4GQxog2bQBWLNRRLD4DNM/UXEUb8W/A==
+  optionalDependencies:
+    "@snazzah/davey-android-arm-eabi" "0.1.8"
+    "@snazzah/davey-android-arm64" "0.1.8"
+    "@snazzah/davey-darwin-arm64" "0.1.8"
+    "@snazzah/davey-darwin-x64" "0.1.8"
+    "@snazzah/davey-freebsd-x64" "0.1.8"
+    "@snazzah/davey-linux-arm-gnueabihf" "0.1.8"
+    "@snazzah/davey-linux-arm64-gnu" "0.1.8"
+    "@snazzah/davey-linux-arm64-musl" "0.1.8"
+    "@snazzah/davey-linux-x64-gnu" "0.1.8"
+    "@snazzah/davey-linux-x64-musl" "0.1.8"
+    "@snazzah/davey-wasm32-wasi" "0.1.8"
+    "@snazzah/davey-win32-arm64-msvc" "0.1.8"
+    "@snazzah/davey-win32-ia32-msvc" "0.1.8"
+    "@snazzah/davey-win32-x64-msvc" "0.1.8"
+
 "@snazzah/emoji-sync@^0.1.2":
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/@snazzah/emoji-sync/-/emoji-sync-0.1.2.tgz#d61de20d1e7ed141f3c2283098bbb458b1e447e0"
@@ -1192,6 +1315,13 @@
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.2.tgz#423c77877d0569db20e1fc80885ac4118314010e"
   integrity sha512-eZxlbI8GZscaGS7kkc/trHTT5xgrjH3/1n2JDwusC9iahPKWMRvRjJSAN5mCXviuTGQ/lHnhvv8Q1YTpnfz9gA==
+
+"@tybys/wasm-util@^0.10.1":
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/@tybys/wasm-util/-/wasm-util-0.10.1.tgz#ecddd3205cf1e2d5274649ff0eedd2991ed7f414"
+  integrity sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==
+  dependencies:
+    tslib "^2.4.0"
 
 "@types/buble@^0.19.2":
   version "0.19.2"
@@ -2689,12 +2819,13 @@ eol@^0.9.1:
   resolved "https://registry.yarnpkg.com/eol/-/eol-0.9.1.tgz#f701912f504074be35c6117a5c4ade49cd547acd"
   integrity sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==
 
-"eris@github:CraigChat/dysnomia#73f4e4424ef5465a592bc53ff6d9bce4957f5929":
+"eris@github:CraigChat/dysnomia#84359f3fe81d254657589c52ae2b91f1d32c359c":
   version "0.2.3"
-  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/73f4e4424ef5465a592bc53ff6d9bce4957f5929"
+  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/84359f3fe81d254657589c52ae2b91f1d32c359c"
   dependencies:
     ws "^8.18.0"
   optionalDependencies:
+    "@snazzah/davey" "^0.1.6"
     "@stablelib/xchacha20poly1305" "~1.0.1"
     opusscript "^0.1.1"
 
@@ -6167,10 +6298,10 @@ slash-create@^5.6.1:
     lodash.isequal "^4.5.0"
     tweetnacl "^1.0.3"
 
-slash-create@^6.4.1:
-  version "6.4.1"
-  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-6.4.1.tgz#d2a32b4e7c4a0d82c92d6daefe349f6fddfe1f3b"
-  integrity sha512-1x9eLSzTtUs499m6HAitFt+V3GDwNVwfgtFa6GALRpSOc7IqBO6r+MJzR1E3Ri8S+0oNwxaIUSvVtSvmYJsGnA==
+slash-create@^6.6.3:
+  version "6.6.3"
+  resolved "https://registry.yarnpkg.com/slash-create/-/slash-create-6.6.3.tgz#09e5fd7699bfbe5db46342528a234424c9673b9a"
+  integrity sha512-DPfUb5zyTvaATynFlpXiofEugUrLsXx+R99ouX4j0rFxZJ7wZXb9I1PTX9dXnEfJd6g4n8tZIVcB5ih0azdzrQ==
   dependencies:
     eventemitter3 "^5.0.1"
     lodash.isequal "^4.5.0"

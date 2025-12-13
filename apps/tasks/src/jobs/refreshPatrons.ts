@@ -93,6 +93,7 @@ export default class RefreshPatrons extends TaskJob {
 
       return {
         id: userId,
+        entitlementId: member.id,
         name: member.attributes.full_name,
         email: member.attributes.email,
         cents: member.attributes.currently_entitled_amount_cents,
@@ -249,12 +250,14 @@ export default class RefreshPatrons extends TaskJob {
           },
           update: {
             tier,
-            expiresAt: null
+            expiresAt: null,
+            sourceEntitlementId: patron.entitlementId
           },
           create: {
             userId: resolvedDiscordId,
             source: 'patreon',
-            tier
+            tier,
+            sourceEntitlementId: patron.entitlementId
           }
         })
       );
@@ -307,6 +310,7 @@ type PatronStatus = 'declined_patron' | 'active_patron' | 'former_patron';
 
 interface Patron {
   id: string;
+  entitlementId: string;
   name: string;
   email: string;
   cents: number;

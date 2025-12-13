@@ -1,6 +1,9 @@
+import { EmojiManager } from '@snazzah/emoji-sync';
+import config from 'config';
 import EventEmitter from 'eventemitter3';
 import groupBy from 'just-group-by';
 import range from 'just-range';
+import path from 'path';
 
 import { wait } from '../util';
 import * as logger from './logger';
@@ -27,6 +30,7 @@ export default class ShardManager extends EventEmitter {
   commands = new Map<string, CommandHandler>();
   shards = new Map<number, Shard>();
   emojiSyncData: any[] | null = null;
+  #emojis?: EmojiManager;
 
   constructor(options: ManagerOptions) {
     super();
@@ -50,6 +54,16 @@ export default class ShardManager extends EventEmitter {
         respond({ result: null, error: e });
       }
     });
+  }
+
+  async syncEmojis() {
+    this.#emojis ??= new EmojiManager({
+      token: config.get('dexare.token'),
+      applicationId: config.get('dexare.applicationID')
+    });
+    await this.#emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
+    await this.#emojis.sync();
+    this.emojiSyncData = Array.from(this.#emojis.emojis.values());
   }
 
   async _processCommand(shard: Shard, msg: ManagerRequestMessage) {

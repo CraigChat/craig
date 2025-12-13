@@ -21,6 +21,7 @@ import type RecorderModule from '.';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { WebappClient } from './webapp';
 import RecordingWriter from './writer';
+import type { DAVESession } from '@snazzah/davey';
 
 dayjs.extend(duration);
 
@@ -407,6 +408,7 @@ export default class Recording {
       this.connection?.removeAllListeners('debug');
       this.connection?.removeAllListeners('pong');
       this.connection?.removeAllListeners('ready');
+      this.connection?.removeAllListeners('transitioned');
       this.connection?.removeAllListeners('unknown');
       this.receiver?.removeAllListeners('data');
     }
@@ -420,6 +422,10 @@ export default class Recording {
       connection.on('pong', this.onConnectionPong.bind(this));
       connection.on('resumed', this.onConnectionResumed.bind(this));
       connection.on('unknown', this.onConnectionUnknown.bind(this));
+      connection.on('transitioned', (transitionId: number) => {
+        const session: DAVESession = this.connection?.daveSession as any;
+        this.writeToLog(`DAVE session transitioned to ${transitionId} (v${this.connection?.daveProtocolVersion}, users: ${session?.getUserIds().join(', ')})`, 'connection');
+      });
       connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
@@ -502,6 +508,10 @@ export default class Recording {
     }
   }
 
+  async onVoiceChannelEffectSend(effect: Eris.VoiceChannelEffect) {
+    // TODO add soundboard sounds in a .ogg.soundboard file
+  }
+
   async onConnectionConnect() {
     if (!this.active) return;
     this.writeToLog(
@@ -520,8 +530,8 @@ export default class Recording {
 
   async onConnectionReady() {
     if (!this.active) return;
-    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode})`, 'connection');
-    this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode})`);
+    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`, 'connection');
+    this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`);
     this.pushToActivity('Automatically reconnected.');
 
     // Get voice & rtc worker versions
@@ -776,6 +786,69 @@ export default class Recording {
     this.writer?.writeChunk(streamNo, packetNo, chunk, buffer);
   }
 
+  async getOrCreateRecordingUser(userID: string) {
+    if (!this.userPackets[userID]) this.userPackets[userID] = [];
+    if (this.users[userID]) return this.users[userID];
+    if (Object.keys(this.users).length >= USER_HARD_LIMIT) return;
+    let user = this.recorder.client.bot.users.get(userID);
+    this.users[userID] = {
+      id: userID,
+      username: user?.username ?? 'Unknown',
+      discriminator: user?.discriminator ?? '0000',
+      globalName: user?.globalName,
+      bot: user?.bot ?? false,
+      unknown: !user,
+      track: this.trackNo++,
+      packet: 2
+    };
+    const recordingUser = this.users[userID];
+
+    this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
+
+    try {
+      this.writeToLog(
+        `Writing headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}, ${recordingUser.id})`,
+        'recording'
+      );
+      this.writer?.writeUserHeader(recordingUser);
+    } catch (e) {
+      this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
+      this.writeToLog(`Failed to write headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`);
+    }
+
+    if (recordingUser.unknown) {
+      const member = this.channel.voiceMembers.get(userID) || (await this.channel.guild.fetchMembers({ userIDs: [userID] }))?.[0];
+      recordingUser.username = member?.username ?? 'Unknown';
+      recordingUser.discriminator = member?.discriminator ?? '0000';
+      recordingUser.globalName = member?.user?.globalName;
+      recordingUser.bot = member?.user?.bot ?? false;
+      recordingUser.unknown = !member;
+      if (member) user = member.user;
+    }
+
+    if (user) {
+      try {
+        const { data } = await axios.get(user.dynamicAvatarURL('png', 2048), { responseType: 'arraybuffer' });
+        recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data, 'binary').toString('base64');
+      } catch (e) {
+        this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
+        this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
+      }
+
+      recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
+      if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
+    }
+
+    this.writer?.writeUser(recordingUser);
+    this.writeToLog(
+      `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
+      'recording'
+    );
+    this.pushToActivity(`<@${userID}> joined the recording.`);
+    this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
+    return recordingUser;
+  }
+
   async onData(data: Buffer, userID: string, timestamp: number) {
     if (!this.active) return;
     if (!userID) return;
@@ -793,79 +866,17 @@ export default class Recording {
       }
     }
 
-    let recordingUser = this.users[userID];
     const chunkTime = process.hrtime(this.startTime!);
     const time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
-    if (!this.userPackets[userID]) this.userPackets[userID] = [];
-    if (!recordingUser) {
-      if (Object.keys(this.users).length >= USER_HARD_LIMIT) return;
-      let user = this.recorder.client.bot.users.get(userID);
-      this.users[userID] = {
-        id: userID,
-        username: user?.username ?? 'Unknown',
-        discriminator: user?.discriminator ?? '0000',
-        globalName: user?.globalName,
-        bot: user?.bot ?? false,
-        unknown: !user,
-        track: this.trackNo++,
-        packet: 2
-      };
-      recordingUser = this.users[userID];
-
-      this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
-
-      try {
-        this.writeToLog(
-          `Writing headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}, ${recordingUser.id})`,
-          'recording'
-        );
-        this.writer?.writeUserHeader(recordingUser);
-      } catch (e) {
-        this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
-        this.writeToLog(`Failed to write headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`);
-      }
-
-      if (recordingUser.unknown) {
-        const member = (await this.channel.guild.fetchMembers({ userIDs: [userID] }))?.[0];
-        recordingUser.username = member?.username ?? 'Unknown';
-        recordingUser.discriminator = member?.discriminator ?? '0000';
-        recordingUser.globalName = member?.user?.globalName;
-        recordingUser.bot = member?.user?.bot ?? false;
-        recordingUser.unknown = !member;
-        if (member) user = member.user;
-      }
-
-      if (user) {
-        try {
-          const { data } = await axios.get(user.dynamicAvatarURL('png', 2048), { responseType: 'arraybuffer' });
-          recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data, 'binary').toString('base64');
-        } catch (e) {
-          this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
-          this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
-        }
-
-        recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
-        if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
-      }
-
-      this.writer?.writeUser(recordingUser);
-      this.writeToLog(
-        `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
-        'recording'
-      );
-      this.pushToActivity(`<@${userID}> joined the recording.`);
-      this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
-    }
+    const recordingUser = await this.getOrCreateRecordingUser(userID);
+    if (!recordingUser) return;
 
     // Add packet to list
     if (this.userPackets[userID].length > 0) {
       const lastPacket = this.userPackets[userID][this.userPackets[userID].length - 1];
       this.userPackets[userID].push({ data, timestamp, time });
       // Reorder packets
-      if (lastPacket.timestamp > timestamp)
-        this.userPackets[userID].sort((a, b) => {
-          return a.timestamp - b.timestamp;
-        });
+      if (lastPacket.timestamp > timestamp) this.userPackets[userID].sort((a, b) => a.timestamp - b.timestamp);
     } else this.userPackets[userID].push({ data, timestamp, time });
 
     // Flush packets if its getting long
@@ -1023,7 +1034,18 @@ export default class Recording {
                   custom_id: `rec:${this.id}:note`,
                   disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
                   emoji: this.emojis.getPartial('addnote')
-                }
+                },
+                ...(this.connection?.daveProtocolVersion && this.connection.daveProtocolVersion > 0
+                  ? [
+                      {
+                        type: ComponentType.BUTTON,
+                        style: ButtonStyle.SECONDARY,
+                        custom_id: `rec:${this.id}:e2ee`,
+                        disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
+                        emoji: this.emojis.getPartial('e2ee')
+                      }
+                    ]
+                  : [])
               ]
             }
           ]

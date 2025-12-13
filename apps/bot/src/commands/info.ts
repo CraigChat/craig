@@ -23,7 +23,7 @@ export default class Info extends GeneralCommand {
         ephemeral: true
       };
 
-    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
       this.client.commands.logger.warn(
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the info command, but was ratelimited.`

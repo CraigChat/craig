@@ -71,6 +71,11 @@ export default class AutoRecord extends GeneralCommand {
               required: true
             }
           ]
+        },
+        {
+          type: CommandOptionType.SUB_COMMAND,
+          name: 'prune',
+          description: 'Remove auto-record rules for channels that no longer exist.'
         }
       ]
     });
@@ -88,7 +93,7 @@ export default class AutoRecord extends GeneralCommand {
         ephemeral: true
       };
 
-    const userCooldown = await processCooldown(`command:${ctx.user.id}`, 5, 3);
+    const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
       this.client.commands.logger.warn(
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the autorecord command, but was ratelimited.`
@@ -191,8 +196,8 @@ export default class AutoRecord extends GeneralCommand {
         if (!parsedRewards.rewards.features.includes('auto'))
           return {
             content: stripIndents`
-              Sorry, but this feature is only for $4 patrons.
-              If you have recently became a patron, login to the [dashboard](https://my.craig.chat/).
+              Sorry, but this feature is only for Tier 2 supporters ($4 patrons).
+              If you have recently became a supporter, login to the [dashboard](https://my.craig.chat/).
               Your benefits may take up to an hour to become active.
 
               > **Note:** You can still record regularly with the \`/join\` command.
@@ -272,6 +277,20 @@ export default class AutoRecord extends GeneralCommand {
 
         return {
           content: `Auto-recording on <#${channel}> has been deactivated.`,
+          ephemeral: true
+        };
+      }
+      case 'prune': {
+        const result = await this.prisma.autoRecord.deleteMany({
+          where: {
+            guildId: ctx.guildID,
+            clientId: this.client.bot.user.id,
+            channelId: { notIn: guild.channels.map(c => c.id) }
+          }
+        });
+
+        return {
+          content: `Pruned ${result.count} auto-record rules for non-existent channels.`,
           ephemeral: true
         };
       }

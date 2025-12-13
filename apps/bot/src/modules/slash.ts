@@ -1,13 +1,25 @@
+import type { DAVESession } from '@snazzah/davey';
 import { EmojiManager } from '@snazzah/emoji-sync';
 import { BaseConfig, DexareClient, DexareModule } from 'dexare';
 import path from 'node:path';
-import { ComponentActionRow, ComponentContext, ComponentType, GatewayServer, SlashCreator, SlashCreatorOptions, TextInputStyle } from 'slash-create';
+import {
+  AnyComponent,
+  ButtonStyle,
+  ComponentActionRow,
+  ComponentContext,
+  ComponentType,
+  GatewayServer,
+  MessageFlags,
+  SlashCreator,
+  SlashCreatorOptions,
+  TextInputStyle
+} from 'slash-create';
 
 import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
 import { prisma } from '../prisma';
 import { reportErrorFromCommand } from '../sentry';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, paginateRecordings, unblessServer } from '../util';
+import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
 
@@ -22,7 +34,7 @@ export interface SlashModuleOptions {
 
 export default class SlashModule<T extends DexareClient<SlashConfig>> extends DexareModule<T> {
   creator: SlashCreator;
-  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'jump' | 'next' | 'prev' | 'remove' | 'stop'>;
+  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'e2ee' | 'jump' | 'next' | 'prev' | 'remove' | 'stop'>;
 
   constructor(client: T) {
     super(client, {
@@ -104,7 +116,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     }
     if (recording.channel.guild.id !== ctx.guildID) return;
     const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
-    if (!hasPermission)
+    if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode')
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
         ephemeral: true
@@ -139,9 +151,11 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
               ephemeral: true
             });
           try {
-            recording.note(modalCtx.values.note || '');
+            recording.note((modalCtx.values.note as string) || '');
             recording.pushToActivity(
-              `${ctx.user.mention} added a note.${modalCtx.values.note ? ` - ${cutoffText(modalCtx.values.note.replace(/\n/g, ' '), 100)}` : ''}`
+              `${ctx.user.mention} added a note.${
+                modalCtx.values.note ? ` - ${cutoffText((modalCtx.values.note as string).replace(/\n/g, ' '), 100)}` : ''
+              }`
             );
             return modalCtx.send({
               content: 'Added the note to the recording!',
@@ -156,8 +170,70 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
           }
         }
       );
+    } else if (action === 'e2ee') {
+      const inCall = recording.channel.voiceMembers.has(ctx.user.id);
+      const vpc = recording.connection?.voicePrivacyCode;
+      await ctx.send({
+        flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
+        components: [
+          {
+            type: ComponentType.TEXT_DISPLAY,
+            content: `This voice call is ${this.emojis.getMarkdown(
+              'e2ee'
+            )} **end-to-end encrypted**, [Learn more here](https://support.discord.com/hc/en-us/articles/25968222946071-End-to-End-Encryption-for-Audio-and-Video).`
+          },
+          {
+            type: ComponentType.SEPARATOR
+          },
+          ...((inCall
+            ? [
+                {
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: `### Voice Privacy Code\nSince <t:${Math.floor(Date.now() / 1000)}:R>\n${
+                    vpc ? formatVoiceCode(vpc) : 'Unknown (might be transitioning the call, try again later)'
+                  }\n-# A new code is generated when people join or leave this call.\n`
+                },
+                {
+                  type: ComponentType.ACTION_ROW,
+                  components: [
+                    {
+                      type: ComponentType.BUTTON,
+                      style: ButtonStyle.SECONDARY,
+                      label: 'View Verification Code',
+                      custom_id: `rec:${recording.id}:verificationcode`
+                    }
+                  ]
+                }
+              ]
+            : [
+                {
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: "-# You aren't in this voice channel right now to be able to view the privacy code."
+                }
+              ]) as AnyComponent[])
+        ]
+      });
+    } else if (action === 'verificationcode') {
+      if (!recording.channel.voiceMembers.has(ctx.user.id))
+        await ctx.send({
+          content: "You aren't in this channel.",
+          ephemeral: true
+        });
+      else {
+        try {
+          const verificationCode = await (recording.connection?.daveSession as DAVESession)?.getVerificationCode(ctx.user.id);
+          await ctx.send({
+            content: `### Verification Code\nSince <t:${Math.floor(Date.now() / 1000)}:R>\n${formatVoiceCode(verificationCode, 3)}`,
+            ephemeral: true
+          });
+        } catch {
+          await ctx.send({
+            content: 'An error occurred when trying to get the verification code, try again later.',
+            ephemeral: true
+          });
+        }
+      }
     }
-    await ctx.acknowledge();
   }
 
   async handleUserInteraction(ctx: ComponentContext) {

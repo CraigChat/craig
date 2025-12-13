@@ -94,15 +94,16 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
 }
 
 const dexareConfig = Object.assign({}, config.get('dexare')) as CraigBotConfig;
-if (process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined) {
-  dexareConfig.erisOptions = Object.assign({}, dexareConfig.erisOptions, {
-    gateway: Object.assign({}, dexareConfig.erisOptions?.gateway ?? {}, {
+dexareConfig.erisOptions = Object.assign({}, dexareConfig.erisOptions, {
+  gateway: Object.assign({}, dexareConfig.erisOptions?.gateway ?? {}, {
+    ...(process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined ? {
       firstShardID: parseInt(process.env.SHARD_ID, 10),
       lastShardID: parseInt(process.env.SHARD_ID, 10),
-      maxShards: parseInt(process.env.SHARD_COUNT, 10)
-    })
-  });
-}
+      maxShards: parseInt(process.env.SHARD_COUNT, 10),
+    } : {}),
+    intents: ['guilds', 'guildMessages', 'guildVoiceStates']
+  })
+});
 export const client = new CraigBot(dexareConfig);
 
 process.once('SIGINT', async () => {
