@@ -9,7 +9,7 @@
 
 <section class="mx-auto flex w-full max-w-4xl flex-col gap-4 p-2 sm:gap-8 sm:p-6">
   <SiteHeader />
-  <div class="z-[1] mt-20 flex flex-col items-center">
+  <div class="z-[1] mt-20 flex flex-col items-center text-center">
     <Icon icon={errorIcon} class="mb-4 h-16 w-16 sm:h-20 sm:w-20" />
     <h1 class="font-display text-6xl text-white sm:text-7xl">{page.status}</h1>
     <h4 class="text-xl sm:text-2xl">
