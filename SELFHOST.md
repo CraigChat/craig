@@ -213,6 +213,11 @@ This allows the `install.sh` script to run without prompting for a password.
 sudo visudo
 ```
 
+Add the following to the bottom of your `visudo` file, replacing `USERNAME` and `/path/to/craig/`:
+```bash
+USERNAME ALL=(ALL) NOPASSWD: /path/to/craig/install.sh
+```
+
 #### Create a Systemd Service File: 
 ```bash
 sudo nano /etc/systemd/system/craig.service
@@ -226,7 +231,7 @@ Description=Run Craig install script at startup
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/sudo /bin/bash /path/to/craig/install.sh
+ExecStart=sudo /path/to/craig/install.sh
 User=USERNAME
 WorkingDirectory=/path/to/craig/
 Restart=on-failure
