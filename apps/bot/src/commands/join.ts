@@ -94,6 +94,12 @@ export default class Join extends GeneralCommand {
         ephemeral: true
       };
 
+    if (this.recorder.voiceTests.has(ctx.guildID))
+      return {
+        content: 'You must finish the voice test before starting a recording.',
+        ephemeral: true
+      };
+
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
       this.client.commands.logger.warn(

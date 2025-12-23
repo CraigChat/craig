@@ -9,7 +9,8 @@ node_modules/
 .vercel
 
 # production
-data/
+apps/*/data/*
+!apps/*/data/voicetest_*.opus
 rec/
 dist/
 build/

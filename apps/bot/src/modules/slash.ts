@@ -34,7 +34,9 @@ export interface SlashModuleOptions {
 
 export default class SlashModule<T extends DexareClient<SlashConfig>> extends DexareModule<T> {
   creator: SlashCreator;
-  emojis: EmojiManager<'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'e2ee' | 'jump' | 'next' | 'prev' | 'remove' | 'stop'>;
+  emojis: EmojiManager<
+    'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'e2ee' | 'jump' | 'next' | 'playingaudio' | 'prev' | 'remove' | 'stop'
+  >;
 
   constructor(client: T) {
     super(client, {
@@ -78,6 +80,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     });
     this.creator.on('componentInteraction', async (ctx) => {
       if (ctx.customID.startsWith('rec:')) await this.handleRecordingInteraction(ctx);
+      else if (ctx.customID.startsWith('voicetest:')) await this.handleVoiceTestInteraction(ctx);
       else if (ctx.customID.startsWith('user:')) await this.handleUserInteraction(ctx);
     });
 
@@ -233,6 +236,33 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
           });
         }
       }
+    }
+  }
+
+  async handleVoiceTestInteraction(ctx: ComponentContext) {
+    const [, action] = ctx.customID.split(':');
+    const voiceTest = this.recorder.voiceTests.get(ctx.guildID!);
+    if (!voiceTest) {
+      await ctx.editParent({ components: disableComponents(ctx.message.components as ComponentActionRow[]) });
+      return ctx.send({
+        content: 'That voice test was not found or may have already ended.',
+        ephemeral: true
+      });
+    }
+
+    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
+    if (!hasPermission)
+      return ctx.send({
+        content: 'You need the `Manage Server` permission or have an access role to manage voice tests.',
+        ephemeral: true
+      });
+
+    if (action === 'stop') {
+      await voiceTest.stopRecording();
+      await ctx.acknowledge();
+    } else if (action === 'cancel') {
+      await voiceTest.cancel();
+      await ctx.acknowledge();
     }
   }
 

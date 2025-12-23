@@ -97,11 +97,13 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
 const dexareConfig = Object.assign({}, config.get('dexare')) as CraigBotConfig;
 dexareConfig.erisOptions = Object.assign({}, dexareConfig.erisOptions, {
   gateway: Object.assign({}, dexareConfig.erisOptions?.gateway ?? {}, {
-    ...(process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined ? {
-      firstShardID: parseInt(process.env.SHARD_ID, 10),
-      lastShardID: parseInt(process.env.SHARD_ID, 10),
-      maxShards: parseInt(process.env.SHARD_COUNT, 10),
-    } : {}),
+    ...(process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined
+      ? {
+          firstShardID: parseInt(process.env.SHARD_ID, 10),
+          lastShardID: parseInt(process.env.SHARD_ID, 10),
+          maxShards: parseInt(process.env.SHARD_COUNT, 10)
+        }
+      : {}),
     intents: ['guilds', 'guildMessages', 'guildVoiceStates']
   })
 });
@@ -128,7 +130,17 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  client.loadModules(LoggerModule, SlashModule, ShardingModule, RecorderModule, AutorecordModule, MetricsModule, UploadModule, EntitlementsModule, CacheModule);
+  client.loadModules(
+    LoggerModule,
+    SlashModule,
+    ShardingModule,
+    RecorderModule,
+    AutorecordModule,
+    MetricsModule,
+    UploadModule,
+    EntitlementsModule,
+    CacheModule
+  );
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   await i18nInit();

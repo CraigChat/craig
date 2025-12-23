@@ -8,6 +8,8 @@ import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
 import fetch from 'node-fetch';
 import path from 'path';
+import semver from 'semver';
+import { ComponentType, MessageFlags } from 'slash-create';
 
 import type { CraigBotConfig } from '../../bot';
 import { onRecordingEnd } from '../../influx';
@@ -16,6 +18,7 @@ import { checkMaintenance } from '../../redis';
 import MetricsModule from '../metrics';
 import type UploadModule from '../upload';
 import Recording, { RecordingState } from './recording';
+import { VoiceTestState } from './voiceTest';
 
 type TRPCRouter = Router<
   unknown,
@@ -50,6 +53,7 @@ const RECORDING_TTL = 5 * 60 * 1000;
 
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
+  voiceTests = new Map<string, import('./voiceTest').default>();
   recordingPath: string;
   recordingsChecked = false;
   trpc = createTRPCClient<TRPCRouter>({
@@ -119,11 +123,144 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         this.recordings.delete(guildID);
       }
     }
+
+    for (const [guildID, voiceTest] of this.voiceTests.entries()) {
+      if (now - voiceTest.createdAt.valueOf() > RECORDING_TTL) {
+        this.logger.warn(
+          `Voice test seems to be a stale test, removing from map... (${guildID}:${voiceTest.state}, by ${
+            voiceTest.user.id
+          }, created ${voiceTest.createdAt.toISOString()})`
+        );
+        this.voiceTests.delete(guildID);
+      }
+    }
   }
 
   find(id: string) {
     for (const recording of this.recordings.values()) {
       if (recording.id === id) return recording;
+    }
+  }
+
+  async pushVoiceVersions(voiceEndpoint: string, voiceVersion: string, rtcWorkerVersion: string) {
+    const regionId = voiceEndpoint.startsWith('c-')
+      ? voiceEndpoint.replace(/\d+?-[\da-f]+\.discord\.media$/, '')
+      : voiceEndpoint.replace(/\d+\.discord\.media$/, '');
+
+    this.metrics.onVoiceServerConnect(regionId);
+
+    const existingRegion = await prisma.voiceRegion.findUnique({ where: { id: regionId } });
+
+    await prisma.voiceRegion.upsert({
+      where: { id: regionId },
+      update: {},
+      create: { id: regionId }
+    });
+
+    // Detect and track versions
+    const voiceVersionSeen = await prisma.voiceVersion.findFirst({
+      where: { version: voiceVersion }
+    });
+
+    if (!voiceVersionSeen)
+      await prisma.voiceVersion.create({
+        data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
+      });
+
+    const rtcWorkerVersionSeen = await prisma.rtcVersion.findFirst({
+      where: { version: rtcWorkerVersion }
+    });
+
+    if (!rtcWorkerVersionSeen)
+      await prisma.rtcVersion.create({
+        data: { version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }
+      });
+
+    // Update latest region voice version
+    const lastVoiceVersion = await prisma.regionVoiceVersion.findUnique({
+      where: { regionId }
+    });
+
+    if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion))
+      await prisma.regionVoiceVersion.upsert({
+        where: { regionId },
+        update: {
+          version: voiceVersion,
+          endpoint: voiceEndpoint,
+          seenAt: new Date()
+        },
+        create: {
+          regionId,
+          version: voiceVersion,
+          endpoint: voiceEndpoint
+        }
+      });
+
+    // Update latest rtc worker version
+    const lastRtcWorkerVersion = await prisma.regionRtcVersion.findUnique({
+      where: { regionId }
+    });
+
+    if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
+      await prisma.regionRtcVersion.upsert({
+        where: { regionId },
+        update: {
+          version: rtcWorkerVersion,
+          endpoint: voiceEndpoint,
+          seenAt: new Date()
+        },
+        create: {
+          regionId,
+          version: rtcWorkerVersion,
+          endpoint: voiceEndpoint
+        }
+      });
+
+    if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
+      const title = `New ${[
+        !existingRegion ? 'Voice Region' : undefined,
+        !voiceVersionSeen ? 'Voice Version' : undefined,
+        !rtcWorkerVersionSeen ? 'RTC Worker Version' : undefined
+      ]
+        .filter((v) => !!v)
+        .join(', ')}`;
+      await fetch(`${this.client.config.craig.systemNotificationURL}?with_components=true`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          flags: MessageFlags.IS_COMPONENTS_V2,
+          components: [
+            {
+              type: ComponentType.CONTAINER,
+              accent_color: 5793266,
+              components: [
+                {
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: [
+                    `# 🔊 ${title}`,
+                    `**Region:** \`${regionId}\` ${!existingRegion ? '**🆕**' : ''}`,
+                    `**Voice Version:** ${voiceVersion} ${!voiceVersionSeen ? '**🆕**' : ''}`,
+                    `**RTC Worker Version:** ${rtcWorkerVersion} ${!rtcWorkerVersionSeen ? '**🆕**' : ''}`
+                  ].join('\n')
+                },
+                {
+                  type: ComponentType.SEPARATOR
+                },
+                {
+                  type: ComponentType.TEXT_DISPLAY,
+                  content: [
+                    `**Voice Server Endpoint:** \`${voiceEndpoint}\``,
+                    `**Bot**: <@${this.client.bot.user.id}> (${this.client.bot.user.id})`,
+                    `-# <t:${Math.floor(Date.now() / 1000)}:F>`
+                  ].join('\n')
+                }
+              ]
+            }
+          ]
+        })
+      });
     }
   }
 
@@ -224,9 +361,17 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       const recording = this.recordings.get(guild.id)!;
       this.logger.warn(`Left guild ${guild.id} during a recording... (${recording.id})`);
       recording.state = RecordingState.ERROR;
-      recording.stateDescription = '⚠️ This guild went unavailable during recording! To prevent further errors, this recording has ended.';
+      recording.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
       await recording.stop(true).catch(() => {});
       await recording.updateMessage();
+    }
+    if (this.voiceTests.has(guild.id)) {
+      const voiceTest = this.voiceTests.get(guild.id)!;
+      this.logger.warn(`Left guild ${guild.id} during a voice test...`);
+      voiceTest.state = VoiceTestState.ERROR;
+      voiceTest.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
+      await voiceTest.cancel().catch(() => {});
+      await voiceTest.updateMessage();
     }
   }
 
@@ -239,6 +384,14 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       recording.stateDescription = '⚠️ This guild went unavailable during recording! To prevent further errors, this recording has ended.';
       await recording.stop(true).catch(() => {});
       await recording.updateMessage();
+    }
+    if (this.voiceTests.has(guild.id)) {
+      const voiceTest = this.voiceTests.get(guild.id)!;
+      this.logger.warn(`Left guild ${guild.id} during a voice test...`);
+      voiceTest.state = VoiceTestState.ERROR;
+      voiceTest.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
+      await voiceTest.cancel().catch(() => {});
+      await voiceTest.updateMessage();
     }
   }
 }

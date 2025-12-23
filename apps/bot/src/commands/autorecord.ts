@@ -285,7 +285,7 @@ export default class AutoRecord extends GeneralCommand {
           where: {
             guildId: ctx.guildID,
             clientId: this.client.bot.user.id,
-            channelId: { notIn: guild.channels.map(c => c.id) }
+            channelId: { notIn: guild.channels.map((c) => c.id) }
           }
         });
 

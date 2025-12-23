@@ -1,4 +1,5 @@
 import { OpusEncoder } from '@discordjs/opus';
+import type { DAVESession } from '@snazzah/davey';
 import axios from 'axios';
 import { stripIndents } from 'common-tags';
 import dayjs from 'dayjs';
@@ -9,7 +10,6 @@ import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
 import fetch from 'node-fetch';
 import path from 'path';
-import semver from 'semver';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
 import type { CraigBot, CraigBotConfig } from '../../bot';
@@ -21,7 +21,6 @@ import type RecorderModule from '.';
 import { UserExtraType, WebappOpCloseReason } from './protocol';
 import { WebappClient } from './webapp';
 import RecordingWriter from './writer';
-import type { DAVESession } from '@snazzah/davey';
 
 dayjs.extend(duration);
 
@@ -424,7 +423,10 @@ export default class Recording {
       connection.on('unknown', this.onConnectionUnknown.bind(this));
       connection.on('transitioned', (transitionId: number) => {
         const session: DAVESession = this.connection?.daveSession as any;
-        this.writeToLog(`DAVE session transitioned to ${transitionId} (v${this.connection?.daveProtocolVersion}, users: ${session?.getUserIds().join(', ')})`, 'connection');
+        this.writeToLog(
+          `DAVE session transitioned to ${transitionId} (v${this.connection?.daveProtocolVersion}, users: ${session?.getUserIds().join(', ')})`,
+          'connection'
+        );
       });
       connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
@@ -508,10 +510,6 @@ export default class Recording {
     }
   }
 
-  async onVoiceChannelEffectSend(effect: Eris.VoiceChannelEffect) {
-    // TODO add soundboard sounds in a .ogg.soundboard file
-  }
-
   async onConnectionConnect() {
     if (!this.active) return;
     this.writeToLog(
@@ -530,7 +528,10 @@ export default class Recording {
 
   async onConnectionReady() {
     if (!this.active) return;
-    this.writeToLog(`Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`, 'connection');
+    this.writeToLog(
+      `Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`,
+      'connection'
+    );
     this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`);
     this.pushToActivity('Automatically reconnected.');
 
@@ -574,8 +575,7 @@ export default class Recording {
   }
 
   async onConnectionUnknown(packet: any) {
-    const client = this.recorder.client;
-    if (!client.config.craig.systemNotificationURL) return;
+    if (!this.recorder.client.config.craig.systemNotificationURL) return;
 
     if (
       typeof packet === 'object' &&
@@ -588,132 +588,12 @@ export default class Recording {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
       const voiceEndpoint = this.connection?.endpoint?.hostname;
       this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
-      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media')) {
+      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
-      }
-      const regionId = voiceEndpoint.startsWith('c-')
-        ? voiceEndpoint.replace(/\d+?-[\da-f]+\.discord\.media$/, '')
-        : voiceEndpoint.replace(/\d+\.discord\.media$/, '');
 
-      this.recorder.metrics.onVoiceServerConnect(regionId);
-
-      const existingRegion = await prisma.voiceRegion.findUnique({ where: { id: regionId } });
-
-      await prisma.voiceRegion.upsert({
-        where: { id: regionId },
-        update: {},
-        create: { id: regionId }
-      });
-
-      // Detect and track versions
-      const voiceVersionSeen = await prisma.voiceVersion.findFirst({
-        where: { version: voiceVersion }
-      });
-
-      if (!voiceVersionSeen)
-        await prisma.voiceVersion.create({
-          data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
-        });
-
-      const rtcWorkerVersionSeen = await prisma.rtcVersion.findFirst({
-        where: { version: rtcWorkerVersion }
-      });
-
-      if (!rtcWorkerVersionSeen)
-        await prisma.rtcVersion.create({
-          data: { version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }
-        });
-
-      // Update latest region voice version
-      const lastVoiceVersion = await prisma.regionVoiceVersion.findUnique({
-        where: { regionId }
-      });
-
-      if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion))
-        await prisma.regionVoiceVersion.upsert({
-          where: { regionId },
-          update: {
-            version: voiceVersion,
-            endpoint: voiceEndpoint,
-            seenAt: new Date()
-          },
-          create: {
-            regionId,
-            version: voiceVersion,
-            endpoint: voiceEndpoint
-          }
-        });
-
-      // Update latest rtc worker version
-      const lastRtcWorkerVersion = await prisma.regionRtcVersion.findUnique({
-        where: { regionId }
-      });
-
-      if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
-        await prisma.regionRtcVersion.upsert({
-          where: { regionId },
-          update: {
-            version: rtcWorkerVersion,
-            endpoint: voiceEndpoint,
-            seenAt: new Date()
-          },
-          create: {
-            regionId,
-            version: rtcWorkerVersion,
-            endpoint: voiceEndpoint
-          }
-        });
-
-      if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
-        const title = `New ${[
-          !existingRegion ? 'Voice Region' : undefined,
-          !voiceVersionSeen ? 'Voice Version' : undefined,
-          !rtcWorkerVersionSeen ? 'RTC Worker Version' : undefined
-        ]
-          .filter((v) => !!v)
-          .join(', ')}`;
-        await fetch(`${client.config.craig.systemNotificationURL}?with_components=true`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            flags: MessageFlags.IS_COMPONENTS_V2,
-            components: [
-              {
-                type: ComponentType.CONTAINER,
-                accent_color: 5793266,
-                components: [
-                  {
-                    type: ComponentType.TEXT_DISPLAY,
-                    content: [
-                      `# 🔊 ${title}`,
-                      `**Region:** \`${regionId}\` ${!existingRegion ? '**🆕**' : ''}`,
-                      `**Voice Version:** ${voiceVersion} ${!voiceVersionSeen ? '**🆕**' : ''}`,
-                      `**RTC Worker Version:** ${rtcWorkerVersion} ${!rtcWorkerVersionSeen ? '**🆕**' : ''}`
-                    ].join('\n')
-                  },
-                  {
-                    type: ComponentType.SEPARATOR,
-                    divider: true,
-                    spacing: SeparatorSpacingSize.SMALL
-                  },
-                  {
-                    type: ComponentType.TEXT_DISPLAY,
-                    content: [
-                      `**Voice Server Endpoint:** \`${voiceEndpoint}\``,
-                      `**Bot**: <@${client.bot.user.id}> (${client.bot.user.id})`,
-                      `-# <t:${Math.floor(Date.now() / 1000)}:F>`
-                    ].join('\n')
-                  }
-                ]
-              }
-            ]
-          })
-        });
-      }
+      await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
   }
 
