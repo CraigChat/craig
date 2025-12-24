@@ -22,6 +22,7 @@ export enum VoiceTestState {
   PLAYBACK,
   NO_AUDIO,
   ENDED,
+  CANCELLED,
   ERROR
 }
 
@@ -79,7 +80,7 @@ export default class VoiceTest {
       this.recorder.logger.error(`Failed to connect for voice test in ${this.guildId}`, e);
       this.state = VoiceTestState.ERROR;
       this.stateDescription = 'Failed to connect to your channel, try again later.';
-      await this.updateMessage();
+      this.updateMessage();
       await this.cleanup();
       return;
     }
@@ -87,7 +88,7 @@ export default class VoiceTest {
     this.state = VoiceTestState.RECORDING;
     this.startTime = process.hrtime();
     this.recordingEndTime = Date.now() + RECORDING_TIMEOUT;
-    await this.updateMessage();
+    this.updateMessage();
     await this.playSound('voicetest_on.opus');
 
     // Start 10-second timer
@@ -105,29 +106,26 @@ export default class VoiceTest {
     if (!hasAudio) {
       this.state = VoiceTestState.NO_AUDIO;
       this.stateDescription = 'No audio was detected during the test. Please check your microphone and try again.';
-      await this.updateMessage();
+      this.updateMessage();
       await this.cleanup();
       return;
     }
 
     this.state = VoiceTestState.PLAYBACK;
-    await this.updateMessage();
+    this.updateMessage();
     await this.playSound('voicetest_off.opus');
     await this.playRecordedAudio();
 
     this.state = VoiceTestState.ENDED;
-    await this.updateMessage();
+    this.updateMessage();
     await this.cleanup();
   }
 
   async cancel() {
-    if (this.state === VoiceTestState.RECORDING) {
-      clearTimeout(this.recordingTimer);
-    }
+    if (this.state === VoiceTestState.RECORDING) clearTimeout(this.recordingTimer);
 
-    this.state = VoiceTestState.ENDED;
-    this.stateDescription = 'Voice test cancelled.';
-    await this.updateMessage();
+    this.state = VoiceTestState.CANCELLED;
+    this.updateMessage();
     await this.cleanup();
   }
 
@@ -185,7 +183,7 @@ export default class VoiceTest {
     });
   }
 
-  async playRecordedAudio(): Promise<void> {
+  async playRecordedAudio() {
     let allChunks = Array.from(this.userPackets.values()).flat();
     if (allChunks.length === 0) return;
 
@@ -365,6 +363,11 @@ export default class VoiceTest {
       case VoiceTestState.ENDED:
         title = `${this.emojis.getMarkdown('check')} Voice test finished.`;
         color = 0x2ecc71;
+        break;
+
+      case VoiceTestState.CANCELLED:
+        title = 'Voice test cancelled.';
+        color = 0x333333;
         break;
 
       case VoiceTestState.ERROR:
