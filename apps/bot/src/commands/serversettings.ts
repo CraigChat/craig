@@ -90,7 +90,26 @@ export default class ServerSettings extends GeneralCommand {
 
   async run(ctx: CommandContext) {
     if (!ctx.guildID) return 'This command can only be used in a guild.';
-    const guild = this.client.bot.guilds.get(ctx.guildID)!;
+    const guild = this.client.bot.guilds.get(ctx.guildID);
+
+    if (!guild)
+      return {
+        content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
+        ephemeral: true,
+        components: [
+          {
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.LINK,
+                label: 'Join Support Server',
+                url: 'https://discord.gg/craig'
+              }
+            ]
+          }
+        ]
+      };
 
     if (await checkBan(ctx.user.id))
       return {
