@@ -81,10 +81,11 @@ export default class VoiceTest {
       this.state = VoiceTestState.ERROR;
       this.stateDescription = 'Failed to connect to your channel, try again later.';
       this.updateMessage();
-      await this.cleanup();
+      this.cleanup();
       return;
     }
 
+    this.recorder.logger.debug(`Voice test ${this.guildId} started`);
     this.state = VoiceTestState.RECORDING;
     this.startTime = process.hrtime();
     this.recordingEndTime = Date.now() + RECORDING_TIMEOUT;
@@ -107,7 +108,7 @@ export default class VoiceTest {
       this.state = VoiceTestState.NO_AUDIO;
       this.stateDescription = 'No audio was detected during the test. Please check your microphone and try again.';
       this.updateMessage();
-      await this.cleanup();
+      this.cleanup();
       return;
     }
 
@@ -118,7 +119,7 @@ export default class VoiceTest {
 
     this.state = VoiceTestState.ENDED;
     this.updateMessage();
-    await this.cleanup();
+    this.cleanup();
   }
 
   async cancel() {
@@ -126,7 +127,7 @@ export default class VoiceTest {
 
     this.state = VoiceTestState.CANCELLED;
     this.updateMessage();
-    await this.cleanup();
+    this.cleanup();
   }
 
   async connect() {
@@ -137,6 +138,7 @@ export default class VoiceTest {
     this.receiver = receiver;
 
     connection.on('unknown', this.onConnectionUnknown.bind(this));
+    connection.on('disconnect', this.onConnectionDisconnect.bind(this));
 
     // Get voice & rtc worker versions
     connection.sendWS(16, {});
@@ -304,6 +306,19 @@ export default class VoiceTest {
     this.userPackets.get(userID)!.push(chunk);
   }
 
+  async onConnectionDisconnect(err?: Error) {
+    if (!this.active) return;
+    this.recorder.logger.debug(`Voice test ${this.guildId} disconnected`, err);
+
+    this.state = VoiceTestState.CANCELLED;
+    this.stateDescription = 'I was disconnected from the voice channel.';
+
+    if (this.recordingTimer) clearTimeout(this.recordingTimer);
+
+    this.updateMessage();
+    this.cleanup();
+  }
+
   async onConnectionUnknown(packet: any) {
     if (!this.recorder.client.config.craig.systemNotificationURL) return;
 
@@ -442,9 +457,11 @@ export default class VoiceTest {
     }
   }
 
-  async cleanup() {
+  cleanup() {
     this.active = false;
     this.channel.leave();
     this.recorder.voiceTests.delete(this.guildId);
+    this.connection?.removeAllListeners('disconnect');
+    this.connection?.removeAllListeners('unknown');
   }
 }
