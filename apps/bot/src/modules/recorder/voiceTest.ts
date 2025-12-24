@@ -13,6 +13,7 @@ import type RecorderModule from '.';
 
 const PACKET_TIME = 960; // 20ms
 const GAP_CLOSE_THRESHOLD = PACKET_TIME * 10; // 200ms
+const RECORDING_TIMEOUT = 10_000;
 
 export enum VoiceTestState {
   IDLE,
@@ -85,14 +86,14 @@ export default class VoiceTest {
 
     this.state = VoiceTestState.RECORDING;
     this.startTime = process.hrtime();
-    this.recordingEndTime = Date.now() + 10000; // 10 seconds
+    this.recordingEndTime = Date.now() + RECORDING_TIMEOUT;
     await this.updateMessage();
     await this.playSound('voicetest_on.opus');
 
     // Start 10-second timer
     this.recordingTimer = setTimeout(async () => {
       if (this.state === VoiceTestState.RECORDING) await this.stopRecording();
-    }, 10000);
+    }, RECORDING_TIMEOUT);
   }
 
   async stopRecording() {
@@ -231,13 +232,18 @@ export default class VoiceTest {
       const maxTime = Math.max(...allChunks.map((c) => c.time + PACKET_TIME));
       const totalSamples = maxTime - minTime + PACKET_TIME;
       const pcm = new Int16Array(totalSamples * 2);
-      const opus = new OpusEncoder(48000, 2);
+
+      // Create separate decoder for each user to avoid state corruption
+      const decoders = new Map<string, OpusEncoder>();
+      for (const userID of this.userPackets.keys())
+        decoders.set(userID, new OpusEncoder(48000, 2));
 
       // Mix audio into PCM buffer
       for (const chunk of allChunks) {
         let decoded: Buffer;
         try {
-          decoded = opus.decode(chunk.data);
+          const decoder = decoders.get(chunk.userID)!;
+          decoded = decoder.decode(chunk.data);
         } catch (e) {
           continue;
         }
@@ -251,6 +257,7 @@ export default class VoiceTest {
       }
 
       // Encode to Opus packets, using silence for gaps
+      const encoder = new OpusEncoder(48000, 2);
       const silencePacket = Buffer.from([0xf8, 0xff, 0xfe]);
       for (let frame = 0; frame < Math.ceil(pcm.length / (PACKET_TIME * 2)); frame++) {
         const frameStart = frame * (PACKET_TIME * 2);
@@ -262,7 +269,7 @@ export default class VoiceTest {
           if (val !== 0) hasAudio = true;
         }
         if (hasAudio) {
-          const encoded = opus.encode(framePcm);
+          const encoded = encoder.encode(framePcm);
           frames.push(encoded);
         } else {
           frames.push(silencePacket);
