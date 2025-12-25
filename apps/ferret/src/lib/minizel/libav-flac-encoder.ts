@@ -25,10 +25,10 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
     });
   }
 
-  #toS32(audioSample: AudioSample) {
-    const arrayBuffer = new ArrayBuffer(audioSample.allocationSize({ planeIndex: 0, format: 's32' }));
-    audioSample.copyTo(arrayBuffer, { planeIndex: 0, format: 's32' });
-    return new Int32Array(arrayBuffer);
+  #toS16(audioSample: AudioSample) {
+    const arrayBuffer = new ArrayBuffer(audioSample.allocationSize({ planeIndex: 0, format: 's16' }));
+    audioSample.copyTo(arrayBuffer, { planeIndex: 0, format: 's16' });
+    return new Int16Array(arrayBuffer);
   }
 
   async #getMeta(audioSample: AudioSample) {
@@ -62,8 +62,8 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
   async encode(audioSample: AudioSample) {
     if (!this._libav) throw new TypeError('No LibAV');
 
-    const format = LibAV.AV_SAMPLE_FMT_S32;
-    const raw = this.#toS32(audioSample);
+    const format = LibAV.AV_SAMPLE_FMT_S16;
+    const raw = this.#toS16(audioSample);
     const nb_samples = audioSample.allocationSize({ planeIndex: 0, format: 'u8-planar' });
 
     // Convert the timestamp
@@ -90,15 +90,14 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
       if (!this._c) {
         const [, c, frame, pkt] = await this._libav.ff_init_encoder('flac', {
           ctx: {
-            sample_fmt: LibAV.AV_SAMPLE_FMT_S32,
+            sample_fmt: LibAV.AV_SAMPLE_FMT_S16,
             bit_rate: 0,
             sample_rate,
             channel_layout,
             channels: cc,
             frame_size: 0
           },
-          time_base: [1, sample_rate],
-          options: { strict: 'experimental' }
+          time_base: [1, sample_rate]
         });
 
         this._c = c;
