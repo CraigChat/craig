@@ -25,11 +25,7 @@ export default class Shard extends EventEmitter {
     super();
     this.id = id;
     this.manager = manager;
-    this.env = Object.assign({}, process.env, {
-      SHARD_ID: this.id,
-      SHARD_COUNT: this.manager.options.shardCount,
-      ...(this.manager.emojiSyncData ? { EMOJI_SYNC_DATA: JSON.stringify(this.manager.emojiSyncData) } : {})
-    });
+    this.env = Object.assign({}, process.env);
 
     this._exitListener = this._handleExit.bind(this, undefined);
   }
@@ -37,7 +33,12 @@ export default class Shard extends EventEmitter {
   spawn(args = this.manager.options.args, execArgv = this.manager.options.execArgv) {
     this.process = childProcess
       .fork(path.resolve(__dirname, '..', this.manager.options.file), args, {
-        env: this.env,
+        env: {
+          ...this.env,
+          SHARD_ID: String(this.id),
+          SHARD_COUNT: String(this.manager.options.shardCount),
+          ...(this.manager.emojiSyncData ? { EMOJI_SYNC_DATA: JSON.stringify(this.manager.emojiSyncData) } : {})
+        },
         execArgv
       })
       .on('error', (e) => {
