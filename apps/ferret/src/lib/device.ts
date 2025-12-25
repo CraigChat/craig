@@ -15,6 +15,11 @@ const device = {
     language: 'en',
     reducedMotion: false,
     reducedTransparency: false
+  },
+  capabilities: {
+    showSaveFilePicker: false,
+    showDirectoryPicker: false,
+    minizel: false
   }
 };
 
@@ -48,6 +53,11 @@ if (browser) {
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     reducedTransparency: window.matchMedia('(prefers-reduced-transparency: reduce)').matches
   };
+
+  // Detect File System Access API support for Minizel
+  device.capabilities.showSaveFilePicker = typeof window.showSaveFilePicker === 'function';
+  device.capabilities.showDirectoryPicker = typeof window.showDirectoryPicker === 'function';
+  device.capabilities.minizel = device.capabilities.showSaveFilePicker;
 }
 
 export { device };
