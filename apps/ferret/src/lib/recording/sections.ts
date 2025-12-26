@@ -9,7 +9,7 @@ import mp3Icon from '@iconify-icons/mdi/emoticon-frown';
 import fileIcon from '@iconify-icons/mdi/file';
 import textFileIcon from '@iconify-icons/mdi/file-text';
 
-import type { DevicePlatform } from '$lib/device';
+import type { DeviceCapability, DevicePlatform } from '$lib/device';
 import type { MinizelFormat } from '$lib/minizel';
 import type { MinimalRecordingInfo } from '$lib/types';
 import type { Translatable } from '$lib/util';
@@ -19,6 +19,7 @@ export type SectionButtons = {
   beta?: boolean;
   features?: MinimalRecordingInfo['features'];
   showFor?: DevicePlatform[];
+  capabilities?: DeviceCapability[];
   buttons: SectionButton[];
 }[];
 
@@ -102,6 +103,7 @@ export const audioButtons: SectionButtons = [
   {
     title: { t: 'download.sections.minizel' },
     beta: true,
+    capabilities: ['minizel'],
     buttons: [
       { text: 'FLAC', suffix: '(Multi-track)', minizel: { format: 'flac' }, noIgnore: true },
       { text: 'AAC', suffix: '(Multi-track)', minizel: { format: 'aac' }, noIgnore: true },

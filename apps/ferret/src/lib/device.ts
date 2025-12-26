@@ -1,6 +1,30 @@
 import { browser } from '$app/environment';
+import { writable } from 'svelte/store';
 
-const device = {
+interface DeviceInfo {
+  userAgent: string;
+  platform: {
+    windows: boolean;
+    mac: boolean;
+    unix: boolean;
+    iphone: boolean;
+    android: boolean;
+    mobile: boolean;
+    desktop: boolean;
+  };
+  prefers: {
+    language: string;
+    reducedMotion: boolean;
+    reducedTransparency: boolean;
+  };
+  capabilities: {
+    showSaveFilePicker: boolean;
+    showDirectoryPicker: boolean;
+    minizel: boolean;
+  };
+}
+
+const defaultDevice: DeviceInfo = {
   userAgent: '(SvelteKit server render)',
   platform: {
     windows: false,
@@ -23,41 +47,64 @@ const device = {
   }
 };
 
-export type DevicePlatform = keyof (typeof device)['platform'];
+/** Reactive device store for use in Svelte components */
+export const device = writable<DeviceInfo>({ ...defaultDevice });
+
+export type DevicePlatform = keyof DeviceInfo['platform'];
+export type DeviceCapability = keyof DeviceInfo['capabilities'];
 
 export function processUserAgent(userAgent: string) {
   const ua = userAgent.toLowerCase();
 
   const iphone = ua.includes('iphone os');
   const android = ua.includes('android');
-  device.platform = {
-    windows: ua.includes('windows nt'),
-    mac: ua.includes('mac os x') && !iphone,
-    unix: (ua.includes('linux') || ua.includes('bsd')) && !android,
+  const firefox = ua.includes('firefox');
 
-    iphone,
-    android,
+  device.update((d) => ({
+    ...d,
+    userAgent,
+    platform: {
+      windows: ua.includes('windows nt'),
+      mac: ua.includes('mac os x') && !iphone,
+      unix: (ua.includes('linux') || ua.includes('bsd')) && !android,
+      iphone,
+      android,
+      mobile: iphone || android,
+      desktop: !(iphone || android)
+    },
+    capabilities: {
+      showSaveFilePicker: !firefox,
+      showDirectoryPicker: !firefox,
+      minizel: !firefox
+    }
+  }));
+}
 
-    mobile: iphone || android,
-    desktop: !(iphone || android)
-  };
+/** Refresh device capabilities - call once after mount to ensure reactivity */
+export function refreshDeviceCapabilities() {
+  if (!browser) return;
 
-  device.userAgent = userAgent;
+  device.update((d) => {
+    const hasShowSaveFilePicker = typeof window.showSaveFilePicker === 'function';
+    const hasShowDirectoryPicker = typeof window.showDirectoryPicker === 'function';
+
+    return {
+      ...d,
+      prefers: {
+        language: navigator.language.toLowerCase().slice(0, 2) || 'en',
+        reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        reducedTransparency: window.matchMedia('(prefers-reduced-transparency: reduce)').matches
+      },
+      capabilities: {
+        showSaveFilePicker: hasShowSaveFilePicker,
+        showDirectoryPicker: hasShowDirectoryPicker,
+        minizel: hasShowSaveFilePicker
+      }
+    };
+  });
 }
 
 if (browser) {
-  processUserAgent(navigator.userAgent.toLowerCase());
-
-  device.prefers = {
-    language: navigator.language.toLowerCase().slice(0, 2) || 'en',
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    reducedTransparency: window.matchMedia('(prefers-reduced-transparency: reduce)').matches
-  };
-
-  // Detect File System Access API support for Minizel
-  device.capabilities.showSaveFilePicker = typeof window.showSaveFilePicker === 'function';
-  device.capabilities.showDirectoryPicker = typeof window.showDirectoryPicker === 'function';
-  device.capabilities.minizel = device.capabilities.showSaveFilePicker;
+  processUserAgent(navigator.userAgent);
+  refreshDeviceCapabilities();
 }
-
-export { device };

@@ -2,13 +2,14 @@
   import Icon from '@iconify/svelte';
   import lockIcon from '@iconify-icons/mdi/lock';
   import warnIcon from '@iconify-icons/mdi/warning';
+  import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { t } from 'svelte-i18n';
   import Portal from 'svelte-portal';
 
   import FormatButton from '$components/FormatButton.svelte';
   import RequiresTier from '$components/RequiresTier.svelte';
-  import { device } from '$lib/device';
+  import { device, refreshDeviceCapabilities } from '$lib/device';
   import type { MinizelFormat } from '$lib/minizel';
   import { jobOpen } from '$lib/recording/data';
   import { audioButtons, type FocusedButton, type SectionButton, transcriptionButtons } from '$lib/recording/sections';
@@ -50,10 +51,12 @@
 
   function isMinizelButtonAvailable(button: SectionButton) {
     if (!button.minizel) return false;
-    if (!device.capabilities.minizel) return false;
-    if (button.minizel.mix) return device.capabilities.showSaveFilePicker;
-    return device.capabilities.showDirectoryPicker;
+    if (!$device.capabilities.minizel) return false;
+    if (button.minizel.mix) return $device.capabilities.showSaveFilePicker;
+    return $device.capabilities.showDirectoryPicker;
   }
+
+  onMount(() => refreshDeviceCapabilities());
 </script>
 
 {#if noUsers}
@@ -84,9 +87,10 @@
       {#each audioButtons as section}
         {@const sectionAvailable =
           (!section.features || !section.features.map((f) => features.includes(f)).includes(false)) &&
-          (!section.showFor || audioShowHidden || section.showFor.map((f) => device.platform[f]).includes(true))}
+          (!section.showFor || audioShowHidden || section.showFor.map((f) => $device.platform[f]).includes(true)) &&
+          (!section.capabilities || section.capabilities.map((f) => $device.capabilities[f]).includes(true))}
         {@const sectionHasMinizel = section.buttons.some((b) => b.minizel)}
-        {@const minizelSectionAvailable = sectionHasMinizel && device.capabilities.minizel}
+        {@const minizelSectionAvailable = sectionHasMinizel && $device.capabilities.minizel}
         {#if sectionAvailable || minizelSectionAvailable}
           <div class="inline-flex flex-col items-start justify-start gap-2">
             <div class="text-base font-medium text-neutral-400">
@@ -98,9 +102,8 @@
             <div class="inline-flex flex-wrap items-start justify-start gap-3 self-stretch">
               {#each section.buttons as button}
                 {@const featureAvailable = !button.features || !button.features.map((f) => features.includes(f)).includes(false)}
-                {@const available = !button.showFor || button.showFor.map((f) => device.platform[f]).includes(true)}
-                {@const minizelAvailable = isMinizelButtonAvailable(button)}
-                {#if featureAvailable && (available || audioShowHidden || minizelAvailable)}
+                {@const available = !button.showFor || button.showFor.map((f) => $device.platform[f]).includes(true)}
+                {#if featureAvailable && (button.minizel ? isMinizelButtonAvailable(button) : true) && (available || audioShowHidden)}
                   <FormatButton
                     ennuizel={!!button.ennuizel}
                     minizel={!!button.minizel}
@@ -130,7 +133,7 @@
         <div class="inline-flex flex-wrap items-start justify-start gap-3 self-stretch">
           {#each transcriptionButtons as button}
             {@const featureAvailable = !button.features || !button.features.map((f) => features.includes(f)).includes(false)}
-            {@const available = !button.showFor || button.showFor.map((f) => device.platform[f]).includes(true)}
+            {@const available = !button.showFor || button.showFor.map((f) => $device.platform[f]).includes(true)}
             {#if featureAvailable && (available || audioShowHidden)}
               <FormatButton
                 suffix={button.suffix}
