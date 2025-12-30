@@ -113,12 +113,12 @@
     return users.length > 0 && excludedTracks.size === users.length;
   }
 
-  function updateStats() {
+  function updateStats(force = false) {
     const now = performance.now();
     if (!processor) return;
 
-    // Throttle UI updates
-    if (now - lastUIUpdateTime < UI_UPDATE_INTERVAL_MS) return;
+    // Throttle UI updates (unless forced)
+    if (!force && now - lastUIUpdateTime < UI_UPDATE_INTERVAL_MS) return;
     lastUIUpdateTime = now;
 
     const prevDownloaded = downloadedBytes;
@@ -260,7 +260,7 @@
         await multiProcessor.start();
       }
 
-      updateStats();
+      updateStats(true); // Force final stats update
       processState = 'complete';
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') {

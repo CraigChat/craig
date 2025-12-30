@@ -484,14 +484,6 @@ export class MixedProcessor {
 
       console.debug(`[Minizel] Output finalized. Bytes written: ${this.bytesWritten}`);
 
-      // Check for empty output
-      // if (this.bytesWritten === 0 && this.packetsDecoded === 0) {
-      //   throw new Error('No audio data was found in the recording');
-      // }
-      // if (this.bytesWritten === 0 && this.samplesWritten === 0) {
-      //   throw new Error(`No audio samples were written (decoded ${this.packetsDecoded} packets but mix cache was empty)`);
-      // }
-
       // Final progress update
       this.onProgress?.();
       this.onFinish?.();
