@@ -110,8 +110,13 @@
                     suffix={button.suffix}
                     icon={button.icon}
                     onclick={() => {
-                      if (button.minizel) minizelModal = { format: button.minizel.format, mix: button.minizel.mix ?? false };
-                      else onButtonClick(button, section.title);
+                      if (button.minizel) {
+                        minizelModal = { format: button.minizel.format, mix: button.minizel.mix ?? false };
+                        window.plausible('minizel', {
+                          u: `${location.origin}/rec/:id`,
+                          props: { format: button.minizel.format, mix: button.minizel.mix ?? false }
+                        });
+                      } else onButtonClick(button, section.title);
                     }}
                   >
                     {convertT(button.text, $t)}
