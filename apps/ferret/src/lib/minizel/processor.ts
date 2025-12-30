@@ -590,6 +590,8 @@ export class MinizelProcessor {
       if (!this.aborted) await waitForWorker;
       worker.terminate();
 
+      console.debug(`[Minizel] Worker done. Streams discovered: ${this.streamTypes.size}, Downloaded: ${this.downloadedBytes} bytes`);
+
       if (this.format === 'ogg')
         await Promise.all(
           Array.from(this.writers.entries()).map(async ([serial, w]) => {
@@ -605,6 +607,14 @@ export class MinizelProcessor {
             await this.mbOutputs.get(serial)!.finalize();
           })
         );
+
+      console.debug(`[Minizel] Finalized. Tracks: ${this.streamTypes.size}, Total bytes written: ${Array.from(this.bytesWritten.values()).reduce((a, b) => a + b, 0)}`);
+
+      // Check for empty output
+      const totalWritten = Array.from(this.bytesWritten.values()).reduce((a, b) => a + b, 0);
+      if (totalWritten === 0 && this.streamTypes.size === 0) {
+        throw new Error('No audio tracks were found in the recording');
+      }
     } catch (e) {
       console.error('Processor error!', e);
       worker.terminate();

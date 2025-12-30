@@ -88,6 +88,9 @@ export class MixedProcessor {
   downloadedBytes = 0;
   bytesWritten = 0;
   currentMixPosition = 0;
+  samplesWritten = 0;
+  packetsDecoded = 0;
+  pagesReceived = 0;
 
   // Decoders
   private opusDecoder: OpusDecoderWebWorker<48000> | null = null;
@@ -199,6 +202,7 @@ export class MixedProcessor {
 
   private async enqueueSample(left: Float32Array, right: Float32Array, startPosition: number): Promise<void> {
     const blockLength = left.length;
+    this.samplesWritten++;
     this.queue.add(async () => {
       const planar = new Float32Array(blockLength * 2);
       planar.set(left, 0);
@@ -309,6 +313,7 @@ export class MixedProcessor {
     if (this.aborted) return;
 
     if (msg.type === 'page') {
+      this.pagesReceived++;
       const pageBuf = new Uint8Array(msg.page);
       const meta: PageMeta = msg.meta;
       this.outstandingNetworkBytes = Math.max(0, this.outstandingNetworkBytes - meta.payloadLength);
@@ -355,12 +360,16 @@ export class MixedProcessor {
         let chosenStartPosition = currentPosition;
 
         // Packet far behind: drop
-        if (currentPosition > granulePosition + BigInt(960 * 25)) return;
+        if (currentPosition > granulePosition + BigInt(960 * 25)) {
+          console.debug(`[Minizel] Dropping packet: too far behind (current: ${currentPosition}, granule: ${granulePosition})`);
+          return;
+        }
 
         // Packet far ahead: set position
         if (currentPosition + 960n * 25n < granulePosition) chosenStartPosition = granulePosition;
 
         // Decode
+        this.packetsDecoded++;
         const decoded = type === 'opus' ? await this.opusDecoder!.decodeFrame(payload) : await this.flacDecoder!.decode(payload);
         let channelData = decoded.channelData;
 
@@ -451,19 +460,37 @@ export class MixedProcessor {
       if (!this.aborted) await waitForWorker;
       worker.terminate();
 
+      console.debug(`[Minizel] Worker done. Pages: ${this.pagesReceived}, Streams: ${this.streamTypes.size}`);
+
       // Wait for decoding to finish
       await this.decodingQueue.done();
+
+      console.debug(`[Minizel] Decoding done. Packets decoded: ${this.packetsDecoded}, Mix cache size: ${this.mixCache.length}`);
+
       await this.opusDecoder?.free();
       this.opusDecoder = null;
       await this.flacDecoder?.free();
       this.flacDecoder = null;
 
       // Process remaining packets
+      const cacheBeforeFinalize = this.mixCache.length;
       await this.processMix(true);
+
+      console.debug(`[Minizel] Final mix done. Cache before: ${cacheBeforeFinalize}, Samples written: ${this.samplesWritten}, Position: ${this.currentMixPosition}`);
 
       // Finalize output
       await this.queue.done();
       await this.mbOutput!.finalize();
+
+      console.debug(`[Minizel] Output finalized. Bytes written: ${this.bytesWritten}`);
+
+      // Check for empty output
+      // if (this.bytesWritten === 0 && this.packetsDecoded === 0) {
+      //   throw new Error('No audio data was found in the recording');
+      // }
+      // if (this.bytesWritten === 0 && this.samplesWritten === 0) {
+      //   throw new Error(`No audio samples were written (decoded ${this.packetsDecoded} packets but mix cache was empty)`);
+      // }
 
       // Final progress update
       this.onProgress?.();
