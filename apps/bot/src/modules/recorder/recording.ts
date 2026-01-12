@@ -887,7 +887,7 @@ export default class Recording {
                   },
                   {
                     type: ComponentType.TEXT_DISPLAY,
-                    content: `### Activity\n${this.logs.slice(0, 10).join('\n')}`
+                    content: `### Activity\n${this.logs.slice(-10).join('\n')}`
                   }
                 ]
               : []),
