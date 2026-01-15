@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
+  import alertIcon from '@iconify-icons/mdi/alert-circle';
   import lockIcon from '@iconify-icons/mdi/lock';
   import warnIcon from '@iconify-icons/mdi/warning';
   import { fade, fly } from 'svelte/transition';
@@ -23,9 +24,10 @@
     emitter: RecordingPageEmitter;
     features: MinimalRecordingInfo['features'];
     noUsers?: boolean;
+    live?: boolean;
   }
 
-  let { emitter, features, noUsers }: Props = $props();
+  let { emitter, features, noUsers, live }: Props = $props();
 
   function onButtonClick(button: SectionButton, section: Translatable) {
     focusedButton = { ...button, section };
@@ -61,6 +63,15 @@
         >{$t('download.wdiu.name')}</button
       >
     </div>
+    {#if live}
+      <div class="mx-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
+        <Icon icon={alertIcon} class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+        <div class="flex flex-col gap-1">
+          <span class="text-sm font-semibold text-amber-300 sm:text-base">{$t('recording.live_warning.title')}</span>
+          <span class="text-sm text-amber-200/90">{$t('recording.live_warning.description')}</span>
+        </div>
+      </div>
+    {/if}
     <div class="flex flex-col items-start justify-start gap-3 p-6">
       <div class="inline-flex items-center justify-between self-stretch">
         <h3 class="font-display text-xl font-semibold text-neutral-100">{$t('download.sections.audio')}</h3>

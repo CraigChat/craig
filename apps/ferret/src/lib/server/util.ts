@@ -187,6 +187,28 @@ export async function getExtraFeatures(userId: string, guildId: string) {
   return [...new Set((await Promise.all([getFeaturesFromUser(userId), getFeaturesFromGuild(guildId)])).flat())];
 }
 
+export async function isRecordingLive(recordingId: string): Promise<boolean> {
+  const cacheKey = `recording:live:${recordingId}`;
+
+  const cached = await redis.get(cacheKey);
+  if (cached !== null) return cached === 'true';
+
+  try {
+    const recording = await prisma.recording.findUnique({
+      where: { id: recordingId },
+      select: { endedAt: true }
+    });
+
+    const live = recording !== null && recording.endedAt === null;
+    await redis.set(cacheKey, String(live), 'EX', 5);
+
+    return live;
+  } catch (e) {
+    logger.error(`Failed to check if recording ${recordingId} is live`, e);
+    return false;
+  }
+}
+
 export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: object) {
   function result(msg: string) {
     return json({ error: msg, code: code ?? APIErrorCode.UNKNOWN_ERROR, ...extra }, init);
