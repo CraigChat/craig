@@ -38,7 +38,7 @@
   <MaintenanceBanner />
   <RecordingHeader />
   <JobSections {emitter} />
-  <DownloadSection {emitter} features={data.recording.features} noUsers={data.users.length === 0} />
+  <DownloadSection {emitter} features={data.recording.features} noUsers={data.users.length === 0} live={data.live} />
   <SiteFooter />
 </section>
 

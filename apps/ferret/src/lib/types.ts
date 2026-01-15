@@ -91,6 +91,7 @@ export interface MinimalJobUpdate {
 export interface RecordingResponse {
   recording: MinimalRecordingInfo;
   users: Recording.RecordingUser[];
+  live: boolean;
 }
 
 export interface APIErrorResponse {
