@@ -4,8 +4,9 @@ import type { Load } from '@sveltejs/kit';
 import { dictionary, locale, waitLocale } from 'svelte-i18n';
 
 import { browser } from '$app/environment';
-import { get, localeCookieName } from '$lib/cookie';
+import { get as getCookie, localeCookieName } from '$lib/cookie';
 import { device } from '$lib/device';
+import { get } from 'svelte/store';
 
 // svelte-i18n doesn't exactly wait for keys to be populated before finishing up, so this waits for that.
 function waitForLocaleUpdate() {
@@ -37,7 +38,7 @@ function waitForLocaleUpdate() {
 
 export const load: Load = async () => {
   if (browser) {
-    locale.set(get(localeCookieName) || device.prefers.language);
+    locale.set(getCookie(localeCookieName) || get(device)?.prefers?.language || 'en');
     window.plausible = window.plausible || ((e, o, ev) => (window.plausible.q = window.plausible.q || []).push([e, o, ev]));
     console.time('Locale Loaded');
   }

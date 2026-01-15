@@ -10,6 +10,7 @@ export enum APIErrorCode {
   UNKNOWN_ERROR = 'unknown',
   SERVER_ERROR = 'server_error',
   INVALID_BODY = 'invalid_body',
+  INVALID_RANGE = 'invalid_range',
 
   KEY_REQUIRED = 'no_key',
   INVALID_RECORDING = 'invalid_rec',
