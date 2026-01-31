@@ -2819,9 +2819,9 @@ eol@^0.9.1:
   resolved "https://registry.yarnpkg.com/eol/-/eol-0.9.1.tgz#f701912f504074be35c6117a5c4ade49cd547acd"
   integrity sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==
 
-"eris@github:CraigChat/dysnomia#84359f3fe81d254657589c52ae2b91f1d32c359c":
+"eris@github:CraigChat/dysnomia#cd792c8ee75970bb44d33baafb6c6ff7123e86f9":
   version "0.2.3"
-  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/84359f3fe81d254657589c52ae2b91f1d32c359c"
+  resolved "https://codeload.github.com/CraigChat/dysnomia/tar.gz/cd792c8ee75970bb44d33baafb6c6ff7123e86f9"
   dependencies:
     ws "^8.18.0"
   optionalDependencies:
