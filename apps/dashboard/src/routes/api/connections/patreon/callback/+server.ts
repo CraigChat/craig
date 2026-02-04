@@ -76,6 +76,12 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       }
     });
 
+    await prisma.user.upsert({
+      where: { id: auth.id },
+      update: { patronId: me.data.id },
+      create: { id: auth.id, patronId: me.data.id }
+    });
+
     const patreonTier = determineRewardTier(patron.tiers);
     if (patreonTier !== 0) {
       await prisma.entitlement.upsert({
@@ -99,11 +105,6 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       console.log(`User ${auth.id} tier resolved to ${patreonTier}`);
     }
 
-    await prisma.user.upsert({
-      where: { id: auth.id },
-      update: { patronId: me.data.id },
-      create: { id: auth.id, patronId: me.data.id }
-    });
     await resolveUserEntitlement(auth.id);
   } else
     await prisma.user.upsert({
