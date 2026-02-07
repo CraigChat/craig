@@ -196,7 +196,7 @@ export async function processRecordingJob(job: Job) {
         const sfxPath = path.join(process.cwd(), `./cook/${job.options?.format === 'powersfx' ? 'powersfx' : 'sfx'}.exe`);
 
         job.setState({ type: 'writing', file: 'info.txt' });
-        const infoText = await getInfoText(id, info, users, notes);
+        const infoText = await getInfoText(job.recordingId, info, users, notes);
         await fs.writeFile(path.join(tmpDir, 'info.txt'), infoText);
 
         job.setState({ type: 'writing', file: 'raw.dat' });
@@ -358,7 +358,7 @@ export async function processRecordingJob(job: Job) {
         }
 
         job.setState({ type: 'writing', file: 'info.txt' });
-        const infoText = await getInfoText(id, info, users, notes);
+        const infoText = await getInfoText(job.recordingId, info, users, notes);
         await fs.writeFile(path.join(tmpDir, 'info.txt'), infoText);
 
         job.setState({ type: 'writing', file: 'raw.dat' });
