@@ -219,6 +219,8 @@ export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: 
       return result('Server error');
     case APIErrorCode.INVALID_BODY:
       return result('Invalid body');
+    case APIErrorCode.INVALID_RANGE:
+      return result('Range not satisfiable');
     case APIErrorCode.KEY_REQUIRED:
       return result('Key required');
     case APIErrorCode.INVALID_RECORDING:

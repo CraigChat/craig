@@ -2,7 +2,7 @@
   import type { Snippet } from 'svelte';
 
   interface Props {
-    title: string;
+    title: string | Snippet;
     subtitle?: string;
     children?: Snippet;
     buttons?: Snippet;
@@ -13,7 +13,13 @@
 
 <div class="z-10 flex w-full flex-col gap-4 overflow-y-auto p-6">
   <div class=" self-stretch leading-tight">
-    <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">{title}</h2>
+    <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">
+      {#if typeof title === 'string'}
+        {title}
+      {:else}
+        {@render title?.()}
+      {/if}
+    </h2>
     {#if subtitle}
       <span class="text-sm sm:text-base">
         {subtitle}

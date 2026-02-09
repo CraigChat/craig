@@ -355,7 +355,7 @@ int main(int argc, char **argv)
                 case 14:
                 case 18:
                 case 22:
-                case 27:
+                case 26:
                 case 30:
                     tail->frameSize = 480; // 10ms
                     break;

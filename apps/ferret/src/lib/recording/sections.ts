@@ -9,16 +9,24 @@ import mp3Icon from '@iconify-icons/mdi/emoticon-frown';
 import fileIcon from '@iconify-icons/mdi/file';
 import textFileIcon from '@iconify-icons/mdi/file-text';
 
-import type { DevicePlatform } from '$lib/device';
+import type { DeviceCapability, DevicePlatform } from '$lib/device';
+import type { MinizelFormat } from '$lib/minizel';
 import type { MinimalRecordingInfo } from '$lib/types';
 import type { Translatable } from '$lib/util';
 
 export type SectionButtons = {
   title: Translatable;
+  beta?: boolean;
   features?: MinimalRecordingInfo['features'];
   showFor?: DevicePlatform[];
+  capabilities?: DeviceCapability[];
   buttons: SectionButton[];
 }[];
+
+export type MinizelOptions = {
+  format: MinizelFormat;
+  mix?: boolean;
+};
 
 export type SectionButton = {
   text: Translatable;
@@ -30,6 +38,7 @@ export type SectionButton = {
     container?: Kitchen.ContainerType;
   };
   ennuizel?: number;
+  minizel?: MinizelOptions;
   allowNorm?: boolean;
   noIgnore?: boolean;
   showFor?: DevicePlatform[];
@@ -58,7 +67,7 @@ export const audioButtons: SectionButtons = [
         allowNorm: true
       },
       { text: 'FLAC', options: { format: 'flac' }, allowNorm: true },
-      { text: 'wav', ennuizel: 5 },
+      { text: 'WAV', ennuizel: 5 },
       { text: 'AAC', suffix: '(MPEG-4)', options: { format: 'aac' }, allowNorm: true },
       { text: 'ALAC', suffix: '(Apple Lossless)', ennuizel: 6, showFor: ['mac'], allowNorm: true },
       { text: 'Ogg Vorbis', options: { format: 'vorbis' }, allowNorm: true },
@@ -76,7 +85,7 @@ export const audioButtons: SectionButtons = [
     title: { t: 'download.sections.st' },
     buttons: [
       { text: 'FLAC', ennuizel: 0x30 },
-      { text: 'wav', ennuizel: 0x35 },
+      { text: 'WAV', ennuizel: 0x35 },
       { text: 'AAC', suffix: '(MPEG-4)', ennuizel: 0x31 },
       { text: { t: 'download.format_buttons.other' }, ennuizel: 0x230 }
     ]
@@ -89,6 +98,21 @@ export const audioButtons: SectionButtons = [
       { text: 'Ogg Vorbis', options: { format: 'vorbis', container: 'mix' } },
       { text: 'AAC', suffix: '(MPEG-4)', options: { format: 'aac', container: 'mix' } },
       { icon: mp3Icon, text: 'MP3', options: { format: 'mp3', container: 'mix' }, features: ['mp3'] }
+    ]
+  },
+  {
+    title: { t: 'download.sections.minizel' },
+    beta: true,
+    capabilities: ['minizel'],
+    buttons: [
+      { text: 'FLAC', suffix: '(Multi-track)', minizel: { format: 'flac' }, noIgnore: true },
+      { text: 'AAC', suffix: '(Multi-track)', minizel: { format: 'aac' }, noIgnore: true },
+      { text: 'WAV', suffix: '(Multi-track)', minizel: { format: 'wav' }, noIgnore: true },
+      { text: 'Ogg', suffix: '(Multi-track)', minizel: { format: 'ogg' }, noIgnore: true },
+
+      { text: 'FLAC', suffix: '(Mixed)', minizel: { format: 'flac', mix: true }, noIgnore: true },
+      { text: 'AAC', suffix: '(Mixed)', minizel: { format: 'aac', mix: true }, noIgnore: true },
+      { text: 'WAV', suffix: '(Mixed)', minizel: { format: 'wav', mix: true }, noIgnore: true }
     ]
   },
   {
