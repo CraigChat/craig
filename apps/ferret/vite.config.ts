@@ -38,7 +38,13 @@ const exposeLibAV: PluginOption = (() => {
         if (!fileType) return next();
 
         res.setHeader('Content-Type', fileType);
-        return createReadStream(join(MODULE_DIR, filename)).pipe(res);
+        const stream = createReadStream(join(MODULE_DIR, filename));
+        stream.on('error', (err) => {
+          console.error(`Error reading libav file: ${filename}`, err);
+          if (!res.headersSent) res.statusCode = 500;
+          res.end();
+        });
+        return stream.pipe(res);
       });
     },
     generateBundle: async (options) => {

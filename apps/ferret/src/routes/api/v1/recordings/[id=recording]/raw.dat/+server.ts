@@ -41,7 +41,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
     if (match) {
       rangeStart = parseInt(match[1], 10);
       if (match[2]) rangeEnd = parseInt(match[2], 10);
-      if (rangeStart >= 0 && rangeStart < totalSize) {
+      if (rangeStart >= 0 && rangeStart < totalSize && rangeEnd >= rangeStart) {
         isPartial = true;
         rangeEnd = Math.min(rangeEnd, totalSize - 1);
       } else

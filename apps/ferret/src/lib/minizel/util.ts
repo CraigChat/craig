@@ -43,6 +43,7 @@ export const MIX_STEP = 960;
  * https://datatracker.ietf.org/doc/html/rfc7845#section-5.2
  */
 export function opusTagsAreIncorrect(tags: Uint8Array): boolean {
+  if (tags.length < 12) return true;
   const view = new DataView(tags.buffer, tags.byteOffset, tags.byteLength);
   const vendorLength = view.getUint32(8, true);
   return tags.length <= 12 + vendorLength;
@@ -71,12 +72,12 @@ export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const k = 1024;
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), units.length - 1);
   const formattedSize = (bytes / Math.pow(k, i)).toFixed(2);
   return `${formattedSize} ${units[i]}`;
 }
 
-/** Convert seconds to time mark string (HH:MM:SS.ss) */
+/** Convert seconds to time mark string (HH:MM:SS or MM:SS) */
 export function convertToTimeMark(seconds: number, includeHours?: boolean): string {
   if (isNaN(seconds) || seconds < 0) return '00:00';
 

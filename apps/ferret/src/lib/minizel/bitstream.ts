@@ -39,7 +39,7 @@ export class Bitstream {
     for (let i = this.pos; i < end; i++) {
       const byteIndex = Math.floor(i / 8);
       let byte = this.bytes[byteIndex]!;
-      const bitIndex = 0b111 - (this.pos & 0b111);
+      const bitIndex = 0b111 - (i & 0b111);
 
       byte &= ~(1 << bitIndex);
       byte |= ((value & (1 << (end - i - 1))) >> (end - i - 1)) << bitIndex;

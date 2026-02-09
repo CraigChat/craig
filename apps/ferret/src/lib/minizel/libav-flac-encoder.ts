@@ -144,6 +144,7 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
   async close() {
     if (this._c) {
       this._q.clear();
+      await this._q.done();
       await this._libav?.ff_free_encoder(this._c!, this._frame!, this._pkt!);
       this._c = this._frame = this._pkt = 0;
     }

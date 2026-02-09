@@ -71,6 +71,7 @@ class BoundedQueue {
   }
 
   release(): void {
+    if (this.pending <= 0) return;
     this.pending--;
     this.waiters.shift()?.();
   }
@@ -260,7 +261,7 @@ export class MinizelProcessor {
           // Silent frame
           const flacRate = this.streamFlacRates.get(serial) ?? 48000;
           channelData = flacRate === 44100 ? this.silentAudioBuffer44k! : this.silentAudioBuffer!;
-          sampleRate = 48000;
+          sampleRate = flacRate;
         } else {
           // Decode frame
           const type = this.streamTypes.get(serial)!;
@@ -282,7 +283,7 @@ export class MinizelProcessor {
           format: 'f32-planar',
           numberOfChannels: numChannels,
           sampleRate,
-          timestamp: Number(position) / 48000
+          timestamp: Number(position) / sampleRate
         });
 
         try {
@@ -604,7 +605,7 @@ export class MinizelProcessor {
         await Promise.all(
           Array.from(this.mbSampleSources.entries()).map(async ([serial]) => {
             await this.queues.get(serial)?.done();
-            await this.mbOutputs.get(serial)!.finalize();
+            await this.mbOutputs.get(serial)?.finalize();
           })
         );
 

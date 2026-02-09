@@ -1,5 +1,6 @@
 /** Get the number of frames in an Opus packet */
 export function getFramesInPacket(packet: Uint8Array): number {
+  if (packet.length === 0) throw new Error('Empty Opus packet');
   const toc = packet[0]! & 0x3;
   switch (toc) {
     case 0:
@@ -8,6 +9,7 @@ export function getFramesInPacket(packet: Uint8Array): number {
     case 2:
       return 2;
     case 3: // Signalled
+      if (packet.length < 2) throw new Error('Malformed Opus packet: missing frame count byte');
       return packet[1]! & 0x3f;
     default:
       return 1;
@@ -25,7 +27,7 @@ export function getFrameSize(packet: Uint8Array): number {
     case 14:
     case 18:
     case 22:
-    case 27:
+    case 26:
     case 30:
       return 480; // 10ms
     case 2:

@@ -49,6 +49,7 @@ export interface MixedProcessorOptions {
  */
 function resampleAudioBuffer(channelData: Float32Array[], fromRate: number, toRate: number): Float32Array[] {
   if (fromRate === toRate) return channelData;
+  if (channelData.length === 0 || channelData[0]!.length === 0) return channelData;
   const ratio = toRate / fromRate;
   const newLength = Math.round(channelData[0]!.length * ratio);
   return channelData.map((channel) => {
@@ -190,8 +191,8 @@ export class MixedProcessor {
         await writer.write({ type: 'write', position: chunk.position, data: chunk.data as BufferSource });
         onWrite?.(chunk.position, chunk.data.byteLength);
       },
-      close() {
-        writer.close();
+      async close() {
+        await writer.close();
       },
       async abort() {
         await writer.abort();

@@ -54,7 +54,10 @@ export function createPage(data: OggPageData): Uint8Array {
     segments.push(take);
     rem -= take;
   }
-  if (segments.length === 0) segments.push(0);
+
+  // Empty payload needs a single 0-segment; payloads ending on a 255 boundary
+  // need a terminating 0-segment to indicate packet completion
+  if (segments.length === 0 || segments[segments.length - 1] === 255) segments.push(0);
 
   const headerTotalLen = 27 + segments.length;
   const pageTotalLen = headerTotalLen + data.payload.length;

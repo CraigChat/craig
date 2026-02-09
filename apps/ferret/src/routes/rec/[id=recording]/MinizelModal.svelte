@@ -182,7 +182,7 @@
 
     // Reset stats
     lastUIUpdateTime = 0;
-    lastSpeedSampleTime = 0;
+    lastSpeedSampleTime = performance.now();
     currentDownloadSpeed = 0;
     currentWriteSpeed = 0;
     downloadedBytes = 0;

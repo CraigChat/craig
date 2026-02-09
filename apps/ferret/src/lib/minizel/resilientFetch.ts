@@ -48,6 +48,10 @@ export function createResilientStream(url: string, options: ResilientFetchOption
 
       if (!response.ok && response.status !== 206) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
+      // If we requested a range but got 200, server doesn't support range requests
+      if (bytesReceived > 0 && response.status !== 206)
+        throw new Error('Server does not support Range requests; cannot resume download');
+
       // Get total size from first response
       if (totalSize === null) {
         const contentRange = response.headers.get('Content-Range');
@@ -121,6 +125,9 @@ export function createResilientStream(url: string, options: ResilientFetchOption
                 const delay = retryDelay * Math.pow(1.5, retryCount - 1) + Math.random() * 500;
                 await sleep(delay);
                 continue; // Retry in the loop
+              } else {
+                controller.error(new Error(`Stream closed prematurely after ${bytesReceived}/${totalSize} bytes, retries exhausted`));
+                return;
               }
             }
             controller.close();
