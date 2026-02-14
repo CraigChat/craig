@@ -126,6 +126,8 @@ export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | '
   }
 }
 
+export const mainBotCommandOnly = process.argv?.[1].includes('slash-up') && process.env.EXTRA_BOT == 'true' ? [] : undefined;
+
 export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'), {
   onEndResult(endResult) {
     return endResult
