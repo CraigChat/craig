@@ -47,14 +47,18 @@ export type RateLimitResult = {
 
 export async function rateLimit(key: string, limit: number, ttlSeconds: number): Promise<RateLimitResult> {
   try {
-    const current = await redis.incr(key);
-    if (current === 1) await redis.expire(key, ttlSeconds);
-    else {
-      const ttl = await redis.ttl(key);
-      if (ttl === -1) await redis.expire(key, ttlSeconds);
-    }
+    const luaScript = `
+local current = redis.call('INCR', KEYS[1])
+if current == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+elseif redis.call('TTL', KEYS[1]) == -1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+local ttl = redis.call('TTL', KEYS[1])
+return {current, ttl}
+`;
 
-    const ttl = await redis.ttl(key);
+    const [current, ttl] = (await redis.eval(luaScript, 1, key, ttlSeconds)) as [number, number];
     const allowed = current <= limit;
 
     return {

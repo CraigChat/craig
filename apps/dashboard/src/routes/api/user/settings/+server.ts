@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return errorResponse(APIErrorCode.UNAUTHORIZED, { status: 401 });
 
-  const body = destr(await request.text());
+  const body = destr(await request.text(), { strict: true });
   if (typeof body !== 'object') return errorResponse(APIErrorCode.INVALID_BODY, { status: 400 });
 
   const parsed = Schema.safeParse(body);
