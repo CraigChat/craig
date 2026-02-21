@@ -16,7 +16,6 @@
   import RequiresTier from '$components/RequiresTier.svelte';
   import SwitchField from '$components/SwitchField.svelte';
   import { env } from '$env/dynamic/public';
-  import { PATREON_OAUTH_URL } from '$lib/oauth';
   import { APIErrorCode, type APIErrorResponse } from '$lib/types';
   import { CDNEndpoints, cn, getAvatar } from '$lib/util';
 
@@ -212,7 +211,7 @@
       {:else}
         <a
           class="cursor-pointer rounded-md bg-teal-500/25 px-3 py-1 font-medium text-teal-500 transition hover:bg-teal-500/50 hover:text-white active:scale-[.98]"
-          href={PATREON_OAUTH_URL}
+          href="/api/connections/patreon/connect"
         >
           {$t('common.connect')}
         </a>

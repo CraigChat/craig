@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createHmac } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { determineRewardTier, resolveUserEntitlement, type PatreonWebhookBody } from '$lib/server/patreon';
 import { prisma } from '@craig/db';
@@ -125,7 +125,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const text = await request.text();
   if (!event || !signature || request.headers.get('user-agent') !== 'Patreon HTTP Robot') return json({ message: 'Unauthorized' }, { status: 401 });
   const hash = createHmac('md5', env.PATREON_WEBHOOK_SECRET).update(text).digest('hex');
-  if (hash !== signature) {
+  if (!timingSafeEqual(Buffer.from(hash), Buffer.from(signature))) {
     console.log(`A Patreon webhook event (${event}) was rejected: ${hash} != ${signature} [expected]`);
     return json({ message: 'Unauthorized' }, { status: 401 });
   }

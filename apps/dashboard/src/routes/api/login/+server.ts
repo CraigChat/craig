@@ -118,7 +118,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   });
 
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-  cookies.set('session', token, { maxAge: 60 * 60 * 24 * 7, path: '/' });
+  cookies.set('session', token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
 
   redirect(307, redirectTo);
 };

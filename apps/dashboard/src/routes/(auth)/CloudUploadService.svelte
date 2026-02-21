@@ -15,7 +15,6 @@
   import { env } from '$env/dynamic/public';
   import { updateSettings } from '$lib/data';
   import { loadingIcon } from '$lib/icons';
-  import { BOX_OAUTH_URL, GOOGLE_OAUTH_URL, MICROSOFT_OAUTH_URL } from '$lib/oauth';
   import { APIErrorCode, type APIErrorResponse, type ConnectionsData } from '$lib/types';
   import { cn } from '$lib/util';
 
@@ -33,7 +32,6 @@
       id: 'google',
       icon: googleDriveIcon,
       name: 'Google Drive',
-      oauthUrl: GOOGLE_OAUTH_URL,
       settingsUrl: 'https://myaccount.google.com/connections',
 
       mainServiceName: 'Google',
@@ -43,7 +41,6 @@
       id: 'onedrive',
       icon: onedriveIcon,
       name: 'Microsoft OneDrive',
-      oauthUrl: MICROSOFT_OAUTH_URL,
       settingsUrl: 'https://microsoft.com/consent',
 
       apiId: 'microsoft',
@@ -54,7 +51,6 @@
       id: 'dropbox',
       icon: dropboxIcon,
       name: 'Dropbox',
-      oauthUrl: '/api/connections/dropbox/connect',
       settingsUrl: 'https://www.dropbox.com/account/connected_apps',
 
       enabled: !!env.PUBLIC_DROPBOX_CLIENT_ID
@@ -63,7 +59,6 @@
       id: 'box',
       icon: boxIcon,
       name: 'Box',
-      oauthUrl: BOX_OAUTH_URL,
       settingsUrl: 'https://app.box.com/integrations?myIntegrations=true',
 
       enabled: !!env.PUBLIC_BOX_CLIENT_ID
@@ -165,7 +160,7 @@
               {#if !connections[service.id]}
                 <a
                   class="cursor-pointer rounded-md bg-teal-500/25 px-3 py-1 text-center font-medium text-teal-500 transition hover:bg-teal-500/50 hover:text-white active:scale-[.98]"
-                  href={service.oauthUrl}
+                  href="/api/connections/{'apiId' in service ? service.apiId : service.id}/connect"
                 >
                   {$t('common.connect')}
                 </a>

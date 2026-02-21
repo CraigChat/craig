@@ -5,12 +5,13 @@ import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 import { prisma } from '@craig/db';
-import { dbxAuth, dropboxScopes, toRedirectUri } from '$lib/server/oauth';
+import { googleScopes } from '$lib/oauth';
+import { toRedirectUri } from '$lib/server/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
-  if (!envPub.PUBLIC_DROPBOX_CLIENT_ID || !env.DROPBOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=dropbox');
+  if (!envPub.PUBLIC_GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=google');
 
-  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox-url', limit: 20, window: 60 });
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-google-url', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -20,5 +21,14 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
   if (!user || user.rewardTier === 0) return redirect(307, '/');
 
   const state = await generateOAuthState(auth.id);
-  return redirect(307, (await dbxAuth.getAuthenticationUrl(toRedirectUri('dropbox'), state, 'code', 'offline', dropboxScopes, 'none', false)) as string);
+  const params = new URLSearchParams({
+    access_type: 'offline',
+    scope: googleScopes.join(' '),
+    response_type: 'code',
+    client_id: envPub.PUBLIC_GOOGLE_CLIENT_ID,
+    redirect_uri: toRedirectUri('google'),
+    state
+  });
+
+  return redirect(307, `https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 };

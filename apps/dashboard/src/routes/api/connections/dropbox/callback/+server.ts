@@ -2,7 +2,7 @@ import { Dropbox } from 'dropbox';
 import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
 import { checkAuth } from '$lib/server/discord';
-import { rateLimitRequest } from '$lib/server/redis';
+import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { toRedirectUri } from '$lib/oauth';
@@ -22,7 +22,9 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   if (!user || user.rewardTier === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
-  if (error) return redirect(307, `/?error=${error}&from=dropbox`);
+  if (error) return redirect(307, `/?error=${encodeURIComponent(error)}&from=dropbox`);
+  const state = url.searchParams.get('state');
+  if (!state || !(await validateOAuthState(state, auth.id))) return redirect(307, '/?error=__INVALID_STATE&from=dropbox');
   const code = url.searchParams.get('code');
   if (!code || typeof code !== 'string') return redirect(307, '/');
 

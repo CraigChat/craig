@@ -5,12 +5,12 @@ import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 import { prisma } from '@craig/db';
-import { dbxAuth, dropboxScopes, toRedirectUri } from '$lib/server/oauth';
+import { microsoftScopes, toRedirectUri } from '$lib/oauth';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
-  if (!envPub.PUBLIC_DROPBOX_CLIENT_ID || !env.DROPBOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=dropbox');
+  if (!envPub.PUBLIC_MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=microsoft');
 
-  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-dropbox-url', limit: 20, window: 60 });
+  const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-microsoft-url', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
 
   const sessionCookie = cookies.get('session');
@@ -20,5 +20,13 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
   if (!user || user.rewardTier === 0) return redirect(307, '/');
 
   const state = await generateOAuthState(auth.id);
-  return redirect(307, (await dbxAuth.getAuthenticationUrl(toRedirectUri('dropbox'), state, 'code', 'offline', dropboxScopes, 'none', false)) as string);
+  const params = new URLSearchParams({
+    client_id: envPub.PUBLIC_MICROSOFT_CLIENT_ID,
+    scope: microsoftScopes.join(' '),
+    redirect_uri: toRedirectUri('microsoft'),
+    response_type: 'code',
+    state
+  });
+
+  return redirect(307, `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`);
 };

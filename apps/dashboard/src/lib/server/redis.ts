@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 
@@ -86,3 +88,17 @@ export async function rateLimitRequest(
   const rl = await rateLimit(key, limit, window);
   if (!rl.allowed) return json({ error: 'Rate limited' }, { status: 429 });
 }
+
+export async function generateOAuthState(userId: string): Promise<string> {
+  const state = randomBytes(32).toString('hex');
+  await redis.set(`oauth_connect_state:${state}`, userId, 'EX', 300);
+  return state;
+}
+
+export async function validateOAuthState(state: string, userId: string): Promise<boolean> {
+  const stored = await redis.get(`oauth_connect_state:${state}`);
+  if (!stored || stored !== userId) return false;
+  await redis.del(`oauth_connect_state:${state}`);
+  return true;
+}
+
