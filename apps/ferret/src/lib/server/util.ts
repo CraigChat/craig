@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -120,7 +121,19 @@ export async function validateKey(recordingId: string, key: string) {
   const data = await fs.readFile(`${recFileBase}.info`, { encoding: 'utf8' });
   const info = JSON.parse(data) as Recording.RecordingInfo;
 
-  return info.key === key;
+  try {
+    return timingSafeEqual(Buffer.from(info.key), Buffer.from(key));
+  } catch {
+    return false;
+  }
+}
+
+export function safeKeyCompare(a: string, b: string): boolean {
+  try {
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteRecording(recordingId: string) {

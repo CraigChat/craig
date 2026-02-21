@@ -4,7 +4,7 @@ import { destr } from 'destr';
 import { dev } from '$app/environment';
 import { type PostJobBody, validateOptions } from '$lib/server/job';
 import { isStreamOpen } from '$lib/server/redis';
-import { cancelJob, createJob, errorResponse, getLatestJob, getRecordingInfo, minimizeJobInfo, recordingExists, validateKey } from '$lib/server/util';
+import { cancelJob, createJob, errorResponse, getLatestJob, getRecordingInfo, minimizeJobInfo, recordingExists, safeKeyCompare, validateKey } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
 import type { RequestHandler } from './$types';
@@ -54,7 +54,7 @@ export const POST: RequestHandler = async ({ url, params, request }) => {
   if (!recExists.available) return errorResponse(APIErrorCode.RECORDING_NOT_FOUND, { status: 404 });
 
   const recording = await getRecordingInfo(id);
-  if (recording.info.key !== key) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
+  if (!safeKeyCompare(recording.info.key, key)) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
   if (!recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
 
   const job = await getLatestJob(id);

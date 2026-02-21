@@ -29,10 +29,7 @@
   });
 
   function dismissMaintenance(maintenanceId: string) {
-    dismissedMaintenance.update((current) => ({
-      ...current,
-      [maintenanceId]: true
-    }));
+    dismissedMaintenance.update((current) => [...current, maintenanceId]);
 
     activeMaintenance = activeMaintenance.filter(
       (maintenance) => maintenance.status === 'maintenance' && !$dismissedMaintenance.includes(maintenance.id)

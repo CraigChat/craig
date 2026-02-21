@@ -1,7 +1,7 @@
 import { isStreamOpen } from '$lib/server/redis';
 import { SSEConnection, SSEResponse } from '$lib/server/sse/client';
 import { sseManager } from '$lib/server/sse/manager';
-import { getLatestJob, minimizeJobInfo, recordingExists } from '$lib/server/util';
+import { getLatestJob, minimizeJobInfo, recordingExists, validateKey } from '$lib/server/util';
 
 import type { RequestHandler } from './$types';
 
@@ -23,6 +23,15 @@ export const GET: RequestHandler = async ({ url, params }) => {
       {
         event: 'end',
         data: { error: 'RECORDING_NOT_FOUND' }
+      }
+    ]);
+
+  const validKey = await validateKey(id, key);
+  if (!validKey)
+    return new SSEResponse([
+      {
+        event: 'end',
+        data: { error: 'INVALID_KEY' }
       }
     ]);
 

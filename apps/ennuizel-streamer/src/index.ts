@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
 import { join } from 'node:path';
 import { writeHeapSnapshot } from 'node:v8';
@@ -12,7 +13,7 @@ import logger from './util/logger.js';
 import { openStreams, requestHistogram, streamsTotal } from './util/metrics.js';
 import { getNotes, SEND_SIZE, streamController } from './util/process.js';
 import { testProcessOptions } from './util/processOptions.js';
-import { getInfoText, getRecordingInfo, recordingExists } from './util/recording.js';
+import { getInfoText, getRecordingInfo, recordingExists, safeKeyCompare } from './util/recording.js';
 
 interface SendOptions {
   status: number;
@@ -50,7 +51,7 @@ const app = uWS
   })
   .post('/_writeHeapSnapshot', async (res, req) => {
     if (req.getHeader('x-real-ip') || req.getHeader('cf-connecting-ip')) return send(res, { status: 401, data: { ok: false } });
-    if (!process.env.SNAPSHOT_KEY || req.getHeader('authorization') !== process.env.SNAPSHOT_KEY)
+    if (!process.env.SNAPSHOT_KEY || !timingSafeEqual(Buffer.from(req.getHeader('authorization')), Buffer.from(process.env.SNAPSHOT_KEY)))
       return send(res, { status: 401, data: { ok: false } });
     const filename = writeHeapSnapshot();
     send(res, { status: 200, data: { filename } });
@@ -66,7 +67,7 @@ const app = uWS
     const recExists = await recordingExists(id);
     if (!recExists.available || !recExists.dataExists) return send(res, { timer, status: 404, data: { ok: false, error: 'Recording not found' } });
     const { info, users } = await getRecordingInfo(id);
-    if (info.key !== key) return send(res, { timer, status: 403, data: { ok: false, error: 'Invalid key' } });
+    if (!safeKeyCompare(info.key, key)) return send(res, { timer, status: 403, data: { ok: false, error: 'Invalid key' } });
 
     send(res, {
       timer,
@@ -95,7 +96,7 @@ const app = uWS
     const recExists = await recordingExists(id);
     if (!recExists.available || !recExists.dataExists) return send(res, { timer, status: 404, data: { ok: false, error: 'Recording not found' } });
     const { info, users } = await getRecordingInfo(id);
-    if (info.key !== key) return send(res, { timer, status: 403, data: { ok: false, error: 'Invalid key' } });
+    if (!safeKeyCompare(info.key, key)) return send(res, { timer, status: 403, data: { ok: false, error: 'Invalid key' } });
 
     try {
       const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
@@ -108,7 +109,7 @@ const app = uWS
         headers: {
           'cache-control': 'max-age=120',
           'content-disposition': `attachment; filename="craig-${id}-info.txt"`,
-          'content-length': txt.length.toString()
+          'content-length': Buffer.byteLength(txt).toString()
         }
       });
     } catch (e) {
@@ -186,7 +187,7 @@ const app = uWS
         const recExists = await recordingExists(payload.i);
         if (!recExists.available || !recExists.dataExists) return ws.end(4002);
         const { info, users } = await getRecordingInfo(payload.i);
-        if (info.key !== payload.k) return ws.end(4002);
+        if (!safeKeyCompare(info.key, payload.k)) return ws.end(4002);
         if (!users[payload.t - 1]) return ws.end(4003);
 
         // Websocket left before we started

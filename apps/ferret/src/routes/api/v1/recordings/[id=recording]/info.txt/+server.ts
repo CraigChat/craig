@@ -1,5 +1,5 @@
 import { getRecordingNotesWithCache } from '$lib/server/data';
-import { errorResponse, getInfoText, getRecordingInfo, recordingExists } from '$lib/server/util';
+import { errorResponse, getInfoText, getRecordingInfo, recordingExists, safeKeyCompare } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
 import type { RequestHandler } from './$types';
@@ -14,7 +14,7 @@ export const GET = (async ({ url, params }) => {
   if (!recExists.available) return errorResponse(APIErrorCode.RECORDING_NOT_FOUND, { status: 404 });
 
   const recording = await getRecordingInfo(id);
-  if (recording.info.key !== key) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
+  if (!safeKeyCompare(recording.info.key, key)) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
   if (recording.users.length !== 0 && !recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
 
   const notes = await getRecordingNotesWithCache(id, recExists.dataStats?.size);
@@ -26,7 +26,7 @@ export const GET = (async ({ url, params }) => {
       'Content-Type': 'text/plain',
       'Cache-Control': 'max-age=120',
       'Content-Disposition': `attachment; filename="craig-${id}-info.txt"`,
-      'Content-Length': info.length.toString()
+      'Content-Length': Buffer.byteLength(info).toString()
     }
   });
 }) satisfies RequestHandler;
