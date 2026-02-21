@@ -3,7 +3,7 @@ import { stat } from 'node:fs/promises';
 
 import { prisma } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
-import { Dropbox, DropboxAuth, DropboxResponse, Error as DropboxError, files } from 'dropbox';
+import { Dropbox, DropboxAuth, DropboxResponse, DropboxResponseError, files } from 'dropbox';
 
 import { DROPBOX_CLIENT_ID, DROPBOX_CLIENT_SECRET, DROPBOX_FOLDER_NAME } from '../../util/config.js';
 import logger from '../../util/logger.js';
@@ -30,11 +30,17 @@ export async function dropboxPreflight(userId: string) {
   try {
     await dbx.usersGetCurrentAccount();
   } catch (e) {
-    const err: DropboxError<{ error_summary: string }> = e as any;
-    logger.warn(`Error in dropbox preflight for user ${userId}`, err.error);
-    await prisma.dropboxUser.delete({ where: { id: userId } });
+    logger.warn(`Error in dropbox preflight for user ${userId}`, e);
+    if (e instanceof DropboxResponseError && (e.status === 401 || e.status === 403))
+      await prisma.dropboxUser.delete({ where: { id: userId } });
     return false;
   }
+
+  // Persist any tokens refreshed by the SDK during the API call
+  const accessToken = auth.getAccessToken();
+  const refreshToken = auth.getRefreshToken();
+  if (accessToken !== driveUser.token || refreshToken !== driveUser.refreshToken)
+    await prisma.dropboxUser.update({ where: { id: userId }, data: { refreshToken, token: accessToken } });
 
   return true;
 }
@@ -66,49 +72,64 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
           let uploadedBytes = 0;
           let chunksToUploadSize = 0;
           let chunks: Buffer[] = [];
+          let processing = false;
 
-          readStream.on('data', async (chunk) => {
+          readStream.on('error', (err) => {
+            reject(err);
+          });
+
+          async function processChunks(finished: boolean) {
+            if (processing) return;
+            processing = true;
+            readStream.pause();
+
+            const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
+
+            try {
+              if (uploadedBytes === 0) {
+                const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
+                sessionId = response.result.session_id;
+              } else if (finished) {
+                const file = await dbx.filesUploadSessionFinish({
+                  cursor: { session_id: sessionId, offset: uploadedBytes },
+                  commit: { path: `/${fileName}.${ext}`, autorename: true },
+                  contents: chunkBuffer
+                });
+                return resolve(file);
+              } else {
+                await dbx.filesUploadSessionAppendV2({
+                  cursor: { session_id: sessionId, offset: uploadedBytes },
+                  close: false,
+                  contents: chunkBuffer
+                });
+              }
+            } catch (e) {
+              logger.error(`Error in dropbox upload for recording ${job.recordingId} for user ${userId}`, e);
+              return reject(e);
+            }
+
+            uploadedBytes += chunksToUploadSize;
+            chunks = [];
+            chunksToUploadSize = 0;
+            processing = false;
+
+            readStream.resume();
+          }
+
+          readStream.on('data', (chunk) => {
             chunks.push(chunk as Buffer);
             chunksToUploadSize += chunk.length;
 
             const finished = chunksToUploadSize + uploadedBytes === fileSize;
 
-            // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
             if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
-              readStream.pause();
-              const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
+              processChunks(finished);
+            }
+          });
 
-              try {
-                if (uploadedBytes === 0) {
-                  const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
-                  sessionId = response.result.session_id;
-                } else if (finished) {
-                  const file = await dbx.filesUploadSessionFinish({
-                    cursor: { session_id: sessionId, offset: uploadedBytes },
-                    commit: { path: `/${fileName}.${ext}`, autorename: true },
-                    contents: chunkBuffer
-                  });
-                  return resolve(file);
-                } else {
-                  await dbx.filesUploadSessionAppendV2({
-                    cursor: { session_id: sessionId, offset: uploadedBytes },
-                    close: false,
-                    contents: chunkBuffer
-                  });
-                }
-              } catch (e) {
-                logger.error(`Error in dropbox upload for recording ${job.recordingId} for user ${userId}`, e);
-                return reject(e);
-              }
-
-              // update uploaded bytes
-              uploadedBytes += chunksToUploadSize;
-
-              // reset for next chunks
-              chunks = [];
-              chunksToUploadSize = 0;
-
-              readStream.resume();
+          readStream.on('end', () => {
+            if (chunks.length > 0) {
+              processChunks(true);
             }
           });
         });

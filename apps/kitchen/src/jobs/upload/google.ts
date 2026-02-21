@@ -44,7 +44,7 @@ function createOAuthClient(driveUser: GoogleDriveUser) {
     await prisma.googleDriveUser.update({
       where: { id: driveUser.id },
       data: {
-        token: tokens.access_token!,
+        ...(tokens.access_token && { token: tokens.access_token }),
         ...(tokens.refresh_token && { refreshToken: tokens.refresh_token })
       }
     });
@@ -57,7 +57,7 @@ export async function googlePreflight(userId: string) {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return false;
 
   const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
-  if (!driveUser) return;
+  if (!driveUser) return false;
   const oAuth2Client = createOAuthClient(driveUser);
   const drive = google.drive({ version: 'v3', auth: oAuth2Client });
 

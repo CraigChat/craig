@@ -45,11 +45,15 @@ interface BoxUploadSession {
   total_parts: number;
 }
 
-async function getRefreshedBoxAccessToken(accessToken: string, refreshToken: string, userId: string) {
+async function getRefreshedBoxAccessToken(
+  accessToken: string,
+  refreshToken: string,
+  userId: string
+): Promise<{ token: string | null; authInvalidated: boolean }> {
   const user = await fetch('https://api.box.com/2.0/users/me', {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
-  if (user.status === 200) return accessToken;
+  if (user.status === 200) return { token: accessToken, authInvalidated: false };
 
   const response = await fetch('https://api.box.com/oauth2/token', {
     method: 'POST',
@@ -65,10 +69,12 @@ async function getRefreshedBoxAccessToken(accessToken: string, refreshToken: str
   if (response.status === 200) {
     const { access_token, refresh_token } = await response.json();
     await prisma.boxUser.update({ where: { id: userId }, data: { token: access_token, refreshToken: refresh_token } });
-    return access_token;
+    return { token: access_token, authInvalidated: false };
   }
 
-  return null;
+  // 400/401/403 = definitive auth failure, 5xx/network = transient
+  const authInvalidated = response.status === 400 || response.status === 401 || response.status === 403;
+  return { token: null, authInvalidated };
 }
 
 async function findCraigDirectory(accessToken: string, userId: string) {
@@ -138,9 +144,9 @@ export async function boxPreflight(userId: string) {
   if (!BOX_CLIENT_ID || !BOX_CLIENT_SECRET) return false;
   const driveUser = await prisma.boxUser.findFirst({ where: { id: userId } });
   if (!driveUser) return false;
-  const accessToken = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
+  const { token: accessToken, authInvalidated } = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
-    await prisma.boxUser.delete({ where: { id: userId } });
+    if (authInvalidated) await prisma.boxUser.delete({ where: { id: userId } });
     return false;
   }
 
@@ -233,10 +239,13 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
   const userId = job.postTaskOptions!.userId!;
   const driveUser = await prisma.boxUser.findFirst({ where: { id: userId } });
   if (!driveUser) return;
-  const accessToken = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
+  const { token: accessToken, authInvalidated } = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
-    await prisma.boxUser.delete({ where: { id: userId } });
-    throw new UploadError('Box authentication failed, please re-authenticate.');
+    if (authInvalidated) await prisma.boxUser.delete({ where: { id: userId } });
+    throw new UploadError(
+      authInvalidated
+        ? 'Your authentication to Box has been invalidated, please re-authenticate.'
+        : 'An error occurred while authentcating to Box, try again later or re-authenticate.');
   }
 
   const folderId = job.postTaskOptions?.uploadFolderId || (await findCraigDirectory(accessToken, userId));
@@ -292,7 +301,6 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
       job.outputData.uploadFileURL = `https://app.box.com/file/${file.id}`;
     } else {
       const data = await uploadResponse.json().catch(() => null);
-      console.log({ data });
       throw new UploadError(`Box Error (${uploadResponse.status}): ${data?.code || 'UnexpectedError'}`);
     }
   } else {

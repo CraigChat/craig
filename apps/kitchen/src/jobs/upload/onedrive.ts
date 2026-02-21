@@ -10,13 +10,17 @@ import { Job } from '../job.js';
 
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
 
-async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToken: string, userId: string) {
+async function getRefreshedMicrosoftAccessToken(
+  accessToken: string,
+  refreshToken: string,
+  userId: string
+): Promise<{ token: string | null; authInvalidated: boolean }> {
   const user = await fetch('https://graph.microsoft.com/v1.0/me', {
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
   });
-  if (user.status === 200) return accessToken;
+  if (user.status === 200) return { token: accessToken, authInvalidated: false };
 
   const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
     method: 'POST',
@@ -33,19 +37,21 @@ async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToke
   if (response.status === 200) {
     const { access_token, refresh_token } = await response.json();
     await prisma.microsoftUser.update({ where: { id: userId }, data: { token: access_token, refreshToken: refresh_token } });
-    return access_token;
+    return { token: access_token, authInvalidated: false };
   }
 
-  return null;
+  // 400/401/403 = definitive auth failure, 5xx/network = transient
+  const authInvalidated = response.status === 400 || response.status === 401 || response.status === 403;
+  return { token: null, authInvalidated };
 }
 
 export async function onedrivePreflight(userId: string) {
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return false;
   const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
   if (!driveUser) return false;
-  const accessToken = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
+  const { token: accessToken, authInvalidated } = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
-    await prisma.microsoftUser.delete({ where: { id: userId } });
+    if (authInvalidated) await prisma.microsoftUser.delete({ where: { id: userId } });
     return false;
   }
 
@@ -97,7 +103,14 @@ export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: st
   const userId = job.postTaskOptions!.userId!;
   const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
   if (!driveUser) return;
-  const accessToken = driveUser.token;
+  const { token: accessToken, authInvalidated } = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
+  if (!accessToken) {
+    if (authInvalidated) await prisma.microsoftUser.delete({ where: { id: userId } });
+    throw new UploadError(
+      authInvalidated
+        ? 'Your authentication to Microsoft has been invalidated, please re-authenticate.'
+        : 'An error occurred while authentcating to Microsoft, try again later or re-authenticate.');
+    }
 
   const uploadSession = await fetch(
     `https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${job.getExtension()}:/createUploadSession`,
