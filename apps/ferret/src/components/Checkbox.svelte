@@ -1,14 +1,16 @@
 <script lang="ts">
-  interface Props {
+  import type { HTMLInputAttributes } from 'svelte/elements';
+
+  interface Props extends Omit<HTMLInputAttributes, 'type' | 'class'> {
     id?: string | undefined;
     checked: boolean;
     disabled?: boolean;
   }
 
-  let { id = undefined, checked = $bindable(), disabled = false }: Props = $props();
+  let { id = undefined, checked = $bindable(), disabled = false, ...rest }: Props = $props();
 </script>
 
-<input {id} type="checkbox" class="h-6 w-6 flex-none cursor-pointer" bind:checked {disabled} />
+<input {id} type="checkbox" class="h-6 w-6 flex-none cursor-pointer" bind:checked {disabled} {...rest} />
 
 <style lang="scss">
   input[type='checkbox'] {

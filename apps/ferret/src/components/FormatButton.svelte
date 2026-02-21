@@ -3,6 +3,7 @@
 
   interface Props {
     ennuizel?: boolean;
+    minizel?: boolean;
     disabled?: boolean;
     icon?: IconifyIcon | null;
     suffix?: string;
@@ -10,10 +11,10 @@
     children?: import('svelte').Snippet;
   }
 
-  let { ennuizel = false, disabled = false, icon = null, suffix = '', onclick, children }: Props = $props();
+  let { ennuizel = false, minizel = false, disabled = false, icon = null, suffix = '', onclick, children }: Props = $props();
 </script>
 
-<button class:ennuizel {disabled} {onclick}>
+<button class:ennuizel class:minizel {disabled} {onclick}>
   {#if icon}
     <Icon {icon} class="scale-125" />
   {/if}
@@ -46,6 +47,10 @@
 
     &.ennuizel {
       @apply border-red-500 bg-red-500 bg-opacity-25 text-red-400;
+    }
+
+    &.minizel {
+      @apply border-purple-500 bg-purple-500 bg-opacity-25 text-purple-400;
     }
 
     &:hover {

@@ -1,6 +1,6 @@
-import { createReadStream } from 'fs';
-import { stat } from 'fs/promises';
+import { open, stat } from 'fs/promises';
 import { join } from 'path';
+import { Readable } from 'stream';
 
 import { REC_DIRECTORY } from '$lib/server/config';
 import { errorResponse, getRecordingInfo, recordingExists } from '$lib/server/util';
@@ -24,58 +24,111 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
   const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
   const files = [`${recFileBase}.header1`, `${recFileBase}.header2`, `${recFileBase}.data`];
 
-  const sizes = await Promise.all(files.map((file) => stat(file)));
-  const totalSize = sizes.reduce((total, stats) => total + stats.size, 0);
+  // Check all files exist and get sizes
+  const sizes = await Promise.all(files.map((file) => stat(file).catch(() => null)));
+  if (sizes.some((s) => s === null)) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
+  const fileSizes = sizes.map((s) => s!.size);
+  const totalSize = fileSizes.reduce((total, size) => total + size, 0);
 
-  const abortController = new AbortController();
-  const readableStream = new ReadableStream({
-    async start(controller) {
-      const openStreams = [];
-      try {
-        for (const file of files) {
-          if (request.signal.aborted || abortController.signal.aborted) break;
-          const stream = createReadStream(file);
-          openStreams.push(stream);
+  // Parse Range header for resume support
+  const rangeHeader = request.headers.get('Range');
+  let rangeStart = 0;
+  let rangeEnd = totalSize - 1;
+  let isPartial = false;
 
-          for await (const chunk of stream) {
-            if (request.signal.aborted || abortController.signal.aborted) {
-              for (const s of openStreams) {
-                try {
-                  s.destroy();
-                } catch {}
-              }
-              controller.close();
-              return;
-            }
-            controller.enqueue(new Uint8Array(chunk));
-          }
-          stream.close();
+  if (rangeHeader) {
+    const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+    if (match) {
+      rangeStart = parseInt(match[1], 10);
+      if (match[2]) rangeEnd = parseInt(match[2], 10);
+      if (rangeStart >= 0 && rangeStart < totalSize && rangeEnd >= rangeStart) {
+        isPartial = true;
+        rangeEnd = Math.min(rangeEnd, totalSize - 1);
+      } else
+        return errorResponse(APIErrorCode.INVALID_RANGE, {
+          status: 416,
+          headers: { 'Content-Range': `bytes */${totalSize}` }
+        });
+    }
+  }
 
-          openStreams.pop();
-        }
+  const contentLength = rangeEnd - rangeStart + 1;
 
-        controller.close();
-      } catch (err) {
-        for (const s of openStreams)
-          try {
-            s.destroy();
-          } catch {}
-        controller.error(err instanceof Error ? err : new Error(String(err)));
+  // Create a combined Node.js readable stream from all files with range support
+  async function* generateChunks(): AsyncGenerator<Buffer> {
+    let globalOffset = 0;
+    let bytesToSkip = rangeStart;
+    let bytesRemaining = contentLength;
+
+    for (let i = 0; i < files.length && bytesRemaining > 0; i++) {
+      const file = files[i];
+      const fileSize = fileSizes[i];
+
+      // Skip entire file if range starts after it
+      if (bytesToSkip >= fileSize) {
+        bytesToSkip -= fileSize;
+        globalOffset += fileSize;
+        continue;
       }
-    },
-    cancel() {
-      abortController.abort();
+
+      if (request.signal.aborted) return;
+
+      const handle = await open(file, 'r');
+      try {
+        const startInFile = bytesToSkip;
+        bytesToSkip = 0;
+
+        const stream = handle.createReadStream({
+          start: startInFile,
+          highWaterMark: 256 * 1024
+        });
+
+        for await (const chunk of stream) {
+          if (request.signal.aborted) {
+            stream.destroy();
+            return;
+          }
+
+          let data: Buffer = chunk;
+          if (data.length > bytesRemaining) data = data.subarray(0, bytesRemaining);
+
+          bytesRemaining -= data.length;
+          yield data;
+
+          if (bytesRemaining <= 0) {
+            stream.destroy();
+            break;
+          }
+        }
+      } finally {
+        await handle.close().catch(() => {});
+      }
+
+      globalOffset += fileSize;
     }
+  }
+
+  const nodeStream = Readable.from(generateChunks(), { highWaterMark: 256 * 1024 });
+  const webStream = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
+
+  request.signal.addEventListener('abort', () => {
+    nodeStream.destroy();
   });
 
-  const response = new Response(readableStream, {
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Cache-Control': 'max-age=120',
-      'Content-Disposition': `attachment; filename="craig-${id}-raw.dat"`,
-      'Content-Length': totalSize.toString()
-    }
-  });
+  const headers: HeadersInit = {
+    'Content-Type': 'application/octet-stream',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Content-Disposition': `attachment; filename="craig-${id}-raw.dat"`,
+    'Content-Length': contentLength.toString(),
+    'X-Content-Type-Options': 'nosniff',
+    'Accept-Ranges': 'bytes',
+    'X-Accel-Buffering': 'no'
+  };
 
-  return response;
+  if (isPartial) {
+    headers['Content-Range'] = `bytes ${rangeStart}-${rangeEnd}/${totalSize}`;
+    return new Response(webStream, { status: 206, headers });
+  }
+
+  return new Response(webStream, { headers });
 };
