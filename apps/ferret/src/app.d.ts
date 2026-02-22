@@ -11,6 +11,7 @@ declare global {
       message?: string;
       error?: string;
       code?: string;
+      deletedAt?: number;
     }
     // interface Locals {}
     interface PageData {

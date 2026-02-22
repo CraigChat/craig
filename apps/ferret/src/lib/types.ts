@@ -17,6 +17,7 @@ export enum APIErrorCode {
   RECORDING_NOT_FOUND = 'no_rec',
   INVALID_KEY = 'invalid_key',
   RECORDING_NO_DATA = 'rec_no_data',
+  RECORDING_DELETED = 'recording_deleted',
 
   KITCHEN_UNAVAILABLE = 'kitchen_down',
   JOB_ALREADY_EXISTS = 'job_exists',
@@ -97,6 +98,7 @@ export interface RecordingResponse {
 export interface APIErrorResponse {
   error: string;
   code: APIErrorCode;
+  deletedAt?: number;
 }
 
 export interface StatusIncident {

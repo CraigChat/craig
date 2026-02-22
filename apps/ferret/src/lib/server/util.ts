@@ -142,6 +142,23 @@ export async function deleteRecording(recordingId: string) {
   await Promise.all(['data', 'header1', 'header2'].map((ext) => fs.unlink(`${recFileBase}.${ext}`)));
 }
 
+export async function markRecordingDeleted(recordingId: string, info: RecordingInfo) {
+  const startTimeMs = new Date(info.startTime).getTime();
+  const expiryMs =
+    (Number.isFinite(startTimeMs) ? startTimeMs : Date.now()) + info.expiresAfter * 60 * 60 * 1000;
+  const ttlSeconds = Math.max(1, Math.ceil((expiryMs - Date.now()) / 1000));
+  const deletedAt = Date.now();
+  await redis.set(`recording:deleted:${recordingId}`, String(deletedAt), 'EX', ttlSeconds);
+  return deletedAt;
+}
+
+export async function getRecordingDeletedAt(recordingId: string) {
+  const value = await redis.get(`recording:deleted:${recordingId}`);
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function rewardTierToFeatures(rewardTier: number) {
   const features: string[] = [];
   if (rewardTier > 0 || rewardTier === -1) features.push('glowers');
@@ -244,6 +261,8 @@ export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: 
       return result('Invalid key');
     case APIErrorCode.RECORDING_NO_DATA:
       return result('Recording has no data');
+    case APIErrorCode.RECORDING_DELETED:
+      return result('Recording was manually deleted');
     case APIErrorCode.KITCHEN_UNAVAILABLE:
       return result('Kitchen server unavailable');
     case APIErrorCode.JOB_ALREADY_EXISTS:

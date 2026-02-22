@@ -13,7 +13,18 @@
     <Icon icon={errorIcon} class="mb-4 h-16 w-16 sm:h-20 sm:w-20" />
     <h1 class="font-display text-6xl text-white sm:text-7xl">{page.status}</h1>
     <h4 class="text-xl sm:text-2xl">
-      {page.error?.code ? $t(`errors.${page.error.code}`, { default: page.error.error ?? page.error.message }) : page.error?.message}
+      {#if page.error?.code}
+        {#if page.error.code === 'recording_deleted' && page.error.deletedAt}
+          {$t(`errors.${page.error.code}`, {
+            default: page.error.error ?? page.error.message,
+            values: { deletedAt: new Date(page.error.deletedAt) }
+          })}
+        {:else}
+          {$t(`errors.${page.error.code}`, { default: page.error.error ?? page.error.message })}
+        {/if}
+      {:else}
+        {page.error?.message}
+      {/if}
     </h4>
   </div>
 </section>

@@ -1,7 +1,16 @@
 import { json } from '@sveltejs/kit';
 
 import { getCachedRecordingDuration } from '$lib/server/data';
-import { deleteRecording, errorResponse, getRecordingInfo, isRecordingLive, recordingExists, safeKeyCompare } from '$lib/server/util';
+import {
+  deleteRecording,
+  errorResponse,
+  getRecordingDeletedAt,
+  getRecordingInfo,
+  isRecordingLive,
+  markRecordingDeleted,
+  recordingExists,
+  safeKeyCompare
+} from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
 
 import type { RequestHandler } from './$types';
@@ -14,7 +23,11 @@ export const GET: RequestHandler = async ({ url, params }) => {
   if (!key) return errorResponse(APIErrorCode.KEY_REQUIRED, { status: 400 });
 
   const recExists = await recordingExists(id);
-  if (!recExists.available) return errorResponse(APIErrorCode.RECORDING_NOT_FOUND, { status: 404 });
+  if (!recExists.available) {
+    const deletedAt = await getRecordingDeletedAt(id);
+    if (deletedAt) return errorResponse(APIErrorCode.RECORDING_DELETED, { status: 404 }, { deletedAt });
+    return errorResponse(APIErrorCode.RECORDING_NOT_FOUND, { status: 404 });
+  }
 
   const recording = await getRecordingInfo(id);
   if (!safeKeyCompare(recording.info.key, key)) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
@@ -46,6 +59,7 @@ export const DELETE: RequestHandler = async ({ url, params }) => {
   if (recording.info.delete !== deleteKey) return errorResponse(APIErrorCode.INVALID_DELETE_KEY, { status: 401 });
 
   await deleteRecording(id);
+  await markRecordingDeleted(id, recording.info);
 
   return json({ ok: true });
 };
