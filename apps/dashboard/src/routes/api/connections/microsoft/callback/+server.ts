@@ -56,6 +56,11 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       body
     }).then((res) => res.json());
 
+    if ('error' in response) {
+      console.error(`Failed to connect user ${auth.id} to Microsoft: ${'error_description' in response ? response.error_description : response.error}`);
+      return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
+    }
+
     if (!response.access_token || typeof response.access_token !== 'string') return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
     if (!response.refresh_token || typeof response.refresh_token !== 'string') return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=microsoft`);
     const scopesRecieved = response.scope.split(' ');
