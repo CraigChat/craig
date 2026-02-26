@@ -32,7 +32,7 @@
     "@sentry/integrations": "^7.2.0",
     "@sentry/node": "^7.2.0",
     "@sentry/tracing": "^7.2.0",
-    "cron": "^2.1.0",
+    "cron": "^4.3.3",
     "destr": "^1.2.2",
     "dotenv": "^16.0.3",
     "execa": "5",
