@@ -30,7 +30,7 @@ APT_DEPENDENCIES=(
   sed               # install
   coreutils         # install
   build-essential   # install
-  python-setuptools # install
+  python3-setuptools # install
 )
 
 # Get the directory of the script being executed
