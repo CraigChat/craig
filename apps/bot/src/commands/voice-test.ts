@@ -3,14 +3,15 @@ import { ButtonStyle, CommandContext, ComponentType } from 'slash-create';
 import VoiceTest from '../modules/recorder/voiceTest';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission } from '../util';
+import { checkBan, checkRecordingPermission, mainBotCommandOnly } from '../util';
 
 export default class VoiceTestCommand extends GeneralCommand {
   constructor(creator: any) {
     super(creator, {
       name: 'voice-test',
       description: 'Easily test your audio quality in a voice channel.',
-      dmPermission: false
+      dmPermission: false,
+      guildIDs: mainBotCommandOnly
     });
 
     this.filePath = __filename;

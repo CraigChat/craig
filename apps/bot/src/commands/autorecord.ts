@@ -22,7 +22,7 @@ export default class AutoRecord extends GeneralCommand {
               type: CommandOptionType.CHANNEL,
               name: 'channel',
               description: 'The channel to view.',
-              channel_types: [2, 13]
+              channel_types: [ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE],
             }
           ]
         },
@@ -54,7 +54,7 @@ export default class AutoRecord extends GeneralCommand {
               type: CommandOptionType.CHANNEL,
               name: 'post-channel',
               description: 'The channel to post recording panels to when an auto-recording starts.',
-              channel_types: [ChannelType.GUILD_TEXT]
+              channel_types: [ChannelType.GUILD_TEXT, ChannelType.GUILD_PUBLIC_THREAD, ChannelType.GUILD_PRIVATE_THREAD, ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE]
             }
           ]
         },

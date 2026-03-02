@@ -2,7 +2,7 @@ import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan } from '../util';
+import { checkBan, mainBotCommandOnly } from '../util';
 
 export default class Webapp extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -10,6 +10,7 @@ export default class Webapp extends GeneralCommand {
       name: 'webapp',
       description: 'Enable/disable the Craig Webapp.',
       deferEphemeral: true,
+      guildIDs: mainBotCommandOnly,
       options: [
         {
           type: CommandOptionType.SUB_COMMAND,

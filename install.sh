@@ -20,6 +20,8 @@ APT_DEPENDENCIES=(
   opus-tools        # cook
   zip               # cook
   unzip             # cook
+  at                # cook
+  lame              # cook
   lsb-release       # redis
   curl              # redis
   gpg               # redis
