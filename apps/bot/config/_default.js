@@ -1,8 +1,12 @@
 const Eris = require('eris');
 
 module.exports = {
-  // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
-  redis: {},
+  // Redis defaults to the compose service name when running in Docker.
+  redis: {
+    host: process.env.REDIS_HOST || (process.env.container === 'docker' ? 'redis' : 'localhost'),
+    port: process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379,
+    keyPrefix: 'craig:'
+  },
   // redis: {
   //   host: 'localhost',
   //   port: 6379,
