@@ -61,8 +61,37 @@ model Recording {
   endedAt      DateTime? @db.Timestamptz(6)
   errored      Boolean   @default(false)
   expiresAt    DateTime  @db.Timestamptz(6)
+  transcript   RecordingTranscript?
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+enum TranscriptStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  ERROR
+  SKIPPED
+}
+
+model RecordingTranscript {
+  recordingId  String           @id
+  status       TranscriptStatus @default(PENDING)
+  provider     String           @default("openai")
+  model        String           @default("whisper-1")
+  attempts     Int              @default(0)
+  startedAt    DateTime?        @db.Timestamptz(6)
+  completedAt  DateTime?        @db.Timestamptz(6)
+  errorCode    String?
+  errorMessage String?
+  durationSec  Int?
+  audioBytes   Int?
+  text         String?
+  preview      String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(6)
+
+  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
 }
 
 model AutoRecord {

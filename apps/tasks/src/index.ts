@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { createLogger } from './logger';
 import { client } from './redis';
+import { startTranscriptWorker } from './transcription/worker';
 import { listen } from './trpc';
 import { TaskJob } from './types';
 
@@ -49,6 +50,7 @@ const tasksConfig: {
   }
 
   await client.connect();
+  startTranscriptWorker();
   listen(2022);
 
   logger.info('Ready.');

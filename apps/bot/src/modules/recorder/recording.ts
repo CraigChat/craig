@@ -15,6 +15,7 @@ import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, Separator
 import type { CraigBot, CraigBotConfig } from '../../bot';
 import { onRecordingEnd, onRecordingStart } from '../../influx';
 import { prisma } from '../../prisma';
+import { client as redisClient } from '../../redis';
 import { getSelfMember, ParsedRewards, wait } from '../../util';
 import type SlashModule from '../slash';
 import type RecorderModule from '.';
@@ -32,6 +33,9 @@ const recIndicator = / *!?\[RECORDING\] */;
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
+const TRANSCRIPT_QUEUE_KEY = 'transcript:queue';
+const TRANSCRIPT_ENQUEUED_KEY_PREFIX = 'transcript:enqueued:';
+const TRANSCRIPT_ENABLED = process.env.TRANSCRIPT_ENABLED !== 'false';
 
 const BAD_MESSAGE_CODES = [
   404,
@@ -353,6 +357,29 @@ export default class Recording {
             }
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
+
+      if (this.started && TRANSCRIPT_ENABLED) {
+        await prisma.recordingTranscript
+          .upsert({
+            where: { recordingId: this.id },
+            update: {},
+            create: {
+              recordingId: this.id
+            }
+          })
+          .catch((e) => this.recorder.logger.error(`Error creating transcript state for recording ${this.id}`, e));
+
+        const enqueueKey = `${TRANSCRIPT_ENQUEUED_KEY_PREFIX}${this.id}`;
+        const shouldEnqueue = await redisClient.set(enqueueKey, '1', 'EX', 60, 'NX').catch((e) => {
+          this.recorder.logger.error(`Error checking transcript queue dedupe key for recording ${this.id}`, e);
+          return null;
+        });
+        if (shouldEnqueue) {
+          await redisClient.rpush(TRANSCRIPT_QUEUE_KEY, this.id).catch((e) => {
+            this.recorder.logger.error(`Error enqueuing transcript generation for recording ${this.id}`, e);
+          });
+        }
+      }
 
       if (this.startedAt && this.startTime) {
         const timestamp = process.hrtime(this.startTime!);

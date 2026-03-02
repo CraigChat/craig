@@ -70,6 +70,17 @@ export interface DownloadState {
   type?: string;
 }
 
+export type TranscriptStatus = 'PENDING' | 'PROCESSING' | 'COMPLETE' | 'ERROR' | 'SKIPPED';
+
+export interface TranscriptState {
+  status: TranscriptStatus;
+  preview?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
 export async function getRecording(id: string, key: string | number): Promise<RecordingInfo> {
   const response = await fetch(`/api/recording/${id}?key=${key}`);
   if (response.status !== 200) throw response;
@@ -116,4 +127,10 @@ export async function cookDownload(id: string, key: string | number, payload: an
   });
   if (response.status !== 200 && response.status !== 204) throw response;
   return;
+}
+
+export async function getTranscriptState(id: string, key: string | number): Promise<TranscriptState> {
+  const response = await fetch(`/api/recording/${id}/transcript?key=${key}`);
+  if (response.status !== 200) throw response;
+  return response.json().then((data) => data.transcript);
 }

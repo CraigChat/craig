@@ -10,11 +10,13 @@ import {
   cookDownload,
   getRecording,
   getRecordingDuration,
+  getTranscriptState,
   getRecordingUsers,
   isReady,
   ReadyState,
   RecordingInfo,
-  RecordingUser
+  RecordingUser,
+  TranscriptState
 } from '../api';
 import i18n, { languages } from '../i18n';
 import { SectionButton } from '../sections';
@@ -36,6 +38,10 @@ export interface ModalOptions {
 
 export type OpenModalFunction = (content: any, opts?: ModalOptions) => void;
 
+function isTranscriptTerminal(status: string) {
+  return status === 'COMPLETE' || status === 'ERROR' || status === 'SKIPPED';
+}
+
 interface AppState {
   loading: boolean;
   platform: PlatformInfo;
@@ -48,6 +54,7 @@ interface AppState {
 
   downloading: boolean;
   readyState: ReadyState | null;
+  transcriptState: TranscriptState | null;
   downloadingAvatars: boolean;
   dlButton: SectionButton | null;
   showPreviousDownload: boolean;
@@ -59,6 +66,8 @@ interface AppState {
 }
 
 export default class App extends Component<any, AppState> {
+  transcriptPoll: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
     super();
 
@@ -79,6 +88,7 @@ export default class App extends Component<any, AppState> {
 
       downloading: false,
       readyState: null,
+      transcriptState: null,
       downloadingAvatars: false,
       dlButton: null,
       showPreviousDownload: true
@@ -94,6 +104,7 @@ export default class App extends Component<any, AppState> {
     this.startDownload = this.startDownload.bind(this);
     this.waitTillReady = this.waitTillReady.bind(this);
     this.startAvatarDownload = this.startAvatarDownload.bind(this);
+    this.refreshTranscript = this.refreshTranscript.bind(this);
     this.showDeletePrompt = this.showDeletePrompt.bind(this);
     this.toggleHiddenPlatform = this.toggleHiddenPlatform.bind(this);
 
@@ -122,23 +133,46 @@ export default class App extends Component<any, AppState> {
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onBeforeUnload);
+    if (this.transcriptPoll) clearTimeout(this.transcriptPoll);
   }
 
   async loadRecording() {
     try {
       const query = new URLSearchParams(location.search);
       const key = query.get('key');
+      if (!key) throw new Error('No key');
       const recording = await getRecording(this.state.recordingId, key);
       const users = await getRecordingUsers(this.state.recordingId, key);
       const readyState = await isReady(this.state.recordingId, key);
-      console.debug('Got recording', recording, users, readyState);
-      this.setState({ recording, users, loading: false, readyState });
+      const transcriptState = await this.refreshTranscript(key).catch(() => null);
+      console.debug('Got recording', recording, users, readyState, transcriptState);
+      this.setState({ recording, users, loading: false, readyState, transcriptState });
       if (readyState && !readyState.ready) await this.updatePreviousReadyState(key);
+      if (transcriptState && !isTranscriptTerminal(transcriptState.status)) this.scheduleTranscriptRefresh(key);
     } catch (e) {
       const { errorT } = await parseError(e);
       console.error('Failed to get recording:', e);
       this.setState({ error: errorT, loading: false });
     }
+  }
+
+  async refreshTranscript(key: string) {
+    const transcriptState = await getTranscriptState(this.state.recordingId, key);
+    this.setState({ transcriptState });
+    return transcriptState;
+  }
+
+  scheduleTranscriptRefresh(key: string) {
+    if (this.transcriptPoll) clearTimeout(this.transcriptPoll);
+    this.transcriptPoll = setTimeout(async () => {
+      try {
+        const transcriptState = await this.refreshTranscript(key);
+        if (!isTranscriptTerminal(transcriptState.status)) this.scheduleTranscriptRefresh(key);
+      } catch (err) {
+        console.error('Failed to refresh transcript status:', err);
+        this.scheduleTranscriptRefresh(key);
+      }
+    }, 3000);
   }
 
   async updatePreviousReadyState(key: string) {

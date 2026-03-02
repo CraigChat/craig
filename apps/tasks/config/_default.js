@@ -54,5 +54,17 @@ module.exports = {
   loggerLevel: 'debug',
   tasks: {
     ignore: []
+  },
+
+  transcript: {
+    enabled: process.env.TRANSCRIPT_ENABLED ? process.env.TRANSCRIPT_ENABLED === 'true' : true,
+    queueKey: 'transcript:queue',
+    lockTtlS: 14400,
+    popTimeoutS: 5,
+    model: process.env.OPENAI_TRANSCRIPTION_MODEL || 'whisper-1',
+    maxDurationSec: process.env.TRANSCRIPT_MAX_DURATION_SEC ? Number(process.env.TRANSCRIPT_MAX_DURATION_SEC) : 7200,
+    maxFileMb: process.env.TRANSCRIPT_MAX_FILE_MB ? Number(process.env.TRANSCRIPT_MAX_FILE_MB) : 24,
+    previewChars: process.env.TRANSCRIPT_PREVIEW_CHARS ? Number(process.env.TRANSCRIPT_PREVIEW_CHARS) : 1200,
+    workerConcurrency: process.env.TRANSCRIPT_WORKER_CONCURRENCY ? Number(process.env.TRANSCRIPT_WORKER_CONCURRENCY) : 1
   }
 };

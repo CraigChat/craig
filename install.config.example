@@ -49,6 +49,18 @@ REDIS_HOST=
 REDIS_PORT=
 
 ##################################################
+# Transcript worker environment
+##################################################
+
+OPENAI_API_KEY=
+OPENAI_TRANSCRIPTION_MODEL=whisper-1
+TRANSCRIPT_ENABLED=true
+TRANSCRIPT_MAX_DURATION_SEC=7200
+TRANSCRIPT_MAX_FILE_MB=24
+TRANSCRIPT_WORKER_CONCURRENCY=1
+TRANSCRIPT_PREVIEW_CHARS=1200
+
+##################################################
 # Other
 ##################################################
 

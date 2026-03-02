@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { Fragment, h } from 'preact';
 import { useTranslation } from 'react-i18next';
 
-import { CookAvatarsPayload, ReadyState, RecordingInfo, RecordingUser } from '../api';
+import { CookAvatarsPayload, ReadyState, RecordingInfo, RecordingUser, TranscriptState } from '../api';
 import prettyMs from '../prettyMs';
 import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
 import { asT, PlatformInfo } from '../util';
@@ -29,6 +29,7 @@ interface RecordingProps {
     duration: number | null;
     platform: PlatformInfo;
     readyState: ReadyState | null;
+    transcriptState: TranscriptState | null;
     downloading: boolean;
     showPreviousDownload: boolean;
   };
@@ -46,6 +47,7 @@ export default function Recording({ state, onDurationClick, onDownloadClick, onD
   const expiryTime = expiryDate.valueOf() - Date.now();
   const downloadsSection = getDownloadsSection(recording, state.platform);
   const othersSection = getOtherFormatsSection(recording, state.platform);
+  const transcript = state.transcriptState;
 
   return (
     <Fragment>
@@ -128,6 +130,30 @@ export default function Recording({ state, onDurationClick, onDownloadClick, onD
           {t('info.delete_rec')}
         </button>
       </div>
+
+      {/* Downloads */}
+      <Section title="Transcript" icon={downloadIcon}>
+        {!transcript || transcript.status === 'PENDING' || transcript.status === 'PROCESSING' ? (
+          <span class="text-zinc-300">Transcription in progress...</span>
+        ) : transcript.status === 'COMPLETE' ? (
+          <div class="flex flex-col gap-3 w-full">
+            <div class="bg-zinc-800 rounded-lg p-3 text-zinc-200 whitespace-pre-wrap break-words max-h-56 overflow-y-auto">
+              {transcript.preview || 'Transcript generated with no text.'}
+            </div>
+            <a
+              href={`/api/recording/${state.recordingId}/transcript.txt?key=${recording.key}`}
+              class="inline-flex max-w-fit rounded-md px-4 py-2 text-sm font-medium border border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 focus:bg-cyan-500/10 outline-none"
+            >
+              Download TXT
+            </a>
+          </div>
+        ) : (
+          <span class="text-red-400">
+            Transcript unavailable.
+            {transcript.errorMessage ? ` ${transcript.errorMessage}` : ''}
+          </span>
+        )}
+      </Section>
 
       {/* Downloads */}
       <Section title={t('sections.dl')} icon={downloadIcon}>

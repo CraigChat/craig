@@ -8,10 +8,12 @@ import path from 'path';
 
 import { client as redisClient } from './cache';
 import { cron as influxCron } from './influx';
+import { prisma } from './prisma';
 import * as cookRoute from './routes/cook';
 import { ennuizelWebsocketRoute } from './routes/ennuizel';
 import * as pageRoute from './routes/page';
 import * as recordingRoute from './routes/recording';
+import * as transcriptRoute from './routes/transcript';
 import { close as closeSentry } from './sentry';
 import { ErrorCode } from './util';
 import { downloadPath } from './util/download';
@@ -100,6 +102,8 @@ export async function start(): Promise<void> {
   server.route(recordingRoute.textRoute);
   server.route(recordingRoute.usersRoute);
   server.route(recordingRoute.rawRoute);
+  server.route(transcriptRoute.statusRoute);
+  server.route(transcriptRoute.textRoute);
   server.route(cookRoute.durationRoute);
   server.route(cookRoute.notesRoute);
   server.route(cookRoute.getRoute);
@@ -139,6 +143,7 @@ export async function stop(): Promise<void> {
   console.info('Shutting down...');
   await server.close();
   redisClient.disconnect();
+  await prisma.$disconnect();
   influxCron.stop();
   closeSentry();
   console.info('All things disconnected.');
