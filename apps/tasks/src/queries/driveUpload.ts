@@ -34,6 +34,13 @@ const dropboxConfig = config.get<{
 }>('dropbox');
 
 const logger = createLogger('drive');
+const timezone = config.has('timezone') ? config.get<string>('timezone') : undefined;
+const driveDateFolderFormatter = new Intl.DateTimeFormat('en-US', {
+  ...(timezone ? { timeZone: timezone } : {}),
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric'
+});
 
 const recPath = config.has('recording.path')
   ? path.join(__dirname, '..', '..', config.get<string>('recording.path'))
@@ -131,6 +138,15 @@ async function findGoogleDriveFolderPath(drive: drive_v3.Drive, folderPath: stri
   }
 
   return parentId;
+}
+
+function getGoogleDriveFolderPathForRecording(folderPath: string, startDate: Date) {
+  const dateFolder = driveDateFolderFormatter.format(startDate).replace(/\//g, '-');
+
+  return [folderPath, dateFolder]
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join('/');
 }
 
 async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToken: string, userId: string) {
@@ -254,8 +270,8 @@ export async function driveUpload({
   if (!dataExists) return { error: 'data_deleted', notify: false };
   const info = JSON.parse(await fs.readFile(path.join(recPath, `${recordingId}.ogg.info`), 'utf8'));
   const startDate = new Date(info.startTime);
-  const fileName = `craig_${recordingId}_${startDate.getFullYear()}-${startDate.getMonth() + 1
-    }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}`;
+  const fileName = `${startDate.getFullYear()}-${startDate.getMonth() + 1
+    }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}_craig_${recordingId}`;
 
   const user = await prisma.user.findFirst({ where: { id: userId } });
   if (!user) return { error: 'user_not_found', notify: false };
@@ -290,7 +306,7 @@ export async function driveUpload({
             });
         });
 
-        const folderPath = driveConfig.folderPath || 'Craig';
+        const folderPath = getGoogleDriveFolderPathForRecording(driveConfig.folderPath || 'Craig', startDate);
         const folderId = await findGoogleDriveFolderPath(drive, folderPath);
         if (!folderId) return { error: 'google_token_expired', notify: true };
 
