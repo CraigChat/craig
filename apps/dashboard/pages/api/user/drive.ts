@@ -35,6 +35,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const selectedFormats: string[] = [];
   for (const parsedFormat of parsedFormats) {
     if (!parsedFormat || selectedFormats.includes(parsedFormat.value)) continue;
+
     selectedFormats.push(parsedFormat.value);
   }
 
