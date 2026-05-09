@@ -42,12 +42,6 @@ jobs:
             CLIENT_ID=999999999999999999
             CLIENT_SECRET=test
 
-            PATREON_CLIENT_ID=test
-            PATREON_CLIENT_SECRET=test
-
-            PATRON_TIER_MAP={"00001":2,"0002":3}
-            PATREON_WEBHOOK_SECRET=test
-
             GOOGLE_CLIENT_ID=test
             GOOGLE_CLIENT_SECRET=test
 

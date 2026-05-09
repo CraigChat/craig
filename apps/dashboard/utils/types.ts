@@ -10,13 +10,6 @@ export interface DiscordUser {
   premium_type: number;
 }
 
-export interface PatreonUser {
-  data: {
-    id: string;
-    type: 'user';
-  };
-}
-
 export interface MicrosoftOAuthResponse {
   token_type: string;
   scope: string;

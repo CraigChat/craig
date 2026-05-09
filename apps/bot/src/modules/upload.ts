@@ -119,7 +119,9 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
   async uploadWithTrpc(recordingId: string, userId: string, driveService: string) {
     const service = SERVICES[driveService] ?? driveService;
-    const response = await this.trpc.query('driveUpload', { recordingId, userId }).catch(() => null);
+    const response = await this.trpc.query('driveUpload', { recordingId, userId }).catch(() => null) as
+      | ({ error: null | string; notify: boolean; id?: string; url?: string; urls?: { name: string; url: string }[] })
+      | null;
 
     if (!response) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: Could not connect to the server`);
@@ -133,21 +135,37 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
     if (response.error) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: ${response.error}`);
-      if (response.notify)
+      if (response.notify) {
+        const uploadedFiles = Array.isArray(response.urls) ? response.urls : [];
+        const partialUploads =
+          uploadedFiles.length > 0
+            ? `\n\nSome files were uploaded before the failure:\n${uploadedFiles
+                .map((file: { name: string; url: string }) => `- [${file.name}](${file.url})`)
+                .join('\n')}`
+            : '';
         await this.dm(userId, {
           title: `Failed to upload to ${service}`,
-          description: `Failed to upload recording \`${recordingId}\` to ${service}. You may need to manually upload it to ${service}, or possibly re-connect to ${service}.\n\n- **\`${response.error}\`**`,
+          description: `Failed to upload recording \`${recordingId}\` to ${service}. You may need to manually upload it to ${service}, or possibly re-connect to ${service}.\n\n- **\`${response.error}\`**${partialUploads}`,
           color: ERROR_COLOR
         });
+      }
       return;
     }
 
     if (response.notify) {
+      const uploadedFiles = Array.isArray(response.urls) ? response.urls : [];
+      const description =
+        uploadedFiles.length > 1
+          ? `Recording \`${recordingId}\` was uploaded to ${service}.\n\n${uploadedFiles
+              .map((file: { name: string; url: string }) => `- [${file.name}](${file.url})`)
+              .join('\n')}`
+          : `Recording \`${recordingId}\` was uploaded to ${service}.`;
+
       await this.dm(
         userId,
         {
           title: `Uploaded to ${service}`,
-          description: `Recording \`${recordingId}\` was uploaded to ${service}.`,
+          description,
           color: SUCCESS_COLOR
         },
         {

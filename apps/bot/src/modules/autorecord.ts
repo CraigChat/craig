@@ -179,9 +179,6 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
       const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
-      // Remove auto-recording if they lost the ability to autorecord
-      if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));
-
       // Check maintenence
       const maintenence = await checkMaintenance(this.client.bot.user.id);
       if (maintenence) return;

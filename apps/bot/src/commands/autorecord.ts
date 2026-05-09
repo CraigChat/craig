@@ -3,7 +3,7 @@ import { ButtonStyle, ChannelType, CommandContext, CommandOptionType, ComponentT
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, parseRewards } from '../util';
+import { checkBan, checkRecordingPermission } from '../util';
 
 export default class AutoRecord extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -206,37 +206,6 @@ export default class AutoRecord extends GeneralCommand {
         };
       }
       case 'on': {
-        // Get rewards
-        const userData = await this.entitlements.getCurrentUser(ctx);
-        const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-        const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
-        const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
-        // Check if user can manage auto-recordings
-        if (!parsedRewards.rewards.features.includes('auto'))
-          return {
-            content: stripIndents`
-              Sorry, but this feature is only for Tier 2 supporters ($4 patrons).
-              If you have recently became a supporter, login to the [dashboard](https://my.craig.chat/).
-              Your benefits may take up to an hour to become active.
-
-              > **Note:** You can still record regularly with the \`/join\` command.
-            `,
-            components: [
-              {
-                type: ComponentType.ACTION_ROW,
-                components: [
-                  {
-                    type: ComponentType.BUTTON,
-                    style: ButtonStyle.LINK,
-                    label: 'Patreon',
-                    url: 'https://patreon.com/CraigRec'
-                  }
-                ]
-              }
-            ],
-            ephemeral: true
-          };
-
         const channel = ctx.options.on.channel as string;
         const min = ctx.options.on.minimum ?? 0;
         const triggerUsers = ctx.users.map((u) => u.id);

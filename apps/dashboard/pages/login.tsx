@@ -37,7 +37,7 @@ export default function Login() {
               <span>
                 This is the dashboard for <Link href="https://craig.chat">Craig</Link>, a multi-track voice recording bot for Discord.
               </span>
-              <span>It's a simple dashboard, allowing you to link your Patreon for extra perks, and manage your cloud backup.</span>
+              <span>It's a simple dashboard, allowing you to link your cloud backup provider and manage your recordings.</span>
               <br />
               <span>We use cookies to keep you logged in. By logging in, you allow us to store and use them.</span>
             </div>

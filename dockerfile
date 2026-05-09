@@ -5,19 +5,10 @@ FROM ubuntu:22.04
 RUN apt-get update && \
     apt-get -y upgrade && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    # cook
     make inkscape ffmpeg flac fdkaac vorbis-tools opus-tools zip unzip \
-    wget \
-    # redis
-    lsb-release curl gpg \
-    ca-certificates redis redis-server redis-tools \
-    # web
-    postgresql \
-    # install
-    dbus-x11 sed coreutils build-essential python-setuptools \
-    # Other dependencies
+    wget lsb-release curl gpg ca-certificates redis redis-server redis-tools \
+    postgresql dbus-x11 sed coreutils build-essential python-setuptools \
     sudo git locales && \
-    # Cleanup
     apt-get -y autoremove
 
 RUN locale-gen en_US.UTF-8
@@ -28,14 +19,40 @@ ENV container=docker
 
 WORKDIR /app
 
-# Copy the repo, particularly environment variables with discord API keys
+# Install Node early so it's cached
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+    export NVM_DIR="/root/.nvm" && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm install 18.18.2 && \
+    npm install -g yarn pm2
+
+# Copy code and config
 COPY . .
-# Run first-time setup for faster restarts
-RUN ./install.sh
+
+# Install yarn dependencies
+RUN export NVM_DIR="/root/.nvm" && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm use 18.18.2 && \
+    yarn install
+
+# Build cook utilities
+RUN mkdir -p /app/rec && \
+    /bin/bash /app/scripts/buildCook.sh && \
+    /bin/bash /app/scripts/downloadCookBuilds.sh
+
+# Build all apps
+RUN export NVM_DIR="/root/.nvm" && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm use 18.18.2 && \
+    set -a && \
+    . /app/install.config && \
+    set +a && \
+    yarn workspaces run build
 
 # Expose app port
 EXPOSE 3000
 # Expose API port
 EXPOSE 5029
 # Start Craig
-CMD ["sh", "-c", "/app/install.sh && sleep infinity"]
+CMD ["/bin/bash", "/app/start.sh"]
+

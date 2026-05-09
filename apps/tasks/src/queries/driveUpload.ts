@@ -18,6 +18,7 @@ const CHUNKS_PER_DRIVE_UPLOAD = 20;
 const driveConfig = config.get<{
   clientId: string;
   clientSecret: string;
+  folderPath?: string;
 }>('drive');
 
 const microsoftConfig = config.get<{
@@ -72,7 +73,7 @@ async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm =
     logger.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
 
     // Prevent the stream from ending prematurely (for some reason)
-    child.stderr.on('data', () => {});
+    child.stderr.on('data', () => { });
 
     return child;
   } catch (e) {
@@ -81,26 +82,55 @@ async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm =
   }
 }
 
-async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive) {
-  try {
-    const list = await drive.files.list({
-      q: "name = 'Craig' and mimeType = 'application/vnd.google-apps.folder'"
-    });
+function escapeDriveQueryValue(value: string) {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
 
-    if (list.data.files && list.data.files.length > 0) return list.data.files[0].id;
+async function findOrCreateGoogleDriveFolder(drive: drive_v3.Drive, folderName: string, parentId?: string | null) {
+  const parentQuery = parentId ? `'${escapeDriveQueryValue(parentId)}' in parents` : "'root' in parents";
 
-    const folder = await drive.files.create({
-      requestBody: {
-        name: 'Craig',
-        mimeType: 'application/vnd.google-apps.folder',
-        folderColorRgb: '#00aaaa'
-      }
-    });
+  const list = await drive.files.list({
+    q: [
+      `name = '${escapeDriveQueryValue(folderName)}'`,
+      "mimeType = 'application/vnd.google-apps.folder'",
+      'trashed = false',
+      parentQuery
+    ].join(' and '),
+    fields: 'files(id, name)'
+  });
 
-    return folder.data.id;
-  } catch (e) {
-    return null;
+  const existingFolderId = list.data.files?.[0]?.id;
+  if (existingFolderId) return existingFolderId;
+
+  const folder = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      ...(parentId ? { parents: [parentId] } : {}),
+      folderColorRgb: '#00aaaa'
+    },
+    fields: 'id'
+  });
+
+  return folder.data.id ?? null;
+}
+
+async function findGoogleDriveFolderPath(drive: drive_v3.Drive, folderPath: string) {
+  const segments = folderPath
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) return null;
+
+  let parentId: string | null = null;
+
+  for (const segment of segments) {
+    parentId = await findOrCreateGoogleDriveFolder(drive, segment, parentId);
+    if (!parentId) return null;
   }
+
+  return parentId;
 }
 
 async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToken: string, userId: string) {
@@ -159,46 +189,85 @@ const FormatToExt: Record<string, string> = {
   aac: 'aac'
 };
 
+interface DriveUploadFormat {
+  format: string;
+  container: string;
+  value: string;
+}
+
+interface DriveUploadFile {
+  id?: string;
+  name: string;
+  url: string;
+}
+
+function parseDriveUploadFormat(value: string): DriveUploadFormat | null {
+  const parts = value.split('-');
+  if (parts.length !== 2) return null;
+  const [format, container] = parts;
+  const validFormats = ['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', 'wav8'];
+  const validContainers = ['aupzip', 'zip', 'mix'];
+
+  if (!validFormats.includes(format)) return null;
+  if (!validContainers.includes(container)) return null;
+  if (format !== 'flac' && container === 'aupzip') return null;
+  if (container === 'mix' && !['flac', 'vorbis', 'aac'].includes(format)) return null;
+
+  return { format, container, value };
+}
+
+function getUserDriveUploadFormats(user: { driveFormats?: string[] }) {
+  const configuredFormats = user.driveFormats?.length ? user.driveFormats : ['flac-zip'];
+  const parsedFormats = configuredFormats
+    .map(parseDriveUploadFormat)
+    .filter((format): format is DriveUploadFormat => !!format)
+    .filter((format, index, formats) => formats.findIndex((f) => f.value === format.value) === index);
+  return parsedFormats.length ? parsedFormats : [{ format: 'flac', container: 'zip', value: 'flac-zip' }];
+}
+
+function getUploadFileInfo(fileName: string, output: DriveUploadFormat) {
+  const mime =
+    output.container === 'mix'
+      ? FormatToMime[output.format] || 'audio/flac'
+      : output.container === 'exe'
+        ? 'application/vnd.microsoft.portable-executable'
+        : 'application/zip';
+  const ext = output.container === 'mix' ? FormatToExt[output.format] || 'flac' : output.container === 'exe' ? 'exe' : 'zip';
+  const suffix = output.container === 'zip' ? output.format : output.value;
+  return {
+    mime,
+    ext,
+    name: `${fileName}_${suffix}.${ext}`
+  };
+}
+
 export async function driveUpload({
   recordingId,
   userId
 }: {
   recordingId: string;
   userId: string;
-}): Promise<{ error: null | string; notify: boolean; id?: string; url?: string }> {
+}): Promise<{ error: null | string; notify: boolean; id?: string; url?: string; urls?: DriveUploadFile[] }> {
   const infoExists = await fileExists(path.join(recPath, `${recordingId}.ogg.info`));
   if (!infoExists) return { error: 'info_deleted', notify: false };
   const dataExists = await fileExists(path.join(recPath, `${recordingId}.ogg.data`));
   if (!dataExists) return { error: 'data_deleted', notify: false };
   const info = JSON.parse(await fs.readFile(path.join(recPath, `${recordingId}.ogg.info`), 'utf8'));
   const startDate = new Date(info.startTime);
-  const fileName = `craig_${recordingId}_${startDate.getFullYear()}-${
-    startDate.getMonth() + 1
-  }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}`;
+  const fileName = `craig_${recordingId}_${startDate.getFullYear()}-${startDate.getMonth() + 1
+    }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}`;
 
   const user = await prisma.user.findFirst({ where: { id: userId } });
   if (!user) return { error: 'user_not_found', notify: false };
-  if (user.rewardTier === 0) return { error: 'user_not_allowed', notify: false };
   if (!user.driveEnabled) return { error: 'not_enabled', notify: false };
-  if (user.rewardTier !== -1 && user.rewardTier < 20 && user.driveContainer === 'mix')
-    return { error: 'mix_unavailable_with_current_tier', notify: false };
 
-  const format = user.driveFormat || 'flac';
-  const container = user.driveContainer || 'zip';
-  logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${format}.${container})`);
-  const start = Date.now();
+  const uploadFormats = getUserDriveUploadFormats(user);
+  logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${uploadFormats.map((f) => f.value).join(', ')})`);
 
   let child: ChildProcessWithoutNullStreams | null = null;
   let tempFile: string | null = null;
   let uploadUrl: string | null = null;
-
-  const mime =
-    container === 'mix'
-      ? FormatToMime[format] || 'audio/flac'
-      : container === 'exe'
-      ? 'application/vnd.microsoft.portable-executable'
-      : 'application/zip';
-  const ext = container === 'mix' ? FormatToExt[format] || 'flac' : container === 'exe' ? 'exe' : 'zip';
+  const uploadedFiles: DriveUploadFile[] = [];
 
   try {
     switch (user.driveService) {
@@ -221,51 +290,65 @@ export async function driveUpload({
             });
         });
 
-        const folderId = await findCraigDirectoryInGoogleDrive(drive);
+        const folderPath = driveConfig.folderPath || 'Craig';
+        const folderId = await findGoogleDriveFolderPath(drive, folderPath);
         if (!folderId) return { error: 'google_token_expired', notify: true };
-        child = await cook(recordingId, format, container);
 
-        tempFile = path.join(tmpdir(), `${fileName}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
-        await fs.writeFile(tempFile, child.stdout);
+        for (const output of uploadFormats) {
+          const start = Date.now();
+          const uploadFile = getUploadFileInfo(fileName, output);
+          child = await cook(recordingId, output.format, output.container);
 
-        await clearReadyState(recordingId);
-        killProcessTree(child);
-        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
+          tempFile = path.join(tmpdir(), `${fileName}-${output.value}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
+          await fs.writeFile(tempFile, child.stdout);
 
-        // TODO server icon as contentHints.thumbnail ?
+          await clearReadyState(recordingId);
+          killProcessTree(child);
+          child = null;
+          logger.info(`Finished cooking ${recordingId} as ${output.value}, took ${(Date.now() - start) / 1000}s`);
 
-        const file = await drive.files.create({
-          quotaUser: userId,
-          requestBody: {
-            name: `${fileName}.${ext}`,
-            mimeType: mime,
-            parents: [folderId],
-            createdTime: info.startTime,
-            description: getRecordingDescription(recordingId, info),
-            properties: {
-              'craig-recording-id': recordingId,
-              'craig-requester-id': info.requesterId,
-              'craig-guild-id': info.guildExtra.id,
-              'craig-channel-id': info.channelExtra.id
+          // TODO server icon as contentHints.thumbnail ?
+
+          const file = await drive.files.create({
+            quotaUser: userId,
+            requestBody: {
+              name: uploadFile.name,
+              mimeType: uploadFile.mime,
+              parents: [folderId],
+              createdTime: info.startTime,
+              description: getRecordingDescription(recordingId, info),
+              properties: {
+                'craig-recording-id': recordingId,
+                'craig-requester-id': info.requesterId,
+                'craig-guild-id': info.guildExtra.id,
+                'craig-channel-id': info.channelExtra.id
+              },
+              contentHints: {
+                indexableText: `${info.channel} - ${info.guild} - Craig recording ${recordingId} - https://craig.chat/`
+              }
             },
-            contentHints: {
-              indexableText: `${info.channel} - ${info.guild} - Craig recording ${recordingId} - https://craig.chat/`
+            media: {
+              mimeType: uploadFile.mime,
+              body: createReadStream(tempFile)
             }
-          },
-          media: {
-            mimeType: mime,
-            body: createReadStream(tempFile)
-          }
-        });
+          });
 
-        await fs.unlink(tempFile).catch(() => {});
-        logger.info(`Uploaded ${recordingId} on Google Drive`);
+          await fs.unlink(tempFile).catch(() => { });
+          tempFile = null;
+          logger.info(`Uploaded ${recordingId} as ${output.value} on Google Drive`);
+          uploadedFiles.push({
+            id: file.data.id!,
+            name: uploadFile.name,
+            url: `https://drive.google.com/open?id=${file.data.id}`
+          });
+        }
 
         return {
           error: null,
-          notify: true,
-          id: file.data.id!,
-          url: `https://drive.google.com/open?id=${file.data.id}`
+          notify: uploadedFiles.length > 0,
+          id: uploadedFiles[0]?.id,
+          url: uploadedFiles[0]?.url,
+          urls: uploadedFiles
         };
       }
       case 'onedrive': {
@@ -276,90 +359,103 @@ export async function driveUpload({
           await prisma.microsoftUser.delete({ where: { id: userId } });
           return { error: 'microsoft_token_expired', notify: true };
         }
-        child = await cook(recordingId, format, container);
 
-        tempFile = path.join(tmpdir(), `${fileName}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
-        await fs.writeFile(tempFile, child.stdout);
+        for (const output of uploadFormats) {
+          const start = Date.now();
+          const uploadFile = getUploadFileInfo(fileName, output);
+          child = await cook(recordingId, output.format, output.container);
 
-        await clearReadyState(recordingId);
-        killProcessTree(child);
-        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
+          tempFile = path.join(tmpdir(), `${fileName}-${output.value}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
+          await fs.writeFile(tempFile, child.stdout);
 
-        const uploadSession = await axios.post(
-          `https://graph.microsoft.com/v1.0/drive/special/approot:/${fileName}.${ext}:/createUploadSession`,
-          JSON.stringify({
-            '@microsoft.graph.conflictBehavior': 'rename',
-            name: `${fileName}.${ext}`,
-            item: {
-              description: getRecordingDescription(recordingId, info, ' - ')
-            }
-          }),
-          {
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }
-          }
-        );
+          await clearReadyState(recordingId);
+          killProcessTree(child);
+          child = null;
+          logger.info(`Finished cooking ${recordingId} as ${output.value}, took ${(Date.now() - start) / 1000}s`);
 
-        uploadUrl = uploadSession.data.uploadUrl as string;
-
-        const fileSize = (await fs.stat(tempFile)).size;
-        const readStream = createReadStream(tempFile);
-
-        const file: any = await new Promise((resolve, reject) => {
-          let uploadedBytes = 0;
-          let chunksToUploadSize = 0;
-          let chunks: Buffer[] = [];
-
-          readStream.on('data', async (chunk) => {
-            chunks.push(chunk as Buffer);
-            chunksToUploadSize += chunk.length;
-
-            // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-            if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
-              readStream.pause();
-
-              const response = await axios.put(uploadUrl!, Buffer.concat(chunks, chunksToUploadSize), {
-                headers: {
-                  'Content-Length': String(chunksToUploadSize),
-                  'Content-Range': 'bytes ' + uploadedBytes + '-' + (uploadedBytes + chunksToUploadSize - 1) + '/' + fileSize
-                },
-                validateStatus: () => true
-              });
-
-              if (response.status >= 400) {
-                readStream.close();
-                return reject(new Error(`OneDrive Error (${response.status}): ${response.data?.error?.message || 'UnexpectedError'}`));
+          const uploadSession = await axios.post(
+            `https://graph.microsoft.com/v1.0/drive/special/approot:/${uploadFile.name}:/createUploadSession`,
+            JSON.stringify({
+              '@microsoft.graph.conflictBehavior': 'rename',
+              name: uploadFile.name,
+              item: {
+                description: getRecordingDescription(recordingId, info, ' - ')
               }
-
-              // update uploaded bytes
-              uploadedBytes += chunksToUploadSize;
-
-              // reset for next chunks
-              chunks = [];
-              chunksToUploadSize = 0;
-
-              if (response.status === 201 || response.status === 203 || response.status === 200) return resolve(response.data);
-
-              readStream.resume();
+            }),
+            {
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` }
             }
+          );
+
+          uploadUrl = uploadSession.data.uploadUrl as string;
+
+          const fileSize = (await fs.stat(tempFile)).size;
+          const readStream = createReadStream(tempFile);
+
+          const file: any = await new Promise((resolve, reject) => {
+            let uploadedBytes = 0;
+            let chunksToUploadSize = 0;
+            let chunks: Buffer[] = [];
+
+            readStream.on('data', async (chunk) => {
+              chunks.push(chunk as Buffer);
+              chunksToUploadSize += chunk.length;
+
+              // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
+              if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || chunksToUploadSize + uploadedBytes === fileSize) {
+                readStream.pause();
+
+                const response = await axios.put(uploadUrl!, Buffer.concat(chunks, chunksToUploadSize), {
+                  headers: {
+                    'Content-Length': String(chunksToUploadSize),
+                    'Content-Range': 'bytes ' + uploadedBytes + '-' + (uploadedBytes + chunksToUploadSize - 1) + '/' + fileSize
+                  },
+                  validateStatus: () => true
+                });
+
+                if (response.status >= 400) {
+                  readStream.close();
+                  return reject(new Error(`OneDrive Error (${response.status}): ${response.data?.error?.message || 'UnexpectedError'}`));
+                }
+
+                // update uploaded bytes
+                uploadedBytes += chunksToUploadSize;
+
+                // reset for next chunks
+                chunks = [];
+                chunksToUploadSize = 0;
+
+                if (response.status === 201 || response.status === 203 || response.status === 200) return resolve(response.data);
+
+                readStream.resume();
+              }
+            });
           });
-        });
 
-        // // Set file icon
-        // if (info.guildExtra.icon) {
-        //   const icon = await axios.get(info.guildExtra.icon, { responseType: 'arraybuffer' });
-        //   await axios.put(`https://graph.microsoft.com/v1.0/drive/items/${file.data.id}/thumbnails/0/source/content`, icon.data, {
-        //     headers: { 'Content-Type': icon.headers['content-type'], Authorization: `Bearer ${accessToken}` }
-        //   });
-        // }
+          // // Set file icon
+          // if (info.guildExtra.icon) {
+          //   const icon = await axios.get(info.guildExtra.icon, { responseType: 'arraybuffer' });
+          //   await axios.put(`https://graph.microsoft.com/v1.0/drive/items/${file.data.id}/thumbnails/0/source/content`, icon.data, {
+          //     headers: { 'Content-Type': icon.headers['content-type'], Authorization: `Bearer ${accessToken}` }
+          //   });
+          // }
 
-        await fs.unlink(tempFile).catch(() => {});
-        logger.info(`Uploaded ${recordingId} on OneDrive`);
+          await fs.unlink(tempFile).catch(() => { });
+          tempFile = null;
+          logger.info(`Uploaded ${recordingId} as ${output.value} on OneDrive`);
+          uploadedFiles.push({
+            id: file.id,
+            name: uploadFile.name,
+            url: file.webUrl
+          });
+        }
 
         return {
           error: null,
-          notify: true,
-          id: file.id,
-          url: file.webUrl
+          notify: uploadedFiles.length > 0,
+          id: uploadedFiles[0]?.id,
+          url: uploadedFiles[0]?.url,
+          urls: uploadedFiles
         };
       }
       case 'dropbox': {
@@ -386,72 +482,83 @@ export async function driveUpload({
           return { error: 'dropbox_token_invalid', notify: true };
         }
 
-        child = await cook(recordingId, format, container);
+        for (const output of uploadFormats) {
+          const start = Date.now();
+          const uploadFile = getUploadFileInfo(fileName, output);
+          child = await cook(recordingId, output.format, output.container);
 
-        tempFile = path.join(tmpdir(), `${fileName}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
-        await fs.writeFile(tempFile, child.stdout);
+          tempFile = path.join(tmpdir(), `${fileName}-${output.value}-${(Math.random() * 1000000).toString(36)}-upload.tmp`);
+          await fs.writeFile(tempFile, child.stdout);
 
-        await clearReadyState(recordingId);
-        killProcessTree(child);
-        logger.info(`Finished cooking for ${recordingId}, took ${(Date.now() - start) / 1000}s`);
+          await clearReadyState(recordingId);
+          killProcessTree(child);
+          child = null;
+          logger.info(`Finished cooking ${recordingId} as ${output.value}, took ${(Date.now() - start) / 1000}s`);
 
-        const fileSize = (await fs.stat(tempFile)).size;
-        const readStream = createReadStream(tempFile);
-        const file: DropboxResponse<files.FileMetadata> = fileSize < DROPBOX_UPLOAD_FILE_SIZE_LIMIT
-        ? await dbx.filesUpload({path: `/${fileName}.${ext}`, autorename: true, contents: readStream })
-        : await new Promise((resolve, reject) => {
-            let sessionId = '';
-            let uploadedBytes = 0;
-            let chunksToUploadSize = 0;
-            let chunks: Buffer[] = [];
+          const fileSize = (await fs.stat(tempFile)).size;
+          const readStream = createReadStream(tempFile);
+          const file: DropboxResponse<files.FileMetadata> = fileSize < DROPBOX_UPLOAD_FILE_SIZE_LIMIT
+            ? await dbx.filesUpload({ path: `/${uploadFile.name}`, autorename: true, contents: readStream })
+            : await new Promise((resolve, reject) => {
+              let sessionId = '';
+              let uploadedBytes = 0;
+              let chunksToUploadSize = 0;
+              let chunks: Buffer[] = [];
 
-            readStream.on('data', async (chunk) => {
-              chunks.push(chunk as Buffer);
-              chunksToUploadSize += chunk.length;
+              readStream.on('data', async (chunk) => {
+                chunks.push(chunk as Buffer);
+                chunksToUploadSize += chunk.length;
 
-              const finished = chunksToUploadSize + uploadedBytes === fileSize;
+                const finished = chunksToUploadSize + uploadedBytes === fileSize;
 
-              // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-              if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
-                readStream.pause();
-                const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
+                // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
+                if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
+                  readStream.pause();
+                  const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
 
-                try {
-                  if (uploadedBytes === 0) {
-                    const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
-                    sessionId = response.result.session_id;
-                  } else if (finished) {
-                    const file = await dbx.filesUploadSessionFinish({
-                      cursor: { session_id: sessionId, offset: uploadedBytes },
-                      commit: { path: `/${fileName}.${ext}`, autorename: true },
-                      contents: chunkBuffer
-                    });
-                    return resolve(file);
-                  } else {
-                    await dbx.filesUploadSessionAppendV2({
-                      cursor: { session_id: sessionId, offset: uploadedBytes },
-                      close: false,
-                      contents: chunkBuffer
-                    });
+                  try {
+                    if (uploadedBytes === 0) {
+                      const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
+                      sessionId = response.result.session_id;
+                    } else if (finished) {
+                      const file = await dbx.filesUploadSessionFinish({
+                        cursor: { session_id: sessionId, offset: uploadedBytes },
+                        commit: { path: `/${uploadFile.name}`, autorename: true },
+                        contents: chunkBuffer
+                      });
+                      return resolve(file);
+                    } else {
+                      await dbx.filesUploadSessionAppendV2({
+                        cursor: { session_id: sessionId, offset: uploadedBytes },
+                        close: false,
+                        contents: chunkBuffer
+                      });
+                    }
+                  } catch (e) {
+                    return reject(e);
                   }
-                } catch (e) {
-                  return reject(e);
+
+                  // update uploaded bytes
+                  uploadedBytes += chunksToUploadSize;
+
+                  // reset for next chunks
+                  chunks = [];
+                  chunksToUploadSize = 0;
+
+                  readStream.resume();
                 }
-
-                // update uploaded bytes
-                uploadedBytes += chunksToUploadSize;
-
-                // reset for next chunks
-                chunks = [];
-                chunksToUploadSize = 0;
-
-                readStream.resume();
-              }
+              });
             });
-          });
 
-        await fs.unlink(tempFile).catch(() => {});
-        logger.info(`Uploaded ${recordingId} on Dropbox`);
+          await fs.unlink(tempFile).catch(() => { });
+          tempFile = null;
+          logger.info(`Uploaded ${recordingId} as ${output.value} on Dropbox`);
+          uploadedFiles.push({
+            id: file.result.id,
+            name: uploadFile.name,
+            url: `https://www.dropbox.com/home/Apps/${encodeURIComponent(dropboxConfig.folderName)}?preview=${encodeURIComponent(file.result.name)}`
+          });
+        }
 
         const accessToken = auth.getAccessToken();
         if (accessToken !== driveUser.token)
@@ -462,9 +569,10 @@ export async function driveUpload({
 
         return {
           error: null,
-          notify: true,
-          id: file.result.id,
-          url: `https://www.dropbox.com/home/Apps/${encodeURIComponent(dropboxConfig.folderName)}?preview=${encodeURIComponent(file.result.name)}`
+          notify: uploadedFiles.length > 0,
+          id: uploadedFiles[0]?.id,
+          url: uploadedFiles[0]?.url,
+          urls: uploadedFiles
         };
       }
       default:
@@ -474,7 +582,7 @@ export async function driveUpload({
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`);
     await clearReadyState(recordingId);
     if (child) killProcessTree(child);
-    if (tempFile) await fs.unlink(tempFile).catch(() => {});
+    if (tempFile) await fs.unlink(tempFile).catch(() => { });
     if ((e as AxiosError).isAxiosError === true) {
       const response = (e as AxiosError).response;
       const request: ClientRequest = (e as AxiosError).request;
@@ -488,10 +596,22 @@ export async function driveUpload({
     } else if ((e as Error).name === 'DropboxResponseError') {
       const err: DropboxError<{ error_summary: string }> = e as any;
       logger.error(`DropboxError [${err.error.error_summary}]`, err.error);
-      return { error: `DropboxError [${err.error.error_summary}]`, notify: true };
+      return {
+        error: `DropboxError [${err.error.error_summary}]`,
+        notify: true,
+        id: uploadedFiles[0]?.id,
+        url: uploadedFiles[0]?.url,
+        urls: uploadedFiles
+      };
     }
     let errorString = (e as any).toString().slice(0, 100) || 'unknown_error';
     if (errorString.startsWith('Error: <!DOCTYPE')) errorString = 'upload_timeout';
-    return { error: errorString, notify: true };
+    return {
+      error: errorString,
+      notify: true,
+      id: uploadedFiles[0]?.id,
+      url: uploadedFiles[0]?.url,
+      urls: uploadedFiles
+    };
   }
 }

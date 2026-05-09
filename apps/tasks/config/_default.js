@@ -1,38 +1,29 @@
 module.exports = {
   // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
-  redis: {},
-  // redis: {
-  //   host: 'localhost',
-  //   port: 6379,
-  //   keyPrefix: 'craig:'
-  // },
-
+  redis: {
+    host: process.env.REDIS_HOST || 'redis',
+    port: process.env.REDIS_PORT || 6379,
+    keyPrefix: 'craig:'
+  },
   // For drive upload in Google Drive
   drive: {
-    clientId: '',
-    clientSecret: ''
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    folderPath: process.env.GOOGLE_DRIVE_FOLDER_PATH || 'LOG791/raw'
   },
 
   // For drive upload in Microsoft OneDrive
   microsoft: {
-    clientId: '',
-    clientSecret: '',
-    redirect: ''
+    clientId: process.env.MICROSOFT_CLIENT_ID || '',
+    clientSecret: process.env.MICROSOFT_CLIENT_SECRET || '',
+    redirect: process.env.MICROSOFT_REDIRECT_URI || ''
   },
 
   // For drive upload in Dropbox
   dropbox: {
-    clientId: '',
-    clientSecret: '',
+    clientId: process.env.DROPBOX_CLIENT_ID || '',
+    clientSecret: process.env.DROPBOX_CLIENT_SECRET || '',
     folderName: 'CraigChat'
-  },
-
-  // for refresh patrons job
-  patreon: {
-    campaignId: 0,
-    accessToken: '',
-    tiers: {},
-    skipUsers: []
   },
 
   downloads: {

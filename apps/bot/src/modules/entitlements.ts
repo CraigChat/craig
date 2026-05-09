@@ -96,8 +96,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
         rewardTier: maxTier
       },
       update: {
-        rewardTier: maxTier,
-        ...(maxTier === 0 ? { driveEnabled: false } : {})
+        rewardTier: maxTier
       }
     });
   }
@@ -155,7 +154,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             })
           })
         )
-      ).catch(() => {});
+      ).catch(() => { });
   }
 
   async onEntitlementUpdate(_: any, entitlement: Dysnomia.Entitlement) {
@@ -195,7 +194,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             })
           })
         )
-      ).catch(() => {});
+      ).catch(() => { });
   }
 
   async onEntitlementDelete(_: any, entitlement: Dysnomia.Entitlement) {
@@ -228,7 +227,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             })
           })
         )
-      ).catch(() => {});
+      ).catch(() => { });
   }
 
   load() {

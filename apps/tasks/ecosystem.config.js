@@ -3,6 +3,7 @@ module.exports = {
     {
       name: 'Craig Tasks',
       script: 'dist/index.js',
+      instance_var: 'PM2_INSTANCE_ID',
       wait_ready: true,
       kill_timeout: 3000,
       env: {

@@ -21,8 +21,7 @@ model User {
 
   driveEnabled   Boolean @default(false)
   driveService   String  @default("google")
-  driveFormat    String?
-  driveContainer String?
+  driveFormats   String[] @default(["flac-zip"])
 
   entitlements Entitlement[]
 

@@ -88,7 +88,7 @@ DATABASE_URL=\"postgresql://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@db:5432/$DATAB
 
 ### Optional and advanced configuration
 
-There are additional configuration variables in [install.config.example](install.config.example), such as Craig's PostgreSQL database username and password, Patreon ID, etc.
+There are additional configuration variables in [install.config.example](install.config.example), such as Craig's PostgreSQL database username and password.
 
 There are even more configuration options located in: [apps/bot/config/_default.js](apps/bot/config/_default.js) and [apps/tasks/config/_default.js](apps/tasks/config/_default.js).
 
@@ -103,7 +103,7 @@ Changing some of these variables from their default values will break Craig, so 
 
 #### `apps/bot/config/_default.js`
 
-- `dexare.craig.rewardTiers`: Self-hosters usually won't care about Patreon tiers. You can enable maximum rewards for all users by replacing `rewardTiers` with the following:
+- `dexare.craig.rewardTiers`: Self-hosters usually won't care about reward tiers. You can enable maximum rewards for all users by replacing `rewardTiers` with the following:
 ```ts
 rewardTiers: {
    [0]: {

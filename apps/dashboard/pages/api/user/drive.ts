@@ -7,6 +7,18 @@ const formats = ['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', '
 const containers = ['aupzip', 'zip', 'mix'];
 const services = ['google', 'onedrive', 'dropbox'];
 
+function parseFormatValue(value: unknown): { format: string; container: string; value: string } | null {
+  if (typeof value !== 'string') return null;
+  const parts = value.split('-');
+  if (parts.length !== 2) return null;
+  const [format, container] = parts;
+  if (!formats.includes(format)) return null;
+  if (!containers.includes(container)) return null;
+  if (format !== 'flac' && container === 'aupzip') return null;
+  if (container === 'mix' && !['flac', 'vorbis', 'aac'].includes(format)) return null;
+  return { format, container, value };
+}
+
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'PUT') return res.status(405).send({ error: 'Method not allowed' });
   const user = parseUser(req);
@@ -14,24 +26,34 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   if (!dbUser) return res.status(404).send({ error: 'User not found' });
-  if (dbUser.rewardTier === 0) return res.status(400).send({ error: 'User is not a patron' });
 
-  const { format, container, enabled, service } = req.body;
-  if (!formats.includes(format)) return res.status(400).send({ error: 'Invalid format' });
-  if (!containers.includes(container)) return res.status(400).send({ error: 'Invalid container' });
+  const { enabled, service } = req.body;
+  const requestedFormats = Array.isArray(req.body.formats) ? req.body.formats : [];
+  const parsedFormats = requestedFormats.map(parseFormatValue);
+  if (parsedFormats.some((f) => !f)) return res.status(400).send({ error: 'Invalid format' });
+  if (parsedFormats.length === 0) return res.status(400).send({ error: 'Select at least one format' });
+  const selectedFormats: string[] = [];
+  for (const parsedFormat of parsedFormats) {
+    if (!parsedFormat || selectedFormats.includes(parsedFormat.value)) continue;
+    selectedFormats.push(parsedFormat.value);
+  }
+
   if (!services.includes(service)) return res.status(400).send({ error: 'Invalid service' });
-  if (format !== 'flac' && container === 'aupzip') return res.status(400).send({ error: 'Invalid combination' });
-
-  if (container === 'mix' && !['flac', 'vorbis', 'aac'].includes(format)) return res.status(400).send({ error: 'Invalid combination' });
-  if (container === 'mix' && !(dbUser.rewardTier >= 20 || dbUser.rewardTier === -1))
-    return res.status(400).send({ error: 'User is not a Better Supporter ($4 tier)' });
 
   if (typeof enabled !== 'boolean') return res.status(400).send({ error: 'Invalid enabled state' });
 
-  if (dbUser.driveEnabled !== enabled || dbUser.driveFormat !== format || dbUser.driveContainer !== container || dbUser.driveService !== service)
+  if (
+    dbUser.driveEnabled !== enabled ||
+    dbUser.driveService !== service ||
+    dbUser.driveFormats.join(',') !== selectedFormats.join(',')
+  )
     await prisma.user.update({
       where: { id: user.id },
-      data: { driveFormat: format, driveContainer: container, driveEnabled: enabled, driveService: service }
+      data: {
+        driveFormats: selectedFormats,
+        driveEnabled: enabled,
+        driveService: service
+      }
     });
 
   res.status(200).send({ ok: true });
