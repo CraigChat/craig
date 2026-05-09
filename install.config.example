@@ -12,23 +12,23 @@ DEVELOPMENT_GUILD_ID=
 # Dashboard app environment
 ##################################################
 
-GOOGLE_CLIENT_ID=test
-GOOGLE_CLIENT_SECRET=test
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 GOOGLE_DRIVE_FOLDER_PATH=Folder/raw
 MICROSOFT_CLIENT_ID=test
 MICROSOFT_CLIENT_SECRET=test
 DROPBOX_CLIENT_ID=test
 DROPBOX_CLIENT_SECRET=test
-APP_URI=http://localhost:3000
-JWT_SECRET=1234
+APP_URI=https://craigboard.home.arpa
+JWT_SECRET=change-me-generate-a-long-random-value
 
 ##################################################
 # Download app environment
 ##################################################
 
 API_PORT=5029
-API_HOST=127.0.0.1
-API_HOMEPAGE=https://craig.chat/
+API_HOST=0.0.0.0
+API_HOMEPAGE=https://craig.home.arpa
 ENNUIZEL_BASE=https://ez.craig.horse/
 TRUST_PROXY=
 SENTRY_DSN=
@@ -42,20 +42,20 @@ INFLUX_TOKEN=
 INFLUX_ORG=
 INFLUX_BUCKET=
 SERVER_NAME=dev
-REDIS_HOST=
-REDIS_PORT=
+REDIS_HOST=redis
+REDIS_PORT=6379
 
 ##################################################
 # Other
 ##################################################
 
-NODE_VERSION="18.18.2"
+NODE_VERSION="20"
 DATABASE_NAME="craig"
 POSTGRESQL_USER="craig"
-POSTGRESQL_PASSWORD="craig"
+POSTGRESQL_PASSWORD="change-me"
 POSTGRES_DB="craig"
 POSTGRES_USER="craig"
-POSTGRES_PASSWORD="craig"
+POSTGRES_PASSWORD="change-me"
 POSTGRESQL_START_TIMEOUT_S=10
 REDIS_START_TIMEOUT_S=10
-DATABASE_URL=\"postgresql://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@localhost:5432/$DATABASE_NAME?schema=public\"
+DATABASE_URL=postgresql://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@db:5432/$DATABASE_NAME?schema=public

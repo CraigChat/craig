@@ -19,11 +19,13 @@ ENV container=docker
 
 WORKDIR /app
 
+ARG NODE_VERSION=20
+
 # Install Node early so it's cached
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
     export NVM_DIR="/root/.nvm" && \
     . "$NVM_DIR/nvm.sh" && \
-    nvm install 18.18.2 && \
+    nvm install "$NODE_VERSION" && \
     npm install -g yarn pm2
 
 # Copy code and config
@@ -32,7 +34,7 @@ COPY . .
 # Install yarn dependencies
 RUN export NVM_DIR="/root/.nvm" && \
     . "$NVM_DIR/nvm.sh" && \
-    nvm use 18.18.2 && \
+    nvm use "$NODE_VERSION" && \
     yarn install
 
 # Build cook utilities
@@ -43,7 +45,7 @@ RUN mkdir -p /app/rec && \
 # Build all apps
 RUN export NVM_DIR="/root/.nvm" && \
     . "$NVM_DIR/nvm.sh" && \
-    nvm use 18.18.2 && \
+    nvm use "$NODE_VERSION" && \
     set -a && \
     . /app/install.config && \
     set +a && \
