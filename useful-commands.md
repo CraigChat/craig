@@ -29,7 +29,7 @@ docker ps
 Check Craig services inside the container:
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-20}" >/dev/null && pm2 list'
+docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && pm2 list'
 ```
 
 View Craig container logs:
@@ -43,25 +43,25 @@ docker logs -f craig-craig-1
 Build every workspace:
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-20}" >/dev/null && cd /app && yarn build'
+docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn build'
 ```
 
 Build only the bot:
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-20}" >/dev/null && cd /app && yarn workspace craig-bot build'
+docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn workspace craig-bot build'
 ```
 
 Build only the tasks service:
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-20}" >/dev/null && cd /app && yarn workspace craig-tasks build'
+docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn workspace craig-tasks build'
 ```
 
 Typecheck the tasks service:
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-20}" >/dev/null && cd /app/apps/tasks && yarn tsc --noEmit'
+docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app/apps/tasks && yarn tsc --noEmit'
 ```
 
 ## Environment Checks
@@ -75,5 +75,5 @@ docker exec craig-craig-1 printenv API_HOMEPAGE
 Verify a recording link shape:
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-20}" >/dev/null && node -e "const api = new URL(process.env.API_HOMEPAGE); console.log(api.protocol + \"//\" + api.host + \"/rec/RECORDING_ID?key=ACCESS_KEY\")"'
+docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && node -e "const api = new URL(process.env.API_HOMEPAGE); console.log(api.protocol + \"//\" + api.host + \"/rec/RECORDING_ID?key=ACCESS_KEY\")"'
 ```

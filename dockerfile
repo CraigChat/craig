@@ -19,7 +19,7 @@ ENV container=docker
 
 WORKDIR /app
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 # Install Node early so it's cached
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \

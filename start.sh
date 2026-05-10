@@ -1,7 +1,7 @@
 #!/bin/bash
 export NVM_DIR="/root/.nvm"
 source "$NVM_DIR/nvm.sh"
-nvm use "${NODE_VERSION:-20}"
+nvm use "${NODE_VERSION:-22}"
 
 # Load environment variables from install.config
 set -a
