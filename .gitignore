@@ -57,3 +57,4 @@ apps/*/config/*.js
 !apps/tasks/config/default.js
 .patreon-credentials.json
 install.config
+**.pyc

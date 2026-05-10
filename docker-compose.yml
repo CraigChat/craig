@@ -39,6 +39,29 @@ services:
       - './prisma:/app/prisma'
       - './apps/bot/config:/app/apps/bot/config'
       - './apps/tasks/config:/app/apps/tasks/config'
+      - './tasmas:/app/tasmas:ro'
+
+  tasmas:
+    build:
+      context: .
+      dockerfile: tasmas/Dockerfile
+    restart: always
+    env_file:
+      - ./install.config
+    environment:
+      INSTALL_CONFIG: /app/install.config
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      craig:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - '/mnt/media8tb/craig-recordings:/mnt/media8tb/craig-recordings'
+      - './install.config:/app/install.config:ro'
+      - './tasmas:/app/tasmas:ro'
+      - '/var/run/docker.sock:/var/run/docker.sock'
 
 volumes:
   db_data:

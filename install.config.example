@@ -48,6 +48,21 @@ RECORDING_RETENTION_DAYS=3
 RECORDING_LOCAL_FLAC_ENABLED=false
 
 ##################################################
+# TASMAS transcription sidecar
+##################################################
+
+CRAIG_RECORDINGS_DIR=/mnt/media8tb/craig-recordings
+TASMAS_OUTPUT_DIR=/mnt/media8tb/craig-recordings/tasmas
+TASMAS_IMAGE=kaddaok/tasmas:latest
+TASMAS_GPU_ARGS="--gpus all"
+TASMAS_MODEL_CACHE_DIR=/mnt/media8tb/craig-recordings/tasmas-model-cache
+TASMAS_EXTRA_ARGS=
+OLLAMA_MODEL=
+OLLAMA_URL=http://host.docker.internal:11434/api/generate
+TASMAS_WATCH_INTERVAL=10
+TASMAS_SETTLE_SECONDS=5
+
+##################################################
 # Other
 ##################################################
 

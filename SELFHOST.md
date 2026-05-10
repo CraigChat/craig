@@ -282,3 +282,46 @@ nvm use node
 #### Kill all processes
 
 `pm2 stop all`
+
+## Transcribing and summarizing Craig FLAC archives with TASMAS
+
+Craig writes local FLAC exports as `RECORDING_ID.flac.zip` archives when `RECORDING_LOCAL_FLAC_ENABLED=true`. TASMAS cannot process the zip archive directly, so the sidecar in [tasmas](tasmas) stages each archive into its own folder, extracts the per-speaker `.flac` files, builds a `names.json` from Craig's `info.txt`, and runs TASMAS against the extracted FLAC files.
+
+Configure the sidecar in [install.config](install.config), using the `TASMAS transcription sidecar` section from [install.config.example](install.config.example). The sidecar runs as a Docker Compose service and bind-mounts [tasmas](tasmas), so Python code changes do not require rebuilding the image.
+
+Install the host dependencies:
+
+```sh
+sudo apt install docker.io docker-compose-plugin
+```
+
+Start the watcher:
+
+```sh
+docker compose up -d tasmas
+```
+
+TASMAS uses `whisper_timestamped` and defaults to Whisper `small`, which is a good fit for an RTX 2060 SUPER with 8 GB VRAM. To pre-download the model into the persistent cache:
+
+```sh
+mkdir -p /mnt/media8tb/craig-recordings/tasmas-model-cache
+docker run --rm --gpus all \
+  --entrypoint python \
+  -v /mnt/media8tb/craig-recordings/tasmas-model-cache:/root/.cache \
+  kaddaok/tasmas:latest \
+  -c "import whisper_timestamped as whisper; whisper.load_model('small', device='cuda')"
+```
+
+Run one existing recording:
+
+```sh
+docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/media8tb/craig-recordings/xMOdSpsi9mLY.flac.zip
+```
+
+Output is written under `/mnt/media8tb/craig-recordings/tasmas/RECORDING_ID/`, including `transcript.txt` and any summary files.
+
+TASMAS uses local `whisper_timestamped` for transcription, but its built-in `summarize` mode calls OpenAI's API and asks interactive prompt-file questions, so this automation leaves TASMAS in `semiauto` mode and uses Ollama for unattended local summaries. Set `OLLAMA_MODEL`:
+
+```sh
+docker compose restart tasmas
+```
