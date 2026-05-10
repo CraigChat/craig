@@ -120,7 +120,7 @@ install_apt_packages() {
 install_node() {
   # Install and run node (must come before npm install because npm is included with node)
   # we have to source nvm first otherwise in this non-interactive script it will not be available
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
   
   # There is a version error raised somewhere in "nvm.sh"
   # because of set -e at the top of this script, we need to add the || true

@@ -9,7 +9,7 @@ module.exports = {
   drive: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    folderPath: process.env.GOOGLE_DRIVE_FOLDER_PATH || 'LOG791/raw'
+    folderPath: process.env.GOOGLE_DRIVE_FOLDER_PATH || 'Craig'
   },
 
   // For drive upload in Microsoft OneDrive

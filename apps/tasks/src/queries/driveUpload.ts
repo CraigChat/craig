@@ -143,7 +143,7 @@ async function findGoogleDriveFolderPath(drive: drive_v3.Drive, folderPath: stri
 function getGoogleDriveFolderPathForRecording(folderPath: string, startDate: Date) {
   const dateFolder = driveDateFolderFormatter.format(startDate).replace(/\//g, '-');
 
-  return [folderPath, dateFolder]
+  return [folderPath, dateFolder, 'raw']
     .map((segment) => segment.trim())
     .filter(Boolean)
     .join('/');
