@@ -1,3 +1,6 @@
+const recordingRetentionDays = Number.parseFloat(process.env.RECORDING_RETENTION_DAYS || '3');
+const recordingRetentionMs = Math.max(Number.isFinite(recordingRetentionDays) ? recordingRetentionDays : 3, 1) * 24 * 60 * 60 * 1000;
+
 module.exports = {
   // Redis, leave blank to connect to localhost:6379 with "craig:" as the prefix
   redis: {
@@ -32,7 +35,7 @@ module.exports = {
   },
 
   recording: {
-    fallbackExpiration: 24 * 60 * 60 * 1000,
+    fallbackExpiration: recordingRetentionMs,
     path: '../../rec',
     skipIds: []
   },

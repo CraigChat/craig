@@ -100,6 +100,7 @@ Changing some of these variables from their default values will break Craig, so 
 
 - `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment, such as within a Docker container. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
 - `API_HOMEPAGE`: This should be changed to the IP address or domain name of the machine running Craig so that download links are functional (e.g., `http://localhost:5029` or `http://192.168.0.10:5029`).
+- `RECORDING_RETENTION_DAYS`: Controls how long recordings remain downloadable and how long orphaned recording files are kept. The Docker example uses `3` days to keep disk usage low.
 
 #### `apps/bot/config/_default.js`
 
@@ -108,7 +109,7 @@ Changing some of these variables from their default values will break Craig, so 
 rewardTiers: {
    [0]: {
       recordHours: 24,
-      downloadExpiryHours: 720,
+      downloadExpiryHours: 24 * Number(process.env.RECORDING_RETENTION_DAYS || 3),
       features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3'],
       sizeLimitMult: 5
    }

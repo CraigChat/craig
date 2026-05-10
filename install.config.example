@@ -44,6 +44,7 @@ INFLUX_BUCKET=
 SERVER_NAME=dev
 REDIS_HOST=redis
 REDIS_PORT=6379
+RECORDING_RETENTION_DAYS=3
 
 ##################################################
 # Other
