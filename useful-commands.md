@@ -77,3 +77,13 @@ Verify a recording link shape:
 ```bash
 docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && node -e "const api = new URL(process.env.API_HOMEPAGE); console.log(api.protocol + \"//\" + api.host + \"/rec/RECORDING_ID?key=ACCESS_KEY\")"'
 ```
+
+
+## Tests
+
+To test out summaries: 
+
+RID=6SnMjUOdmPpr
+ZIP=/mnt/media8tb/craig-recordings/$RID.flac.zip
+
+cp "$ZIP" "$ZIP.tmp" && mv "$ZIP.tmp" "$ZIP"

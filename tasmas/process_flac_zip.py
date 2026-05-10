@@ -15,6 +15,7 @@ import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from logging_utils import log
 
@@ -24,9 +25,21 @@ DEFAULT_INSTALL_CONFIG = REPO_DIR / "install.config"
 DEFAULT_RECORDINGS_DIR = Path("/mnt/media8tb/craig-recordings")
 DEFAULT_TASMAS_IMAGE = "kaddaok/tasmas:latest"
 DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
+DEFAULT_NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+DEFAULT_NVIDIA_MODEL = "mistralai/mistral-large-3-675b-instruct-2512"
 DEFAULT_SUMMARY_PROMPT = (
-    "Summarize this meeting transcript. Preserve speaker names. Include: "
-    "decisions, action items with owners, open questions, and a concise timeline.\n\n"
+    "Summarize the meeting transcript below in French. Preserve speaker names exactly as shown.\n\n"
+    "Output rules:\n"
+    "- Write in French. Common tech/industry anglicisms are acceptable.\n"
+    "- Start directly with the summary. No intro sentence.\n"
+    "- Use ## for section headers. Never use --- as a divider.\n"
+    "- Use bullet points. Be concise.\n"
+    "- Omit any section that has no relevant content.\n\n"
+    "## Résumé\n"
+    "## Décisions\n"
+    "## Actions\n"
+    "## Questions ouvertes\n\n"
+    "Transcript:\n\n"
 )
 
 
@@ -196,12 +209,207 @@ def summarize_with_ollama(transcript_path: Path) -> Path | None:
     return summary_path
 
 
+def env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    return float(raw) if raw else default
+
+
+def env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    return int(raw) if raw else default
+
+
+def parse_sse_payload(line: str) -> dict[str, Any] | None:
+    if not line.startswith("data:"):
+        return None
+    data = line.removeprefix("data:").strip()
+    if not data or data == "[DONE]":
+        return None
+    return json.loads(data)
+
+
+def summarize_with_nvidia(transcript_path: Path) -> Path | None:
+    api_key = os.environ.get("NVIDIA_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    transcript = transcript_path.read_text(encoding="utf-8", errors="replace")
+    api_url = os.environ.get("NVIDIA_API_URL", DEFAULT_NVIDIA_API_URL)
+    model = os.environ.get("NVIDIA_SUMMARY_MODEL", DEFAULT_NVIDIA_MODEL)
+    summary_filename_model = re.sub(r"[^A-Za-z0-9_.-]", "_", model)
+    summary_path = transcript_path.parent / f"summary_nvidia_{summary_filename_model}.md"
+    partial_path = summary_path.with_suffix(summary_path.suffix + ".partial")
+
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": f"{DEFAULT_SUMMARY_PROMPT}{transcript}"}],
+        "max_tokens": env_int("NVIDIA_SUMMARY_MAX_TOKENS", 2048),
+        "temperature": env_float("NVIDIA_SUMMARY_TEMPERATURE", 0.15),
+        "top_p": env_float("NVIDIA_SUMMARY_TOP_P", 1.0),
+        "frequency_penalty": env_float("NVIDIA_SUMMARY_FREQUENCY_PENALTY", 0.0),
+        "presence_penalty": env_float("NVIDIA_SUMMARY_PRESENCE_PENALTY", 0.0),
+        "stream": True,
+    }
+
+    request = urllib.request.Request(
+        api_url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "text/event-stream",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    log(f"Summarizing with NVIDIA model {model}")
+    try:
+        with urllib.request.urlopen(request, timeout=900) as response, partial_path.open("w", encoding="utf-8") as summary_file:
+            for raw_line in response:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line:
+                    continue
+                payload_chunk = parse_sse_payload(line)
+                if payload_chunk is None:
+                    continue
+                choices = payload_chunk.get("choices") or []
+                if not choices:
+                    continue
+                choice = choices[0]
+                content = choice.get("delta", {}).get("content", "") or choice.get("message", {}).get("content", "")
+                if content:
+                    summary_file.write(content)
+                    summary_file.flush()
+    except urllib.error.HTTPError as exc:
+        details = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"NVIDIA summary failed with HTTP {exc.code}: {details}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"NVIDIA summary failed: {exc}") from exc
+
+    partial_path.replace(summary_path)
+    log(f"Wrote NVIDIA summary to {summary_path}")
+    return summary_path
+
+
+def send_discord_summary_webhook(summary_path: Path, recording_id: str) -> None:
+    webhook_url = os.environ.get("DISCORD_SUMMARY_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        return
+
+    content = summary_path.read_text(encoding="utf-8", errors="replace")
+    header = f"`{recording_id}`\n"
+    full_text = header + content
+
+    # Discord enforces a 2000-char limit per message; split on newlines to preserve markdown.
+    chunks: list[str] = []
+    current = ""
+    for line in full_text.splitlines(keepends=True):
+        if len(current) + len(line) > 2000:
+            if current:
+                chunks.append(current)
+            current = line
+        else:
+            current += line
+    if current:
+        chunks.append(current)
+
+    for chunk in chunks:
+        body = json.dumps({"content": chunk})
+        result = subprocess.run(
+            [
+                "curl", "-s", "-o", "/dev/stderr", "-w", "%{http_code}",
+                "-X", "POST",
+                "-H", "Content-Type: application/json",
+                "--data-raw", body,
+                webhook_url,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        status_code = result.stdout.strip()
+        if status_code not in ("200", "204"):
+            log(f"Discord webhook failed: HTTP {status_code}: {result.stderr.strip()}", stream=sys.stderr)
+            return
+
+    log(f"Sent summary to Discord webhook ({len(chunks)} message(s))")
+
+
+def summarize_transcript(transcript_path: Path) -> None:
+    nvidia_summary = summarize_with_nvidia(transcript_path)
+    summary = nvidia_summary or summarize_with_ollama(transcript_path)
+    if summary:
+        recording_id = transcript_path.parent.name
+        send_discord_summary_webhook(summary, recording_id)
+
+
 def acquire_lock(lock_dir: Path) -> bool:
     try:
         lock_dir.mkdir()
         return True
     except FileExistsError:
         return False
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def state_file_path(output_root: Path) -> Path:
+    return output_root / os.environ.get("TASMAS_RECORDINGS_LOCK_FILE", "recordings.lock.json")
+
+
+def load_state(state_path: Path) -> dict[str, Any]:
+    if not state_path.exists():
+        return {"version": 1, "recordings": {}}
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        backup_path = state_path.with_suffix(state_path.suffix + f".corrupt-{int(datetime.now(timezone.utc).timestamp())}")
+        state_path.replace(backup_path)
+        log(f"Moved corrupt recording state file to {backup_path}", stream=sys.stderr)
+        return {"version": 1, "recordings": {}}
+
+    if not isinstance(state, dict):
+        return {"version": 1, "recordings": {}}
+    if not isinstance(state.get("recordings"), dict):
+        state["recordings"] = {}
+    state.setdefault("version", 1)
+    return state
+
+
+def save_state(state_path: Path, state: dict[str, Any]) -> None:
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = state_path.with_suffix(state_path.suffix + ".tmp")
+    temp_path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temp_path.replace(state_path)
+
+
+def update_recording_state(output_root: Path, recording_id: str, status: str, **fields: Any) -> None:
+    state_path = state_file_path(output_root)
+    state = load_state(state_path)
+    recordings = state["recordings"]
+    current = recordings.get(recording_id, {})
+    if not isinstance(current, dict):
+        current = {}
+    current.update(fields)
+    current["status"] = status
+    current["updatedAt"] = utc_now()
+    if status == "processing":
+        current.setdefault("startedAt", current["updatedAt"])
+    if status == "completed":
+        current["completedAt"] = current["updatedAt"]
+        current.pop("error", None)
+    if status == "failed":
+        current["failedAt"] = current["updatedAt"]
+    recordings[recording_id] = current
+    save_state(state_path, state)
+
+
+def recording_completed(output_root: Path, recording_id: str) -> bool:
+    state = load_state(state_file_path(output_root))
+    current = state["recordings"].get(recording_id)
+    return isinstance(current, dict) and current.get("status") == "completed"
 
 
 def safe_extract_zip(zip_path: Path, work_dir: Path) -> None:
@@ -228,8 +436,10 @@ def process_zip(zip_path: Path) -> Path:
     done_marker = work_dir / ".done"
     lock_dir = work_dir / ".lock"
 
-    if done_marker.exists():
+    if recording_completed(output_root, recording_id) or done_marker.exists():
         log(f"Already processed: {recording_id}")
+        if done_marker.exists() and not recording_completed(output_root, recording_id):
+            update_recording_state(output_root, recording_id, "completed", archivePath=str(zip_path), workDir=str(work_dir))
         return work_dir
 
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -238,6 +448,7 @@ def process_zip(zip_path: Path) -> Path:
         return work_dir
 
     try:
+        update_recording_state(output_root, recording_id, "processing", archivePath=str(zip_path), workDir=str(work_dir))
         log(f"Staging {zip_path} -> {work_dir}")
         safe_extract_zip(zip_path, work_dir)
 
@@ -247,11 +458,22 @@ def process_zip(zip_path: Path) -> Path:
 
         transcript_path = work_dir / "transcript.txt"
         if transcript_path.exists():
-            summarize_with_ollama(transcript_path)
+            summarize_transcript(transcript_path)
 
-        done_marker.write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
+        done_marker.write_text(utc_now() + "\n", encoding="utf-8")
+        update_recording_state(
+            output_root,
+            recording_id,
+            "completed",
+            archivePath=str(zip_path),
+            workDir=str(work_dir),
+            transcriptPath=str(transcript_path) if transcript_path.exists() else None,
+        )
         log(f"Done: {work_dir}")
         return work_dir
+    except Exception as exc:
+        update_recording_state(output_root, recording_id, "failed", archivePath=str(zip_path), workDir=str(work_dir), error=str(exc))
+        raise
     finally:
         try:
             lock_dir.rmdir()

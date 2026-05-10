@@ -59,8 +59,17 @@ TASMAS_MODEL_CACHE_DIR=/mnt/media8tb/craig-recordings/tasmas-model-cache
 TASMAS_EXTRA_ARGS=
 OLLAMA_MODEL=
 OLLAMA_URL=http://host.docker.internal:11434/api/generate
+NVIDIA_API_KEY=
+NVIDIA_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
+NVIDIA_SUMMARY_MODEL=mistralai/mistral-large-3-675b-instruct-2512
+NVIDIA_SUMMARY_MAX_TOKENS=2048
+NVIDIA_SUMMARY_TEMPERATURE=0.15
+NVIDIA_SUMMARY_TOP_P=1.0
+NVIDIA_SUMMARY_FREQUENCY_PENALTY=0.0
+NVIDIA_SUMMARY_PRESENCE_PENALTY=0.0
 TASMAS_WATCH_INTERVAL=10
 TASMAS_SETTLE_SECONDS=5
+TASMAS_RECORDINGS_LOCK_FILE=recordings.lock.json
 
 ##################################################
 # Other
