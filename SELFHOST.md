@@ -101,6 +101,7 @@ Changing some of these variables from their default values will break Craig, so 
 - `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment, such as within a Docker container. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
 - `API_HOMEPAGE`: This should be changed to the IP address or domain name of the machine running Craig so that download links are functional (e.g., `http://localhost:5029` or `http://192.168.0.10:5029`).
 - `RECORDING_RETENTION_DAYS`: Controls how long recordings remain downloadable and how long orphaned recording files are kept. The Docker example uses `3` days to keep disk usage low.
+- `RECORDING_LOCAL_FLAC_ENABLED`: When set to `true`, Craig writes a local `RECORDING_ID.flac.zip` archive next to the raw `.ogg.*` recording files after each recording ends.
 
 #### `apps/bot/config/_default.js`
 

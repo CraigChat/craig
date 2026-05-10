@@ -1,12 +1,14 @@
 import { OpusEncoder } from '@discordjs/opus';
 import type { DAVESession } from '@snazzah/davey';
 import axios from 'axios';
+import { spawn } from 'child_process';
 import { stripIndents } from 'common-tags';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { DexareClient } from 'dexare';
 import Eris from 'eris';
-import { access, writeFile } from 'fs/promises';
+import { createWriteStream } from 'fs';
+import { access, unlink, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
 import fetch from 'node-fetch';
 import path from 'path';
@@ -32,6 +34,8 @@ const recIndicator = / *!?\[RECORDING\] */;
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
+
+const LOCAL_FLAC_ENABLED = ['1', 'true', 'yes', 'on'].includes((process.env.RECORDING_LOCAL_FLAC_ENABLED || '').toLowerCase());
 
 const BAD_MESSAGE_CODES = [
   404,
@@ -328,6 +332,7 @@ export default class Recording {
       this.webapp?.close(WebappOpCloseReason.RECORDING_ENDED);
       await wait(200);
       await this.writer?.end();
+      await this.writeLocalFlacArchive().catch((e) => this.recorder.logger.error(`Failed to write local FLAC archive for recording ${this.id}`, e));
 
       this.recorder.recordings.delete(this.channel.guild.id);
 
@@ -390,6 +395,55 @@ export default class Recording {
     if (!user || !user.driveEnabled) return;
 
     await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
+  }
+
+  async writeLocalFlacArchive() {
+    if (!LOCAL_FLAC_ENABLED) return;
+
+    const cookScript = path.resolve(__dirname, '../../../../..', 'cook.sh');
+    const outputPath = path.join(this.recorder.recordingPath, `${this.id}.flac.zip`);
+
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(cookScript, [this.id, 'flac', 'zip'], { cwd: path.dirname(cookScript) });
+      const output = createWriteStream(outputPath);
+      let stderr = '';
+      let exitCode: number | null = null;
+      let outputFinished = false;
+      let settled = false;
+
+      const settle = (err?: Error) => {
+        if (settled) return;
+        if (err) {
+          settled = true;
+          reject(err);
+          return;
+        }
+        if (exitCode === null || !outputFinished) return;
+        settled = true;
+        if (exitCode === 0) resolve();
+        else reject(new Error(`cook.sh exited with code ${exitCode}${stderr ? `: ${stderr.trim()}` : ''}`));
+      };
+
+      child.stdout.pipe(output);
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+      child.on('error', settle);
+      output.on('error', settle);
+      output.on('finish', () => {
+        outputFinished = true;
+        settle();
+      });
+      child.on('close', (code) => {
+        exitCode = code;
+        settle();
+      });
+    }).catch(async (e) => {
+      await unlink(outputPath).catch(() => {});
+      throw e;
+    });
+
+    this.recorder.logger.info(`Wrote local FLAC archive for recording ${this.id} to ${outputPath}`);
   }
 
   async connect() {

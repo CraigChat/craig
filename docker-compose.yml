@@ -34,7 +34,7 @@ services:
       redis:
         condition: service_started
     volumes:
-      - 'craig_rec:/app/rec'
+      - '/mnt/media8tb/craig-recordings:/app/rec'
       - './install.config:/app/install.config:ro'
       - './prisma:/app/prisma'
       - './apps/bot/config:/app/apps/bot/config'
