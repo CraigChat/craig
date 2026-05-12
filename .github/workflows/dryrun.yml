@@ -1,13 +1,9 @@
 name: Dryrun
 on:
   push:
-    paths:
-      - ".github/workflows/dryrun.yml"
-      - "apps/**"
-      - "prisma/**"
-      - "tsconfig.json"
-      - "package.json"
-      - "yarn.lock"
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 jobs:
