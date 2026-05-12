@@ -1,10 +1,9 @@
 name: Manypkg
 on:
   push:
-    paths:
-      - ".github/workflows/lintrepo.yml"
-      - "apps/*/package.json"
-      - "package.json"
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 jobs:
