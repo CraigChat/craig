@@ -24,13 +24,16 @@ export default class Note extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    if (!ctx.guildID) {
+      return 'This command can only be used in a guild.';
+    }
 
-    if (await checkBan(ctx.user.id))
+    if (await checkBan(ctx.user.id)) {
       return {
         content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
+    }
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
@@ -44,16 +47,18 @@ export default class Note extends GeneralCommand {
     }
 
     const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findFirst({ where: { id: ctx.guildID } }));
-    if (!hasPermission)
+    if (!hasPermission) {
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
         ephemeral: true
       };
-    if (!this.recorder.recordings.has(ctx.guildID))
+    }
+    if (!this.recorder.recordings.has(ctx.guildID)) {
       return {
         content: "You aren't recording in this server.",
         ephemeral: true
       };
+    }
     const recording = this.recorder.recordings.get(ctx.guildID)!;
 
     try {

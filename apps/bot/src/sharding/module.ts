@@ -31,13 +31,17 @@ export default class ShardManagerModule {
 
   unregisterCommand(name: string) {
     const index = this.registeredCommands.indexOf(name);
-    if (index === -1) return;
+    if (index === -1) {
+      return;
+    }
     this.registeredCommands.splice(index, 1);
     this.manager.commands.delete(name);
   }
 
   unregisterAllCommands() {
-    for (const name of this.registeredCommands) this.manager.commands.delete(name);
+    for (const name of this.registeredCommands) {
+      this.manager.commands.delete(name);
+    }
     this.registeredCommands = [];
   }
 

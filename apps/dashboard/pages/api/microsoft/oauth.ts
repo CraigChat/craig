@@ -16,17 +16,31 @@ const OAUTH_URI = `https://login.microsoftonline.com/common/oauth2/v2.0/authoriz
 })}`;
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== 'GET') return res.redirect('/');
+  if (req.method !== 'GET') {
+    return res.redirect('/');
+  }
+
   const user = parseUser(req);
-  if (!user) return res.redirect('/');
+  if (!user) {
+    return res.redirect('/');
+  }
+
   const dbUser = await prisma.user.findFirst({ where: { id: user.id } });
-  if (!dbUser) return res.redirect('/');
-  if (dbUser.rewardTier === 0) return res.redirect('/');
+  if (!dbUser) {
+    return res.redirect('/');
+  }
+  if (dbUser.rewardTier === 0) {
+    return res.redirect('/');
+  }
 
   const { code = null, error = null } = req.query;
-  if (error) return res.redirect(`/?error=${req.query.error}&from=microsoft`);
+  if (error) {
+    return res.redirect(`/?error=${req.query.error}&from=microsoft`);
+  }
 
-  if (!code || typeof code !== 'string') return res.redirect(OAUTH_URI);
+  if (!code || typeof code !== 'string') {
+    return res.redirect(OAUTH_URI);
+  }
 
   const body = new URLSearchParams({
     client_id: config.microsoftClientId,
@@ -42,19 +56,24 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     body
   }).then((res) => res.json());
 
-  if (!response.access_token || typeof response.access_token !== 'string')
+  if (!response.access_token || typeof response.access_token !== 'string') {
     return res.redirect(`/?error=${encodeURIComponent('Could not get an access token, please sign in again.')}&from=microsoft`);
-  if (!response.refresh_token || typeof response.refresh_token !== 'string')
+  }
+  if (!response.refresh_token || typeof response.refresh_token !== 'string') {
     return res.redirect(`/?error=${encodeURIComponent('Could not get a refresh token, please sign in again.')}&from=microsoft`);
+  }
   const scopesRecieved = response.scope.split(' ');
-  if (scopes.find((s) => s !== 'offline_access' && !scopesRecieved.includes(s))) return res.redirect(`/?error=invalid_scope&from=microsoft`);
+  if (scopes.find((s) => s !== 'offline_access' && !scopesRecieved.includes(s))) {
+    return res.redirect(`/?error=invalid_scope&from=microsoft`);
+  }
 
   const me: MicrosoftUser = await fetch('https://graph.microsoft.com/v1.0/me', {
     headers: { Authorization: `${response.token_type} ${response.access_token}` }
   }).then((res) => res.json());
 
-  if (!('displayName' in me) || !('userPrincipalName' in me))
+  if (!('displayName' in me) || !('userPrincipalName' in me)) {
     return res.redirect(`/?error=${encodeURIComponent('Could not get user data, please sign in again.')}&from=microsoft`);
+  }
 
   await prisma.microsoftUser.upsert({
     where: { id: user.id },

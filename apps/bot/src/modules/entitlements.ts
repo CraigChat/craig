@@ -63,7 +63,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
           });
         }
       }
-    } else if (dbEntitlement)
+    } else if (dbEntitlement) {
       await prisma.entitlement.delete({
         where: {
           userId_source: {
@@ -72,6 +72,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
           }
         }
       });
+    }
 
     return await this.resolveUserEntitlement(userId);
   }
@@ -103,15 +104,21 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
 
   getTierFromSKU(sku: string) {
     const tierString = Object.entries(this.client.config.craig.rewardTiers).find(([, tier]) => tier.discordSkuId === sku)?.[0] ?? null;
-    if (tierString === null) return;
+    if (tierString === null) {
+      return;
+    }
     const tier = parseInt(tierString, 10);
-    if (!this.client.config.craig.rewardTiers[tier]) return;
+    if (!this.client.config.craig.rewardTiers[tier]) {
+      return;
+    }
     return tier;
   }
 
   async onEntitlementCreate(_: any, entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
-    if (tier === undefined || !entitlement.userID) return;
+    if (tier === undefined || !entitlement.userID) {
+      return;
+    }
     const testEntitlement = !entitlement.startsAt;
     await prisma.entitlement.upsert({
       where: {
@@ -136,7 +143,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
       }
     });
     await this.resolveUserEntitlement(entitlement.userID);
-    if (this.client.config.craig.entitlementWebhookURLs)
+    if (this.client.config.craig.entitlementWebhookURLs) {
       await Promise.all(
         this.client.config.craig.entitlementWebhookURLs.map((i) =>
           fetch(i.url, {
@@ -155,11 +162,14 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
           })
         )
       ).catch(() => {});
+    }
   }
 
   async onEntitlementUpdate(_: any, entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
-    if (tier === undefined || !entitlement.userID) return;
+    if (tier === undefined || !entitlement.userID) {
+      return;
+    }
     const testEntitlement = !entitlement.startsAt;
     await prisma.entitlement.update({
       where: {
@@ -176,7 +186,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
       }
     });
     await this.resolveUserEntitlement(entitlement.userID);
-    if (this.client.config.craig.entitlementWebhookURLs)
+    if (this.client.config.craig.entitlementWebhookURLs) {
       await Promise.all(
         this.client.config.craig.entitlementWebhookURLs.map((i) =>
           fetch(i.url, {
@@ -195,11 +205,14 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
           })
         )
       ).catch(() => {});
+    }
   }
 
   async onEntitlementDelete(_: any, entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
-    if (tier === undefined || !entitlement.userID) return;
+    if (tier === undefined || !entitlement.userID) {
+      return;
+    }
     await prisma.entitlement.delete({
       where: {
         userId_source: {
@@ -209,7 +222,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
       }
     });
     await this.resolveUserEntitlement(entitlement.userID);
-    if (this.client.config.craig.entitlementWebhookURLs)
+    if (this.client.config.craig.entitlementWebhookURLs) {
       await Promise.all(
         this.client.config.craig.entitlementWebhookURLs.map((i) =>
           fetch(i.url, {
@@ -228,6 +241,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
           })
         )
       ).catch(() => {});
+    }
   }
 
   load() {

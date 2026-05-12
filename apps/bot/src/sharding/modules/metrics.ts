@@ -64,7 +64,9 @@ export default class MetricsModule extends ShardManagerModule {
   }
 
   load() {
-    if (!this.manager.options.metricsPort) return void logger.info('No metrics port defined, skipping...');
+    if (!this.manager.options.metricsPort) {
+      return void logger.info('No metrics port defined, skipping...');
+    }
     const manager = this.manager;
 
     new Gauge({
@@ -171,7 +173,9 @@ export default class MetricsModule extends ShardManagerModule {
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (shard.status === 'ready' || shard.status === 'resuming') {
                   const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("commands")');
-                  for (const command in result) this.inc({ command }, result[command]);
+                  for (const command in result) {
+                    this.inc({ command }, result[command]);
+                  }
                 }
               })
             )
@@ -193,8 +197,9 @@ export default class MetricsModule extends ShardManagerModule {
       'unbless',
       'webapp',
       'voice-test'
-    ])
+    ]) {
       cmdUsage.inc({ command }, 0);
+    }
 
     new Counter({
       name: 'craig_bot_voice_regions_connected_total',
@@ -207,7 +212,9 @@ export default class MetricsModule extends ShardManagerModule {
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (shard.status === 'ready' || shard.status === 'resuming') {
                   const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("voiceServersConnected")');
-                  for (const region in result) this.inc({ region }, result[region]);
+                  for (const region in result) {
+                    this.inc({ region }, result[region]);
+                  }
                 }
               })
             )
@@ -258,7 +265,9 @@ export default class MetricsModule extends ShardManagerModule {
           await timeout(
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
-                if (!shard.process) return void this.set({ shard: shard.id.toString() }, 0);
+                if (!shard.process) {
+                  return void this.set({ shard: shard.id.toString() }, 0);
+                }
                 const result: boolean =
                   (await timeout(
                     shard.eval('true').catch(() => false),
@@ -328,7 +337,9 @@ export default class MetricsModule extends ShardManagerModule {
 
   onShardDisconnect(shard: Shard, err: Error & { code: number }) {
     try {
-      if (err && 'code' in err && typeof err.code === 'number') this.gatewayCloseCounter?.inc({ code: err.code.toString() });
+      if (err && 'code' in err && typeof err.code === 'number') {
+        this.gatewayCloseCounter?.inc({ code: err.code.toString() });
+      }
     } catch {}
   }
 

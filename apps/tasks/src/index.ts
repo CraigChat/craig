@@ -52,5 +52,7 @@ const tasksConfig: {
   listen(2022);
 
   logger.info('Ready.');
-  if (process.send) process.send('ready');
+  if (process.send) {
+    process.send('ready');
+  }
 })();

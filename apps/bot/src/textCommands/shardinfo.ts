@@ -33,7 +33,10 @@ export default class ShardInfoCommand extends TextCommand {
   async run(ctx: CommandContext) {
     const sharding = this.client.modules.get('sharding') as ShardingModule;
 
-    if (!sharding.on) return void (await replyOrSend(ctx, 'Sharding is not enabled.'));
+    if (!sharding.on) {
+      return void (await replyOrSend(ctx, 'Sharding is not enabled.'));
+    }
+
     const {
       d: { res, spawned, total }
     } = await sharding.sendAndRecieve<{

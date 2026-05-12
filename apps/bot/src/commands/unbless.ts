@@ -17,13 +17,16 @@ export default class Bless extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    if (!ctx.guildID) {
+      return 'This command can only be used in a guild.';
+    }
 
-    if (await checkBan(ctx.user.id))
+    if (await checkBan(ctx.user.id)) {
       return {
         content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
+    }
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {

@@ -45,7 +45,9 @@ export const filesRoute: RouteOptions = {
     const fonts = ['red-hat-text', 'lexend', 'ubuntu-mono'];
     for (const font of fonts) {
       const mime = file.endsWith('woff2') ? 'font/woff2' : 'font/woff';
-      if (file.startsWith(font)) return reply.type(mime).sendFile(file, path.join(fontsPath, font, 'files'));
+      if (file.startsWith(font)) {
+        return reply.type(mime).sendFile(file, path.join(fontsPath, font, 'files'));
+      }
     }
     return reply.callNotFound();
   }

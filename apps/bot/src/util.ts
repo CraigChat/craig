@@ -61,16 +61,28 @@ export function makePlainError(err: Error) {
 }
 
 export function checkRecordingPermission(member: Member, guildData?: Guild | null) {
-  if (!member) return false;
-  if (member.permissions.has('MANAGE_GUILD')) return true;
-  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) return true;
+  if (!member) {
+    return false;
+  }
+  if (member.permissions.has('MANAGE_GUILD')) {
+    return true;
+  }
+  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) {
+    return true;
+  }
   return false;
 }
 
 export function checkRecordingPermissionEris(member: Eris.Member, guildData?: Guild | null) {
-  if (!member) return false;
-  if (member.permissions.has('manageGuild')) return true;
-  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) return true;
+  if (!member) {
+    return false;
+  }
+  if (member.permissions.has('manageGuild')) {
+    return true;
+  }
+  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) {
+    return true;
+  }
   return false;
 }
 
@@ -82,7 +94,9 @@ export interface ParsedRewards {
 export function parseRewards(config: CraigBotConfig, tier = 0, guildTier = 0): ParsedRewards {
   const userRewards = config.craig.rewardTiers[tier] || config.craig.rewardTiers[0];
   const guildRewards = config.craig.rewardTiers[guildTier] || config.craig.rewardTiers[0];
-  if (tier === -1 || (tier >= guildTier && guildTier !== -1)) return { tier, rewards: userRewards };
+  if (tier === -1 || (tier >= guildTier && guildTier !== -1)) {
+    return { tier, rewards: userRewards };
+  }
   return { tier: guildTier, rewards: guildRewards };
 }
 
@@ -91,7 +105,9 @@ export function cutoffText(text: string, limit = 2000) {
 }
 
 export function disableComponents(components: AnyComponent[]) {
-  if (!components) return components;
+  if (!components) {
+    return components;
+  }
 
   const clone = JSON.parse(JSON.stringify(components));
 
@@ -104,10 +120,15 @@ export function disableComponents(components: AnyComponent[]) {
         comp.type === ComponentType.ROLE_SELECT ||
         comp.type === ComponentType.CHANNEL_SELECT ||
         comp.type === ComponentType.MENTIONABLE_SELECT
-      )
+      ) {
         comp.disabled = true;
-      if ('components' in comp && Array.isArray(comp.components)) disableButtons(comp.components);
-      if ('accessory' in comp && comp.accessory.type === ComponentType.BUTTON) comp.accessory.disabled = true;
+      }
+      if ('components' in comp && Array.isArray(comp.components)) {
+        disableButtons(comp.components);
+      }
+      if ('accessory' in comp && comp.accessory.type === ComponentType.BUTTON) {
+        comp.accessory.disabled = true;
+      }
     }
   }
 
@@ -254,7 +275,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
   const userTier = userData?.rewardTier || 0;
   const guildTier = blessingUser?.rewardTier || 0;
 
-  if (blessingUser && blessingUser.id === userID)
+  if (blessingUser && blessingUser.id === userID) {
     return {
       content: 'You already blessed this server.',
       ephemeral: true,
@@ -273,21 +294,26 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
         }
       ]
     };
+  }
 
-  if (userTier === 0)
+  if (userTier === 0) {
     return {
       content: "You don't have any perks to bless this server with.",
       ephemeral: true
     };
+  }
 
-  if (guildTier === -1 || (guildTier >= userTier && userTier !== -1))
+  if (guildTier === -1 || (guildTier >= userTier && userTier !== -1)) {
     return {
       content: 'This server has already been blessed by a similar or greater tier.',
       ephemeral: true
     };
+  }
 
   // Remove other blessings
-  if (userTier !== -1) await prisma.blessing.deleteMany({ where: { userId: userID } });
+  if (userTier !== -1) {
+    await prisma.blessing.deleteMany({ where: { userId: userID } });
+  }
 
   await prisma.blessing.upsert({
     where: { guildId: guildID },
@@ -304,11 +330,12 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 export async function unblessServer(userID: string, guildID: string): Promise<MessageOptions> {
   const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
 
-  if (!blessing || blessing.userId !== userID)
+  if (!blessing || blessing.userId !== userID) {
     return {
       content: 'You have not blessed this server.',
       ephemeral: true
     };
+  }
 
   await prisma.blessing.delete({
     where: { guildId: guildID }
@@ -330,7 +357,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
     orderBy: { createdAt: 'desc' }
   });
 
-  if (recordings.length === 0)
+  if (recordings.length === 0) {
     return {
       flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
       components: [
@@ -340,6 +367,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
         }
       ]
     } as EditMessageOptions;
+  }
 
   const downloadDomain = client.config.craig.downloadDomain;
   const baseUrl = `${client.config.craig.downloadProtocol ?? 'https'}://${downloadDomain}`;
@@ -430,9 +458,11 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
 }
 
 export async function replyOrSend(ctx: CommandContext, content: Eris.MessageContent): Promise<Eris.Message> {
-  if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory'))
+  if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory')) {
     return ctx.replyMention(content);
-  else return ctx.reply(content);
+  } else {
+    return ctx.reply(content);
+  }
 }
 
 export default abstract class TextCommand extends DexareCommand {
@@ -444,8 +474,9 @@ export default abstract class TextCommand extends DexareCommand {
   }
 
   finalize(response: any, ctx: CommandContext) {
-    if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object'))
+    if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object')) {
       return replyOrSend(ctx, response);
+    }
   }
 }
 

@@ -30,8 +30,11 @@ const levelColors: { [level: string]: Chalk } = {
 };
 
 function _centrePad(text: string, length: number) {
-  if (text.length < length) return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
-  else return text;
+  if (text.length < length) {
+    return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
+  } else {
+    return text;
+  }
 }
 
 function _log(level: string, args: any[]) {
@@ -43,7 +46,9 @@ function _log(level: string, args: any[]) {
     if (formats) {
       const a = args.splice(1, formats.length);
       text.push(util.format(args.shift(), ...a));
-    } else text.push(chalk.white(args.shift()));
+    } else {
+      text.push(chalk.white(args.shift()));
+    }
   }
 
   // Colorize the rest of the arguments
@@ -60,7 +65,9 @@ function _log(level: string, args: any[]) {
       } else {
         text.push(util.inspect(arg));
       }
-    } else text.push(arg);
+    } else {
+      text.push(arg);
+    }
   }
 
   logger.log(level as any, text.join(' '));

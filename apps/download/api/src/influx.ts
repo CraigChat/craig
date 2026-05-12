@@ -14,10 +14,15 @@ export let cooksStarted = 0;
 export const formatsCooked = new Map<string, number>();
 
 export function onRequest(recordingID: string, isReady = false) {
-  if (!activeRecordings.includes(recordingID)) activeRecordings.push(recordingID);
+  if (!activeRecordings.includes(recordingID)) {
+    activeRecordings.push(recordingID);
+  }
 
-  if (isReady) readysRecieved++;
-  else requestsRecieved++;
+  if (isReady) {
+    readysRecieved++;
+  } else {
+    requestsRecieved++;
+  }
 }
 
 export function onCookRun(recordingID: string, format: string) {
@@ -26,13 +31,17 @@ export function onCookRun(recordingID: string, format: string) {
   cookCount++;
   cooksStarted++;
 
-  if (!activeRecordings.includes(recordingID)) activeRecordings.push(recordingID);
+  if (!activeRecordings.includes(recordingID)) {
+    activeRecordings.push(recordingID);
+  }
 
   formatsCooked.set(format, cookCount);
 }
 
 async function collect(timestamp = new Date()) {
-  if (!process.env.INFLUX_URL || !process.env.INFLUX_TOKEN) return;
+  if (!process.env.INFLUX_URL || !process.env.INFLUX_TOKEN) {
+    return;
+  }
 
   const writeApi = client.getWriteApi(process.env.INFLUX_ORG, process.env.INFLUX_BUCKET, 's');
   const points = [

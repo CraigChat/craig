@@ -62,7 +62,9 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       .withServer(
         new GatewayServer((handler) =>
           this.registerEvent('rawWS', (_, event) => {
-            if (event.t === 'INTERACTION_CREATE') handler(event.d as any);
+            if (event.t === 'INTERACTION_CREATE') {
+              handler(event.d as any);
+            }
           })
         )
       )
@@ -79,9 +81,13 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString());
     });
     this.creator.on('componentInteraction', async (ctx) => {
-      if (ctx.customID.startsWith('rec:')) await this.handleRecordingInteraction(ctx);
-      else if (ctx.customID.startsWith('voicetest:')) await this.handleVoiceTestInteraction(ctx);
-      else if (ctx.customID.startsWith('user:')) await this.handleUserInteraction(ctx);
+      if (ctx.customID.startsWith('rec:')) {
+        await this.handleRecordingInteraction(ctx);
+      } else if (ctx.customID.startsWith('voicetest:')) {
+        await this.handleVoiceTestInteraction(ctx);
+      } else if (ctx.customID.startsWith('user:')) {
+        await this.handleUserInteraction(ctx);
+      }
     });
 
     if (process.env.EMOJI_SYNC_DATA) {
@@ -117,13 +123,16 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
         ephemeral: true
       });
     }
-    if (recording.channel.guild.id !== ctx.guildID) return;
+    if (recording.channel.guild.id !== ctx.guildID) {
+      return;
+    }
     const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
-    if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode')
+    if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode') {
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
         ephemeral: true
       });
+    }
 
     if (action === 'stop') {
       await recording.stop(false, ctx.user.id);
@@ -148,11 +157,12 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
           ]
         },
         (modalCtx) => {
-          if (recording.state === RecordingState.ENDED || recording.state === RecordingState.ERROR)
+          if (recording.state === RecordingState.ENDED || recording.state === RecordingState.ERROR) {
             return modalCtx.send({
               content: 'That recording was not found or may have already ended.',
               ephemeral: true
             });
+          }
           try {
             recording.note((modalCtx.values.note as string) || '');
             recording.pushToActivity(
@@ -217,12 +227,12 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
         ]
       });
     } else if (action === 'verificationcode') {
-      if (!recording.channel.voiceMembers.has(ctx.user.id))
+      if (!recording.channel.voiceMembers.has(ctx.user.id)) {
         await ctx.send({
           content: "You aren't in this channel.",
           ephemeral: true
         });
-      else {
+      } else {
         try {
           const verificationCode = await (recording.connection?.daveSession as DAVESession)?.getVerificationCode(ctx.user.id);
           await ctx.send({
@@ -251,11 +261,12 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     }
 
     const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
-    if (!hasPermission)
+    if (!hasPermission) {
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage voice tests.',
         ephemeral: true
       });
+    }
 
     if (action === 'stop') {
       await voiceTest.stopRecording();
@@ -268,11 +279,12 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
 
   async handleUserInteraction(ctx: ComponentContext) {
     const [, action, ...args] = ctx.customID.split(':');
-    if (ctx.message.interaction!.user.id !== ctx.user.id)
+    if (ctx.message.interaction!.user.id !== ctx.user.id) {
       return ctx.send({
         content: 'Only the person who executed this command can use this button.',
         ephemeral: true
       });
+    }
 
     switch (action) {
       case 'bless': {

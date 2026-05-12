@@ -149,7 +149,9 @@ export default class Recording {
   }
 
   async sendWarning(text: string, pushToActivity = true) {
-    if (pushToActivity) this.pushToActivity(`⚠️ ${text}`);
+    if (pushToActivity) {
+      this.pushToActivity(`⚠️ ${text}`);
+    }
 
     if (this.messageChannelID && this.messageID) {
       const okay = await this.recorder.client.bot
@@ -168,11 +170,15 @@ export default class Recording {
         .then(() => true)
         .catch(() => false);
 
-      if (okay) return;
+      if (okay) {
+        return;
+      }
     }
 
     const dmChannel = await this.user.getDMChannel().catch(() => null);
-    if (dmChannel) await dmChannel.createMessage(`⚠️ Warning for recording \`${this.id}\`: ${text}`).catch(() => null);
+    if (dmChannel) {
+      await dmChannel.createMessage(`⚠️ Warning for recording \`${this.id}\`: ${text}`).catch(() => null);
+    }
   }
 
   async start(parsedRewards: ParsedRewards, webapp = false) {
@@ -195,7 +201,9 @@ export default class Recording {
       await this.pushToActivity('Failed to connect!');
 
       // If the last message update errored & we can still use the message, retry once
-      if (this.lastMessageError && this.messageID) await this.updateMessage();
+      if (this.lastMessageError && this.messageID) {
+        await this.updateMessage();
+      }
       return;
     }
 
@@ -205,7 +213,9 @@ export default class Recording {
     const fileBase = path.join(this.recorder.recordingPath, `${this.id}.ogg`);
     const { tier, rewards } = parsedRewards;
     this.rewards = { tier, rewards };
-    if (rewards.sizeLimitMult) this.sizeLimit *= rewards.sizeLimitMult;
+    if (rewards.sizeLimitMult) {
+      this.sizeLimit *= rewards.sizeLimitMult;
+    }
     await writeFile(
       fileBase + '.info',
       JSON.stringify({
@@ -244,7 +254,9 @@ export default class Recording {
     this.writeToLog(`Connected to channel ${this.connection?.channelID} at ${this.connection?.endpoint}`);
 
     this.timeout = setTimeout(async () => {
-      if (this.state !== RecordingState.RECORDING) return;
+      if (this.state !== RecordingState.RECORDING) {
+        return;
+      }
       this.writeToLog('Timeout reached, stopping recording');
       this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
       this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
@@ -252,7 +264,9 @@ export default class Recording {
     }, rewards.recordHours * 60 * 60 * 1000);
 
     this.usageInterval = setInterval(async () => {
-      if (this.state !== RecordingState.RECORDING) return;
+      if (this.state !== RecordingState.RECORDING) {
+        return;
+      }
       if (this.bytesWritten !== this.lastSize) {
         this.lastSize = this.bytesWritten;
         this.usedMinutes++;
@@ -298,7 +312,9 @@ export default class Recording {
       }
     });
 
-    if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
+    if (webapp && this.recorder.client.config.craig.webapp.on) {
+      this.webapp = new WebappClient(this, parsedRewards);
+    }
 
     onRecordingStart(this.user.id, this.channel.guild.id, this.autorecorded);
   }
@@ -315,8 +331,11 @@ export default class Recording {
       );
       if (!internal) {
         this.state = RecordingState.ENDED;
-        if (userID) this.pushToActivity(`Recording stopped by <@${userID}>.`);
-        else this.updateMessage();
+        if (userID) {
+          this.pushToActivity(`Recording stopped by <@${userID}>.`);
+        } else {
+          this.updateMessage();
+        }
       }
       this.channel.leave();
       for (const userID in this.userPackets) {
@@ -333,7 +352,7 @@ export default class Recording {
 
       this.recorder.recordings.delete(this.channel.guild.id);
 
-      if (this.rewards && this.startedAt && this.started)
+      if (this.rewards && this.startedAt && this.started) {
         await prisma.recording
           .upsert({
             where: { id: this.id },
@@ -355,6 +374,7 @@ export default class Recording {
             }
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
+      }
 
       if (this.startedAt && this.startTime) {
         const timestamp = process.hrtime(this.startTime!);
@@ -365,7 +385,7 @@ export default class Recording {
       // Reset nickname
       if (this.recorder.client.config.craig.removeNickname) {
         const selfUser = await getSelfMember(this.channel.guild, this.recorder.client.bot);
-        if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick))
+        if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick)) {
           try {
             await this.recorder.client.bot.editGuildMember(
               this.channel.guild.id,
@@ -376,10 +396,12 @@ export default class Recording {
           } catch (e) {
             this.recorder.logger.error('Failed to change nickname', e);
           }
+        }
       }
 
-      if (this.started)
+      if (this.started) {
         await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id} to ${this.user.id}`, e));
+      }
     } catch (e) {
       // This is pretty bad, make sure to clean up any reference
       this.recorder.logger.error(`Failed to stop recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`, e);
@@ -389,7 +411,9 @@ export default class Recording {
 
   async uploadToDrive() {
     const user = await prisma.user.findUnique({ where: { id: this.user.id } });
-    if (!user || !user.driveEnabled) return;
+    if (!user || !user.driveEnabled) {
+      return;
+    }
 
     await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
   }
@@ -407,16 +431,23 @@ export default class Recording {
       let settled = false;
 
       const settle = (err?: Error) => {
-        if (settled) return;
+        if (settled) {
+          return;
+        }
         if (err) {
           settled = true;
           reject(err);
           return;
         }
-        if (exitCode === null || !outputFinished) return;
+        if (exitCode === null || !outputFinished) {
+          return;
+        }
         settled = true;
-        if (exitCode === 0) resolve();
-        else reject(new Error(`cook.sh exited with code ${exitCode}${stderr ? `: ${stderr.trim()}` : ''}`));
+        if (exitCode === 0) {
+          resolve();
+        } else {
+          reject(new Error(`cook.sh exited with code ${exitCode}${stderr ? `: ${stderr.trim()}` : ''}`));
+        }
       };
 
       child.stdout.pipe(output);
@@ -444,8 +475,9 @@ export default class Recording {
   async connect() {
     const alreadyConnected = this.recorder.client.bot.voiceConnections.has(this.channel.guild.id);
 
-    if (alreadyConnected)
+    if (alreadyConnected) {
       this.recorder.logger.warn(`Recording ${this.id} (channel: ${this.channel.id}, server: ${this.channel.guild.id}) was already connected`);
+    }
 
     if (!alreadyConnected) {
       this.connection?.removeAllListeners('connect');
@@ -503,7 +535,9 @@ export default class Recording {
 
     const reconnected = this.state === RecordingState.RECONNECTING;
     this.state = RecordingState.RECORDING;
-    if (reconnected) this.pushToActivity('Reconnected.');
+    if (reconnected) {
+      this.pushToActivity('Reconnected.');
+    }
   }
 
   async retryConnect() {
@@ -560,7 +594,9 @@ export default class Recording {
   }
 
   async onConnectionConnect() {
-    if (!this.active) return;
+    if (!this.active) {
+      return;
+    }
     this.writeToLog(
       `Connected to channel ${this.connection!.channelID} at ${this.connection!.endpoint} (state=${this.connection?.ws?.readyState})`,
       'connection'
@@ -576,7 +612,9 @@ export default class Recording {
   }
 
   async onConnectionReady() {
-    if (!this.active) return;
+    if (!this.active) {
+      return;
+    }
     this.writeToLog(
       `Voice connection ready (state=${this.connection?.ws?.readyState}, mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`,
       'connection'
@@ -589,7 +627,9 @@ export default class Recording {
   }
 
   async onConnectionResumed() {
-    if (!this.active) return;
+    if (!this.active) {
+      return;
+    }
     this.writeToLog(`Voice connection resumed (seq=${this.connection?.wsSequence})`, 'connection');
     this.recorder.logger.debug(`Recording ${this.id} resumed`);
   }
@@ -600,17 +640,24 @@ export default class Recording {
     if (latency && latency > MAX_LATENCY_WARNING && !this.latencyWarned) {
       this.latencyWarned = true;
       this.pushToActivity(`⚠️ High voice server latency: ${latency}ms, this may cause issues with the recording.`, true);
-    } else await this.updateMessage();
+    } else {
+      await this.updateMessage();
+    }
   }
 
   async onConnectionDisconnect(err?: Error) {
-    if (!this.active) return;
+    if (!this.active) {
+      return;
+    }
     this.writeToLog(`Got disconnected, ${err}`);
     this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
     if (err) {
       this.state = RecordingState.RECONNECTING;
-      if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
-      else this.pushToActivity('An error has disconnected me, reconnecting...');
+      if (err.message.startsWith('4006')) {
+        this.pushToActivity('Discord requested us to reconnect, reconnecting...');
+      } else {
+        this.pushToActivity('An error has disconnected me, reconnecting...');
+      }
       this.channel.leave();
       await this.retryConnect();
     } else if (this.state !== RecordingState.RECONNECTING) {
@@ -624,7 +671,9 @@ export default class Recording {
   }
 
   async onConnectionUnknown(packet: any) {
-    if (!this.recorder.client.config.craig.systemNotificationURL) return;
+    if (!this.recorder.client.config.craig.systemNotificationURL) {
+      return;
+    }
 
     if (
       typeof packet === 'object' &&
@@ -637,10 +686,11 @@ export default class Recording {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
       const voiceEndpoint = this.connection?.endpoint?.hostname;
       this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
-      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
+      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media')) {
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
+      }
 
       await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
@@ -677,7 +727,9 @@ export default class Recording {
   }
 
   private logWrite(message: string) {
-    if (this.closing) return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
+    if (this.closing) {
+      return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
+    }
     this.writer?.writeLog(message);
   }
 
@@ -693,8 +745,12 @@ export default class Recording {
         const subLen = (buffer[off] & 0xf) + 2;
         off += subLen;
       }
-      while (off < buffer.length && buffer[off] === 0) off++;
-      if (off >= buffer.length) off = buffer.length;
+      while (off < buffer.length && buffer[off] === 0) {
+        off++;
+      }
+      if (off >= buffer.length) {
+        off = buffer.length;
+      }
 
       buffer = buffer.slice(off);
     }
@@ -716,9 +772,15 @@ export default class Recording {
   }
 
   async getOrCreateRecordingUser(userID: string) {
-    if (!this.userPackets[userID]) this.userPackets[userID] = [];
-    if (this.users[userID]) return this.users[userID];
-    if (Object.keys(this.users).length >= USER_HARD_LIMIT) return;
+    if (!this.userPackets[userID]) {
+      this.userPackets[userID] = [];
+    }
+    if (this.users[userID]) {
+      return this.users[userID];
+    }
+    if (Object.keys(this.users).length >= USER_HARD_LIMIT) {
+      return;
+    }
     let user = this.recorder.client.bot.users.get(userID);
     this.users[userID] = {
       id: userID,
@@ -752,7 +814,9 @@ export default class Recording {
       recordingUser.globalName = member?.user?.globalName;
       recordingUser.bot = member?.user?.bot ?? false;
       recordingUser.unknown = !member;
-      if (member) user = member.user;
+      if (member) {
+        user = member.user;
+      }
     }
 
     if (user) {
@@ -765,7 +829,9 @@ export default class Recording {
       }
 
       recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
-      if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
+      if (recordingUser.avatarUrl) {
+        this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
+      }
     }
 
     this.writer?.writeUser(recordingUser);
@@ -779,8 +845,12 @@ export default class Recording {
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {
-    if (!this.active) return;
-    if (!userID) return;
+    if (!this.active) {
+      return;
+    }
+    if (!userID) {
+      return;
+    }
 
     // Check if the packet is mostly zeros (all but one byte are zero)
     // Cloudflare voice servers (prefixed with `c-`) tend to do this for no reason at all
@@ -798,18 +868,26 @@ export default class Recording {
     const chunkTime = process.hrtime(this.startTime!);
     const time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
     const recordingUser = await this.getOrCreateRecordingUser(userID);
-    if (!recordingUser) return;
+    if (!recordingUser) {
+      return;
+    }
 
     // Add packet to list
     if (this.userPackets[userID].length > 0) {
       const lastPacket = this.userPackets[userID][this.userPackets[userID].length - 1];
       this.userPackets[userID].push({ data, timestamp, time });
       // Reorder packets
-      if (lastPacket.timestamp > timestamp) this.userPackets[userID].sort((a, b) => a.timestamp - b.timestamp);
-    } else this.userPackets[userID].push({ data, timestamp, time });
+      if (lastPacket.timestamp > timestamp) {
+        this.userPackets[userID].sort((a, b) => a.timestamp - b.timestamp);
+      }
+    } else {
+      this.userPackets[userID].push({ data, timestamp, time });
+    }
 
     // Flush packets if its getting long
-    if (this.userPackets[userID].length >= 16) this.flush(recordingUser, 1);
+    if (this.userPackets[userID].length >= 16) {
+      this.flush(recordingUser, 1);
+    }
 
     // Set speaking thru webapp
     this.webapp?.userSpeaking(recordingUser.track);
@@ -832,13 +910,19 @@ export default class Recording {
       const timestamp = process.hrtime(this.startTime);
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       this.logs.push(`\`${dayjs.duration(time).format('HH:mm:ss')}\`: ${log}`);
-    } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
+    } else {
+      this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
+    }
     this.logWrite(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
-    if (update) return this.updateMessage();
+    if (update) {
+      return this.updateMessage();
+    }
   }
 
   writeToLog(log: string, type?: string) {
-    if (!this.closing) this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
+    if (!this.closing) {
+      this.logWrite(`<[Internal:${type}] ${new Date().toISOString()}>: ${log}\n`);
+    }
   }
 
   get emojis() {
@@ -855,8 +939,11 @@ export default class Recording {
       }
       case RecordingState.RECORDING: {
         title = '🔴 Recording...';
-        if (this.warningState === null) color = 0x2ecc71;
-        else color = 0xf1c40f;
+        if (this.warningState === null) {
+          color = 0x2ecc71;
+        } else {
+          color = 0xf1c40f;
+        }
         break;
       }
       case RecordingState.CONNECTING: {
@@ -880,13 +967,14 @@ export default class Recording {
       }
     }
 
-    if (this.warningState !== null)
+    if (this.warningState !== null) {
       switch (this.warningState) {
         case WarningState.DEAFENED: {
           title = '⚠️ I was deafened!';
           break;
         }
       }
+    }
 
     const startedTimestamp = this.startedAt ? Math.floor(this.startedAt.valueOf() / 1000) : null;
     const voiceRegion = this.connection?.endpoint?.hostname;
@@ -992,7 +1080,9 @@ export default class Recording {
   }
 
   async updateMessage() {
-    if (!this.messageChannelID || !this.messageID) return false;
+    if (!this.messageChannelID || !this.messageID) {
+      return false;
+    }
 
     try {
       this.lastMessageError = null;

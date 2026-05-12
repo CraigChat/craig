@@ -66,10 +66,12 @@ export default class Join extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    if (!ctx.guildID) {
+      return 'This command can only be used in a guild.';
+    }
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
-    if (!guild)
+    if (!guild) {
       return {
         content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
         ephemeral: true,
@@ -87,18 +89,21 @@ export default class Join extends GeneralCommand {
           }
         ]
       };
+    }
 
-    if (await checkBan(ctx.user.id))
+    if (await checkBan(ctx.user.id)) {
       return {
         content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
+    }
 
-    if (this.recorder.voiceTests.has(ctx.guildID))
+    if (this.recorder.voiceTests.has(ctx.guildID)) {
       return {
         content: 'You must finish the voice test before starting a recording.',
         ephemeral: true
       };
+    }
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
@@ -113,7 +118,7 @@ export default class Join extends GeneralCommand {
 
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
-    if (!hasPermission)
+    if (!hasPermission) {
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
         components: [
@@ -131,6 +136,7 @@ export default class Join extends GeneralCommand {
         ],
         ephemeral: true
       };
+    }
     const member = guild.members.get(ctx.user.id) || (await guild.fetchMembers({ userIDs: [ctx.user.id] }))[0];
 
     // Check for existing recording
@@ -138,7 +144,7 @@ export default class Join extends GeneralCommand {
       const recording = this.recorder.recordings.get(ctx.guildID)!;
       if (recording.messageID && recording.messageChannelID) {
         const message = await this.client.bot.getMessage(recording.messageChannelID, recording.messageID).catch(() => null);
-        if (message)
+        if (message) {
           return {
             content: 'Already recording in this guild.',
             ephemeral: true,
@@ -157,19 +163,22 @@ export default class Join extends GeneralCommand {
               }
             ]
           };
+        }
       }
 
-      if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+      if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS')) {
         return {
           content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
           ephemeral: true
         };
+      }
 
-      if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
+      if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL')) {
         return {
           content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
           ephemeral: true
         };
+      }
 
       await ctx.send(recording.messageContent() as any);
       const { id: messageID } = await ctx.fetch();
@@ -180,45 +189,52 @@ export default class Join extends GeneralCommand {
 
     // Check channel
     let channel = guild.channels.get(ctx.options.channel);
-    if (!channel && member?.voiceState?.channelID) channel = guild.channels.get(member.voiceState.channelID);
-    else if (!channel)
+    if (!channel && member?.voiceState?.channelID) {
+      channel = guild.channels.get(member.voiceState.channelID);
+    } else if (!channel) {
       return {
         content: 'Please specify a channel to record in, or join a channel.',
         ephemeral: true
       };
-    if (channel!.type !== 2 && channel!.type !== 13)
+    }
+    if (channel!.type !== 2 && channel!.type !== 13) {
       return {
         content: 'That channel is not a voice channel.',
         ephemeral: true
       };
+    }
 
     // Check permissions
-    if (!channel!.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
+    if (!channel!.permissionsOf(this.client.bot.user.id).has('voiceConnect')) {
       return {
         content: `I do not have permission to connect to <#${channel!.id}>.`,
         ephemeral: true
       };
+    }
 
     const nicknamePermission = ctx.appPermissions
       ? ctx.appPermissions.has('CHANGE_NICKNAME')
       : guild.permissionsOf(this.client.bot.user.id).has('changeNickname');
-    if (!nicknamePermission)
+    if (!nicknamePermission) {
       return {
         content: 'I do not have permission to change my nickname. I will not record without this permission.',
         ephemeral: true
       };
+    }
 
-    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS')) {
       return {
         content: `I need the \`Embed Links\` permission to be able to display my recording panel.`,
         ephemeral: true
       };
+    }
 
-    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
+    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL')) {
       return {
         content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my recording panel.`,
         ephemeral: true
       };
+    }
 
     // Check for maintenence
     const isElevated = this.client.config.elevated
@@ -228,7 +244,7 @@ export default class Join extends GeneralCommand {
       : false;
     if (!isElevated) {
       const maintenence = await checkMaintenance(this.client.bot.user.id);
-      if (maintenence)
+      if (maintenence) {
         return {
           content: `⚠️ __The bot is currently undergoing maintenance. Please try again later.__\n\n${maintenence.message}`,
           ephemeral: true,
@@ -246,6 +262,7 @@ export default class Join extends GeneralCommand {
             }
           ]
         };
+      }
     }
 
     // Check guild-wide cooldown
@@ -267,7 +284,7 @@ export default class Join extends GeneralCommand {
     const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Check if user can record
-    if (parsedRewards.rewards.recordHours <= 0)
+    if (parsedRewards.rewards.recordHours <= 0) {
       return {
         content: stripIndentsAndLines`
           Sorry, but this bot is only for patrons. Please use Craig.
@@ -295,6 +312,7 @@ export default class Join extends GeneralCommand {
         ],
         ephemeral: true
       };
+    }
 
     // Check for DM permissions
     const dmChannel = await member.user.getDMChannel().catch(() => null);
@@ -310,14 +328,15 @@ export default class Join extends GeneralCommand {
     const recNick = cutoffText(`![RECORDING] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
     await ctx.defer();
     let nickChanged = false;
-    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
+    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]'))) {
       try {
         const nickWarnTimeout = setTimeout(() => {
-          if (!nickChanged)
+          if (!nickChanged) {
             ctx.editOriginal(oneLine`
               It's taking a while for me to change my nickname to indicate that I'm recording.
               I cannot start recording until I've changed my nickname. Please be patient.
             `);
+          }
         }, 3000) as unknown as number;
         await this.client.bot.editGuildMember(ctx.guildID, '@me', { nick: recNick }, 'Setting recording status');
         nickChanged = true;
@@ -330,6 +349,7 @@ export default class Join extends GeneralCommand {
         );
         return `An error occurred while changing my nickname: ${e}`;
       }
+    }
 
     // Start recording
     const recording = new Recording(this.recorder, channel as any, member.user);
@@ -366,7 +386,7 @@ export default class Join extends GeneralCommand {
     // Send DM
     const dmMessage = await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
 
-    if (dmMessage)
+    if (dmMessage) {
       await ctx.sendFollowUp({
         content: `Started recording in <#${channel!.id}>.`,
         ephemeral: true,
@@ -385,7 +405,7 @@ export default class Join extends GeneralCommand {
           }
         ]
       });
-    else
+    } else {
       await ctx.sendFollowUp({
         content: stripIndentsAndLines`
           Started recording in <#${channel!.id}>.
@@ -424,5 +444,6 @@ export default class Join extends GeneralCommand {
           }
         ]
       });
+    }
   }
 }

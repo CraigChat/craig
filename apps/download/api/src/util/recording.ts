@@ -74,22 +74,31 @@ export async function getRecording(id: string): Promise<RecordingInfo | false> {
     (exists) => exists === false
   );
   const infoExists = await fileExists(path.join(recPath, `${id}.ogg.info`));
-  if (!dataExists && infoExists) return false;
-  if (!dataExists || !infoExists) return null;
+  if (!dataExists && infoExists) {
+    return false;
+  }
+  if (!dataExists || !infoExists) {
+    return null;
+  }
 
   const info: Partial<RecordingInfo> = JSON.parse(await fs.readFile(path.join(recPath, `${id}.ogg.info`), 'utf8'));
 
   // check for a key file
   if (!info.key) {
     const keyExists = await fileExists(path.join(recPath, `${id}.ogg.key`));
-    if (keyExists) info.key = await fs.readFile(path.join(recPath, `${id}.ogg.key`), 'utf8');
+    if (keyExists) {
+      info.key = await fs.readFile(path.join(recPath, `${id}.ogg.key`), 'utf8');
+    }
   }
 
   // fill in features
   if (!info.features) {
     const featsExists = await fileExists(path.join(recPath, `${id}.ogg.features`));
-    if (featsExists) info.features = JSON.parse(await fs.readFile(path.join(recPath, `${id}.ogg.features`), 'utf8'));
-    else info.features = {};
+    if (featsExists) {
+      info.features = JSON.parse(await fs.readFile(path.join(recPath, `${id}.ogg.features`), 'utf8'));
+    } else {
+      info.features = {};
+    }
   }
 
   return info as RecordingInfo;

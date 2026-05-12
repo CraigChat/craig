@@ -19,13 +19,19 @@ const OAUTH_QS = new URLSearchParams({
 const OAUTH_URI = `https://discord.com/api/oauth2/authorize?${OAUTH_QS}`;
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== 'GET') return res.redirect('/');
+  if (req.method !== 'GET') {
+    return res.redirect('/');
+  }
 
   const { code = null, error = null } = req.query;
 
-  if (error) return res.redirect(`/?error=${req.query.error}&from=discord`);
+  if (error) {
+    return res.redirect(`/?error=${req.query.error}&from=discord`);
+  }
 
-  if (!code || typeof code !== 'string') return res.redirect(OAUTH_URI);
+  if (!code || typeof code !== 'string') {
+    return res.redirect(OAUTH_URI);
+  }
 
   const body = new URLSearchParams({
     client_id: config.clientId,
@@ -42,13 +48,17 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     body
   }).then((res) => res.json());
 
-  if (!access_token || typeof access_token !== 'string') return res.redirect(OAUTH_URI);
+  if (!access_token || typeof access_token !== 'string') {
+    return res.redirect(OAUTH_URI);
+  }
 
   const me: DiscordUser | { unauthorized: true } = await fetch('https://discord.com/api/users/@me', {
     headers: { Authorization: `${token_type} ${access_token}` }
   }).then((res) => res.json());
 
-  if (!('id' in me)) return res.redirect(OAUTH_URI);
+  if (!('id' in me)) {
+    return res.redirect(OAUTH_URI);
+  }
 
   const token = sign(me, config.jwtSecret, { expiresIn: '7d' });
 

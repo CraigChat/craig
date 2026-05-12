@@ -58,13 +58,14 @@ export default function Login() {
 export const getServerSideProps: GetServerSideProps = async function (ctx) {
   const user = parseUser(ctx.req);
 
-  if (user)
+  if (user) {
     return {
       redirect: {
         destination: '/',
         permanent: false
       }
     };
+  }
 
   return { props: {} };
 };

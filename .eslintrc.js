@@ -3,6 +3,7 @@ module.exports = {
   extends: 'snazzah',
   rules: {
     'simple-import-sort/imports': 'off',
-    'simple-import-sort/exports': 'off'
+    'simple-import-sort/exports': 'off',
+    'curly': ['error', 'all']
   }
 };

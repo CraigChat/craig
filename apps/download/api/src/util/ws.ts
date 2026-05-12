@@ -1,8 +1,12 @@
 import { RawData, WebSocket } from 'ws';
 
 export function toBuffer(data: RawData) {
-  if (data instanceof Buffer) return data;
-  if (Array.isArray(data)) return Buffer.concat(data);
+  if (data instanceof Buffer) {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return Buffer.concat(data);
+  }
   return Buffer.from(data);
 }
 

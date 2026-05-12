@@ -21,7 +21,9 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
   await manager.syncEmojis();
   logger.info('Starting to spawn...');
   // PM2 graceful start/shutdown
-  if (process.send) process.send('ready');
+  if (process.send) {
+    process.send('ready');
+  }
   await manager.spawnAllWithConcurrency();
   logger.info(
     `Spawned ${manager.shards.size} shards in ${Array.from(manager.shards.values())

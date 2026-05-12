@@ -89,10 +89,12 @@ export default class ServerSettings extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    if (!ctx.guildID) {
+      return 'This command can only be used in a guild.';
+    }
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
-    if (!guild)
+    if (!guild) {
       return {
         content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
         ephemeral: true,
@@ -110,12 +112,14 @@ export default class ServerSettings extends GeneralCommand {
           }
         ]
       };
+    }
 
-    if (await checkBan(ctx.user.id))
+    if (await checkBan(ctx.user.id)) {
       return {
         content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
+    }
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
@@ -129,11 +133,12 @@ export default class ServerSettings extends GeneralCommand {
     }
 
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
-    if (!ctx.member!.permissions.has('MANAGE_GUILD'))
+    if (!ctx.member!.permissions.has('MANAGE_GUILD')) {
       return {
         content: 'You need the `Manage Server` permission to change server settings.',
         ephemeral: true
       };
+    }
 
     switch (ctx.subcommands[0]) {
       case 'view': {
@@ -153,11 +158,12 @@ export default class ServerSettings extends GeneralCommand {
         switch (ctx.subcommands[1]) {
           case 'add': {
             const roleID = ctx.options['access-role'].add.role;
-            if (guildData && guildData.accessRoles.includes(roleID))
+            if (guildData && guildData.accessRoles.includes(roleID)) {
               return {
                 content: 'This role is already an access role.',
                 ephemeral: true
               };
+            }
             await this.prisma.guild.upsert({
               where: { id: ctx.guildID },
               update: {
@@ -172,11 +178,12 @@ export default class ServerSettings extends GeneralCommand {
           }
           case 'remove': {
             const roleID = ctx.options['access-role'].remove.role;
-            if (!guildData || !guildData.accessRoles.includes(roleID))
+            if (!guildData || !guildData.accessRoles.includes(roleID)) {
               return {
                 content: 'This role is not an access role.',
                 ephemeral: true
               };
+            }
             await this.prisma.guild.update({
               where: { id: ctx.guildID },
               data: { accessRoles: guildData.accessRoles.filter((r) => r !== roleID).filter((r) => guild.roles.has(r)) }
@@ -194,32 +201,35 @@ export default class ServerSettings extends GeneralCommand {
           case 'edit': {
             const avatarAttachmentID = ctx.options['bot-profile'].edit.avatar;
             const bannerAttachmentID = ctx.options['bot-profile'].edit.banner;
-            if (!avatarAttachmentID && !bannerAttachmentID)
+            if (!avatarAttachmentID && !bannerAttachmentID) {
               return {
                 content: "You didn't edit anything.",
                 ephemeral: true
               };
+            }
 
             const avatar = ctx.attachments.get(avatarAttachmentID);
             const banner = ctx.attachments.get(bannerAttachmentID);
 
-            if (avatar && (!avatar.content_type || !ALLOWED_IMAGE_TYPES.includes(avatar.content_type)))
+            if (avatar && (!avatar.content_type || !ALLOWED_IMAGE_TYPES.includes(avatar.content_type))) {
               return {
                 content: `The avatar trying to be set has an invalid content type.${avatar.content_type ? ` (${avatar.content_type})` : ''}`,
                 ephemeral: true
               };
+            }
 
-            if (banner && (!banner.content_type || !ALLOWED_IMAGE_TYPES.includes(banner.content_type)))
+            if (banner && (!banner.content_type || !ALLOWED_IMAGE_TYPES.includes(banner.content_type))) {
               return {
                 content: `The banner trying to be set has an invalid content type.${banner.content_type ? ` (${banner.content_type})` : ''}`,
                 ephemeral: true
               };
+            }
 
             const userData = await this.entitlements.getCurrentUser(ctx);
             const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
             const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
             const tier = userData?.rewardTier ?? blessingUser?.rewardTier ?? 0;
-            if (tier === 0)
+            if (tier === 0) {
               return {
                 content: stripIndents`
                   Sorry, but this feature is only for Tier 1 supporters ($1 patrons).
@@ -241,6 +251,7 @@ export default class ServerSettings extends GeneralCommand {
                 ],
                 ephemeral: true
               };
+            }
 
             try {
               const [avatarData, bannerData] = await Promise.all([

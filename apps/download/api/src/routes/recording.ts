@@ -11,9 +11,13 @@ export const headRoute: RouteOptions = {
   url: '/api/recording/:id',
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
-    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    if (!id) {
+      return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    }
     const { key } = request.query as Record<string, string>;
-    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (!key) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
     return reply.status(200).send('OK');
   }
 };
@@ -23,14 +27,23 @@ export const getRoute: RouteOptions = {
   url: '/api/recording/:id',
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
-    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    if (!id) {
+      return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    }
     const { key } = request.query as Record<string, string>;
-    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (!key) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
 
     const info = await getRecording(id);
-    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) {
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    } else if (!info) {
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    }
+    if (!keyMatches(info, key)) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
     onRequest(id);
 
     delete info.delete;
@@ -44,14 +57,23 @@ export const textRoute: RouteOptions = {
   url: '/api/recording/:id/.txt',
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
-    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    if (!id) {
+      return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    }
     const { key } = request.query as Record<string, string>;
-    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (!key) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
 
     const info = await getRecording(id);
-    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) {
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    } else if (!info) {
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    }
+    if (!keyMatches(info, key)) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
     onRequest(id);
 
     try {
@@ -97,14 +119,23 @@ export const usersRoute: RouteOptions = {
   url: '/api/recording/:id/users',
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
-    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    if (!id) {
+      return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    }
     const { key } = request.query as Record<string, string>;
-    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (!key) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
 
     const info = await getRecording(id);
-    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) {
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    } else if (!info) {
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    }
+    if (!keyMatches(info, key)) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
     onRequest(id);
 
     const users = await getUsers(id);
@@ -117,14 +148,23 @@ export const rawRoute: RouteOptions = {
   url: '/api/recording/:id/raw',
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
-    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    if (!id) {
+      return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    }
     const { key } = request.query as Record<string, string>;
-    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (!key) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
 
     const info = await getRecording(id);
-    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) {
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    } else if (!info) {
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    }
+    if (!keyMatches(info, key)) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
     onRequest(id);
 
     return reply
@@ -142,18 +182,30 @@ export const deleteRoute: RouteOptions = {
   url: '/api/recording/:id',
   handler: async (request, reply) => {
     const { id } = request.params as Record<string, string>;
-    if (!id) return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    if (!id) {
+      return reply.status(400).send({ ok: false, error: 'Invalid ID', code: ErrorCode.INVALID_ID });
+    }
     const { key, delete: deleteKey } = request.query as Record<string, string>;
-    if (!key) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
-    if (!deleteKey) return reply.status(403).send({ ok: false, error: 'Invalid delete key', code: ErrorCode.INVALID_DELETE_KEY });
+    if (!key) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
+    if (!deleteKey) {
+      return reply.status(403).send({ ok: false, error: 'Invalid delete key', code: ErrorCode.INVALID_DELETE_KEY });
+    }
 
     const info = await getRecording(id);
-    if (info === false) return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
-    else if (!info) return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
-    if (!keyMatches(info, key)) return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    if (info === false) {
+      return reply.status(410).send({ ok: false, error: 'Recording was deleted', code: ErrorCode.RECORDING_DELETED });
+    } else if (!info) {
+      return reply.status(404).send({ ok: false, error: 'Recording not found', code: ErrorCode.RECORDING_NOT_FOUND });
+    }
+    if (!keyMatches(info, key)) {
+      return reply.status(403).send({ ok: false, error: 'Invalid key', code: ErrorCode.INVALID_KEY });
+    }
     onRequest(id);
-    if (String(info.delete) !== deleteKey)
+    if (String(info.delete) !== deleteKey) {
       return reply.status(403).send({ ok: false, error: 'Invalid delete key', code: ErrorCode.INVALID_DELETE_KEY });
+    }
 
     await deleteRecording(id);
 

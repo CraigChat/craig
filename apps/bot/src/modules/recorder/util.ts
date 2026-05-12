@@ -41,7 +41,11 @@ export const FLAC_HEADER_44k_VAD = Buffer.concat([VAD_HEADER, FLAC_HEADER_44k]);
 export const FLAC_TAGS = Buffer.from([0x04, 0x00, 0x00, 0x41, 0x0a, 0x00, 0x00, 0x00, 0x65, 0x6e, 0x6e, 0x75, 0x69, 0x63, 0x61, 0x73, 0x74, 0x72]);
 
 export function toBuffer(data: RawData) {
-  if (data instanceof Buffer) return data;
-  if (Array.isArray(data)) return Buffer.concat(data);
+  if (data instanceof Buffer) {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return Buffer.concat(data);
+  }
   return Buffer.from(data as any);
 }

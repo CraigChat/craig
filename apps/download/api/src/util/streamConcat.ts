@@ -26,8 +26,12 @@ export default class StreamConcat extends Transform {
     this.nextStream();
   }
   addStream(newStream) {
-    if (!this.canAddStream) return this.emit('error', new Error("Can't add stream."));
-    if (Array.isArray(this.streams)) this.streams.push(newStream);
+    if (!this.canAddStream) {
+      return this.emit('error', new Error("Can't add stream."));
+    }
+    if (Array.isArray(this.streams)) {
+      this.streams.push(newStream);
+    }
   }
   async nextStream() {
     this.currentStream = null;

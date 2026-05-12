@@ -18,7 +18,10 @@ export default function Toggle({ label, description, checked, disabled, tooltip,
   const [enabled, setEnabled] = useState(checked || false);
 
   function onSwitch(checked: boolean) {
-    if (onToggle) onToggle(checked);
+    if (onToggle) {
+      onToggle(checked);
+    }
+    
     setEnabled(checked);
   }
 

@@ -33,12 +33,16 @@ export function createCtxT(ctx: CommandContext): [TFunction, string] {
 
   if (ctx.locale) {
     const lang = langMap[ctx.locale] ?? ctx.locale;
-    if (i18next.getResourceBundle(lang, 'commands')) return [createT(lang), lang];
+    if (i18next.getResourceBundle(lang, 'commands')) {
+      return [createT(lang), lang];
+    }
   }
 
   if (ctx.guildLocale) {
     const lang = langMap[ctx.guildLocale] ?? ctx.guildLocale;
-    if (i18next.getResourceBundle(lang, 'commands')) return [createT(lang), lang];
+    if (i18next.getResourceBundle(lang, 'commands')) {
+      return [createT(lang), lang];
+    }
   }
 
   return [createT('en'), 'en'];

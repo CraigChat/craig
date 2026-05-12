@@ -24,7 +24,9 @@ export default function crc32(buffer: Buffer, seed = 0) {
   }
 
   length = length + 15;
-  while (i < length) crc = (crc >>> 8) ^ TABLE[(crc ^ buffer[i++]) & 0xff];
+  while (i < length) {
+    crc = (crc >>> 8) ^ TABLE[(crc ^ buffer[i++]) & 0xff];
+  }
   return crc ^ -1;
 }
 

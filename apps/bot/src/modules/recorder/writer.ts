@@ -97,7 +97,9 @@ export default class RecordingWriter {
 
   writeChunk(streamNo: number, packetNo: number, chunk: Chunk, buffer: Buffer) {
     try {
-      if (this.recording.increaseBytesWritten(buffer.length)) return;
+      if (this.recording.increaseBytesWritten(buffer.length)) {
+        return;
+      }
       this.dataEncoder.write(chunk.time, streamNo, packetNo, buffer);
       // Then the timestamp for reference
       this.dataEncoder.write(chunk.timestamp ? chunk.timestamp : 0, streamNo, packetNo + 1, EMPTY_BUFFER);
@@ -108,7 +110,9 @@ export default class RecordingWriter {
 
   writeData(granulePos: number, streamNo: number, packetNo: number, buffer: Buffer) {
     try {
-      if (this.recording.increaseBytesWritten(buffer.length)) return;
+      if (this.recording.increaseBytesWritten(buffer.length)) {
+        return;
+      }
       this.dataEncoder.write(granulePos, streamNo, packetNo, buffer);
     } catch (e) {
       this.recording.recorder.logger.error(
@@ -161,7 +165,9 @@ export default class RecordingWriter {
   }
 
   writeLog(message: string) {
-    if (!this.logStream.destroyed) this.logStream.write(message);
+    if (!this.logStream.destroyed) {
+      this.logStream.write(message);
+    }
   }
 
   writeWebappOpusHeader(trackNo: number, continuous: boolean) {
@@ -200,12 +206,16 @@ export default class RecordingWriter {
   }
 
   async writeWorker(task: WriteTask) {
-    if (this.closed) return;
+    if (this.closed) {
+      return;
+    }
     switch (task.type) {
       case 'writeChunk': {
         const { streamNo, packetNo, chunk, buffer } = task;
         try {
-          if (this.recording.increaseBytesWritten(buffer.length)) return;
+          if (this.recording.increaseBytesWritten(buffer.length)) {
+            return;
+          }
           this.dataEncoder.write(chunk.time, streamNo, packetNo, buffer);
           // Then the timestamp for reference
           this.dataEncoder.write(chunk.timestamp ? chunk.timestamp : 0, streamNo, packetNo + 1, EMPTY_BUFFER);
@@ -219,7 +229,9 @@ export default class RecordingWriter {
       case 'writeData': {
         const { granulePos, streamNo, packetNo, buffer } = task;
         try {
-          if (this.recording.increaseBytesWritten(buffer.length)) return;
+          if (this.recording.increaseBytesWritten(buffer.length)) {
+            return;
+          }
           this.dataEncoder.write(granulePos, streamNo, packetNo, buffer);
         } catch (e) {
           this.recording.recorder.logger.error(
@@ -276,7 +288,9 @@ export default class RecordingWriter {
       }
       case 'writeLog': {
         const { message } = task;
-        if (!this.logStream.destroyed) this.logStream.write(message);
+        if (!this.logStream.destroyed) {
+          this.logStream.write(message);
+        }
         break;
       }
       case 'writeWebappOpusHeader': {
@@ -328,7 +342,9 @@ export default class RecordingWriter {
 
   async end() {
     this.closed = true;
-    if (!this.q.idle()) await this.q.drained();
+    if (!this.q.idle()) {
+      await this.q.drained();
+    }
     this.dataEncoder.end();
     this.headerEncoder1.end();
     this.headerEncoder2.end();

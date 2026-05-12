@@ -44,7 +44,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
   async dm(userId: string, embed: Dysnomia.EmbedOptions, linkButton?: { url: string; label: string; emoji?: Dysnomia.PartialEmoji }) {
     const dmChannel = await this.client.bot.getDMChannel(userId).catch(() => null);
-    if (dmChannel)
+    if (dmChannel) {
       await dmChannel
         .createMessage({
           flags: MessageFlags.IS_COMPONENTS_V2,
@@ -76,10 +76,13 @@ export default class UploadModule extends DexareModule<CraigBot> {
           ]
         } as EditMessageOptions as any)
         .catch(() => {});
+    }
   }
 
   async upload(recordingId: string, userId: string, driveService: string) {
-    if (!this.client.config.kitchenURL) return await this.uploadWithTrpc(recordingId, userId, driveService);
+    if (!this.client.config.kitchenURL) {
+      return await this.uploadWithTrpc(recordingId, userId, driveService);
+    }
     const service = SERVICES[driveService] ?? driveService;
 
     try {
@@ -181,7 +184,9 @@ export default class UploadModule extends DexareModule<CraigBot> {
   }
 
   async onTick() {
-    if (this.running) return;
+    if (this.running) {
+      return;
+    }
     this.running = true;
 
     const pendingJobs = await redis.smembers(this.KEY);
@@ -203,7 +208,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
             const driveService = job.outputData.uploadService;
             const service = SERVICES[driveService] ?? driveService;
 
-            if (job.status === 'error')
+            if (job.status === 'error') {
               await this.dm(userId, {
                 title: `Failed to upload to ${service}`,
                 description: `${
@@ -211,13 +216,13 @@ export default class UploadModule extends DexareModule<CraigBot> {
                 } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
                 color: ERROR_COLOR
               });
-            else if (job.status === 'cancelled')
+            } else if (job.status === 'cancelled') {
               await this.dm(userId, {
                 title: `Failed to upload to ${service}`,
                 description: `The download was cancelled, possibly due to server maintenance. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
                 color: ERROR_COLOR
               });
-            else if (job.status === 'complete')
+            } else if (job.status === 'complete') {
               await this.dm(
                 userId,
                 {
@@ -230,6 +235,7 @@ export default class UploadModule extends DexareModule<CraigBot> {
                   url: job.outputData.uploadFileURL
                 }
               );
+            }
 
             await redis.srem(this.KEY, jobId);
           }
@@ -254,8 +260,12 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
   load() {
     const sharded = process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined;
-    if (sharded && process.env.SHARD_ID !== '0') return void this.logger.info('Skipping...');
-    if (!this.client.config.kitchenURL) return void this.logger.info('No kitchen URL specified, Skipping polling...');
+    if (sharded && process.env.SHARD_ID !== '0') {
+      return void this.logger.info('Skipping...');
+    }
+    if (!this.client.config.kitchenURL) {
+      return void this.logger.info('No kitchen URL specified, Skipping polling...');
+    }
     this.registerEvent('ready', this.onReady.bind(this));
     this.logger.info('Loaded');
   }

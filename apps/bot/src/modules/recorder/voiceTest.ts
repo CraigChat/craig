@@ -94,12 +94,16 @@ export default class VoiceTest {
 
     // Start 10-second timer
     this.recordingTimer = setTimeout(async () => {
-      if (this.state === VoiceTestState.RECORDING) await this.stopRecording();
+      if (this.state === VoiceTestState.RECORDING) {
+        await this.stopRecording();
+      }
     }, RECORDING_TIMEOUT);
   }
 
   async stopRecording() {
-    if (this.state !== VoiceTestState.RECORDING) return;
+    if (this.state !== VoiceTestState.RECORDING) {
+      return;
+    }
 
     clearTimeout(this.recordingTimer);
     this.connection!.stopPlaying();
@@ -123,7 +127,9 @@ export default class VoiceTest {
   }
 
   async cancel() {
-    if (this.state === VoiceTestState.RECORDING) clearTimeout(this.recordingTimer);
+    if (this.state === VoiceTestState.RECORDING) {
+      clearTimeout(this.recordingTimer);
+    }
 
     this.state = VoiceTestState.CANCELLED;
     this.updateMessage();
@@ -187,11 +193,15 @@ export default class VoiceTest {
 
   async playRecordedAudio() {
     let allChunks = Array.from(this.userPackets.values()).flat();
-    if (allChunks.length === 0) return;
+    if (allChunks.length === 0) {
+      return;
+    }
 
     const userChunks: Map<string, Chunk[]> = new Map();
     for (const chunk of allChunks) {
-      if (!userChunks.has(chunk.userID!)) userChunks.set(chunk.userID!, []);
+      if (!userChunks.has(chunk.userID!)) {
+        userChunks.set(chunk.userID!, []);
+      }
       userChunks.get(chunk.userID!)!.push(chunk);
     }
     for (const chunks of userChunks.values()) {
@@ -208,7 +218,9 @@ export default class VoiceTest {
 
     // Recollect all chunks
     allChunks = [];
-    for (const chunks of userChunks.values()) allChunks.push(...chunks);
+    for (const chunks of userChunks.values()) {
+      allChunks.push(...chunks);
+    }
     allChunks.sort((a, b) => a.time - b.time);
 
     const frames: Buffer[] = [];
@@ -267,7 +279,9 @@ export default class VoiceTest {
         for (let i = 0; i < PACKET_TIME * 2 && frameStart + i < pcm.length; i++) {
           const val = pcm[frameStart + i];
           framePcm.writeInt16LE(val, i * 2);
-          if (val !== 0) hasAudio = true;
+          if (val !== 0) {
+            hasAudio = true;
+          }
         }
         if (hasAudio) {
           const encoded = encoder.encode(framePcm);
@@ -289,12 +303,16 @@ export default class VoiceTest {
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {
-    if (!this.active || this.state !== VoiceTestState.RECORDING) return;
+    if (!this.active || this.state !== VoiceTestState.RECORDING) {
+      return;
+    }
 
     // Check for zero packets
     if (data[0] === 0) {
       const zeroCount = data.reduce((acc, byte) => acc + (byte === 0 ? 1 : 0), 0);
-      if (zeroCount >= data.length - 1) return;
+      if (zeroCount >= data.length - 1) {
+        return;
+      }
     }
 
     const chunkTime = process.hrtime(this.startTime!);
@@ -302,26 +320,34 @@ export default class VoiceTest {
 
     const chunk: Chunk = { data, timestamp, time, userID };
 
-    if (!this.userPackets.has(userID)) this.userPackets.set(userID, []);
+    if (!this.userPackets.has(userID)) {
+      this.userPackets.set(userID, []);
+    }
 
     this.userPackets.get(userID)!.push(chunk);
   }
 
   async onConnectionDisconnect(err?: Error) {
-    if (!this.active) return;
+    if (!this.active) {
+      return;
+    }
     this.recorder.logger.debug(`Voice test ${this.guildId} disconnected`, err);
 
     this.state = VoiceTestState.CANCELLED;
     this.stateDescription = 'I was disconnected from the voice channel.';
 
-    if (this.recordingTimer) clearTimeout(this.recordingTimer);
+    if (this.recordingTimer) {
+      clearTimeout(this.recordingTimer);
+    }
 
     this.updateMessage();
     this.cleanup();
   }
 
   async onConnectionUnknown(packet: any) {
-    if (!this.recorder.client.config.craig.systemNotificationURL) return;
+    if (!this.recorder.client.config.craig.systemNotificationURL) {
+      return;
+    }
 
     if (
       typeof packet === 'object' &&
@@ -333,10 +359,11 @@ export default class VoiceTest {
     ) {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
       const voiceEndpoint = this.connection?.endpoint?.hostname;
-      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
+      if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media')) {
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
+      }
 
       await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
@@ -447,7 +474,9 @@ export default class VoiceTest {
   }
 
   async updateMessage() {
-    if (!this.messageChannelID || !this.messageID) return false;
+    if (!this.messageChannelID || !this.messageID) {
+      return false;
+    }
 
     try {
       await this.recorder.client.bot.editMessage(this.messageChannelID, this.messageID, this.messageContent());

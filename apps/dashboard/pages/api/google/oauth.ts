@@ -62,8 +62,9 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     });
     return null;
   });
-  if (!tokenResponse)
+  if (!tokenResponse) {
     return res.redirect(`/?error=${encodeURIComponent('Could not exchange Google authorization code, please sign in again.')}&from=google`);
+  }
 
   const { tokens } = tokenResponse;
 
@@ -74,9 +75,12 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     scope: tokens.scope
   });
 
-  if (!('access_token' in tokens))
+  if (!('access_token' in tokens)) {
     return res.redirect(`/?error=${encodeURIComponent('Could not get an access token, please sign in again.')}&from=google`);
-  if (tokens.scope.split(' ').sort().join(' ') !== scopes.sort().join(' ')) return res.redirect('/?error=invalid_scope&from=google');
+  }
+  if (tokens.scope.split(' ').sort().join(' ') !== scopes.sort().join(' ')) {
+    return res.redirect('/?error=invalid_scope&from=google');
+  }
 
   await prisma.googleDriveUser.upsert({
     where: { id: user.id },

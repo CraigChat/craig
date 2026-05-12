@@ -24,7 +24,9 @@ export default class RestartCommand extends TextCommand {
   async run(ctx: CommandContext) {
     const sharding = this.client.modules.get('sharding') as ShardingModule;
 
-    if (!sharding.on) return 'Sharding is not enabled.';
+    if (!sharding.on) {
+      return 'Sharding is not enabled.';
+    }
 
     if (!ctx.args[0]) {
       await replyOrSend(ctx, 'Restarting this shard.');
@@ -41,7 +43,9 @@ export default class RestartCommand extends TextCommand {
         const result = await sharding
           .sendAndRecieve<{ error?: string }>('restartShard', { id: shard }, 30000)
           .catch((e) => ({ error: e.toString() }));
-        if ('error' in result) errors.push([shard, result.error]);
+        if ('error' in result) {
+          errors.push([shard, result.error]);
+        }
       })
     );
 

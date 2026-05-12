@@ -75,8 +75,9 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
       if (
         !((message as unknown) instanceof Error && (message as unknown as Error).message.startsWith('Unknown guild text channel type:')) &&
         !(typeof message === 'string' && message.startsWith('Unhandled MESSAGE_CREATE type'))
-      )
+      ) {
         this.client.emit('logger', 'warn', 'eris', [message], { id });
+      }
     });
 
     this.filePath = __filename;
@@ -95,7 +96,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
   }
 
   private async onLog(_: unknown, level: string, moduleName: string, args: any[], extra?: LoggerExtra) {
-    if (!winston.loggers.has(moduleName))
+    if (!winston.loggers.has(moduleName)) {
       winston.loggers.add(moduleName, {
         format: format.combine(
           format.printf((info) => {
@@ -116,6 +117,7 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
           })
         ]
       });
+    }
 
     const text = [];
 
@@ -125,7 +127,9 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
       if (formats) {
         const a = args.splice(1, formats.length);
         text.push(util.format(args.shift(), ...a));
-      } else text.push(chalk.white(args.shift()));
+      } else {
+        text.push(chalk.white(args.shift()));
+      }
     }
 
     // Colorize the rest of the arguments
@@ -142,15 +146,20 @@ export default class LoggerModule<T extends DexareClient<LoggerConfig>> extends 
         } else {
           text.push(util.inspect(arg, this.config?.inspectOptions || {}));
         }
-      } else text.push(arg);
+      } else {
+        text.push(arg);
+      }
     }
 
     winston.loggers.get(moduleName).log(level as any, text.join(' '), extra);
   }
 
   private _centrePad(text: string, length: number) {
-    if (text.length < length) return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
-    else return text;
+    if (text.length < length) {
+      return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
+    } else {
+      return text;
+    }
   }
 
   private _hashCode(str: string) {

@@ -20,10 +20,14 @@ export default class BanCommand extends TextCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.args[0]) return void (await replyOrSend(ctx, 'You need to specify a user to ban.'));
+    if (!ctx.args[0]) {
+      return void (await replyOrSend(ctx, 'You need to specify a user to ban.'));
+    }
 
     const userId = ctx.args[0].match(/^\d+$/) ? ctx.args[0] : ctx.args[0].match(/^<@!?(\d+)>$/)?.[1];
-    if (!userId) return void (await replyOrSend(ctx, 'You need to specify a user to ban.'));
+    if (!userId) {
+      return void (await replyOrSend(ctx, 'You need to specify a user to ban.'));
+    }
 
     await prisma.ban.upsert({
       where: { id: userId },

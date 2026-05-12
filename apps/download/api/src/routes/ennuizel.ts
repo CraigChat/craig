@@ -25,7 +25,10 @@ export const ennuizelWebsocketRoute: RouteOptions = {
         return connection.socket.close(1001);
       }
 
-      if (typeof payload.i !== 'string' || typeof payload.k !== 'string' || typeof payload.t !== 'number') return connection.socket.close(4001);
+      if (typeof payload.i !== 'string' || typeof payload.k !== 'string' || typeof payload.t !== 'number') {
+        return connection.socket.close(4001);
+      }
+
       if (
         payload.t < 1 ||
         payload.t > 65535 ||
@@ -34,14 +37,19 @@ export const ennuizelWebsocketRoute: RouteOptions = {
         !payload.k ||
         !/^[\w-]+$/.exec(payload.i) ||
         !/^[\w-]+$/.exec(payload.k)
-      )
+      ) {
         return connection.socket.close(4001);
+      }
 
       const info = await getRecording(payload.i);
-      if (info === false || !info || !keyMatches(info, payload.k)) return connection.socket.close(4002);
+      if (info === false || !info || !keyMatches(info, payload.k)) {
+        return connection.socket.close(4002);
+      }
 
       const users = await getUsers(payload.i);
-      if (!users[payload.t - 1]) return connection.socket.close(4003);
+      if (!users[payload.t - 1]) {
+        return connection.socket.close(4003);
+      }
 
       let stream: internal.Readable,
         paused = false,
@@ -51,17 +59,24 @@ export const ennuizelWebsocketRoute: RouteOptions = {
       buf.writeUInt32LE(sending, 0);
 
       function readable() {
-        if (paused) return;
+        if (paused) {
+          return;
+        }
+
         let chunk;
         while ((chunk = stream.read(sendSize))) {
           setData(chunk);
-          if (paused) break;
+          if (paused) {
+            break;
+          }
         }
       }
 
       function setData(chunk) {
         buf = Buffer.concat([buf, chunk]);
-        while (buf.length >= sendSize) sendBuffer();
+        while (buf.length >= sendSize) {
+          sendBuffer();
+        }
       }
 
       function sendBuffer() {
@@ -82,8 +97,11 @@ export const ennuizelWebsocketRoute: RouteOptions = {
         const hdr = Buffer.alloc(4);
         sending++;
         hdr.writeUInt32LE(sending, 0);
-        if (buf) buf = Buffer.concat([hdr, buf]);
-        else buf = hdr;
+        if (buf) {
+          buf = Buffer.concat([hdr, buf]);
+        } else {
+          buf = hdr;
+        }
 
         if (sending > ackd + 128) {
           // Stop accepting data
@@ -95,7 +113,9 @@ export const ennuizelWebsocketRoute: RouteOptions = {
         const msg = toBuffer(message);
         const cmd = msg.readUInt32LE(0);
         const p = msg.readUInt32LE(4);
-        if (cmd !== 0) return connection.socket.close();
+        if (cmd !== 0) {
+          return connection.socket.close();
+        }
         if (p > ackd) {
           ackd = p;
           if (sending <= ackd + 128) {
@@ -111,7 +131,9 @@ export const ennuizelWebsocketRoute: RouteOptions = {
         stream = rawPartwise(payload.i, payload.t);
         stream.on('readable', readable);
         stream.once('end', () => {
-          while (buf.length > 4) sendBuffer();
+          while (buf.length > 4) {
+            sendBuffer();
+          }
           sendBuffer();
           connection.socket.close();
         });

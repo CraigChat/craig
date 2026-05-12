@@ -61,7 +61,9 @@ export default class Shard extends EventEmitter {
 
   respawn(delay = 500) {
     this.kill();
-    if (delay > 0) return wait(delay).then(() => this.spawn());
+    if (delay > 0) {
+      return wait(delay).then(() => this.spawn());
+    }
     return this.spawn();
   }
 
@@ -83,7 +85,9 @@ export default class Shard extends EventEmitter {
       await wait(delay);
     }
 
-    if (!ok) throw lastError;
+    if (!ok) {
+      throw lastError;
+    }
   }
 
   kill() {
@@ -94,31 +98,48 @@ export default class Shard extends EventEmitter {
 
   send(message: any): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.process) return reject(new Error('Shard is not running.'));
+      if (!this.process) {
+        return reject(new Error('Shard is not running.'));
+      }
       this.process.send(message, (err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
       });
     });
   }
 
   async fetchClientValue(prop: string): Promise<any> {
-    if (!this.process) return Promise.reject(new Error('Shard is not running.'));
+    if (!this.process) {
+      return Promise.reject(new Error('Shard is not running.'));
+    }
     const response = await this.sendAndRecieve<ShardEvalResponse>('fetchProp', { prop });
-    if (!response.d.error) return response.d.result;
-    else throw makeError(response.d.error);
+    if (!response.d.error) {
+      return response.d.result;
+    } else {
+      throw makeError(response.d.error);
+    }
   }
 
   async eval(script: string): Promise<any> {
-    if (!this.process) return Promise.reject(new Error('Shard is not running.'));
+    if (!this.process) {
+      return Promise.reject(new Error('Shard is not running.'));
+    }
     const response = await this.sendAndRecieve<ShardEvalResponse>('eval', { script });
-    if (!response.d.error) return response.d.result;
-    else throw makeError(response.d.error);
+    if (!response.d.error) {
+      return response.d.result;
+    } else {
+      throw makeError(response.d.error);
+    }
   }
 
   _handleMessage(message: any) {
     const now = Date.now();
-    if (now > this.lastActivity) this.lastActivity = now;
+    if (now > this.lastActivity) {
+      this.lastActivity = now;
+    }
 
     if (typeof message === 'object') {
       // Respond to requests
@@ -130,8 +151,12 @@ export default class Shard extends EventEmitter {
       }
 
       if (message.t) {
-        if (message.d?._status) this.status = message.d._status;
-        if (message.d?._guilds) this.guildCount = message.d._guilds;
+        if (message.d?._status) {
+          this.status = message.d._status;
+        }
+        if (message.d?._guilds) {
+          this.guildCount = message.d._guilds;
+        }
         switch (message.t) {
           case 'ready':
             this.ready = true;
@@ -171,11 +196,12 @@ export default class Shard extends EventEmitter {
             );
             return;
           case 'findGuild':
-            if (message.d?.guild && message.n)
+            if (message.d?.guild && message.n) {
               this.manager.findGuild(message.d.guild).then(
                 (shard) => this.send({ r: message.r, d: { shard: shard ? shard.id : undefined } }),
                 (err) => this.send({ r: message.r, d: { _error: makePlainError(err) } })
               );
+            }
             return;
           case 'ping':
             return;
@@ -198,12 +224,16 @@ export default class Shard extends EventEmitter {
     this.process = null;
     this._awaitedPromises.clear();
 
-    if (respawn) this.manager.spawn(this.id);
+    if (respawn) {
+      this.manager.spawn(this.id);
+    }
   }
 
   sendAndRecieve<T = any>(type: string, data: any): Promise<ManagerResponseMessage<T>> {
     return new Promise((resolve, reject) => {
-      if (!this.process) return reject(new Error('Shard is not running.'));
+      if (!this.process) {
+        return reject(new Error('Shard is not running.'));
+      }
 
       const nonce = nanoid();
       this._awaitedPromises.set(nonce, { resolve, reject });

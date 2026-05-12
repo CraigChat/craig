@@ -26,7 +26,9 @@ export default class ShardUtilModule extends ShardManagerModule {
     });
     this.registerCommand('shardEval', async (shard, msg, respond) => {
       const onShard = this.manager.shards.get(msg.d.id);
-      if (!onShard) return respond({ result: null, error: 'Shard not found' });
+      if (!onShard) {
+        return respond({ result: null, error: 'Shard not found' });
+      }
       try {
         const res = await onShard.eval(msg.d.script);
         return respond({ result: res });
@@ -41,7 +43,9 @@ export default class ShardUtilModule extends ShardManagerModule {
     });
     this.registerCommand('restartShard', async (shard, msg, respond) => {
       const onShard = this.manager.shards.get(msg.d.id);
-      if (!onShard) return respond({ result: null, error: 'Shard not found' });
+      if (!onShard) {
+        return respond({ result: null, error: 'Shard not found' });
+      }
       logger.info(`Shard ${shard.id}: Triggered restart on shard ${onShard.id}`);
       await onShard.respawn();
       logger.info(`Shard ${shard.id}: Restarted shard ${onShard.id}.`);
@@ -95,23 +99,30 @@ export default class ShardUtilModule extends ShardManagerModule {
     this.registerCommand('setRWA', async (shard, msg, respond) => {
       if (msg.d.id === 'all') {
         logger.info(`Shard ${shard.id}: Setting RWA state for all shards to ${msg.d.value}`);
-        for (const shard of this.manager.shards.values()) shard.respawnWhenAvailable = msg.d.value;
+        for (const shard of this.manager.shards.values()) {
+          shard.respawnWhenAvailable = msg.d.value;
+        }
         return respond({ ok: true });
       }
       logger.info(`Shard ${shard.id}: Setting RWA state on shard ${msg.d.id} to ${msg.d.value}`);
       const onShard = this.manager.shards.get(msg.d.id);
-      if (!onShard) return respond({ result: null, error: 'Shard not found' });
-      if (typeof msg.d.value !== 'boolean') return respond({ result: null, error: 'value not a boolean' });
+      if (!onShard) {
+        return respond({ result: null, error: 'Shard not found' });
+      }
+      if (typeof msg.d.value !== 'boolean') {
+        return respond({ result: null, error: 'value not a boolean' });
+      }
       onShard.respawnWhenAvailable = msg.d.value;
       return respond({ ok: true });
     });
     this.registerCommand('setStatus', async (shard, msg, respond) => {
       logger.info(`Shard ${shard.id}: Setting status`, msg.d);
-      for (const shard of this.manager.shards.values())
+      for (const shard of this.manager.shards.values()) {
         shard.process?.send({
           t: 'setStatus',
           d: msg.d
         });
+      }
       return respond({ ok: true });
     });
     this.cron.start();
@@ -123,7 +134,9 @@ export default class ShardUtilModule extends ShardManagerModule {
   }
 
   async onCron() {
-    if (this.checkingRWA) return;
+    if (this.checkingRWA) {
+      return;
+    }
     this.checkingRWA = true;
     try {
       for (const shard of this.manager.shards.values()) {
@@ -136,10 +149,15 @@ export default class ShardUtilModule extends ShardManagerModule {
               .respawnWithRetry()
               .then(() => true)
               .catch(() => false);
-            if (ok) logger.info(`Shard ${shard.id}: Respawned with RWA`);
-            else logger.info(`Shard ${shard.id}: Failed to respawn with RWA`);
+            if (ok) {
+              logger.info(`Shard ${shard.id}: Respawned with RWA`);
+            } else {
+              logger.info(`Shard ${shard.id}: Failed to respawn with RWA`);
+            }
             await wait(1000);
-          } else if (recordings === null) logger.warn(`Shard ${shard.id}: Could not fetch recordings size for RWA check!`);
+          } else if (recordings === null) {
+            logger.warn(`Shard ${shard.id}: Could not fetch recordings size for RWA check!`);
+          }
         }
       }
     } catch (error) {

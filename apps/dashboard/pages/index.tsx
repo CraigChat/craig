@@ -121,7 +121,9 @@ export default function Index(props: Props) {
 
   // Use modal
   useEffect(() => {
-    if (modalParsed) return;
+    if (modalParsed) {
+      return;
+    }
 
     const p = new URLSearchParams(window.location.search);
     let title, content;
@@ -129,16 +131,25 @@ export default function Index(props: Props) {
       const error = p.get('error');
       const from = p.get('from');
       // titlecase from
-      if (from === 'google') title = 'An error occurred while connecting to Google.';
-      else if (from === 'discord') title = 'An error occurred while connecting to Discord.';
-      else if (from === 'microsoft') title = 'An error occurred while connecting to Microsoft.';
-      else if (from === 'dropbox') title = 'An error occurred while connecting to Dropbox.';
-      else title = 'An error occurred.';
+      if (from === 'google') {
+        title = 'An error occurred while connecting to Google.';
+      } else if (from === 'discord') {
+        title = 'An error occurred while connecting to Discord.';
+      } else if (from === 'microsoft') {
+        title = 'An error occurred while connecting to Microsoft.';
+      } else if (from === 'dropbox') {
+        title = 'An error occurred while connecting to Dropbox.';
+      } else {
+        title = 'An error occurred.';
+      }
 
-      if (error === 'access_denied') content = 'You denied access to your account.';
-      else if (error === 'invalid_scope')
+      if (error === 'access_denied') {
+        content = 'You denied access to your account.';
+      } else if (error === 'invalid_scope') {
         content = 'You have provided partial permissions to Craig. Cloud backup will not work unless all permissions are checked.';
-      else content = error;
+      } else {
+        content = error;
+      }
     }
 
     const r = p.get('r');
@@ -179,9 +190,13 @@ export default function Index(props: Props) {
 
   // Drive state update
   useEffect(() => {
-    if (!drive) return;
+    if (!drive) {
+      return;
+    }
     const selectedFormats = driveFormats.length ? driveFormats : ['flac-zip'];
-    if (drive.enabled === driveEnabled && drive.formats.join(',') === selectedFormats.join(',') && drive.service === driveService) return;
+    if (drive.enabled === driveEnabled && drive.formats.join(',') === selectedFormats.join(',') && drive.service === driveService) {
+      return;
+    }
     setLoading(true);
     fetch(`/api/user/drive`, {
       method: 'PUT',
@@ -226,8 +241,12 @@ export default function Index(props: Props) {
 
   function toggleDriveFormat(value: string, checked: boolean) {
     setDriveFormats((current) => {
-      if (checked) return current.includes(value) ? current : [...current, value];
-      if (current.length === 1) return current;
+      if (checked) {
+        return current.includes(value) ? current : [...current, value];
+      }
+      if (current.length === 1) {
+        return current;
+      }
       return current.filter((format) => format !== value);
     });
   }
@@ -374,13 +393,14 @@ export default function Index(props: Props) {
 export const getServerSideProps: GetServerSideProps<Props> = async function (ctx) {
   const user = parseUser(ctx.req);
 
-  if (!user)
+  if (!user) {
     return {
       redirect: {
         destination: '/login',
         permanent: false
       }
     };
+  }
 
   const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
   const googleDrive = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });

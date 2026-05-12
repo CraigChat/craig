@@ -18,17 +18,26 @@ export default class CleanRecordings extends TaskJob {
 
   async run() {
     this.logger.log('Cleaning recordings...');
-    if (recordingConfig.skipAll) return;
+    if (recordingConfig.skipAll) {
+      return;
+    }
+
     const recPath = path.join(__dirname, '..', '..', recordingConfig.path);
     const files = await readdir(recPath);
     const recordingExts: { [file: string]: string[] } = {};
 
     for (const file of files) {
       const [id, ext, type] = file.split('.');
-      if (ext !== 'ogg') continue;
-      if (recordingConfig.skipIds.includes(id)) continue;
+      if (ext !== 'ogg') {
+        continue;
+      }
+      if (recordingConfig.skipIds.includes(id)) {
+        continue;
+      }
 
-      if (!recordingExts[id]) recordingExts[id] = [];
+      if (!recordingExts[id]) {
+        recordingExts[id] = [];
+      }
       recordingExts[id].push(type);
     }
 

@@ -41,8 +41,11 @@ const colorPool: Chalk[] = [
 ];
 
 function _centrePad(text: string, length: number) {
-  if (text.length < length) return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
-  else return text;
+  if (text.length < length) {
+    return ' '.repeat(Math.floor((length - text.length) / 2)) + text + ' '.repeat(Math.ceil((length - text.length) / 2));
+  } else {
+    return text;
+  }
 }
 
 function _hashCode(str: string) {
@@ -58,7 +61,7 @@ function _hashCode(str: string) {
 }
 
 function _log({ file, level, args }: { file: string; level: string; args: any[] }) {
-  if (!winston.loggers.has(file))
+  if (!winston.loggers.has(file)) {
     winston.loggers.add(file, {
       format: format.combine(
         format.printf((info) => {
@@ -75,6 +78,7 @@ function _log({ file, level, args }: { file: string; level: string; args: any[] 
         })
       ]
     });
+  }
 
   const text = [];
 
@@ -84,7 +88,9 @@ function _log({ file, level, args }: { file: string; level: string; args: any[] 
     if (formats) {
       const a = args.splice(1, formats.length);
       text.push(util.format(args.shift(), ...a));
-    } else text.push(chalk.white(args.shift()));
+    } else {
+      text.push(chalk.white(args.shift()));
+    }
   }
 
   // Colorize the rest of the arguments
@@ -101,7 +107,9 @@ function _log({ file, level, args }: { file: string; level: string; args: any[] 
       } else {
         text.push(util.inspect(arg));
       }
-    } else text.push(arg);
+    } else {
+      text.push(arg);
+    }
   }
 
   winston.loggers.get(file).log(level, text.join(' '));

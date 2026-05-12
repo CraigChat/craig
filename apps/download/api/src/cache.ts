@@ -12,7 +12,10 @@ export const client = new Redis({
 
 export async function getReadyState(recordingId: string) {
   const data = await client.get(`ready:${recordingId}`);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
+
   return JSON.parse(data);
 }
 
@@ -26,7 +29,10 @@ export async function clearReadyState(recordingId: string) {
 
 export async function getDownload(recordingId: string) {
   const data = await client.get(`download:${recordingId}`);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
+  
   return JSON.parse(data);
 }
 

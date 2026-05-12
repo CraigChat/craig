@@ -36,31 +36,43 @@ export default class ShardEvalCommand extends TextCommand {
   async run(ctx: CommandContext) {
     const sharding = this.client.modules.get('sharding') as ShardingModule;
 
-    if (!sharding.on) return 'Sharding is not enabled.';
+    if (!sharding.on) {
+      return 'Sharding is not enabled.';
+    }
 
-    if (!ctx.args[0]) return 'You need to specify a shard.';
+    if (!ctx.args[0]) {
+      return 'You need to specify a shard.';
+    }
 
     const shard = parseInt(ctx.args[0]);
-    if (shard >= parseInt(process.env.SHARD_COUNT!) || shard < 0) return `That shard is out of range. (${process.env.SHARD_COUNT})`;
+    if (shard >= parseInt(process.env.SHARD_COUNT!) || shard < 0) {
+      return `That shard is out of range. (${process.env.SHARD_COUNT})`;
+    }
 
     let script = ctx.event
       .get('commands/strippedContent')
       .slice(ctx.event.get('commands/commandName').length + 1 + ctx.args[0].length)
       .trim();
-    if (script.startsWith('```') && script.endsWith('```')) script = script.replace(/(^.*?\s)|(\n.*$)/g, '');
-    if (!script) return 'You need to eval something.';
+    if (script.startsWith('```') && script.endsWith('```')) {
+      script = script.replace(/(^.*?\s)|(\n.*$)/g, '');
+    }
+    if (!script) {
+      return 'You need to eval something.';
+    }
 
     const hrStart = process.hrtime();
     const res = await sharding.sendAndRecieve<{ result: any; error: any }>('shardEval', { script, id: shard });
     const hrDiff = process.hrtime(hrStart);
-    if (res.d.error) return `Error while evaluating: \`${makeError(res.d.error)}\``;
+    if (res.d.error) {
+      return `Error while evaluating: \`${makeError(res.d.error)}\``;
+    }
     return void (await replyOrSend(ctx, this.makeResultMessages(res.d.result, hrDiff, script)));
   }
 
   makeResultMessages(result: any, hrDiff: [number, number], input?: string): Eris.AdvancedMessageContent {
     const inspected = util.inspect(result, { depth: 0 }).replace(nlPattern, '\n').replace(this.sensitivePattern, '--snip--');
     if (input) {
-      if (input.length > 1900)
+      if (input.length > 1900) {
         return {
           attachments: [
             {
@@ -69,6 +81,7 @@ export default class ShardEvalCommand extends TextCommand {
             }
           ]
         };
+      }
 
       return {
         content: `*Executed in ${hrDiff[0] > 0 ? `${hrDiff[0]}s ` : ''}${hrDiff[1] / 1000000}ms.*\n\`\`\`js\n` + inspected.slice(0, 1900) + `\`\`\``
@@ -82,7 +95,9 @@ export default class ShardEvalCommand extends TextCommand {
       // @ts-ignore
       const token = this.client.bot._token;
       let pattern = '';
-      if (token) pattern += escapeRegex(token);
+      if (token) {
+        pattern += escapeRegex(token);
+      }
       Object.defineProperty(this, '_sensitivePattern', {
         value: new RegExp(pattern, 'gi'),
         configurable: false

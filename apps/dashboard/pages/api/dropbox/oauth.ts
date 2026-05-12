@@ -13,25 +13,38 @@ const auth = new DropboxAuth({
 });
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== 'GET') return res.redirect('/');
+  if (req.method !== 'GET') {
+    return res.redirect('/');
+  }
   const user = parseUser(req);
-  if (!user) return res.redirect('/');
+  if (!user) {
+    return res.redirect('/');
+  }
   const dbUser = await prisma.user.findFirst({ where: { id: user.id } });
-  if (!dbUser) return res.redirect('/');
-  if (dbUser.rewardTier === 0) return res.redirect('/');
+  if (!dbUser) {
+    return res.redirect('/');
+  }
+  if (dbUser.rewardTier === 0) {
+    return res.redirect('/');
+  }
 
   const { code = null, error = null } = req.query;
-  if (error) return res.redirect(`/?error=${req.query.error}&from=dropbox`);
+  if (error) {
+    return res.redirect(`/?error=${req.query.error}&from=dropbox`);
+  }
 
-  if (!code || typeof code !== 'string')
+  if (!code || typeof code !== 'string') {
     return res.redirect((await auth.getAuthenticationUrl(REDIRECT_URI, null, 'code', 'offline', scopes, 'none', false)) as string);
+  }
 
   try {
     const response = await auth.getAccessTokenFromCode(REDIRECT_URI, code);
     const tokens: { access_token: string; refresh_token: string; scope: string } = response.result as any;
     const scopesRecieved = tokens.scope.split(' ');
 
-    if (scopes.find((s) => !scopesRecieved.includes(s))) return res.redirect(`/?error=invalid_scope&from=dropbox`);
+    if (scopes.find((s) => !scopesRecieved.includes(s))) {
+      return res.redirect(`/?error=invalid_scope&from=dropbox`);
+    }
 
     const dbx = new Dropbox({
       accessToken: tokens.access_token,

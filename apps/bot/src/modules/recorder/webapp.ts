@@ -88,7 +88,9 @@ export class WebappClient {
 
   findWebUserFromClientId(id: string) {
     for (const [, user] of this.webUsers) {
-      if (user.clientId === id) return user;
+      if (user.clientId === id) {
+        return user;
+      }
     }
     return null;
   }
@@ -114,9 +116,13 @@ export class WebappClient {
       for (i = 2; i < 16; i++) {
         webUserID = username + ' (' + i + ')#web';
         user = this.webUsers.get(webUserID);
-        if (!user || (!user.connected && user.dataType === dataType && user.continuous === continuous)) break;
+        if (!user || (!user.connected && user.dataType === dataType && user.continuous === continuous)) {
+          break;
+        }
       }
-      if (i === 16) return this.closeClient(clientId, WebappOpCloseReason.ALREADY_CONNECTED);
+      if (i === 16) {
+        return this.closeClient(clientId, WebappOpCloseReason.ALREADY_CONNECTED);
+      }
 
       username = username + ' (' + i + ')';
       webUserID = username + '#web';
@@ -136,7 +142,9 @@ export class WebappClient {
       this.monitorSetConnected(userTrackNo, `${userData.username}#${userData.discriminator}`, true, clientId);
 
       // Put a valid Opus header at the beginning if we're Opus
-      if (dataType === DataTypeFlag.OPUS) this.recording.writer?.writeWebappOpusHeader(userTrackNo, continuous);
+      if (dataType === DataTypeFlag.OPUS) {
+        this.recording.writer?.writeWebappOpusHeader(userTrackNo, continuous);
+      }
 
       // Write their username etc to the recording data
       this.recording.writer?.writeWebappUser(userTrackNo, userData);
@@ -161,12 +169,13 @@ export class WebappClient {
     );
 
     // We switch to a web size limit, depending on which features are enabled
-    if (dataType !== DataTypeFlag.OPUS || continuous)
+    if (dataType !== DataTypeFlag.OPUS || continuous) {
       this.recording.sizeLimit =
         Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWeb) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
-    else
+    } else {
       this.recording.sizeLimit =
         Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWebOpus) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
+    }
 
     // Send them their own ID
     const idMessage = Buffer.alloc(EnnuicastrParts.info.length);
@@ -211,7 +220,9 @@ export class WebappClient {
 
     // Catch the monitor up on connected web users
     for (const [, user] of this.webUsers) {
-      if (!user.connected) continue;
+      if (!user.connected) {
+        continue;
+      }
       const nickBuf = Buffer.from(`${user.data.username}#${user.data.discriminator}`, 'utf8');
       const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
       buf.writeUInt32LE(EnnuicastrId.USER, 0);
@@ -223,7 +234,9 @@ export class WebappClient {
 
     // And current speaking states
     for (const trackNo in this.speaking) {
-      if (!this.speaking[trackNo]) continue;
+      if (!this.speaking[trackNo]) {
+        continue;
+      }
       const buf = Buffer.alloc(EnnuicastrParts.speech.length);
       buf.writeUInt32LE(EnnuicastrId.SPEECH, 0);
       buf.writeUInt32LE(parseInt(trackNo), EnnuicastrParts.speech.index);
@@ -233,7 +246,9 @@ export class WebappClient {
   }
 
   monitorSetConnected(trackNo: number, nick: string, connected: boolean, excludeClientId?: string) {
-    if (!this.ready) return;
+    if (!this.ready) {
+      return;
+    }
     const nickBuf = Buffer.from(nick, 'utf8');
     const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
     buf.writeUInt32LE(EnnuicastrId.USER, 0);
@@ -242,11 +257,15 @@ export class WebappClient {
     nickBuf.copy(buf, EnnuicastrParts.user.nick);
 
     // Remove speaking status if they disconnected
-    if (!connected) this.speaking[trackNo] = false;
+    if (!connected) {
+      this.speaking[trackNo] = false;
+    }
 
     // Send to all clients
     for (const [clientId, type] of this.clients) {
-      if (clientId !== excludeClientId && type !== ConnectionType.PING) this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+      if (clientId !== excludeClientId && type !== ConnectionType.PING) {
+        this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+      }
     }
   }
 
@@ -260,12 +279,16 @@ export class WebappClient {
 
     // Send to all clients
     for (const [clientId, type] of this.clients) {
-      if (type !== ConnectionType.PING) this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+      if (type !== ConnectionType.PING) {
+        this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+      }
     }
   }
 
   monitorSetSpeaking(trackNo: number, speaking: boolean) {
-    if (this.speaking[trackNo] === speaking) return;
+    if (this.speaking[trackNo] === speaking) {
+      return;
+    }
     this.speaking[trackNo] = speaking;
     const buf = Buffer.alloc(EnnuicastrParts.speech.length);
     buf.writeUInt32LE(EnnuicastrId.SPEECH, 0);
@@ -274,13 +297,18 @@ export class WebappClient {
 
     // Send to all clients
     for (const [clientId, type] of this.clients) {
-      if (type !== ConnectionType.PING) this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+      if (type !== ConnectionType.PING) {
+        this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+      }
     }
   }
 
   userSpeaking(trackNo: number) {
-    if (this.userTimeouts[trackNo]) clearTimeout(this.userTimeouts[trackNo]);
-    else this.monitorSetSpeaking(trackNo, true);
+    if (this.userTimeouts[trackNo]) {
+      clearTimeout(this.userTimeouts[trackNo]);
+    } else {
+      this.monitorSetSpeaking(trackNo, true);
+    }
     this.userTimeouts[trackNo] = setTimeout(() => {
       this.monitorSetSpeaking(trackNo, false);
       delete this.userTimeouts[trackNo];
@@ -289,29 +317,41 @@ export class WebappClient {
 
   onData(data: Buffer, clientId: string) {
     const user = this.findWebUserFromClientId(clientId);
-    if (!user) return;
+    if (!user) {
+      return;
+    }
     const webUserID = user.data.id;
     const userTrackNo = this.userTrackNos[webUserID];
 
     const message = toBuffer(data);
-    if (message.length < 4) this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+    if (message.length < 4) {
+      this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+    }
 
     const cmd = message.readUInt32LE(0);
 
-    if (this.disconnecting || this.recording.closing) return;
+    if (this.disconnecting || this.recording.closing) {
+      return;
+    }
 
     switch (cmd) {
       case EnnuicastrId.INFO: {
-        if (message.length != EnnuicastrParts.info.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+        if (message.length != EnnuicastrParts.info.length) {
+          return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+        }
 
         const key = message.readUInt32LE(EnnuicastrParts.info.key);
         const value = message.readUInt32LE(EnnuicastrParts.info.value);
         // Now we can write our header
-        if (key === EnnuicastrInfo.SAMPLE_RATE) this.recording.writer?.writeWebappFlacHeader(userTrackNo, value, user);
+        if (key === EnnuicastrInfo.SAMPLE_RATE) {
+          this.recording.writer?.writeWebappFlacHeader(userTrackNo, value, user);
+        }
         break;
       }
       case EnnuicastrId.DATA: {
-        if (message.length < EnnuicastrParts.data.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+        if (message.length < EnnuicastrParts.data.length) {
+          return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+        }
 
         let granulePos = message.readUIntLE(EnnuicastrParts.data.granulePos, 6);
 
@@ -319,7 +359,9 @@ export class WebappClient {
         const arrivalHrTime = process.hrtime(this.recording.startTime!);
         const arrivalTime = arrivalHrTime[0] * 48000 + ~~(arrivalHrTime[1] / 20833.333);
 
-        if (granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000) granulePos = arrivalTime;
+        if (granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000) {
+          granulePos = arrivalTime;
+        }
 
         // Accept the data
         const data = message.slice(EnnuicastrParts.data.length);
@@ -327,7 +369,9 @@ export class WebappClient {
 
         // And inform the monitor
         const user = this.findWebUserFromClientId(clientId);
-        if (!user) return;
+        if (!user) {
+          return;
+        }
         // Determine silence
         let silence = false;
         if (user.continuous && data.length) {
@@ -390,14 +434,20 @@ export class WebappClient {
       }
       case WebappOp.DATA: {
         const connectionType = this.clients.get(clientId);
-        if (connectionType === undefined) return;
+        if (connectionType === undefined) {
+          return;
+        }
         switch (connectionType) {
           case ConnectionType.PING: {
-            if (data.length < 4) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+            if (data.length < 4) {
+              return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+            }
             const cmd: EnnuicastrId = data.readUInt32LE(0);
             switch (cmd) {
               case EnnuicastrId.PING: {
-                if (data.length !== EnnuicastrParts.ping.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+                if (data.length !== EnnuicastrParts.ping.length) {
+                  return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+                }
 
                 // Pong with our current time
                 const ret = Buffer.alloc(EnnuicastrParts.pong.length);
@@ -426,11 +476,15 @@ export class WebappClient {
       case WebappOp.CLOSE: {
         this.recording.writeToLog(`Webapp client disconnected. clientId=${clientId}`, 'webapp');
         const client = this.clients.get(clientId);
-        if (!client) return;
+        if (!client) {
+          return;
+        }
         this.clients.delete(clientId);
 
         const user = this.findWebUserFromClientId(clientId);
-        if (!user) return;
+        if (!user) {
+          return;
+        }
         this.recording.writeToLog(
           `Webapp user disconnected. clientId=${clientId}, name=${user.data.username}, trackNo=${this.userTrackNos[user.webUserID]}`,
           'webapp'

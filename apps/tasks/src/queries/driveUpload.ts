@@ -59,18 +59,25 @@ async function fileExists(file: string) {
 }
 
 function killProcessTree(p: ChildProcessWithoutNullStreams) {
-  if (p.killed || !p.pid) return true;
+  if (p.killed || !p.pid) {
+    return true;
+  }
+
   try {
     const result = process.kill(p.pid);
     return result;
   } catch (e) {
-    if ((e as Error).message.startsWith('kill ESRCH')) return true;
+    if ((e as Error).message.startsWith('kill ESRCH')) {
+      return true;
+    }
     return false;
   }
 }
 
 async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm = false) {
-  if (!/^[a-zA-Z0-9]+$/.test(id) || !/^[a-z38]+$/.test(format) || !/^[a-z]+$/.test(container)) throw new Error('An invalid argument was passed.');
+  if (!/^[a-zA-Z0-9]+$/.test(id) || !/^[a-z38]+$/.test(format) || !/^[a-z]+$/.test(container)) {
+    throw new Error('An invalid argument was passed.');
+  }
 
   try {
     await setReadyState(id, { message: 'Uploading recording to cloud backup...' });
@@ -104,7 +111,9 @@ async function findOrCreateGoogleDriveFolder(drive: drive_v3.Drive, folderName: 
   });
 
   const existingFolderId = list.data.files?.[0]?.id;
-  if (existingFolderId) return existingFolderId;
+  if (existingFolderId) {
+    return existingFolderId;
+  }
 
   const folder = await drive.files.create({
     requestBody: {
@@ -125,13 +134,17 @@ async function findGoogleDriveFolderPath(drive: drive_v3.Drive, folderPath: stri
     .map((segment) => segment.trim())
     .filter(Boolean);
 
-  if (segments.length === 0) return null;
+  if (segments.length === 0) {
+    return null;
+  }
 
   let parentId: string | null = null;
 
   for (const segment of segments) {
     parentId = await findOrCreateGoogleDriveFolder(drive, segment, parentId);
-    if (!parentId) return null;
+    if (!parentId) {
+      return null;
+    }
   }
 
   return parentId;
@@ -154,7 +167,9 @@ async function getRefreshedMicrosoftAccessToken(accessToken: string, refreshToke
     validateStatus: () => true
   });
 
-  if (me.status === 200) return accessToken;
+  if (me.status === 200) {
+    return accessToken;
+  }
 
   const response = await axios.post(
     'https://login.microsoftonline.com/common/oauth2/v2.0/token',
@@ -216,15 +231,25 @@ interface DriveUploadFile {
 
 function parseDriveUploadFormat(value: string): DriveUploadFormat | null {
   const parts = value.split('-');
-  if (parts.length !== 2) return null;
+  if (parts.length !== 2) {
+    return null;
+  }
   const [format, container] = parts;
   const validFormats = ['flac', 'aac', 'oggflac', 'heaac', 'opus', 'vorbis', 'adpcm', 'wav8'];
   const validContainers = ['aupzip', 'zip', 'mix'];
 
-  if (!validFormats.includes(format)) return null;
-  if (!validContainers.includes(container)) return null;
-  if (format !== 'flac' && container === 'aupzip') return null;
-  if (container === 'mix' && !['flac', 'vorbis', 'aac'].includes(format)) return null;
+  if (!validFormats.includes(format)) {
+    return null;
+  }
+  if (!validContainers.includes(container)) {
+    return null;
+  }
+  if (format !== 'flac' && container === 'aupzip') {
+    return null;
+  }
+  if (container === 'mix' && !['flac', 'vorbis', 'aac'].includes(format)) {
+    return null;
+  }
 
   return { format, container, value };
 }
@@ -262,9 +287,13 @@ export async function driveUpload({
   userId: string;
 }): Promise<{ error: null | string; notify: boolean; id?: string; url?: string; urls?: DriveUploadFile[] }> {
   const infoExists = await fileExists(path.join(recPath, `${recordingId}.ogg.info`));
-  if (!infoExists) return { error: 'info_deleted', notify: false };
+  if (!infoExists) {
+    return { error: 'info_deleted', notify: false };
+  }
   const dataExists = await fileExists(path.join(recPath, `${recordingId}.ogg.data`));
-  if (!dataExists) return { error: 'data_deleted', notify: false };
+  if (!dataExists) {
+    return { error: 'data_deleted', notify: false };
+  }
   const info = JSON.parse(await fs.readFile(path.join(recPath, `${recordingId}.ogg.info`), 'utf8'));
   const startDate = new Date(info.startTime);
   const fileName = `${startDate.getFullYear()}-${
@@ -272,8 +301,12 @@ export async function driveUpload({
   }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}_craig_${recordingId}`;
 
   const user = await prisma.user.findFirst({ where: { id: userId } });
-  if (!user) return { error: 'user_not_found', notify: false };
-  if (!user.driveEnabled) return { error: 'not_enabled', notify: false };
+  if (!user) {
+    return { error: 'user_not_found', notify: false };
+  }
+  if (!user.driveEnabled) {
+    return { error: 'not_enabled', notify: false };
+  }
 
   const uploadFormats = getUserDriveUploadFormats(user);
   logger.info(`Uploading ${recordingId} to ${userId} via ${user.driveService} (${uploadFormats.map((f) => f.value).join(', ')})`);
@@ -288,7 +321,9 @@ export async function driveUpload({
       case 'google': {
         const oAuth2Client = new google.auth.OAuth2(driveConfig.clientId, driveConfig.clientSecret);
         const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
-        if (!driveUser) return { error: 'data_not_found', notify: false };
+        if (!driveUser) {
+          return { error: 'data_not_found', notify: false };
+        }
         oAuth2Client.setCredentials({
           access_token: driveUser.token,
           refresh_token: driveUser.refreshToken
@@ -297,16 +332,19 @@ export async function driveUpload({
 
         // Update refresh token
         oAuth2Client.on('tokens', async (tokens) => {
-          if (tokens.refresh_token)
+          if (tokens.refresh_token) {
             await prisma.googleDriveUser.update({
               where: { id: userId },
               data: { refreshToken: tokens.refresh_token }
             });
+          }
         });
 
         const folderPath = getGoogleDriveFolderPathForRecording(driveConfig.folderPath || 'Craig', startDate);
         const folderId = await findGoogleDriveFolderPath(drive, folderPath);
-        if (!folderId) return { error: 'google_token_expired', notify: true };
+        if (!folderId) {
+          return { error: 'google_token_expired', notify: true };
+        }
 
         for (const output of uploadFormats) {
           const start = Date.now();
@@ -367,7 +405,9 @@ export async function driveUpload({
       }
       case 'onedrive': {
         const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
-        if (!driveUser) return { error: 'data_not_found', notify: false };
+        if (!driveUser) {
+          return { error: 'data_not_found', notify: false };
+        }
         const accessToken = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
         if (!accessToken) {
           await prisma.microsoftUser.delete({ where: { id: userId } });
@@ -439,7 +479,9 @@ export async function driveUpload({
                 chunks = [];
                 chunksToUploadSize = 0;
 
-                if (response.status === 201 || response.status === 203 || response.status === 200) return resolve(response.data);
+                if (response.status === 201 || response.status === 203 || response.status === 200) {
+                  return resolve(response.data);
+                }
 
                 readStream.resume();
               }
@@ -474,7 +516,9 @@ export async function driveUpload({
       }
       case 'dropbox': {
         const driveUser = await prisma.dropboxUser.findFirst({ where: { id: userId } });
-        if (!driveUser) return { error: 'data_not_found', notify: false };
+        if (!driveUser) {
+          return { error: 'data_not_found', notify: false };
+        }
         const DROPBOX_UPLOAD_FILE_SIZE_LIMIT = 150 * 1024 * 1024;
 
         const auth = new DropboxAuth({
@@ -576,11 +620,12 @@ export async function driveUpload({
         }
 
         const accessToken = auth.getAccessToken();
-        if (accessToken !== driveUser.token)
+        if (accessToken !== driveUser.token) {
           await prisma.dropboxUser.update({
             where: { id: userId },
             data: { token: accessToken }
           });
+        }
 
         return {
           error: null,
@@ -596,18 +641,25 @@ export async function driveUpload({
   } catch (e) {
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`);
     await clearReadyState(recordingId);
-    if (child) killProcessTree(child);
-    if (tempFile) await fs.unlink(tempFile).catch(() => {});
+    if (child) {
+      killProcessTree(child);
+    }
+    if (tempFile) {
+      await fs.unlink(tempFile).catch(() => {});
+    }
     if ((e as AxiosError).isAxiosError === true) {
       const response = (e as AxiosError).response;
       const request: ClientRequest = (e as AxiosError).request;
-      if (response)
+      if (response) {
         logger.error(
           `AxiosError (${response.status}) ${request ? `${request.method} ${request.host}${request.path}` : '<unknown request>'}`,
           response.data
         );
-      else if (request) logger.error(`AxiosError <unknown response> ${request.method} ${request.host}${request.path}`);
-      else console.error(e);
+      } else if (request) {
+        logger.error(`AxiosError <unknown response> ${request.method} ${request.host}${request.path}`);
+      } else {
+        console.error(e);
+      }
     } else if ((e as Error).name === 'DropboxResponseError') {
       const err: DropboxError<{ error_summary: string }> = e as any;
       logger.error(`DropboxError [${err.error.error_summary}]`, err.error);
@@ -620,7 +672,9 @@ export async function driveUpload({
       };
     }
     let errorString = (e as any).toString().slice(0, 100) || 'unknown_error';
-    if (errorString.startsWith('Error: <!DOCTYPE')) errorString = 'upload_timeout';
+    if (errorString.startsWith('Error: <!DOCTYPE')) {
+      errorString = 'upload_timeout';
+    }
     return {
       error: errorString,
       notify: true,

@@ -18,7 +18,9 @@ export interface ReadyState {
 
 export async function getReadyState(recordingId: string) {
   const data = await client.get(`ready:${recordingId}`);
-  if (!data) return null;
+  if (!data) {
+    return null;
+  }
   return JSON.parse(data);
 }
 

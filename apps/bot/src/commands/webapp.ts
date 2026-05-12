@@ -29,17 +29,19 @@ export default class Webapp extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!this.recorder.client.config.craig.webapp.on)
+    if (!this.recorder.client.config.craig.webapp.on) {
       return {
         content: 'This instance of Craig does not have a webapp.',
         ephemeral: true
       };
+    }
 
-    if (await checkBan(ctx.user.id))
+    if (await checkBan(ctx.user.id)) {
       return {
         content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
+    }
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {

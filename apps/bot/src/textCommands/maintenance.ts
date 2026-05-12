@@ -37,8 +37,11 @@ export default class MaintenanceCommand extends TextCommand {
     }
 
     await setMaintenance(this.client.bot.user.id, { message });
-    if (sharding.on) sharding.send('checkMaintenance');
-    else await recorder.checkForMaintenance();
+    if (sharding.on) {
+      sharding.send('checkMaintenance');
+    } else {
+      await recorder.checkForMaintenance();
+    }
     await replyOrSend(ctx, 'Maintenance mode has been set.');
   }
 }

@@ -73,13 +73,14 @@ export async function start(): Promise<void> {
 
   server.get('/', async (request, reply) => {
     const { id, key, delete: deleteKey } = request.query as Record<string, string>;
-    if (id)
+    if (id) {
       return reply.redirect(
         `/rec/${id}?${new URLSearchParams({
           ...(key ? { key } : {}),
           ...(deleteKey ? { delete: deleteKey } : {})
         }).toString()}`
       );
+    }
     return reply.redirect(process.env.API_HOMEPAGE || '/chat/');
   });
 
@@ -126,7 +127,9 @@ export async function start(): Promise<void> {
   console.info(`Running webhook on ${addr}, env: ${process.env.NODE_ENV || 'development'}`);
 
   // PM2 graceful start/shutdown
-  if (process.send) process.send('ready');
+  if (process.send) {
+    process.send('ready');
+  }
 
   process.on('SIGINT', stop);
   process.on('unhandledRejection', (err) => {
@@ -136,10 +139,12 @@ export async function start(): Promise<void> {
 
 export async function stop(): Promise<void> {
   console.info('Shutting down...');
+
   await server.close();
   redisClient.disconnect();
   influxCron.stop();
   closeSentry();
+
   console.info('All things disconnected.');
   process.exit(0);
 }

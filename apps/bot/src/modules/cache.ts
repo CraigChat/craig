@@ -30,15 +30,21 @@ export default class CacheModule<T extends DexareClient<CraigBotConfig>> extends
     let usersRemoved = 0;
 
     for (const [, guild] of this.client.bot.guilds) {
-      for (const [userId] of guild.voiceStates) keepUsers.add(userId.toString());
+      for (const [userId] of guild.voiceStates) {
+        keepUsers.add(userId.toString());
+      }
 
       // Clean up guild members
       for (const [memberId] of guild.members) {
-        if (memberId === this.client.bot.user.id) continue;
+        if (memberId === this.client.bot.user.id) {
+          continue;
+        }
         if (!guild.voiceStates.has(memberId)) {
           guild.members.delete(memberId);
           membersRemoved++;
-        } else keepUsers.add(memberId.toString());
+        } else {
+          keepUsers.add(memberId.toString());
+        }
       }
 
       // Clear guild attributes we dont care about
@@ -49,7 +55,9 @@ export default class CacheModule<T extends DexareClient<CraigBotConfig>> extends
     }
 
     for (const [userId] of this.client.bot.users) {
-      if (userId === this.client.bot.user.id) continue;
+      if (userId === this.client.bot.user.id) {
+        continue;
+      }
       if (!keepUsers.has(userId.toString())) {
         this.client.bot.users.delete(userId.toString());
         usersRemoved++;

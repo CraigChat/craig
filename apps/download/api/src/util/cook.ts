@@ -18,14 +18,18 @@ export interface ReadyState {
 
 export async function getReady(id: string): Promise<true | ReadyState> {
   const state: ReadyState = await getReadyState(id);
-  if (state) return state;
+  if (state) {
+    return state;
+  }
 
   // Check if the data file is share locked
   const lock = await execa(`exec 9< "${path.join(recPath, `${id}.ogg.data`)}" && flock -n 9 || exit 1`, {
     shell: true,
     reject: false
   });
-  if (lock.exitCode === 1) return { message: 'Locked by another process...' };
+  if (lock.exitCode === 1) {
+    return { message: 'Locked by another process...' };
+  }
 
   return true;
 }
@@ -94,7 +98,9 @@ function stateManager(id: string): [ReadyState, (newState: ReadyState) => Promis
   };
 
   const writeState = async (newState: ReadyState) => {
-    if (stateDeleted) return;
+    if (stateDeleted) {
+      return;
+    }
     const isNew = !(state.file === newState.file && state.progress === newState.progress && state.time === newState.time);
     if (isNew) {
       state.file = newState.file;
@@ -114,19 +120,25 @@ function getStderrReader(state: ReadyState, writeState: (newState: ReadyState) =
     // Watch when a new file is being put in the zip
     if (log.includes('adding:')) {
       const match = log.match(/ {2}adding: (?:[\w./-]+\/)?([\w.-]+)(?: \(deflated \d+%\))?(?=$)/);
-      if (match) return void writeState({ file: match[1] });
+      if (match) {
+        return void writeState({ file: match[1] });
+      }
     }
 
     // Watch when FFMpeg updates on progress
     if (log.includes('complete,')) {
       const match = log.match(/(\d+)% complete, ratio=[\d.]+(?=$)/);
-      if (match) return void writeState({ file: state.file, progress: parseInt(match[1], 10), time: state.time });
+      if (match) {
+        return void writeState({ file: state.file, progress: parseInt(match[1], 10), time: state.time });
+      }
     }
 
     // Watch when FFMpeg updates on total time
     if (log.includes('time=')) {
       const match = log.match(/time=(\d{2}:\d{2}:\d{2}\.\d{2})/);
-      if (match) return void writeState({ file: state.file, progress: state.progress, time: match[1] });
+      if (match) {
+        return void writeState({ file: state.file, progress: state.progress, time: match[1] });
+      }
     }
   };
 }

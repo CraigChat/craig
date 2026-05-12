@@ -22,19 +22,27 @@ export default class MetricsModule extends DexareModule<CraigBot> {
   }
 
   onCommandRan(commandName: string) {
-    if (!this.stats.commands[commandName]) this.stats.commands[commandName] = 1;
-    else this.stats.commands[commandName]++;
+    if (!this.stats.commands[commandName]) {
+      this.stats.commands[commandName] = 1;
+    } else {
+      this.stats.commands[commandName]++;
+    }
     this.stats.commandsRan++;
   }
 
   onRecordingStart(auto = false) {
     this.stats.recordingsStarted++;
-    if (auto) this.stats.autorecordingsStarted++;
+    if (auto) {
+      this.stats.autorecordingsStarted++;
+    }
   }
 
   onVoiceServerConnect(region: string) {
-    if (!this.stats.voiceServersConnected[region]) this.stats.voiceServersConnected[region] = 1;
-    else this.stats.voiceServersConnected[region]++;
+    if (!this.stats.voiceServersConnected[region]) {
+      this.stats.voiceServersConnected[region] = 1;
+    } else {
+      this.stats.voiceServersConnected[region]++;
+    }
   }
 
   collect(name: keyof typeof this.stats) {

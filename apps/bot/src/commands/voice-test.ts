@@ -18,10 +18,12 @@ export default class VoiceTestCommand extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return { content: 'This command can only be used in a guild.', ephemeral: true };
+    if (!ctx.guildID) {
+      return { content: 'This command can only be used in a guild.', ephemeral: true };
+    }
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
-    if (!guild)
+    if (!guild) {
       return {
         content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
         ephemeral: true,
@@ -39,12 +41,14 @@ export default class VoiceTestCommand extends GeneralCommand {
           }
         ]
       };
+    }
 
-    if (await checkBan(ctx.user.id))
+    if (await checkBan(ctx.user.id)) {
       return {
         content: 'You are not allowed to use the bot at this time.',
         ephemeral: true
       };
+    }
 
     const userCooldown = await processCooldown(`command:${ctx.user.id}:${this.client?.bot?.user?.id}`, 5, 3);
     if (userCooldown !== true) {
@@ -67,7 +71,7 @@ export default class VoiceTestCommand extends GeneralCommand {
 
     const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
-    if (!hasPermission)
+    if (!hasPermission) {
       return {
         content: 'You need the `Manage Server` permission or have an access role to do a voice test.',
         components: [
@@ -85,6 +89,7 @@ export default class VoiceTestCommand extends GeneralCommand {
         ],
         ephemeral: true
       };
+    }
 
     // Check for existing recording or voice test
     if (this.recorder.recordings.has(ctx.guildID) || this.recorder.voiceTests.has(ctx.guildID)) {
@@ -99,30 +104,34 @@ export default class VoiceTestCommand extends GeneralCommand {
 
     // Check channel
     const channel = member.voiceState.channelID ? guild.channels.get(member.voiceState.channelID) : null;
-    if (!channel || (channel.type !== 2 && channel.type !== 13))
+    if (!channel || (channel.type !== 2 && channel.type !== 13)) {
       return {
         content: 'You need to be in a voice channel to do a voice test.',
         ephemeral: true
       };
+    }
 
     // Check permissions
-    if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
+    if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect')) {
       return {
         content: `I do not have permission to connect to <#${channel!.id}>.`,
         ephemeral: true
       };
+    }
 
-    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
+    if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS')) {
       return {
         content: `I need the \`Embed Links\` permission to be able to display the voice test.`,
         ephemeral: true
       };
+    }
 
-    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
+    if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL')) {
       return {
         content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my voice test panel.`,
         ephemeral: true
       };
+    }
 
     // Set cooldown
     await this.redis.setex(`cooldown:voice-test:${ctx.user.id}`, 10, '1');

@@ -7,7 +7,7 @@ import { version } from '../package.json';
 import Recording from './modules/recorder/recording';
 
 const sentryOpts: any = config.has('sentry') ? config.get('sentry') : null;
-if (sentryOpts)
+if (sentryOpts) {
   Sentry.init({
     dsn: sentryOpts.dsn,
     integrations: [new Sentry.Integrations.Http({ tracing: true })],
@@ -16,12 +16,17 @@ if (sentryOpts)
     release: `craig-bot@${version}`,
     tracesSampleRate: sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1.0
   });
+}
 
 export function reportErrorFromCommand(ctx: CommandContext, error: any, commandName: string, type?: string) {
-  if (!sentryOpts) return;
+  if (!sentryOpts) {
+    return;
+  }
   Sentry.withScope((scope) => {
     scope.setTag('type', type || 'generic');
-    if (commandName) scope.setTag('command', commandName);
+    if (commandName) {
+      scope.setTag('command', commandName);
+    }
     scope.setTag('user', ctx ? ctx.user.id : undefined);
     scope.setTag('guild', ctx ? ctx.guildID : undefined);
     scope.setTag('channel', ctx ? ctx.channelID : undefined);
@@ -36,11 +41,15 @@ export function reportErrorFromCommand(ctx: CommandContext, error: any, commandN
 }
 
 export function reportRecordingError(ctx: CommandContext, error: any, recording?: Recording) {
-  if (!sentryOpts) return;
+  if (!sentryOpts) {
+    return;
+  }
   Sentry.withScope((scope) => {
     scope.setTag('type', 'command');
     scope.setTag('command', 'join');
-    if (recording) scope.setTag('recording', recording.id);
+    if (recording) {
+      scope.setTag('recording', recording.id);
+    }
     scope.setTag('user', ctx ? ctx.user.id : undefined);
     scope.setTag('guild', ctx ? ctx.guildID : undefined);
     scope.setTag('channel', ctx ? ctx.channelID : undefined);
@@ -55,10 +64,14 @@ export function reportRecordingError(ctx: CommandContext, error: any, recording?
 }
 
 export function reportAutorecordingError(member: Eris.Member, guildId: string, channelId: string, error: any, recording?: Recording) {
-  if (!sentryOpts) return;
+  if (!sentryOpts) {
+    return;
+  }
   Sentry.withScope((scope) => {
     scope.setTag('type', 'autorecord');
-    if (recording) scope.setTag('recording', recording.id);
+    if (recording) {
+      scope.setTag('recording', recording.id);
+    }
     scope.setTag('user', member.id);
     scope.setTag('guild', guildId);
     scope.setTag('channel', channelId);
@@ -72,6 +85,8 @@ export function reportAutorecordingError(member: Eris.Member, guildId: string, c
 }
 
 export function close() {
-  if (!sentryOpts) return;
+  if (!sentryOpts) {
+    return;
+  }
   return Sentry.close();
 }

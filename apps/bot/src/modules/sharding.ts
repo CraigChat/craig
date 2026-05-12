@@ -20,7 +20,9 @@ export default class ShardingModule extends DexareModule<CraigBot> {
   }
 
   load() {
-    if (!process.env.SHARD_COUNT || !process.send) this.logger.info('Shard master not found, skipping...');
+    if (!process.env.SHARD_COUNT || !process.send) {
+      this.logger.info('Shard master not found, skipping...');
+    }
     process.on('message', this.onMessage.bind(this));
     this.registerEvent('ready', this.onReady.bind(this));
     this.registerEvent('shardResume', this.onResume.bind(this));
@@ -33,7 +35,9 @@ export default class ShardingModule extends DexareModule<CraigBot> {
   }
 
   async onMessage(message: any) {
-    if (!process.env.SHARD_COUNT || !process.send) return;
+    if (!process.env.SHARD_COUNT || !process.send) {
+      return;
+    }
 
     if (typeof message === 'object') {
       // Respond to requests
@@ -69,20 +73,24 @@ export default class ShardingModule extends DexareModule<CraigBot> {
           return;
         }
         case 'setStatus': {
-          if (message.d.status === 'default') this.client.bot.editStatus('online', this.client.config.status);
-          else if (message.d.status === 'custom' && message.d.message)
+          if (message.d.status === 'default') {
+            this.client.bot.editStatus('online', this.client.config.status);
+          } else if (message.d.status === 'custom' && message.d.message) {
             // @ts-ignore
             this.client.bot.editStatus({
               type: 4,
               name: 'craig',
               state: message.d.message
             });
-          else if (['online', 'idle', 'dnd'].includes(message.d.status) && message.d.message)
+          } else if (['online', 'idle', 'dnd'].includes(message.d.status) && message.d.message) {
             this.client.bot.editStatus(message.d.status, {
               type: 0,
               name: message.d.message
             });
-          if (message.n) this.respond(message.n, { ok: true });
+          }
+          if (message.n) {
+            this.respond(message.n, { ok: true });
+          }
           return;
         }
       }
@@ -141,7 +149,9 @@ export default class ShardingModule extends DexareModule<CraigBot> {
 
   sendAndRecieve<T = any>(type: string, data: Record<string, any> = {}, timeoutMs = 5000): Promise<ManagerResponseMessage<T>> {
     return new Promise((resolve, reject) => {
-      if (!process.env.SHARD_COUNT || !process.send) return reject(new Error('This is not sharded.'));
+      if (!process.env.SHARD_COUNT || !process.send) {
+        return reject(new Error('This is not sharded.'));
+      }
 
       const nonce = nanoid();
       const timeout = setTimeout(() => {
@@ -162,7 +172,9 @@ export default class ShardingModule extends DexareModule<CraigBot> {
   }
 
   async getCounts(): Promise<[number, number]> {
-    if (!this.on) return [this.client.bot.guilds.size, (this.client.modules.get('recorder')! as any).recordings.size];
+    if (!this.on) {
+      return [this.client.bot.guilds.size, (this.client.modules.get('recorder')! as any).recordings.size];
+    }
 
     const a = await this.sendAndRecieve<{ guilds: number; recordings: number }>('getCounts');
     return [a.d.guilds, a.d.recordings];

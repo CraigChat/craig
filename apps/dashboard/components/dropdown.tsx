@@ -38,7 +38,10 @@ export default function Dropdown({
   const [selected, setSelected] = useState(defaultSelected || items[0]);
 
   function onSelectItem(item: DropdownItem) {
-    if (onSelect) onSelect(item);
+    if (onSelect) {
+      onSelect(item);
+    }
+
     setSelected(item);
   }
 

@@ -81,7 +81,9 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
   }
 
   get shard() {
-    if (!this._shard) this._shard = this.bot.shards.values().next().value as Eris.Shard;
+    if (!this._shard) {
+      this._shard = this.bot.shards.values().next().value as Eris.Shard;
+    }
     return this._shard;
   }
 

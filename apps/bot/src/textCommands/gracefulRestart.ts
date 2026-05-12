@@ -22,7 +22,9 @@ export default class GracefulRestartCommand extends TextCommand {
   async run(ctx: CommandContext) {
     const sharding = this.client.modules.get('sharding') as ShardingModule;
 
-    if (!sharding.on) return 'Sharding is not enabled.';
+    if (!sharding.on) {
+      return 'Sharding is not enabled.';
+    }
     await replyOrSend(ctx, 'Restarting all shards.');
     sharding.send('gracefulRestart');
     return;

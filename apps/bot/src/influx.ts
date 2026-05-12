@@ -29,27 +29,43 @@ function getMetricsModule() {
 
 export function onCommandRun(userID: string, commandName: string, guildID?: string) {
   getMetricsModule().onCommandRan(commandName);
-  if (!influxOpts || !influxOpts.url || !client) return;
+  if (!influxOpts || !influxOpts.url || !client) {
+    return;
+  }
   const commandCount = commandCounts.get(commandName) || { users: [], used: 0 };
 
-  if (!commandCount.users.includes(userID)) commandCount.users.push(userID);
+  if (!commandCount.users.includes(userID)) {
+    commandCount.users.push(userID);
+  }
 
   commandCount.used++;
   commandsRan++;
 
-  if (!activeUsers.includes(userID)) activeUsers.push(userID);
-  if (guildID && !activeGuilds.includes(guildID)) activeGuilds.push(guildID);
+  if (!activeUsers.includes(userID)) {
+    activeUsers.push(userID);
+  }
+  if (guildID && !activeGuilds.includes(guildID)) {
+    activeGuilds.push(guildID);
+  }
 
   commandCounts.set(commandName, commandCount);
 }
 
 export function onRecordingStart(userID: string, guildID: string, auto = false) {
   getMetricsModule().onRecordingStart(auto);
-  if (!influxOpts || !influxOpts.url || !client) return;
+  if (!influxOpts || !influxOpts.url || !client) {
+    return;
+  }
   recordingsStarted++;
-  if (!activeUsers.includes(userID)) activeUsers.push(userID);
-  if (!activeGuilds.includes(guildID)) activeGuilds.push(guildID);
-  if (auto) autorecordingsStarted++;
+  if (!activeUsers.includes(userID)) {
+    activeUsers.push(userID);
+  }
+  if (!activeGuilds.includes(guildID)) {
+    activeGuilds.push(guildID);
+  }
+  if (auto) {
+    autorecordingsStarted++;
+  }
 }
 
 export async function onRecordingEnd(
@@ -61,9 +77,15 @@ export async function onRecordingEnd(
   webapp = false,
   errored = false
 ) {
-  if (!influxOpts || !influxOpts.url || !client) return;
-  if (!activeUsers.includes(userID)) activeUsers.push(userID);
-  if (!activeGuilds.includes(guildID)) activeGuilds.push(guildID);
+  if (!influxOpts || !influxOpts.url || !client) {
+    return;
+  }
+  if (!activeUsers.includes(userID)) {
+    activeUsers.push(userID);
+  }
+  if (!activeGuilds.includes(guildID)) {
+    activeGuilds.push(guildID);
+  }
 
   // Push this to queue
   pointQueue.push(
@@ -97,14 +119,18 @@ export async function onRecordingEnd(
 }
 
 async function collect() {
-  if (!influxOpts || !influxOpts.url || !client) return;
+  if (!influxOpts || !influxOpts.url || !client) {
+    return;
+  }
   const timestamp = cron.lastDate();
 
   const writeApi = client!.getWriteApi(influxOpts.org, influxOpts.bucket, 's');
   const recorder = dexareClient.modules.get('recorder') as any as RecorderModule<DexareClient<CraigBotConfig>>;
 
   // Update active guilds with guilds currently recording
-  if (recorder) activeGuilds = [...new Set([...Object.keys(recorder.recordings), ...activeGuilds])];
+  if (recorder) {
+    activeGuilds = [...new Set([...Object.keys(recorder.recordings), ...activeGuilds])];
+  }
 
   const points = [
     new Point('craig_stats')
@@ -139,13 +165,19 @@ async function collect() {
   const unavailableServerMap: { [key: string]: number } = {};
   dexareClient.bot.guilds.map((guild) => {
     const shardID = String(guild.shard.id);
-    if (serverMap[shardID]) serverMap[shardID] += 1;
-    else serverMap[shardID] = 1;
+    if (serverMap[shardID]) {
+      serverMap[shardID] += 1;
+    } else {
+      serverMap[shardID] = 1;
+    }
   });
   dexareClient.bot.unavailableGuilds.map(() => {
     const shardID = process.env.SHARD_ID!;
-    if (unavailableServerMap[shardID]) unavailableServerMap[shardID] += 1;
-    else unavailableServerMap[shardID] = 1;
+    if (unavailableServerMap[shardID]) {
+      unavailableServerMap[shardID] += 1;
+    } else {
+      unavailableServerMap[shardID] = 1;
+    }
   });
   dexareClient.bot.shards.map((shard) =>
     points.push(

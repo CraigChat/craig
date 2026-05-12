@@ -24,26 +24,38 @@ export default class SetRWACommand extends TextCommand {
   async run(ctx: CommandContext) {
     const sharding = this.client.modules.get('sharding') as ShardingModule;
 
-    if (!sharding.on) return 'Sharding is not enabled.';
+    if (!sharding.on) {
+      return 'Sharding is not enabled.';
+    }
 
-    if (!ctx.args[0]) return 'First argument must be a boolean.';
+    if (!ctx.args[0]) {
+      return 'First argument must be a boolean.';
+    }
     const value = ctx.args[0] === 'true' || ctx.args[0] === '1' || ctx.args[0] === 'on';
 
-    if (!ctx.args[1]) return 'Specify a shard ID or use "this" or "all".';
+    if (!ctx.args[1]) {
+      return 'Specify a shard ID or use "this" or "all".';
+    }
 
     if (ctx.args[1] === 'this') {
       const message = await replyOrSend(ctx, `Setting RWA state to \`${value}\` of this shard...`);
       const result = await sharding
         .sendAndRecieve<{ error?: string }>('setRWA', { id: this.client.shard?.id ?? parseInt(process.env.SHARD_ID!), value })
         .catch((e) => ({ error: e.toString() }));
-      if ('error' in result) await message.edit(`Failed to set RWA state: ${result.error}`);
-      else await message.edit(`Set RWA state to \`${value}\` for this shard.`);
+      if ('error' in result) {
+        await message.edit(`Failed to set RWA state: ${result.error}`);
+      } else {
+        await message.edit(`Set RWA state to \`${value}\` for this shard.`);
+      }
       return;
     } else if (ctx.args[1] === 'all') {
       const message = await replyOrSend(ctx, `Setting RWA state to \`${value}\` of all shards...`);
       const result = await sharding.sendAndRecieve<{ error?: string }>('setRWA', { id: 'all', value }).catch((e) => ({ error: e.toString() }));
-      if ('error' in result) await message.edit(`Failed to set RWA state: ${result.error}`);
-      else await message.edit(`Set RWA state to \`${value}\` for all shards.`);
+      if ('error' in result) {
+        await message.edit(`Failed to set RWA state: ${result.error}`);
+      } else {
+        await message.edit(`Set RWA state to \`${value}\` for all shards.`);
+      }
       return;
     }
 
@@ -53,7 +65,9 @@ export default class SetRWACommand extends TextCommand {
     const errors: [number, string][] = [];
     for (const shard of shards) {
       const result = await sharding.sendAndRecieve<{ error?: string }>('setRWA', { id: shard, value }).catch((e) => ({ error: e.toString() }));
-      if ('error' in result) errors.push([shard, result.error]);
+      if ('error' in result) {
+        errors.push([shard, result.error]);
+      }
     }
 
     await message.edit(stripIndents`

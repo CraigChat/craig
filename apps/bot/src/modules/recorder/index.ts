@@ -138,7 +138,9 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
 
   find(id: string) {
     for (const recording of this.recordings.values()) {
-      if (recording.id === id) return recording;
+      if (recording.id === id) {
+        return recording;
+      }
     }
   }
 
@@ -162,26 +164,28 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       where: { version: voiceVersion }
     });
 
-    if (!voiceVersionSeen)
+    if (!voiceVersionSeen) {
       await prisma.voiceVersion.create({
         data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
       });
+    }
 
     const rtcWorkerVersionSeen = await prisma.rtcVersion.findFirst({
       where: { version: rtcWorkerVersion }
     });
 
-    if (!rtcWorkerVersionSeen)
+    if (!rtcWorkerVersionSeen) {
       await prisma.rtcVersion.create({
         data: { version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }
       });
+    }
 
     // Update latest region voice version
     const lastVoiceVersion = await prisma.regionVoiceVersion.findUnique({
       where: { regionId }
     });
 
-    if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion))
+    if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion)) {
       await prisma.regionVoiceVersion.upsert({
         where: { regionId },
         update: {
@@ -195,13 +199,14 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
           endpoint: voiceEndpoint
         }
       });
+    }
 
     // Update latest rtc worker version
     const lastRtcWorkerVersion = await prisma.regionRtcVersion.findUnique({
       where: { regionId }
     });
 
-    if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
+    if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion)) {
       await prisma.regionRtcVersion.upsert({
         where: { regionId },
         update: {
@@ -215,6 +220,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
           endpoint: voiceEndpoint
         }
       });
+    }
 
     if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
       const title = `New ${[
@@ -265,7 +271,9 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   }
 
   async checkForErroredRecordings(force = false) {
-    if (this.recordingsChecked && !force) return;
+    if (this.recordingsChecked && !force) {
+      return;
+    }
     this.recordingsChecked = true;
     const badRecordings = (
       await prisma.recording.findMany({
@@ -282,19 +290,27 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       `Found ${badRecordings.length} errored recordings.`,
       badRecordings.map((br) => br.id)
     );
-    if (!badRecordings.length) return;
+    if (!badRecordings.length) {
+      return;
+    }
 
     // Make craig leave from dead channels
     const guildIds = [...new Set<string>(badRecordings.map((r) => r.guildId))];
     for (const guildId of guildIds) {
       const recording = this.recordings.get(guildId);
-      if (recording) continue;
+      if (recording) {
+        continue;
+      }
 
       const guild = this.client.bot.guilds.get(guildId);
-      if (!guild) continue;
+      if (!guild) {
+        continue;
+      }
 
       const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as Eris.StageChannel | Eris.VoiceChannel;
-      if (!channel) continue;
+      if (!channel) {
+        continue;
+      }
 
       await channel.join().catch(() => null);
       channel.leave();
@@ -304,10 +320,14 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     const userIds = [...new Set<string>(badRecordings.map((r) => r.userId))];
     for (const userId of userIds) {
       const user = this.client.bot.users.get(userId);
-      if (!user) continue;
+      if (!user) {
+        continue;
+      }
 
       const dmChannel = await user.getDMChannel().catch(() => null);
-      if (!dmChannel) continue;
+      if (!dmChannel) {
+        continue;
+      }
 
       await dmChannel
         .createMessage(
@@ -351,7 +371,9 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
 
   onVoiceStateUpdate(_: any, member: Eris.Member, oldState: Eris.OldVoiceState) {
     const recording = this.recordings.get(member.guild.id);
-    if (!recording) return;
+    if (!recording) {
+      return;
+    }
 
     recording.onVoiceStateUpdate(member, oldState);
   }

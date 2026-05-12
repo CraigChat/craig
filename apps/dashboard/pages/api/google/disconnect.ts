@@ -6,9 +6,14 @@ import { setNextAvailableService } from '../../../utils/prisma';
 import { oauth2Client } from './oauth';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== 'GET') return res.redirect('/');
+  if (req.method !== 'GET') {
+    return res.redirect('/');
+  }
+  
   const user = parseUser(req);
-  if (!user) return res.redirect('/');
+  if (!user) {
+    return res.redirect('/');
+  }
 
   const driveData = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
   if (driveData) {

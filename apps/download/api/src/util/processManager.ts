@@ -8,12 +8,17 @@ const lastActivity = new Map<number, number>();
 export const cron = new CronJob('*/5 * * * *', clean, null, false, 'America/New_York');
 
 function killProcessTree(p: ChildProcessWithoutNullStreams) {
-  if (p.killed || !p.pid) return true;
+  if (p.killed || !p.pid) {
+    return true;
+  }
+
   try {
     const result = process.kill(p.pid);
     return result;
   } catch (e) {
-    if ((e as Error).message.startsWith('kill ESRCH')) return true;
+    if ((e as Error).message.startsWith('kill ESRCH')) {
+      return true;
+    }
     return false;
   }
 }
