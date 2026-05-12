@@ -18,9 +18,9 @@ import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
 import type SlashModule from './modules/slash';
 import { prisma } from './prisma';
+import { version } from '../package.json';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-export const version = require('../package.json').version;
+export { version };
 
 export const userAgent = `CraigBot (https://craig.chat ${version}) Node.js/${process.version}`;
 

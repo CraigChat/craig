@@ -1,11 +1,11 @@
 import { createLogger, Logger } from './logger';
+import { version } from '../package.json';
 
 export class TaskJob {
   name: string;
   time: string;
   logger: Logger;
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  userAgent = `CraigTasks (https://craig.chat ${require('../package.json').version}) Node.js/${process.version}`;
+  userAgent = `CraigTasks (https://craig.chat ${version}) Node.js/${process.version}`;
 
   constructor(name: string, time: string) {
     this.name = name;

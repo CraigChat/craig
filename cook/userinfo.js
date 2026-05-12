@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-const fs = require('fs');
+import { readFileSync } from 'fs';
 var inp = '';
 try {
-  inp = fs.readFileSync(process.argv[2] + '.ogg.users', 'utf8');
+  inp = readFileSync(process.argv[2] + '.ogg.users', 'utf8');
 } catch (ex) {}
 var users = {};
 try {

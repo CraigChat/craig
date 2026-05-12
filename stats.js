@@ -14,8 +14,8 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-const fs = require("fs");
-const sqlite3 = require("better-sqlite3");
+import fs from "fs";
+import sqlite3 from "better-sqlite3";
 const db = new sqlite3("log.db");
 db.pragma("journal_mode = WAL");
 

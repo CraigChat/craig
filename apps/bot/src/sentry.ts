@@ -4,6 +4,7 @@ import { Integrations } from '@sentry/tracing';
 import config from 'config';
 import Eris from 'eris';
 import { CommandContext } from 'slash-create';
+import { version } from '../package.json';
 
 import Recording from './modules/recorder/recording';
 import { prisma } from './prisma';
@@ -21,8 +22,7 @@ if (sentryOpts)
     ],
 
     environment: sentryOpts.env || process.env.NODE_ENV || 'development',
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    release: `craig-bot@${require('../package.json').version}`,
+    release: `craig-bot@${version}`,
     tracesSampleRate: sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1.0
   });
 

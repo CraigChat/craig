@@ -1,5 +1,5 @@
-const fs = require("fs");
-const sqlite3 = require("better-sqlite3");
+import { readdirSync, readFileSync } from "fs";
+import sqlite3 from "better-sqlite3";
 const db = new sqlite3("craig.db");
 db.pragma("journal_mode = WAL");
 
@@ -96,10 +96,10 @@ for (var uid in blessings) {
 */
 
 // *-credentials.json -> drive
-const credFiles = fs.readdirSync("/home/yahweasel/craig-drive");
+const credFiles = readdirSync("/home/yahweasel/craig-drive");
 const credFileRE = /^([0-9]*)-credentials\.json$/;
 credFiles.forEach((credFile) => {
     var cp = credFileRE.exec(credFile);
     if (cp === null) return;
-    db.prepare("INSERT INTO drive (id, data) VALUES (?, ?)").run(cp[1], fs.readFileSync("/home/yahweasel/craig-drive/" + credFile));
+    db.prepare("INSERT INTO drive (id, data) VALUES (?, ?)").run(cp[1], readFileSync("/home/yahweasel/craig-drive/" + credFile));
 });

@@ -2,7 +2,7 @@ import '@sentry/tracing';
 
 import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
-import { version } from '../package.json';
+import { version } from '../../package.json';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN_API,
@@ -14,8 +14,7 @@ Sentry.init({
   ],
 
   environment: process.env.SENTRY_ENV || process.env.NODE_ENV || 'development',
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  release: `craig-horse@${require('../package.json').version}`,
+  release: `craig-horse@${version}`,
   tracesSampleRate: process.env.SENTRY_SAMPLE_RATE_API ? parseFloat(process.env.SENTRY_SAMPLE_RATE_API) : 1.0
 });
 

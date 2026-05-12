@@ -20,7 +20,7 @@
  *
  * Simple script to select recent log lines.
  */
-const sqlite3 = require("better-sqlite3");
+import sqlite3 from "better-sqlite3";
 const db = new sqlite3("log.db");
 db.pragma("journal_mode = WAL");
 

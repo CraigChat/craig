@@ -144,8 +144,7 @@ export async function connect() {
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   await i18nInit();
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => client.commands.register(require(file)));
+  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => client.commands.register(await import(file)));
   await redisClient.connect();
   await client.connect();
   await prisma.$connect();

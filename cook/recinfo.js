@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-const fs = require('fs');
+import { readFileSync } from 'fs';
 var infoInp = '{}';
 try {
-  infoInp = fs.readFileSync(process.argv[2] + '.ogg.info', 'utf8');
+  infoInp = readFileSync(process.argv[2] + '.ogg.info', 'utf8');
 } catch (ex) {}
 var userInp = '';
 try {
-  userInp = fs.readFileSync(process.argv[2] + '.ogg.users', 'utf8');
+  userInp = readFileSync(process.argv[2] + '.ogg.users', 'utf8');
 } catch (ex) {}
 var info = JSON.parse(infoInp);
 var users = {};

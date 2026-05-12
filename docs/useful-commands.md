@@ -129,7 +129,7 @@ docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/medi
 Re-trigger AI summarization for an already-transcribed recording:
 
 ```bash
-./tasmas/test/test-summary.sh RECORDING_ID
+./tasmas/test/test-trigger-summary.sh RECORDING_ID
 ```
 
 Check recording state (processing / completed / failed):
