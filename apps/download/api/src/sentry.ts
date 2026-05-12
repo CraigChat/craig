@@ -3,12 +3,7 @@ import { version } from '../../package.json';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN_API,
-  integrations: [
-    new Sentry.Integrations.Http({ tracing: true }),
-    new Sentry.Integrations.RewriteFrames({
-      root: __dirname
-    })
-  ],
+  integrations: [new Sentry.Integrations.Http({ tracing: true })],
 
   environment: process.env.SENTRY_ENV || process.env.NODE_ENV || 'development',
   release: `craig-horse@${version}`,

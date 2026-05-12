@@ -5,19 +5,12 @@ import { CommandContext } from 'slash-create';
 import { version } from '../package.json';
 
 import Recording from './modules/recorder/recording';
-import { prisma } from './prisma';
 
 const sentryOpts: any = config.has('sentry') ? config.get('sentry') : null;
 if (sentryOpts)
   Sentry.init({
     dsn: sentryOpts.dsn,
-    integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.RewriteFrames({
-        root: __dirname
-      }),
-      new Sentry.Integrations.Prisma({ client: prisma })
-    ],
+    integrations: [new Sentry.Integrations.Http({ tracing: true })],
 
     environment: sentryOpts.env || process.env.NODE_ENV || 'development',
     release: `craig-bot@${version}`,
