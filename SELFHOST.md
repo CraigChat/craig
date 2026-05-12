@@ -101,7 +101,6 @@ Changing some of these variables from their default values will break Craig, so 
 - `API_HOST`: The default value of `127.0.0.1` means that only the machine running Craig can access the web GUI, which is difficult in a headless environment, such as within a Docker container. Setting the value to `0.0.0.0` will permit any machine that can access the machine's port to access the page, such as those on the local network.
 - `API_HOMEPAGE`: This should be changed to the IP address or domain name of the machine running Craig so that download links are functional (e.g., `http://localhost:5029` or `http://192.168.0.10:5029`).
 - `RECORDING_RETENTION_DAYS`: Controls how long recordings remain downloadable and how long orphaned recording files are kept. The Docker example uses `3` days to keep disk usage low.
-- `RECORDING_LOCAL_FLAC_ENABLED`: When set to `true`, Craig writes a local `RECORDING_ID.flac.zip` archive next to the raw `.ogg.*` recording files after each recording ends.
 
 #### `apps/bot/config/_default.js`
 
@@ -285,7 +284,7 @@ nvm use node
 
 ## Transcribing and summarizing Craig FLAC archives with TASMAS
 
-Craig writes local FLAC exports as `RECORDING_ID.flac.zip` archives when `RECORDING_LOCAL_FLAC_ENABLED=true`. TASMAS cannot process the zip archive directly, so the sidecar in [tasmas](tasmas) stages each archive into its own folder, extracts the per-speaker `.flac` files, builds a `names.json` from Craig's `info.txt`, and runs TASMAS against the extracted FLAC files.
+Craig writes local FLAC exports as `RECORDING_ID.flac.zip` archives after each recording ends. TASMAS cannot process the zip archive directly, so the sidecar in [tasmas](tasmas) stages each archive into its own folder, extracts the per-speaker `.flac` files, builds a `names.json` from Craig's `info.txt`, and runs TASMAS against the extracted FLAC files.
 
 Configure the sidecar in [install.config](install.config), using the `TASMAS transcription sidecar` section from [install.config.example](install.config.example). The sidecar runs as a Docker Compose service and bind-mounts [tasmas](tasmas), so Python code changes do not require rebuilding the image.
 

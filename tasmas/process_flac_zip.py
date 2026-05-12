@@ -10,8 +10,6 @@ import re
 import shlex
 import subprocess
 import sys
-import urllib.error
-import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,23 +22,6 @@ REPO_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_INSTALL_CONFIG = REPO_DIR / "install.config"
 DEFAULT_RECORDINGS_DIR = Path("/mnt/media8tb/craig-recordings")
 DEFAULT_TASMAS_IMAGE = "kaddaok/tasmas:latest"
-DEFAULT_OLLAMA_URL = "http://localhost:11434/api/generate"
-DEFAULT_NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-DEFAULT_NVIDIA_MODEL = "mistralai/mistral-large-3-675b-instruct-2512"
-DEFAULT_SUMMARY_PROMPT = (
-    "Summarize the meeting transcript below in French. Preserve speaker names exactly as shown.\n\n"
-    "Output rules:\n"
-    "- Write in French. Common tech/industry anglicisms are acceptable.\n"
-    "- Start directly with the summary. No intro sentence.\n"
-    "- Use ## for section headers. Never use --- as a divider.\n"
-    "- Use bullet points. Be concise.\n"
-    "- Omit any section that has no relevant content.\n\n"
-    "## Résumé\n"
-    "## Décisions\n"
-    "## Actions\n"
-    "## Questions ouvertes\n\n"
-    "Transcript:\n\n"
-)
 
 
 def load_install_config() -> None:
@@ -175,122 +156,6 @@ def run_tasmas(output_root: Path, recording_id: str) -> None:
         raise subprocess.CalledProcessError(exit_code, command)
 
 
-def summarize_with_ollama(transcript_path: Path) -> Path | None:
-    model = os.environ.get("OLLAMA_MODEL")
-    if not model:
-        return None
-
-    transcript = transcript_path.read_text(encoding="utf-8", errors="replace")
-    ollama_url = os.environ.get("OLLAMA_URL", DEFAULT_OLLAMA_URL)
-    summary_filename_model = re.sub(r"[^A-Za-z0-9_.-]", "_", model)
-    summary_path = transcript_path.parent / f"summary_ollama_{summary_filename_model}.txt"
-
-    payload = {
-        "model": model,
-        "prompt": f"{DEFAULT_SUMMARY_PROMPT}{transcript}",
-        "stream": False,
-    }
-    body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        ollama_url,
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    log(f"Summarizing with Ollama model {model}")
-    try:
-        with urllib.request.urlopen(request, timeout=600) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Ollama summary failed: {exc}") from exc
-
-    summary_path.write_text(data.get("response", ""), encoding="utf-8")
-    return summary_path
-
-
-def env_float(name: str, default: float) -> float:
-    raw = os.environ.get(name)
-    return float(raw) if raw else default
-
-
-def env_int(name: str, default: int) -> int:
-    raw = os.environ.get(name)
-    return int(raw) if raw else default
-
-
-def parse_sse_payload(line: str) -> dict[str, Any] | None:
-    if not line.startswith("data:"):
-        return None
-    data = line.removeprefix("data:").strip()
-    if not data or data == "[DONE]":
-        return None
-    return json.loads(data)
-
-
-def summarize_with_nvidia(transcript_path: Path) -> Path | None:
-    api_key = os.environ.get("NVIDIA_API_KEY", "").strip()
-    if not api_key:
-        return None
-
-    transcript = transcript_path.read_text(encoding="utf-8", errors="replace")
-    api_url = os.environ.get("NVIDIA_API_URL", DEFAULT_NVIDIA_API_URL)
-    model = os.environ.get("NVIDIA_SUMMARY_MODEL", DEFAULT_NVIDIA_MODEL)
-    summary_filename_model = re.sub(r"[^A-Za-z0-9_.-]", "_", model)
-    summary_path = transcript_path.parent / f"summary_nvidia_{summary_filename_model}.md"
-    partial_path = summary_path.with_suffix(summary_path.suffix + ".partial")
-
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": f"{DEFAULT_SUMMARY_PROMPT}{transcript}"}],
-        "max_tokens": env_int("NVIDIA_SUMMARY_MAX_TOKENS", 2048),
-        "temperature": env_float("NVIDIA_SUMMARY_TEMPERATURE", 0.15),
-        "top_p": env_float("NVIDIA_SUMMARY_TOP_P", 1.0),
-        "frequency_penalty": env_float("NVIDIA_SUMMARY_FREQUENCY_PENALTY", 0.0),
-        "presence_penalty": env_float("NVIDIA_SUMMARY_PRESENCE_PENALTY", 0.0),
-        "stream": True,
-    }
-
-    request = urllib.request.Request(
-        api_url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Accept": "text/event-stream",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-
-    log(f"Summarizing with NVIDIA model {model}")
-    try:
-        with urllib.request.urlopen(request, timeout=900) as response, partial_path.open("w", encoding="utf-8") as summary_file:
-            for raw_line in response:
-                line = raw_line.decode("utf-8", errors="replace").strip()
-                if not line:
-                    continue
-                payload_chunk = parse_sse_payload(line)
-                if payload_chunk is None:
-                    continue
-                choices = payload_chunk.get("choices") or []
-                if not choices:
-                    continue
-                choice = choices[0]
-                content = choice.get("delta", {}).get("content", "") or choice.get("message", {}).get("content", "")
-                if content:
-                    summary_file.write(content)
-                    summary_file.flush()
-    except urllib.error.HTTPError as exc:
-        details = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"NVIDIA summary failed with HTTP {exc.code}: {details}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"NVIDIA summary failed: {exc}") from exc
-
-    partial_path.replace(summary_path)
-    log(f"Wrote NVIDIA summary to {summary_path}")
-    return summary_path
-
-
 def send_discord_summary_webhook(summary_path: Path, recording_id: str) -> None:
     webhook_url = os.environ.get("DISCORD_SUMMARY_WEBHOOK_URL", "").strip()
     if not webhook_url:
@@ -336,11 +201,10 @@ def send_discord_summary_webhook(summary_path: Path, recording_id: str) -> None:
 
 
 def summarize_transcript(transcript_path: Path) -> None:
-    nvidia_summary = summarize_with_nvidia(transcript_path)
-    summary = nvidia_summary or summarize_with_ollama(transcript_path)
+    from summarizer import build_summary_chain
+    summary = build_summary_chain().run(transcript_path)
     if summary:
-        recording_id = transcript_path.parent.name
-        send_discord_summary_webhook(summary, recording_id)
+        send_discord_summary_webhook(summary, transcript_path.parent.name)
 
 
 def acquire_lock(lock_dir: Path) -> bool:

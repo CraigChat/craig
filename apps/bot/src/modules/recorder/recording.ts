@@ -35,8 +35,6 @@ export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
 
-const LOCAL_FLAC_ENABLED = ['1', 'true', 'yes', 'on'].includes((process.env.RECORDING_LOCAL_FLAC_ENABLED || '').toLowerCase());
-
 const BAD_MESSAGE_CODES = [
   404,
   10003, // Unknown channel
@@ -398,8 +396,6 @@ export default class Recording {
   }
 
   async writeLocalFlacArchive() {
-    if (!LOCAL_FLAC_ENABLED) return;
-
     const cookScript = path.resolve(__dirname, '../../../../..', 'cook.sh');
     const outputPath = path.join(this.recorder.recordingPath, `${this.id}.flac.zip`);
 

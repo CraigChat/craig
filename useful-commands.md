@@ -81,9 +81,8 @@ docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_
 
 ## Tests
 
-To test out summaries: 
+Re-trigger summarization for an already-processed recording:
 
-RID=6SnMjUOdmPpr
-ZIP=/mnt/media8tb/craig-recordings/$RID.flac.zip
-
-cp "$ZIP" "$ZIP.tmp" && mv "$ZIP.tmp" "$ZIP"
+```bash
+./tasmas/test/test-summary.sh gstlSrERWdt4
+```
