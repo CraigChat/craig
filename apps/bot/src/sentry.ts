@@ -1,6 +1,4 @@
-import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
-import { Integrations } from '@sentry/tracing';
 import config from 'config';
 import Eris from 'eris';
 import { CommandContext } from 'slash-create';
@@ -15,10 +13,10 @@ if (sentryOpts)
     dsn: sentryOpts.dsn,
     integrations: [
       new Sentry.Integrations.Http({ tracing: true }),
-      new RewriteFrames({
+      new Sentry.Integrations.RewriteFrames({
         root: __dirname
       }),
-      new Integrations.Prisma({ client: prisma })
+      new Sentry.Integrations.Prisma({ client: prisma })
     ],
 
     environment: sentryOpts.env || process.env.NODE_ENV || 'development',

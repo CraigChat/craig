@@ -1,6 +1,3 @@
-import '@sentry/tracing';
-
-import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
 import { version } from '../../package.json';
 
@@ -8,7 +5,7 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN_API,
   integrations: [
     new Sentry.Integrations.Http({ tracing: true }),
-    new RewriteFrames({
+    new Sentry.Integrations.RewriteFrames({
       root: __dirname
     })
   ],
