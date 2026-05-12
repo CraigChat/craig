@@ -165,7 +165,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     )
       shouldRecord = true;
 
-    if (!shouldRecord && recording) {
+    if (memberCount === 0 && recording) {
       this.logger.info(`Stopping autorecord for ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`, false);
       recording.pushToActivity('Autorecord stopped due to lack of users.');
       await recording.stop();
@@ -243,7 +243,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
         if (recording.state !== RecordingState.ERROR) {
           recording.state = RecordingState.ERROR;
-          await recording.stop(true).catch(() => {});
+          await recording.stop(true).catch(() => { });
         }
 
         if (recording.messageID && recording.messageChannelID)
@@ -275,7 +275,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
                 }
               ]
             })
-            .catch(() => {});
+            .catch(() => { });
         return;
       }
 
