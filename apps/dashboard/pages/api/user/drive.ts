@@ -39,15 +39,19 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     selectedFormats.push(parsedFormat.value);
   }
 
-  if (!services.includes(service)) return res.status(400).send({ error: 'Invalid service' });
+  if (!services.includes(service)) {
+    return res.status(400).send(
+      { error: 'Invalid service' });
+  }
 
-  if (typeof enabled !== 'boolean') return res.status(400).send({ error: 'Invalid enabled state' });
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).send(
+      { error: 'Invalid enabled state' });
+  }
 
-  if (
-    dbUser.driveEnabled !== enabled ||
-    dbUser.driveService !== service ||
-    dbUser.driveFormats.join(',') !== selectedFormats.join(',')
-  )
+  if (dbUser.driveEnabled !== enabled
+    || dbUser.driveService !== service
+    || dbUser.driveFormats.join(',') !== selectedFormats.join(',')) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -56,6 +60,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         driveService: service
       }
     });
+  }
 
   res.status(200).send({ ok: true });
 };

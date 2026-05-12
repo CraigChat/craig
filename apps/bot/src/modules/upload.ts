@@ -119,9 +119,13 @@ export default class UploadModule extends DexareModule<CraigBot> {
 
   async uploadWithTrpc(recordingId: string, userId: string, driveService: string) {
     const service = SERVICES[driveService] ?? driveService;
-    const response = await this.trpc.query('driveUpload', { recordingId, userId }).catch(() => null) as
-      | ({ error: null | string; notify: boolean; id?: string; url?: string; urls?: { name: string; url: string }[] })
-      | null;
+    const response = (await this.trpc.query('driveUpload', { recordingId, userId }).catch(() => null)) as {
+      error: null | string;
+      notify: boolean;
+      id?: string;
+      url?: string;
+      urls?: { name: string; url: string }[];
+    } | null;
 
     if (!response) {
       this.logger.error(`Failed to upload recording ${recordingId} to ${service}: Could not connect to the server`);

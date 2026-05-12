@@ -14,11 +14,11 @@ import {
   SeparatorSpacingSize
 } from 'slash-create';
 
+import { version } from '../package.json';
 import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
 import type Recording from './modules/recorder/recording';
 import type SlashModule from './modules/slash';
 import { prisma } from './prisma';
-import { version } from '../package.json';
 
 export { version };
 

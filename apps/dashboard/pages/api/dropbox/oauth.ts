@@ -47,7 +47,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       create: { id: user.id, token: tokens.access_token, refreshToken: tokens.refresh_token, name: dropboxUser.result.name.display_name }
     });
   } catch (e) {
-    console.log(e)
+    console.log(e);
     return res.redirect(`/?error=${encodeURIComponent('Could not get user data, please sign in again.')}&from=dropbox`);
   }
 

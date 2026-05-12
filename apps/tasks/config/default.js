@@ -1,1 +1,1 @@
-export { default } from "./_default";
+module.exports = require('./_default');

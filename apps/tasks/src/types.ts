@@ -1,5 +1,5 @@
-import { createLogger, Logger } from './logger';
 import { version } from '../package.json';
+import { createLogger, Logger } from './logger';
 
 export class TaskJob {
   name: string;

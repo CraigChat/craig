@@ -235,8 +235,9 @@ export default class VoiceTest {
 
       // Create separate decoder for each user to avoid state corruption
       const decoders = new Map<string, OpusEncoder>();
-      for (const userID of this.userPackets.keys())
+      for (const userID of this.userPackets.keys()) {
         decoders.set(userID, new OpusEncoder(48000, 2));
+      }
 
       // Mix audio into PCM buffer
       for (const chunk of allChunks) {

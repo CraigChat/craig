@@ -154,7 +154,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             })
           })
         )
-      ).catch(() => { });
+      ).catch(() => {});
   }
 
   async onEntitlementUpdate(_: any, entitlement: Dysnomia.Entitlement) {
@@ -194,7 +194,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             })
           })
         )
-      ).catch(() => { });
+      ).catch(() => {});
   }
 
   async onEntitlementDelete(_: any, entitlement: Dysnomia.Entitlement) {
@@ -227,7 +227,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
             })
           })
         )
-      ).catch(() => { });
+      ).catch(() => {});
   }
 
   load() {

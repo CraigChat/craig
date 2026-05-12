@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/node';
 import config from 'config';
 import Eris from 'eris';
 import { CommandContext } from 'slash-create';
-import { version } from '../package.json';
 
+import { version } from '../package.json';
 import Recording from './modules/recorder/recording';
 
 const sentryOpts: any = config.has('sentry') ? config.get('sentry') : null;

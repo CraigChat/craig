@@ -10,7 +10,6 @@ import Eris from 'eris';
 import { createWriteStream } from 'fs';
 import { access, unlink, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
-import fetch from 'node-fetch';
 import path from 'path';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 

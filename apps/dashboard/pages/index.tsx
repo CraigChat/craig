@@ -34,15 +34,6 @@ interface DriveProps {
   formats: string[];
 }
 
-const tierNames: { [key: number]: string } = {
-  [-1]: 'Greater Weasel',
-  0: 'Default',
-  10: 'Supporter',
-  20: 'Better Supporter',
-  30: 'FLAC Demander',
-  100: 'MP3 God'
-};
-
 interface FormatOption {
   title: string;
   value: string;
@@ -190,8 +181,7 @@ export default function Index(props: Props) {
   useEffect(() => {
     if (!drive) return;
     const selectedFormats = driveFormats.length ? driveFormats : ['flac-zip'];
-    if (drive.enabled === driveEnabled && drive.formats.join(',') === selectedFormats.join(',') && drive.service === driveService)
-      return;
+    if (drive.enabled === driveEnabled && drive.formats.join(',') === selectedFormats.join(',') && drive.service === driveService) return;
     setLoading(true);
     fetch(`/api/user/drive`, {
       method: 'PUT',

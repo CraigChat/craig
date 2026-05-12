@@ -80,7 +80,7 @@ async function cook(id: string, format = 'flac', container = 'zip', dynaudnorm =
     logger.log(`Cooking ${id} (${format}.${container}${dynaudnorm ? ' dynaudnorm' : ''}) with process ${child.pid}`);
 
     // Prevent the stream from ending prematurely (for some reason)
-    child.stderr.on('data', () => { });
+    child.stderr.on('data', () => {});
 
     return child;
   } catch (e) {
@@ -97,12 +97,9 @@ async function findOrCreateGoogleDriveFolder(drive: drive_v3.Drive, folderName: 
   const parentQuery = parentId ? `'${escapeDriveQueryValue(parentId)}' in parents` : "'root' in parents";
 
   const list = await drive.files.list({
-    q: [
-      `name = '${escapeDriveQueryValue(folderName)}'`,
-      "mimeType = 'application/vnd.google-apps.folder'",
-      'trashed = false',
-      parentQuery
-    ].join(' and '),
+    q: [`name = '${escapeDriveQueryValue(folderName)}'`, "mimeType = 'application/vnd.google-apps.folder'", 'trashed = false', parentQuery].join(
+      ' and '
+    ),
     fields: 'files(id, name)'
   });
 
@@ -246,8 +243,8 @@ function getUploadFileInfo(fileName: string, output: DriveUploadFormat) {
     output.container === 'mix'
       ? FormatToMime[output.format] || 'audio/flac'
       : output.container === 'exe'
-        ? 'application/vnd.microsoft.portable-executable'
-        : 'application/zip';
+      ? 'application/vnd.microsoft.portable-executable'
+      : 'application/zip';
   const ext = output.container === 'mix' ? FormatToExt[output.format] || 'flac' : output.container === 'exe' ? 'exe' : 'zip';
   const suffix = output.container === 'zip' ? output.format : output.value;
   return {
@@ -270,8 +267,9 @@ export async function driveUpload({
   if (!dataExists) return { error: 'data_deleted', notify: false };
   const info = JSON.parse(await fs.readFile(path.join(recPath, `${recordingId}.ogg.info`), 'utf8'));
   const startDate = new Date(info.startTime);
-  const fileName = `${startDate.getFullYear()}-${startDate.getMonth() + 1
-    }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}_craig_${recordingId}`;
+  const fileName = `${startDate.getFullYear()}-${
+    startDate.getMonth() + 1
+  }-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}_craig_${recordingId}`;
 
   const user = await prisma.user.findFirst({ where: { id: userId } });
   if (!user) return { error: 'user_not_found', notify: false };
@@ -349,7 +347,7 @@ export async function driveUpload({
             }
           });
 
-          await fs.unlink(tempFile).catch(() => { });
+          await fs.unlink(tempFile).catch(() => {});
           tempFile = null;
           logger.info(`Uploaded ${recordingId} as ${output.value} on Google Drive`);
           uploadedFiles.push({
@@ -456,7 +454,7 @@ export async function driveUpload({
           //   });
           // }
 
-          await fs.unlink(tempFile).catch(() => { });
+          await fs.unlink(tempFile).catch(() => {});
           tempFile = null;
           logger.info(`Uploaded ${recordingId} as ${output.value} on OneDrive`);
           uploadedFiles.push({
@@ -513,60 +511,61 @@ export async function driveUpload({
 
           const fileSize = (await fs.stat(tempFile)).size;
           const readStream = createReadStream(tempFile);
-          const file: DropboxResponse<files.FileMetadata> = fileSize < DROPBOX_UPLOAD_FILE_SIZE_LIMIT
-            ? await dbx.filesUpload({ path: `/${uploadFile.name}`, autorename: true, contents: readStream })
-            : await new Promise((resolve, reject) => {
-              let sessionId = '';
-              let uploadedBytes = 0;
-              let chunksToUploadSize = 0;
-              let chunks: Buffer[] = [];
+          const file: DropboxResponse<files.FileMetadata> =
+            fileSize < DROPBOX_UPLOAD_FILE_SIZE_LIMIT
+              ? await dbx.filesUpload({ path: `/${uploadFile.name}`, autorename: true, contents: readStream })
+              : await new Promise((resolve, reject) => {
+                  let sessionId = '';
+                  let uploadedBytes = 0;
+                  let chunksToUploadSize = 0;
+                  let chunks: Buffer[] = [];
 
-              readStream.on('data', async (chunk) => {
-                chunks.push(chunk as Buffer);
-                chunksToUploadSize += chunk.length;
+                  readStream.on('data', async (chunk) => {
+                    chunks.push(chunk as Buffer);
+                    chunksToUploadSize += chunk.length;
 
-                const finished = chunksToUploadSize + uploadedBytes === fileSize;
+                    const finished = chunksToUploadSize + uploadedBytes === fileSize;
 
-                // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
-                if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
-                  readStream.pause();
-                  const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
+                    // upload only if we've specified number of chunks in memory OR we're uploading the final chunk
+                    if (chunks.length === CHUNKS_PER_DRIVE_UPLOAD || finished) {
+                      readStream.pause();
+                      const chunkBuffer = Buffer.concat(chunks, chunksToUploadSize);
 
-                  try {
-                    if (uploadedBytes === 0) {
-                      const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
-                      sessionId = response.result.session_id;
-                    } else if (finished) {
-                      const file = await dbx.filesUploadSessionFinish({
-                        cursor: { session_id: sessionId, offset: uploadedBytes },
-                        commit: { path: `/${uploadFile.name}`, autorename: true },
-                        contents: chunkBuffer
-                      });
-                      return resolve(file);
-                    } else {
-                      await dbx.filesUploadSessionAppendV2({
-                        cursor: { session_id: sessionId, offset: uploadedBytes },
-                        close: false,
-                        contents: chunkBuffer
-                      });
+                      try {
+                        if (uploadedBytes === 0) {
+                          const response = await dbx.filesUploadSessionStart({ close: false, contents: chunkBuffer });
+                          sessionId = response.result.session_id;
+                        } else if (finished) {
+                          const file = await dbx.filesUploadSessionFinish({
+                            cursor: { session_id: sessionId, offset: uploadedBytes },
+                            commit: { path: `/${uploadFile.name}`, autorename: true },
+                            contents: chunkBuffer
+                          });
+                          return resolve(file);
+                        } else {
+                          await dbx.filesUploadSessionAppendV2({
+                            cursor: { session_id: sessionId, offset: uploadedBytes },
+                            close: false,
+                            contents: chunkBuffer
+                          });
+                        }
+                      } catch (e) {
+                        return reject(e);
+                      }
+
+                      // update uploaded bytes
+                      uploadedBytes += chunksToUploadSize;
+
+                      // reset for next chunks
+                      chunks = [];
+                      chunksToUploadSize = 0;
+
+                      readStream.resume();
                     }
-                  } catch (e) {
-                    return reject(e);
-                  }
+                  });
+                });
 
-                  // update uploaded bytes
-                  uploadedBytes += chunksToUploadSize;
-
-                  // reset for next chunks
-                  chunks = [];
-                  chunksToUploadSize = 0;
-
-                  readStream.resume();
-                }
-              });
-            });
-
-          await fs.unlink(tempFile).catch(() => { });
+          await fs.unlink(tempFile).catch(() => {});
           tempFile = null;
           logger.info(`Uploaded ${recordingId} as ${output.value} on Dropbox`);
           uploadedFiles.push({
@@ -598,7 +597,7 @@ export async function driveUpload({
     logger.error(`Error in uploading recording ${recordingId} for user ${userId}`);
     await clearReadyState(recordingId);
     if (child) killProcessTree(child);
-    if (tempFile) await fs.unlink(tempFile).catch(() => { });
+    if (tempFile) await fs.unlink(tempFile).catch(() => {});
     if ((e as AxiosError).isAxiosError === true) {
       const response = (e as AxiosError).response;
       const request: ClientRequest = (e as AxiosError).request;
