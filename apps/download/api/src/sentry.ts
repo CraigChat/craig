@@ -2,6 +2,7 @@ import '@sentry/tracing';
 
 import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
+import { version } from '../package.json';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN_API,

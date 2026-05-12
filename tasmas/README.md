@@ -1,6 +1,6 @@
 # Craig TASMAS sidecar
 
-This folder contains the local transcription and summarization sidecar for Craig recordings. Craig's job is still only recording Discord audio; this sidecar watches the recording directory, extracts `RECORDING_ID.flac.zip`, runs TASMAS on the per-speaker FLAC stems, and optionally summarizes the transcript with NVIDIA NIM or a local Ollama model.
+This folder contains the local transcription and summarization sidecar for Craig recordings. Craig's job is still only recording Discord audio; this sidecar watches the recording directory, extracts `RECORDING_ID.flac.zip`, runs TASMAS on the per-speaker FLAC stems, and optionally summarizes the transcript using a configurable AI provider chain.
 
 The sidecar runs as a Docker Compose service. The `tasmas` folder is bind-mounted into the container, so changes to the Python code only need a container restart, not an image rebuild.
 
@@ -57,13 +57,6 @@ After transcription, the sidecar writes:
 summary_nvidia_mistralai_mistral-large-3-675b-instruct-2512.md
 ```
 
-If `NVIDIA_API_KEY` is empty, the sidecar falls back to Ollama when `OLLAMA_MODEL` is set.
-
-Set `OLLAMA_MODEL` in `install.config`, then restart the sidecar:
-
-```sh
-docker compose restart tasmas
-```
 
 ## Configuration
 
@@ -80,8 +73,6 @@ Set these in `install.config`:
 - `NVIDIA_SUMMARY_MODEL`: summary model. Default: `mistralai/mistral-large-3-675b-instruct-2512`.
 - `NVIDIA_SUMMARY_MAX_TOKENS`: summary output limit. Default: `2048`.
 - `NVIDIA_SUMMARY_TEMPERATURE`: summary temperature. Default: `0.15`.
-- `OLLAMA_MODEL`: enables local summarization when set.
-- `OLLAMA_URL`: Ollama generate endpoint. Default for Docker: `http://host.docker.internal:11434/api/generate`.
 - `TASMAS_WATCH_INTERVAL`: polling interval in seconds. Default: `10`.
 - `TASMAS_SETTLE_SECONDS`: seconds a file must remain unchanged before processing. Default: `5`.
 - `TASMAS_RECORDINGS_LOCK_FILE`: central recording state file. Default: `recordings.lock.json`.

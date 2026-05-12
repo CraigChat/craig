@@ -319,14 +319,10 @@ docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/medi
 
 Output is written under `/mnt/media8tb/craig-recordings/tasmas/RECORDING_ID/`, including `transcript.txt` and any summary files. The sidecar also keeps `/mnt/media8tb/craig-recordings/tasmas/recordings.lock.json` so completed recording IDs are skipped on watcher restarts.
 
-TASMAS uses local `whisper_timestamped` for transcription, but its built-in `summarize` mode calls OpenAI's API and asks interactive prompt-file questions, so this automation leaves TASMAS in `semiauto` mode and uses NVIDIA NIM or Ollama for unattended summaries. Set `NVIDIA_API_KEY` to use the default NVIDIA summary model:
+TASMAS uses local `whisper_timestamped` for transcription, but its built-in `summarize` mode calls OpenAI's API and asks interactive prompt-file questions, so this automation leaves TASMAS in `semiauto` mode and uses a configurable AI provider chain for unattended summaries. Set `NVIDIA_API_KEY` to use the default NVIDIA summary model:
 
 ```txt
 mistralai/mistral-large-3-675b-instruct-2512
 ```
 
-If `NVIDIA_API_KEY` is empty, set `OLLAMA_MODEL` to summarize locally:
-
-```sh
-docker compose restart tasmas
-```
+Additional fallback providers can be configured via `SUMMARY_FALLBACK_CHAIN` in `install.config`.
