@@ -17,7 +17,7 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
   async load() {
     const port = parseInt(process.env.CRAIG_INTERNAL_PORT ?? '3001', 10);
     const secret = process.env.CRAIG_INTERNAL_SECRET ?? '';
-    const tasmOutputDir = process.env.CRAIG_TASMAS_OUTPUT_DIR ?? '';
+    const tasmOutputDir = '/app/rec/tasmas';
 
     this.server = http.createServer(async (req, res) => {
       if (req.method !== 'POST' || req.url !== '/deliver-summary') {
@@ -90,6 +90,11 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
 
     this.server.listen(port, '0.0.0.0', () => {
       this.client.logger.info(`Internal API listening on port ${port}`);
+    });
+    this.server.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code !== 'EADDRINUSE') {
+        this.client.logger.error('InternalApi server error', err);
+      }
     });
   }
 

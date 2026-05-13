@@ -74,8 +74,6 @@ model AutoRecord {
   userId        String
   postChannelId String?
   minimum       Int      @default(1)
-  triggerUsers  String[]
-  triggerRoles  String[]
   updatedAt     DateTime @updatedAt @db.Timestamptz(6)
 
   @@index([clientId], type: Hash)

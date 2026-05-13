@@ -86,11 +86,11 @@ def parse_info_txt(info_path: Path) -> dict[str, str]:
     return names
 
 
-def write_names_json(work_dir: Path) -> Path:
+def write_names_json(work_dir: Path) -> tuple[Path, dict]:
     names_path = work_dir / "names.json"
     names = parse_info_txt(work_dir / "info.txt")
     names_path.write_text(json.dumps(names, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return names_path
+    return names_path, names
 
 
 def create_tasmas_audio_links(work_dir: Path) -> None:
@@ -298,7 +298,10 @@ def process_zip(zip_path: Path) -> Path:
         log(f"Staging {zip_path} -> {work_dir}")
         safe_extract_zip(zip_path, work_dir)
 
-        write_names_json(work_dir)
+        _, names = write_names_json(work_dir)
+        if not names:
+            log(f"No tracks in recording {recording_id}, skipping transcription")
+            return work_dir
         create_tasmas_audio_links(work_dir)
         run_tasmas(output_root, recording_id)
 

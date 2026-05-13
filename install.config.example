@@ -97,7 +97,6 @@ CRAIG_INTERNAL_SECRET=change-me-generate-a-random-value
 # Used by TASMAS to notify the bot:
 CRAIG_INTERNAL_API_URL=http://craig:3001/deliver-summary
 # Used by the bot (path to TASMAS output dir from inside the craig container):
-CRAIG_TASMAS_OUTPUT_DIR=/app/rec/tasmas
 
 ##################################################
 # DATABASE

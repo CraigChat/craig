@@ -38,6 +38,12 @@ RUN export NVM_DIR="/root/.nvm" && \
     nvm use "$NODE_VERSION" && \
     yarn install
 
+# Regenerate Prisma client from current schema (bypasses any cached client)
+RUN export NVM_DIR="/root/.nvm" && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm use "$NODE_VERSION" && \
+    npx prisma generate --schema=/app/prisma/schema.prisma
+
 # Build cook utilities
 RUN mkdir -p /app/rec && \
     /bin/bash /app/scripts/buildCook.sh && \
@@ -51,6 +57,12 @@ RUN export NVM_DIR="/root/.nvm" && \
     . /app/install.config && \
     set +a && \
     yarn workspaces run build
+
+# Rebuild native modules for the current Node.js ABI
+RUN export NVM_DIR="/root/.nvm" && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm use "$NODE_VERSION" && \
+    npm rebuild @discordjs/opus
 
 # Expose app port
 EXPOSE 3000

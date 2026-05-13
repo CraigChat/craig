@@ -22,8 +22,6 @@ interface AutoRecordUpsert {
   userId: string;
   postChannelId: string | null;
   minimum: number;
-  triggerUsers: string[];
-  triggerRoles: string[];
 }
 
 // @ts-ignore
@@ -105,8 +103,6 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         data: {
           userId: data.userId,
           minimum: data.minimum,
-          triggerUsers: data.triggerUsers,
-          triggerRoles: data.triggerRoles,
           postChannelId: data.postChannelId || null
         }
       });
@@ -118,9 +114,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           voiceChannelId: data.voiceChannelId,
           userId: data.userId,
           postChannelId: data.postChannelId || null,
-          minimum: data.minimum,
-          triggerUsers: data.triggerUsers,
-          triggerRoles: data.triggerRoles
+          minimum: data.minimum
         }
       });
     }
@@ -168,21 +162,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     }
 
     const memberCount = channel.voiceMembers.filter((m) => !m.bot).length;
-    let shouldRecord = autoRecording.minimum === 0 ? false : memberCount >= autoRecording.minimum;
-    if (
-      !shouldRecord &&
-      autoRecording.triggerUsers.length > 0 &&
-      channel.voiceMembers.some((member) => !member.bot && autoRecording.triggerUsers.includes(member.id))
-    ) {
-      shouldRecord = true;
-    }
-    if (
-      !shouldRecord &&
-      autoRecording.triggerRoles.length > 0 &&
-      channel.voiceMembers.some((member) => !member.bot && autoRecording.triggerRoles.some((r) => r !== guildId && member.roles.includes(r)))
-    ) {
-      shouldRecord = true;
-    }
+    const shouldRecord = autoRecording.minimum !== 0 && memberCount >= autoRecording.minimum;
 
     if (memberCount === 0 && recording) {
       this.logger.info(`Stopping autorecord for ${voiceChannelId} in ${autoRecording.userId} (${autoRecording.id})...`, false);

@@ -35,6 +35,7 @@ services:
         condition: service_started
     volumes:
       - '/mnt/media8tb/craig-recordings:/app/rec'
+      - '/mnt/media8tb/craig-recordings/tasmas:/app/rec/tasmas'
       - './install.config:/app/install.config:ro'
       - './prisma:/app/prisma'
       - './apps/bot/config:/app/apps/bot/config'

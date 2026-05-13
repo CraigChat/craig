@@ -41,14 +41,10 @@ export default class AutoRecord extends GeneralCommand {
             {
               type: CommandOptionType.INTEGER,
               name: 'minimum',
-              description: 'The minimum amount of members to auto-record on, regardless of triggers.',
-              min_value: 0,
-              max_value: 99
-            },
-            {
-              type: CommandOptionType.STRING,
-              name: 'triggers',
-              description: 'The members or roles that trigger the auto-recording. Mention users/roles inside this option.'
+              description: 'The minimum amount of members to auto-record on.',
+              min_value: 1,
+              max_value: 99,
+              required: true
             },
             {
               type: CommandOptionType.CHANNEL,
@@ -176,9 +172,7 @@ export default class AutoRecord extends GeneralCommand {
                 description: stripIndents`
                   **Channel:** <#${ctx.options.view.channel}>
                   **Created by:** <@${autoRecording.userId}>
-                  **Minimum members:** ${autoRecording.minimum === 0 ? '*None*' : autoRecording.minimum.toLocaleString()}
-                  **Trigger roles:** ${autoRecording.triggerRoles.map((roleId) => `<@&${roleId}>`).join(', ') || '*None*'}
-                  **Trigger users:** ${autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || '*None*'}
+                  **Minimum members:** ${autoRecording.minimum.toLocaleString()}
                   **Updated at:** <t:${Math.round(autoRecording.updatedAt.valueOf() / 1000)}:F>
                 `
               }
@@ -205,9 +199,7 @@ export default class AutoRecord extends GeneralCommand {
               description: autoRecordings
                 .map((ar) => {
                   const extra = [
-                    ar.minimum !== 0 ? `${ar.minimum} minimum` : null,
-                    ar.triggerRoles.length > 0 ? `${ar.triggerRoles.length} role[s]` : null,
-                    ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} user[s]` : null,
+                    `${ar.minimum} minimum`,
                     ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
                   ].filter((e) => !!e) as string[];
                   return `<#${ar.voiceChannelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
@@ -220,24 +212,8 @@ export default class AutoRecord extends GeneralCommand {
       }
       case 'on': {
         const channel = ctx.options.on.channel as string;
-        const min = ctx.options.on.minimum ?? 0;
-        const triggerUsers = ctx.users.map((u) => u.id);
-        const triggerRoles = ctx.roles.map((r) => r.id);
+        const min = ctx.options.on.minimum as number;
         const postChannel = ctx.options.on['post-channel'] as string;
-
-        if (min === 0 && triggerUsers.length <= 0 && triggerRoles.length <= 0) {
-          return {
-            content: 'You need to at least set a minimum user amount or add a user/role trigger.',
-            ephemeral: true
-          };
-        }
-
-        if (triggerRoles.includes(guild.id)) {
-          return {
-            content: 'The `@everyone` role cannot be used as a trigger role.',
-            ephemeral: true
-          };
-        }
 
         const autoRecordingCount = await this.prisma.autoRecord.count({
           where: { guildId: ctx.guildID, clientId: this.client.bot.user.id }
@@ -255,9 +231,7 @@ export default class AutoRecord extends GeneralCommand {
           voiceChannelId: channel,
           userId: ctx.user.id,
           postChannelId: postChannel || null,
-          minimum: min,
-          triggerUsers,
-          triggerRoles
+          minimum: min
         });
 
         return {
