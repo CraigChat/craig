@@ -81,6 +81,32 @@ export default class ServerSettings extends GeneralCommand {
               description: "Reset the bot's server profile."
             }
           ]
+        },
+        {
+          type: CommandOptionType.SUB_COMMAND_GROUP,
+          name: 'summary-channel',
+          description: 'Configure where AI summaries are posted for this server.',
+          options: [
+            {
+              type: CommandOptionType.SUB_COMMAND,
+              name: 'set',
+              description: 'Set the channel where summaries will be posted.',
+              options: [
+                {
+                  type: CommandOptionType.CHANNEL,
+                  name: 'channel',
+                  description: 'The text channel to post summaries in.',
+                  required: true,
+                  channel_types: [0] // GUILD_TEXT
+                }
+              ]
+            },
+            {
+              type: CommandOptionType.SUB_COMMAND,
+              name: 'clear',
+              description: 'Remove the summary channel (summaries fall back to global webhook).'
+            }
+          ]
         }
       ]
     });
@@ -148,6 +174,7 @@ export default class ServerSettings extends GeneralCommand {
               title: 'Server Settings',
               description: stripIndents`
                 **Access Roles:** ${guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : '*None*'}
+                **Summary Channel:** ${guildData?.summaryChannelId ? `<#${guildData.summaryChannelId}>` : '*Not set*'}
               `
             }
           ],
@@ -192,6 +219,38 @@ export default class ServerSettings extends GeneralCommand {
               content: `Removed <@&${roleID}> from access roles.`,
               ephemeral: true
             };
+          }
+        }
+        break;
+      }
+      case 'summary-channel': {
+        switch (ctx.subcommands[1]) {
+          case 'set': {
+            const summaryChannelId = ctx.options['summary-channel'].set.channel as string;
+            const channel = guild.channels.get(summaryChannelId);
+            if (!channel) return { content: 'Channel not found.', ephemeral: true };
+
+            if (!channel.permissionsOf(this.client.bot.user.id).has('sendMessages')) {
+              return {
+                content: `I don't have permission to send messages in <#${summaryChannelId}>. Grant me Send Messages there first.`,
+                ephemeral: true
+              };
+            }
+
+            await this.prisma.guild.upsert({
+              where: { id: ctx.guildID! },
+              update: { summaryChannelId: summaryChannelId },
+              create: { id: ctx.guildID!, accessRoles: [], summaryChannelId: summaryChannelId }
+            });
+            return { content: `Summary channel set to <#${summaryChannelId}>.`, ephemeral: true };
+          }
+          case 'clear': {
+            await this.prisma.guild.upsert({
+              where: { id: ctx.guildID! },
+              update: { summaryChannelId: null },
+              create: { id: ctx.guildID!, accessRoles: [], summaryChannelId: null }
+            });
+            return { content: 'Summary channel cleared.', ephemeral: true };
           }
         }
         break;

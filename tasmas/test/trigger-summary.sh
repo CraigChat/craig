@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Re-trigger summarization for a recording that has already been processed.
-# Usage: ./test-trigger-summary.sh <RECORDING_ID>
+# Usage: ./trigger-summary.sh <RECORDING_ID>
 set -euo pipefail
 
 RID="${1:?Usage: $0 <RECORDING_ID>}"

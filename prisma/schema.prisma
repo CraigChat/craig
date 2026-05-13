@@ -39,35 +39,37 @@ model Ban {
 }
 
 model Guild {
-  id          String   @id
-  accessRoles String[]
-  createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  id               String   @id
+  accessRoles      String[]
+  summaryChannelId String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model Recording {
-  id           String    @id
-  accessKey    String
-  deleteKey    String
-  userId       String
-  channelId    String
-  guildId      String
-  clientId     String
-  shardId      Int
-  autorecorded Boolean   @default(false)
-  rewardTier   Int       @default(0)
-  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
-  endedAt      DateTime? @db.Timestamptz(6)
-  errored      Boolean   @default(false)
-  expiresAt    DateTime  @db.Timestamptz(6)
+  id             String    @id
+  accessKey      String
+  deleteKey      String
+  userId         String
+  voiceChannelId   String
+  guildId          String
+  clientId         String
+  shardId          Int
+  messageChannelId String?
+  autorecorded     Boolean   @default(false)
+  rewardTier     Int       @default(0)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  endedAt        DateTime? @db.Timestamptz(6)
+  errored        Boolean   @default(false)
+  expiresAt      DateTime  @db.Timestamptz(6)
 
   @@index([userId, createdAt(sort: Desc)])
 }
 
 model AutoRecord {
-  id            String   @id @default(cuid())
-  channelId     String
-  clientId      String
+  id             String   @id @default(cuid())
+  voiceChannelId String
+  clientId       String
   guildId       String
   userId        String
   postChannelId String?

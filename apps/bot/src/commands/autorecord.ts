@@ -159,7 +159,7 @@ export default class AutoRecord extends GeneralCommand {
       case 'view': {
         if (ctx.options.view.channel) {
           const autoRecording = await this.prisma.autoRecord.findFirst({
-            where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: ctx.options.view.channel }
+            where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, voiceChannelId: ctx.options.view.channel }
           });
 
           if (!autoRecording) {
@@ -210,7 +210,7 @@ export default class AutoRecord extends GeneralCommand {
                     ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} user[s]` : null,
                     ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
                   ].filter((e) => !!e) as string[];
-                  return `<#${ar.channelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
+                  return `<#${ar.voiceChannelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
                 })
                 .join('\n')
             }
@@ -252,7 +252,7 @@ export default class AutoRecord extends GeneralCommand {
 
         await this.autoRecord.upsert({
           guildId: ctx.guildID,
-          channelId: channel,
+          voiceChannelId: channel,
           userId: ctx.user.id,
           postChannelId: postChannel || null,
           minimum: min,
@@ -269,7 +269,7 @@ export default class AutoRecord extends GeneralCommand {
         const channel = ctx.options.off.channel as string;
 
         const autoRecording = await this.prisma.autoRecord.findFirst({
-          where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: channel }
+          where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, voiceChannelId: channel }
         });
 
         if (autoRecording) {
@@ -291,7 +291,7 @@ export default class AutoRecord extends GeneralCommand {
           where: {
             guildId: ctx.guildID,
             clientId: this.client.bot.user.id,
-            channelId: { notIn: guild.channels.map((c) => c.id) }
+            voiceChannelId: { notIn: guild.channels.map((c) => c.id) }
           }
         });
 

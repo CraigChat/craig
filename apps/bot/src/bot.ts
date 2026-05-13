@@ -10,6 +10,7 @@ import { cron as influxCron } from './influx';
 import AutorecordModule from './modules/autorecord';
 import CacheModule from './modules/cache';
 import EntitlementsModule from './modules/entitlements';
+import InternalApiModule from './modules/internalApi';
 import LoggerModule from './modules/logger';
 import MetricsModule from './modules/metrics';
 import RecorderModule from './modules/recorder';
@@ -141,7 +142,8 @@ export async function connect() {
     MetricsModule,
     UploadModule,
     EntitlementsModule,
-    CacheModule
+    CacheModule,
+    InternalApiModule
   );
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 

@@ -156,55 +156,37 @@ def run_tasmas(output_root: Path, recording_id: str) -> None:
         raise subprocess.CalledProcessError(exit_code, command)
 
 
-def send_discord_summary_webhook(summary_path: Path, recording_id: str) -> None:
-    webhook_url = os.environ.get("DISCORD_SUMMARY_WEBHOOK_URL", "").strip()
-    if not webhook_url:
-        return
-
-    content = summary_path.read_text(encoding="utf-8", errors="replace")
-    header = f"`{recording_id}`\n"
-    full_text = header + content
-
-    # Discord enforces a 2000-char limit per message; split on newlines to preserve markdown.
-    chunks: list[str] = []
-    current = ""
-    for line in full_text.splitlines(keepends=True):
-        if len(current) + len(line) > 2000:
-            if current:
-                chunks.append(current)
-            current = line
-        else:
-            current += line
-    if current:
-        chunks.append(current)
-
-    for chunk in chunks:
-        body = json.dumps({"content": chunk})
-        result = subprocess.run(
-            [
-                "curl", "-s", "-o", "/dev/stderr", "-w", "%{http_code}",
-                "-X", "POST",
-                "-H", "Content-Type: application/json",
-                "--data-raw", body,
-                webhook_url,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        status_code = result.stdout.strip()
-        if status_code not in ("200", "204"):
-            log(f"Discord webhook failed: HTTP {status_code}: {result.stderr.strip()}", stream=sys.stderr)
-            return
-
-    log(f"Sent summary to Discord webhook ({len(chunks)} message(s))")
+def notify_summary_delivery(recording_id: str) -> bool:
+    """Notify the craig bot to deliver the summary. Returns True if the bot handled it."""
+    internal_url = os.environ.get("CRAIG_INTERNAL_API_URL", "").strip()
+    if not internal_url:
+        return False
+    secret = os.environ.get("CRAIG_INTERNAL_SECRET", "").strip()
+    body = json.dumps({"recordingId": recording_id})
+    result = subprocess.run(
+        [
+            "curl", "-s", "-o", "/dev/stderr", "-w", "%{http_code}",
+            "-X", "POST",
+            "-H", "Content-Type: application/json",
+            *(["-H", f"Authorization: Bearer {secret}"] if secret else []),
+            "--data-raw", body,
+            internal_url,
+        ],
+        capture_output=True, text=True, timeout=30,
+    )
+    status = result.stdout.strip()
+    if status == "200":
+        log(f"Summary delivered for {recording_id}")
+        return True
+    log(f"Internal API returned {status} for {recording_id}, summary not delivered", stream=sys.stderr)
+    return False
 
 
 def summarize_transcript(transcript_path: Path) -> None:
     from summarizer import build_summary_chain
     summary = build_summary_chain().run(transcript_path)
     if summary:
-        send_discord_summary_webhook(summary, transcript_path.parent.name)
+        notify_summary_delivery(transcript_path.parent.name)
 
 
 def acquire_lock(lock_dir: Path) -> bool:

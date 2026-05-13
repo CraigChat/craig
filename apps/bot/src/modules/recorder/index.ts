@@ -307,7 +307,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         continue;
       }
 
-      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as Eris.StageChannel | Eris.VoiceChannel;
+      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.voiceChannelId) as Eris.StageChannel | Eris.VoiceChannel;
       if (!channel) {
         continue;
       }
@@ -333,7 +333,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         .createMessage(
           `**⚠️ The following recordings have abruptly ended, please start a new recording from the slash command as the recording interface is no longer valid.**\n\n${badRecordings
             .filter((r) => r.userId === userId)
-            .map((r) => `- \`${r.id}\` in <#${r.channelId}>`)
+            .map((r) => `- \`${r.id}\` in <#${r.voiceChannelId}>`)
             .join('\n')}`
         )
         .catch(() => null);

@@ -18,7 +18,7 @@ const TTL = 1000 * 60 * 60; // 1 hour
 
 interface AutoRecordUpsert {
   guildId: string;
-  channelId: string;
+  voiceChannelId: string;
   userId: string;
   postChannelId: string | null;
   minimum: number;
@@ -83,19 +83,19 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
     this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
 
-    Array.from(this.autorecords.keys()).forEach((channelId) => {
-      if (!autorecords.find((autorecord) => autorecord.channelId === channelId)) {
-        this.autorecords.delete(channelId);
+    Array.from(this.autorecords.keys()).forEach((vcChannelId) => {
+      if (!autorecords.find((autorecord) => autorecord.voiceChannelId === vcChannelId)) {
+        this.autorecords.delete(vcChannelId);
       }
     });
-    autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
+    autorecords.forEach((autorecord) => this.autorecords.set(autorecord.voiceChannelId, autorecord));
     this.lastRefresh = Date.now();
     this.fetching = false;
   }
 
   async upsert(data: AutoRecordUpsert) {
     const autoRecording = await prisma.autoRecord.findFirst({
-      where: { guildId: data.guildId, clientId: this.client.bot.user.id, channelId: data.channelId }
+      where: { guildId: data.guildId, clientId: this.client.bot.user.id, voiceChannelId: data.voiceChannelId }
     });
     let newAutoRecording: AutoRecord | null = null;
 
@@ -115,7 +115,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         data: {
           clientId: this.client.bot.user.id,
           guildId: data.guildId,
-          channelId: data.channelId,
+          voiceChannelId: data.voiceChannelId,
           userId: data.userId,
           postChannelId: data.postChannelId || null,
           minimum: data.minimum,
@@ -126,7 +126,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     }
 
     if (newAutoRecording) {
-      this.autorecords.set(newAutoRecording.channelId, newAutoRecording);
+      this.autorecords.set(newAutoRecording.voiceChannelId, newAutoRecording);
     }
   }
 
@@ -135,24 +135,24 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       where: { id: autoRecording.id }
     });
 
-    this.autorecords.delete(autoRecording.channelId);
+    this.autorecords.delete(autoRecording.voiceChannelId);
   }
 
-  async find(channelId: string) {
+  async find(voiceChannelId: string) {
     if (Date.now() - this.lastRefresh > TTL) {
       await this.fetchAll();
     }
 
-    return this.autorecords.get(channelId);
+    return this.autorecords.get(voiceChannelId);
   }
 
-  async checkAutorecord(channelId: string, guildId: string) {
+  async checkAutorecord(voiceChannelId: string, guildId: string) {
     const recording = this.recorder.recordings.get(guildId);
-    if (recording && (!recording.autorecorded || recording.channel.id !== channelId)) {
+    if (recording && (!recording.autorecorded || recording.channel.id !== voiceChannelId)) {
       return;
     }
 
-    const autoRecording = await this.find(channelId);
+    const autoRecording = await this.find(voiceChannelId);
     if (!autoRecording) {
       return;
     }
@@ -162,7 +162,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     if (!guild) {
       return;
     }
-    const channel = guild.channels.get(channelId) as Eris.StageChannel | Eris.VoiceChannel;
+    const channel = guild.channels.get(voiceChannelId) as Eris.StageChannel | Eris.VoiceChannel;
     if (!channel) {
       return;
     }
@@ -185,7 +185,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     }
 
     if (memberCount === 0 && recording) {
-      this.logger.info(`Stopping autorecord for ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`, false);
+      this.logger.info(`Stopping autorecord for ${voiceChannelId} in ${autoRecording.userId} (${autoRecording.id})...`, false);
       recording.pushToActivity('Autorecord stopped due to lack of users.');
       await recording.stop();
       return;
@@ -204,13 +204,13 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         return;
       }
 
-      this.logger.info(`Starting to autorecord ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`);
+      this.logger.info(`Starting to autorecord ${voiceChannelId} in ${autoRecording.userId} (${autoRecording.id})...`);
       // Check permissions
       if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect')) {
-        return void this.logger.debug(`Could not connect to ${channelId}: Missing voice connect permissions`);
+        return void this.logger.debug(`Could not connect to ${voiceChannelId}: Missing voice connect permissions`);
       }
       if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname')) {
-        return void this.logger.debug(`Could not connect to ${channelId}: Missing nickname permissions`);
+        return void this.logger.debug(`Could not connect to ${voiceChannelId}: Missing nickname permissions`);
       }
 
       // Find member
@@ -237,7 +237,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         try {
           await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
         } catch (e) {
-          return void this.logger.warn(`Could not connect to ${channelId} while autorecording: An error occurred while changing my nickname`, e);
+          return void this.logger.warn(`Could not connect to ${voiceChannelId} while autorecording: An error occurred while changing my nickname`, e);
         }
       }
 
@@ -269,11 +269,11 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
           error
         );
-        reportAutorecordingError(member, guildId, channelId, error, recording);
+        reportAutorecordingError(member, guildId, voiceChannelId, error, recording);
 
         if (recording.state !== RecordingState.ERROR) {
           recording.state = RecordingState.ERROR;
-          await recording.stop(true).catch(() => {});
+          await recording.stop(true).catch(() => { });
         }
 
         if (recording.messageID && recording.messageChannelID) {
@@ -305,7 +305,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
                 }
               ]
             })
-            .catch(() => {});
+            .catch(() => { });
         }
         return;
       }
@@ -318,17 +318,17 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     }
   }
 
-  async debounceCheck(channelId: string, guildId: string) {
-    if (this.debounceTimeouts.has(channelId)) {
-      clearTimeout(this.debounceTimeouts.get(channelId));
-      this.debounceTimeouts.delete(channelId);
+  async debounceCheck(voiceChannelId: string, guildId: string) {
+    if (this.debounceTimeouts.has(voiceChannelId)) {
+      clearTimeout(this.debounceTimeouts.get(voiceChannelId));
+      this.debounceTimeouts.delete(voiceChannelId);
     }
 
     this.debounceTimeouts.set(
-      channelId,
+      voiceChannelId,
       setTimeout(async () => {
-        await this.checkAutorecord(channelId, guildId);
-        this.debounceTimeouts.delete(channelId);
+        await this.checkAutorecord(voiceChannelId, guildId);
+        this.debounceTimeouts.delete(voiceChannelId);
       }, 2000)
     );
   }

@@ -7,7 +7,6 @@ DISCORD_APP_ID=
 CLIENT_ID=
 CLIENT_SECRET=
 DEVELOPMENT_GUILD_ID=
-DISCORD_SUMMARY_WEBHOOK_URL=
 
 ##################################################
 # Dashboard app environment
@@ -87,6 +86,18 @@ SUMMARY_FALLBACK_CHAIN=https://integrate.api.nvidia.com/v1/chat/completions|NVID
 
 # Seconds to wait before each fallback attempt
 SUMMARY_RETRY_DELAY_SECONDS=120
+
+##################################################
+# Internal API — per-guild summary routing
+##################################################
+
+# Secret shared between TASMAS and the bot (generate a random value)
+CRAIG_INTERNAL_PORT=3001
+CRAIG_INTERNAL_SECRET=change-me-generate-a-random-value
+# Used by TASMAS to notify the bot:
+CRAIG_INTERNAL_API_URL=http://craig:3001/deliver-summary
+# Used by the bot (path to TASMAS output dir from inside the craig container):
+CRAIG_TASMAS_OUTPUT_DIR=/app/rec/tasmas
 
 ##################################################
 # DATABASE

@@ -129,7 +129,7 @@ docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/medi
 Re-trigger AI summarization for an already-transcribed recording:
 
 ```bash
-./tasmas/test/test-trigger-summary.sh RECORDING_ID
+./tasmas/test/trigger-summary.sh RECORDING_ID
 ```
 
 Check recording state (processing / completed / failed):
@@ -138,8 +138,7 @@ Check recording state (processing / completed / failed):
 cat /mnt/media8tb/craig-recordings/tasmas/recordings.lock.json | python3 -m json.tool
 ```
 
-Restart the TASMAS sidecar after editing Python files:
-
+Restart craig & tasmas :
 ```bash
-docker compose restart tasmas
+docker compose up -d --build craig tasmas
 ```

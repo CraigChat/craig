@@ -63,7 +63,7 @@ export function reportRecordingError(ctx: CommandContext, error: any, recording?
   });
 }
 
-export function reportAutorecordingError(member: Eris.Member, guildId: string, channelId: string, error: any, recording?: Recording) {
+export function reportAutorecordingError(member: Eris.Member, guildId: string, voiceChannelId: string, error: any, recording?: Recording) {
   if (!sentryOpts) {
     return;
   }
@@ -74,7 +74,7 @@ export function reportAutorecordingError(member: Eris.Member, guildId: string, c
     }
     scope.setTag('user', member.id);
     scope.setTag('guild', guildId);
-    scope.setTag('channel', channelId);
+    scope.setTag('channel', voiceChannelId);
     scope.setUser({
       id: member.id,
       username: member.username,

@@ -36,5 +36,5 @@ The summarizer writes a Markdown file per successful provider under `TASMAS_OUTP
 To regenerate the summary for an already-transcribed recording:
 
 ```sh
-./tasmas/test/test-trigger-summary.sh RECORDING_ID
+./tasmas/test/trigger-summary.sh RECORDING_ID
 ```
