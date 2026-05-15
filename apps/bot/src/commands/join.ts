@@ -325,10 +325,10 @@ export default class Join extends GeneralCommand {
 
     // Nickname the bot
     const selfUser = await getSelfMember(guild, this.client.bot);
-    const recNick = cutoffText(`![RECORDING] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
+    const recNick = cutoffText(`🎙️ ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
     await ctx.defer();
     let nickChanged = false;
-    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]'))) {
+    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('🎙️'))) {
       try {
         const nickWarnTimeout = setTimeout(() => {
           if (!nickChanged) {

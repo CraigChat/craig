@@ -66,7 +66,11 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
                   if (result?.uploaded) {
                     this.client.logger.info(`[deliver-summary] ${label} uploaded to Drive for ${recordingId}: ${result.url}`);
                   } else if (result?.error) {
-                    this.client.logger.info(`[deliver-summary] ${label} not uploaded to Drive for ${recordingId}: ${result.error}`);
+                    const silent = ['not_enabled', 'unsupported_service', 'user_not_found', 'data_not_found'].includes(result.error);
+                    (silent ? this.client.logger.info : this.client.logger.warn).call(
+                      this.client.logger,
+                      `[deliver-summary] ${label} not uploaded to Drive for ${recordingId}: ${result.error}`
+                    );
                   }
                 })
                 .catch((err: any) => {

@@ -10,9 +10,11 @@ import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 from logging_utils import log
 
@@ -145,14 +147,17 @@ class SummaryChain:
         errors: list[str] = []
         total = len(self._providers)
 
+        ny_now = datetime.now(ZoneInfo("America/New_York"))
+        timestamp = ny_now.strftime("%Y-%-m-%-d_%Hh%M")
+        recording_id = transcript_path.parent.name.removeprefix("craig_")
+
         for i, provider in enumerate(self._providers):
             if i > 0:
                 log(f"Waiting {self._retry_delay_s}s before next provider...")
                 time.sleep(self._retry_delay_s)
             log(f"[{i + 1}/{total}] Trying {provider.label()}")
 
-            filename = re.sub(r"[^A-Za-z0-9_.-]", "_", provider.model)
-            output_path = transcript_path.parent / f"summary_{filename}.md"
+            output_path = transcript_path.parent / f"{timestamp}_{recording_id}_summary.md"
 
             try:
                 provider.summarize(transcript, output_path)
