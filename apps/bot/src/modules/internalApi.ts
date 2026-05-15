@@ -56,14 +56,50 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
         let deliveryChannelId: string | null = null;
 
         if (recording) {
+          // Fire-and-forget: upload summary markdown to the user's Google Drive
+          const recorder = this.client.modules.get('recorder') as any;
+          if (recorder?.trpc) {
+            const fireAndForget = (query: string, label: string) =>
+              recorder.trpc
+                .query(query, { recordingId, userId: recording.userId })
+                .then((result: any) => {
+                  if (result?.uploaded) {
+                    this.client.logger.info(`[deliver-summary] ${label} uploaded to Drive for ${recordingId}: ${result.url}`);
+                  } else if (result?.error) {
+                    this.client.logger.info(`[deliver-summary] ${label} not uploaded to Drive for ${recordingId}: ${result.error}`);
+                  }
+                })
+                .catch((err: any) => {
+                  this.client.logger.warn(`[deliver-summary] Drive ${label} upload failed for ${recordingId}`, err);
+                });
+
+            fireAndForget('driveSummaryUpload', 'summary');
+            fireAndForget('driveTranscriptUpload', 'transcript');
+          }
+
           const erisGuild = this.client.bot.guilds.get(recording.guildId)
             ?? await this.client.bot.getRESTGuild(recording.guildId).catch(() => null);
 
-          deliveryChannelId = erisGuild?.systemChannelID ?? null;
+          this.client.logger.info(
+            `[deliver-summary] recording=${recordingId} guild=${recording.guildId} ` +
+            `systemChannelID=${erisGuild?.systemChannelID ?? 'null'} messageChannelId=${recording.messageChannelId ?? 'null'}`
+          );
+
+          deliveryChannelId = erisGuild?.systemChannelID ?? recording.messageChannelId ?? null;
+
+          if (!deliveryChannelId && recording.autorecorded) {
+            const autoRecord = await prisma.autoRecord.findFirst({
+              where: { voiceChannelId: recording.voiceChannelId, guildId: recording.guildId }
+            });
+            deliveryChannelId = autoRecord?.postChannelId ?? null;
+            this.client.logger.info(
+              `[deliver-summary] autoRecord postChannelId=${autoRecord?.postChannelId ?? 'null'}`
+            );
+          }
         }
 
         if (!deliveryChannelId) {
-          this.client.logger.warn(`No summary channel for recording ${recordingId} — guild has no accessible text channel`);
+          this.client.logger.warn(`No summary channel for recording ${recordingId} — no system channel, no message channel, and no autorecord post channel`);
           res.writeHead(404).end();
           return;
         }

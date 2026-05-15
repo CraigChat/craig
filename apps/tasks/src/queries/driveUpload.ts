@@ -5,6 +5,7 @@ import { Dropbox, DropboxAuth, DropboxResponse, Error as DropboxError, files } f
 import { drive_v3, google } from 'googleapis';
 import type { ClientRequest } from 'http';
 import { createReadStream } from 'node:fs';
+import { Readable } from 'node:stream';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -150,10 +151,10 @@ async function findGoogleDriveFolderPath(drive: drive_v3.Drive, folderPath: stri
   return parentId;
 }
 
-function getGoogleDriveFolderPathForRecording(folderPath: string, startDate: Date) {
+function getGoogleDriveFolderPath(folderPath: string, startDate: Date, subfolder: string) {
   const dateFolder = driveDateFolderFormatter.format(startDate).replace(/\//g, '-');
 
-  return [folderPath, dateFolder, 'raw']
+  return [folderPath, dateFolder, subfolder]
     .map((segment) => segment.trim())
     .filter(Boolean)
     .join('/');
@@ -279,6 +280,147 @@ function getUploadFileInfo(fileName: string, output: DriveUploadFormat) {
   };
 }
 
+export async function driveSummaryUpload({
+  recordingId,
+  userId
+}: {
+  recordingId: string;
+  userId: string;
+}): Promise<{ error: string | null; uploaded: boolean; url?: string }> {
+  const infoPath = path.join(recPath, `${recordingId}.ogg.info`);
+  if (!(await fileExists(infoPath))) {
+    return { error: 'info_deleted', uploaded: false };
+  }
+  const info = JSON.parse(await fs.readFile(infoPath, 'utf8'));
+  const startDate = new Date(info.startTime);
+
+  const tasmDir = path.join(recPath, 'tasmas', recordingId);
+  let summaryContent: string;
+  try {
+    const entries = await fs.readdir(tasmDir);
+    const summaryFile = entries.find((f) => f.startsWith('summary_') && f.endsWith('.md'));
+    if (!summaryFile) return { error: 'summary_not_found', uploaded: false };
+    summaryContent = await fs.readFile(path.join(tasmDir, summaryFile), 'utf-8');
+  } catch {
+    return { error: 'summary_dir_not_found', uploaded: false };
+  }
+
+  const user = await prisma.user.findFirst({ where: { id: userId } });
+  if (!user) return { error: 'user_not_found', uploaded: false };
+  if (!user.driveEnabled) return { error: 'not_enabled', uploaded: false };
+  if (user.driveService !== 'google') return { error: 'unsupported_service', uploaded: false };
+
+  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
+  if (!driveUser) return { error: 'data_not_found', uploaded: false };
+
+  const oAuth2Client = new google.auth.OAuth2(driveConfig.clientId, driveConfig.clientSecret);
+  oAuth2Client.setCredentials({ access_token: driveUser.token, refresh_token: driveUser.refreshToken });
+  const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+  oAuth2Client.on('tokens', async (tokens) => {
+    if (tokens.refresh_token) {
+      await prisma.googleDriveUser.update({ where: { id: userId }, data: { refreshToken: tokens.refresh_token } });
+    }
+  });
+
+  const folderPath = getGoogleDriveFolderPath(driveConfig.folderPath || 'Craig', startDate, 'summary');
+  const folderId = await findGoogleDriveFolderPath(drive, folderPath);
+  if (!folderId) return { error: 'google_token_expired', uploaded: false };
+
+  const fileName = `${startDate.getFullYear()}-${startDate.getMonth() + 1}-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}_craig_${recordingId}`;
+
+  const file = await drive.files.create({
+    quotaUser: userId,
+    requestBody: {
+      name: `${fileName}_summary.md`,
+      mimeType: 'text/markdown',
+      parents: [folderId],
+      createdTime: info.startTime,
+      description: getRecordingDescription(recordingId, info),
+      properties: {
+        'craig-recording-id': recordingId,
+        'craig-requester-id': info.requesterId,
+        'craig-guild-id': info.guildExtra.id,
+        'craig-channel-id': info.channelExtra.id
+      }
+    },
+    media: {
+      mimeType: 'text/markdown',
+      body: Readable.from(Buffer.from(summaryContent, 'utf-8'))
+    }
+  });
+
+  logger.info(`Uploaded summary for ${recordingId} on Google Drive`);
+  return { error: null, uploaded: true, url: `https://drive.google.com/open?id=${file.data.id}` };
+}
+
+export async function driveTranscriptUpload({
+  recordingId,
+  userId
+}: {
+  recordingId: string;
+  userId: string;
+}): Promise<{ error: string | null; uploaded: boolean; url?: string }> {
+  const infoPath = path.join(recPath, `${recordingId}.ogg.info`);
+  if (!(await fileExists(infoPath))) {
+    return { error: 'info_deleted', uploaded: false };
+  }
+  const info = JSON.parse(await fs.readFile(infoPath, 'utf8'));
+  const startDate = new Date(info.startTime);
+
+  const transcriptPath = path.join(recPath, 'tasmas', recordingId, 'transcript.txt');
+  if (!(await fileExists(transcriptPath))) {
+    return { error: 'transcript_not_found', uploaded: false };
+  }
+  const transcriptContent = await fs.readFile(transcriptPath, 'utf-8');
+
+  const user = await prisma.user.findFirst({ where: { id: userId } });
+  if (!user) return { error: 'user_not_found', uploaded: false };
+  if (!user.driveEnabled) return { error: 'not_enabled', uploaded: false };
+  if (user.driveService !== 'google') return { error: 'unsupported_service', uploaded: false };
+
+  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
+  if (!driveUser) return { error: 'data_not_found', uploaded: false };
+
+  const oAuth2Client = new google.auth.OAuth2(driveConfig.clientId, driveConfig.clientSecret);
+  oAuth2Client.setCredentials({ access_token: driveUser.token, refresh_token: driveUser.refreshToken });
+  const drive = google.drive({ version: 'v3', auth: oAuth2Client });
+  oAuth2Client.on('tokens', async (tokens) => {
+    if (tokens.refresh_token) {
+      await prisma.googleDriveUser.update({ where: { id: userId }, data: { refreshToken: tokens.refresh_token } });
+    }
+  });
+
+  const folderPath = getGoogleDriveFolderPath(driveConfig.folderPath || 'Craig', startDate, 'transcript');
+  const folderId = await findGoogleDriveFolderPath(drive, folderPath);
+  if (!folderId) return { error: 'google_token_expired', uploaded: false };
+
+  const fileName = `${startDate.getFullYear()}-${startDate.getMonth() + 1}-${startDate.getDate()}_${startDate.getHours()}-${startDate.getMinutes()}-${startDate.getSeconds()}_craig_${recordingId}`;
+
+  const file = await drive.files.create({
+    quotaUser: userId,
+    requestBody: {
+      name: `${fileName}_transcript.txt`,
+      mimeType: 'text/plain',
+      parents: [folderId],
+      createdTime: info.startTime,
+      description: getRecordingDescription(recordingId, info),
+      properties: {
+        'craig-recording-id': recordingId,
+        'craig-requester-id': info.requesterId,
+        'craig-guild-id': info.guildExtra.id,
+        'craig-channel-id': info.channelExtra.id
+      }
+    },
+    media: {
+      mimeType: 'text/plain',
+      body: Readable.from(Buffer.from(transcriptContent, 'utf-8'))
+    }
+  });
+
+  logger.info(`Uploaded transcript for ${recordingId} on Google Drive`);
+  return { error: null, uploaded: true, url: `https://drive.google.com/open?id=${file.data.id}` };
+}
+
 export async function driveUpload({
   recordingId,
   userId
@@ -340,7 +482,7 @@ export async function driveUpload({
           }
         });
 
-        const folderPath = getGoogleDriveFolderPathForRecording(driveConfig.folderPath || 'Craig', startDate);
+        const folderPath = getGoogleDriveFolderPath(driveConfig.folderPath || 'Craig', startDate, 'raw');
         const folderId = await findGoogleDriveFolderPath(drive, folderPath);
         if (!folderId) {
           return { error: 'google_token_expired', notify: true };
