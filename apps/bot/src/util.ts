@@ -405,7 +405,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
               {
                 type: ComponentType.TEXT_DISPLAY,
                 content: stripIndentsAndLines`
-                  ### 🎙️ Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
+                  ### 🎙️Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
                   ${r.autorecorded ? '*`Autorecorded`*' : ''} <#${r.voiceChannelId}> • Expires <t:${Math.floor(
                   r.expiresAt.valueOf() / 1000
                 )}:R> • Delete Key: ||\`${r.deleteKey}\`||

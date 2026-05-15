@@ -212,7 +212,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
       // Nickname the bot
       const selfUser = await getSelfMember(guild, this.client.bot);
-      const recNick = cutoffText(`🎙️ ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
+      const recNick = cutoffText(`🎙️${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
       if (selfUser && (!selfUser.nick || !selfUser.nick.includes('🎙️'))) {
         try {
           await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
