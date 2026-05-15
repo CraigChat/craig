@@ -39,11 +39,10 @@ model Ban {
 }
 
 model Guild {
-  id               String   @id
-  accessRoles      String[]
-  summaryChannelId String?
-  createdAt        DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt        DateTime @updatedAt @db.Timestamptz(6)
+  id          String   @id
+  accessRoles String[]
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model Recording {

@@ -96,7 +96,7 @@ result=$(CRAIG_INTERNAL_API_URL="http://127.0.0.1:$PORT/deliver-summary" \
 stop_mock
 check "returns True on 200" "True" "$result"
 
-# 3. Bot returns 204 → no channel found (summaryChannelId and postChannelId both unset)
+# 3. Bot returns 204 → no channel found (guild has no system channel)
 echo "[3] Bot returns 204 (no channel found for recording)"
 start_mock 204 "$SECRET"
 result=$(CRAIG_INTERNAL_API_URL="http://127.0.0.1:$PORT/deliver-summary" \

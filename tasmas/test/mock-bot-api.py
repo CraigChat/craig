@@ -27,7 +27,7 @@ import sys
 
 _MODE_LABEL = {
     200: "delivered — TASMAS returns True",
-    204: "no channel found (summaryChannelId and postChannelId both unset) — summary not delivered",
+    204: "no channel found (guild has no system channel) — summary not delivered",
     500: "server error — summary not delivered",
 }
 

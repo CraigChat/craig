@@ -53,11 +53,17 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
         const content = fs.readFileSync(path.join(recordingDir, summaryFile), 'utf-8');
 
         const recording = await prisma.recording.findUnique({ where: { id: recordingId } });
-        const guild = recording ? await prisma.guild.findUnique({ where: { id: recording.guildId } }) : null;
-        const deliveryChannelId = guild?.summaryChannelId ?? recording?.messageChannelId;
+        let deliveryChannelId: string | null = null;
+
+        if (recording) {
+          const erisGuild = this.client.bot.guilds.get(recording.guildId)
+            ?? await this.client.bot.getRESTGuild(recording.guildId).catch(() => null);
+
+          deliveryChannelId = erisGuild?.systemChannelID ?? null;
+        }
 
         if (!deliveryChannelId) {
-          this.client.logger.warn(`No summary channel for recording ${recordingId} — set one with /server-settings summary-channel set`);
+          this.client.logger.warn(`No summary channel for recording ${recordingId} — guild has no accessible text channel`);
           res.writeHead(404).end();
           return;
         }
