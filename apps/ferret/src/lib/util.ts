@@ -94,20 +94,6 @@ export function relativeTime(rtf: Intl.RelativeTimeFormat, seconds: number) {
   return rtf.format(Math.round(seconds / 2592000), 'month');
 }
 
-export function convertToTimeMark(seconds: number): string {
-  if (isNaN(seconds) || seconds < 0) return '00:00:00';
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-
-  const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
-  const formattedSeconds = remainingSeconds < 10 ? `0${remainingSeconds}` : `${remainingSeconds}`;
-
-  return `${hours === 0 ? '' : `${formattedHours}:`}${formattedMinutes}:${formattedSeconds}`;
-}
-
 export const currentTime = writable(Math.floor(Date.now() / 1000), (set, update) => {
   const interval = setInterval(() => update((time) => (time += 1)), 1000);
   return () => clearInterval(interval);

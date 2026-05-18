@@ -66,7 +66,9 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });
   if (otherUser && otherUser.id !== auth.id) {
-    logger.info(`Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`);
+    logger.info(
+      `Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`
+    );
     await prisma.user.update({ where: { id: otherUser.id }, data: { patronId: null } });
   }
 
@@ -122,9 +124,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
           sourceEntitlementId: membership.id
         }
       });
-      logger.info(
-        `Patreon tier resolved (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, tier=${patreonTier})`
-      );
+      logger.info(`Patreon tier resolved (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, tier=${patreonTier})`);
     }
 
     await resolveUserEntitlement(auth.id);

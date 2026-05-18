@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "dotenv -e ../../.env -e .env -c -- node build",
-    "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7002 build",
     "dev": "dotenv -e ../../.env -e .env -c -- vite dev --host",
     "build": "dotenv -e ../../.env -e .env -c -- vite build",
     "preview": "dotenv -e ../../.env -e .env -c -- vite preview --host",
+    "start": "dotenv -e ../../.env -e .env -c -- node build",
+    "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7002 build",
+    "prepare": "svelte-kit sync || echo ''",
     "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
     "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 reload ecosystem.config.cjs --update-env",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -17,6 +18,7 @@
     "format": "eslint . --fix"
   },
   "dependencies": {
+    "@craig/common": "workspace:*",
     "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
     "@henrygd/queue": "^1.0.7",

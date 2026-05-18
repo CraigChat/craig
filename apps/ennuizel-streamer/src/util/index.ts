@@ -18,17 +18,3 @@ export function timeoutWebsocket(ws: WebSocket<any>, ms = 10000) {
   const timer = setTimeout(() => ws.close(), ms);
   return () => void clearTimeout(timer);
 }
-
-export function convertToTimeMark(seconds: number, includeHours?: boolean): string {
-  if (isNaN(seconds) || seconds < 0) return '00:00:00';
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-
-  const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
-  const formattedSeconds = remainingSeconds < 10 ? `0${remainingSeconds.toFixed(2)}` : `${remainingSeconds.toFixed(2)}`;
-
-  return `${hours === 0 && !includeHours ? '' : `${formattedHours}:`}${formattedMinutes}:${formattedSeconds}`;
-}

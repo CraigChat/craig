@@ -16,6 +16,7 @@
     "format": "eslint . --fix"
   },
   "dependencies": {
+    "@craig/common": "workspace:*",
     "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
     "@craig/metrics": "workspace:*",

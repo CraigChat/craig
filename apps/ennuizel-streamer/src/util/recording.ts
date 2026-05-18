@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 
 import { REC_DIRECTORY } from './config.js';
-import { convertToTimeMark } from './index.js';
+import { convertToTimemark } from '@craig/common';
 
 export async function pathExists(path: string) {
   try {
@@ -97,7 +97,7 @@ export async function getInfoText(id: string, info: RecordingInfo, users: Record
     txt += '\r\nNotes:\r\n';
     for (let i = 0; i < notes.length; i++) {
       const note = notes[i];
-      txt += `\t${convertToTimeMark(parseFloat(note.time), true)}: ${note.note}\r\n`;
+      txt += `\t${convertToTimemark(parseFloat(note.time), { includeHours: true, secondsDecimalPlaces: 2 })}: ${note.note}\r\n`;
     }
   }
 

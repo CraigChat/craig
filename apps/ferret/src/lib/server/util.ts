@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { convertToTimemark } from '@craig/common';
 import { prisma } from '@craig/db';
 import type { Kitchen, Recording } from '@craig/types';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
@@ -400,20 +401,6 @@ export function minimizeJobUpdate(update: Kitchen.JobUpdate): MinimalJobUpdate {
   };
 }
 
-export function convertToTimeMark(seconds: number, includeHours?: boolean): string {
-  if (isNaN(seconds) || seconds < 0) return '00:00:00';
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-
-  const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
-  const formattedSeconds = remainingSeconds < 10 ? `0${remainingSeconds.toFixed(2)}` : `${remainingSeconds.toFixed(2)}`;
-
-  return `${hours === 0 && !includeHours ? '' : `${formattedHours}:`}${formattedMinutes}:${formattedSeconds}`;
-}
-
 export function getInfoText(id: string, info: RecordingInfo, users: RecordingUser[], notes?: RecordingNote[]) {
   let txt =
     'Recording ' +
@@ -444,7 +431,7 @@ export function getInfoText(id: string, info: RecordingInfo, users: RecordingUse
     txt += '\r\nNotes:\r\n';
     for (let i = 0; i < notes.length; i++) {
       const note = notes[i];
-      txt += `\t${convertToTimeMark(parseFloat(note.time), true)}: ${note.note}\r\n`;
+      txt += `\t${convertToTimemark(parseFloat(note.time), { includeHours: true, secondsDecimalPlaces: 2 })}: ${note.note}\r\n`;
     }
   }
 
