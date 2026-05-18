@@ -31,7 +31,6 @@ export interface CraigBotConfig {
     nowRecordingOpus?: string;
     homepage: string;
     recordingFolder: string;
-    alistair?: boolean;
     sizeLimit: number;
     sizeLimitWeb: number;
     sizeLimitWebOpus: number;
@@ -194,7 +193,6 @@ export function getBotConfig(): CraigBotConfig {
       nowRecordingOpus: process.env.NOW_RECORDING_OPUS,
       homepage: process.env.CRAIG_HOMEPAGE || 'https://craig.chat/',
       recordingFolder: process.env.REC_DIRECTORY || path.resolve(process.cwd(), '../../rec'),
-      alistair: boolFromEnv('CRAIG_ALISTAIR', false),
       sizeLimit: intFromEnv('SIZE_LIMIT', 536870912),
       sizeLimitWeb: intFromEnv('SIZE_LIMIT_WEB', 4294967296),
       sizeLimitWebOpus: intFromEnv('SIZE_LIMIT_WEB_OPUS', 1073741824),
