@@ -592,6 +592,40 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  apps/tasks:
+    dependencies:
+      '@craig/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@craig/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      cron:
+        specifier: ^4.3.4
+        version: 4.4.0
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
+      ms:
+        specifier: ^2.1.3
+        version: 2.1.3
+    devDependencies:
+      '@types/ms':
+        specifier: ^2.1.0
+        version: 2.1.0
+      '@types/node':
+        specifier: ^22.15.21
+        version: 22.15.21
+      tsdown:
+        specifier: 0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/common:
     devDependencies:
       tsdown:

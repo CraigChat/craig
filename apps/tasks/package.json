@@ -1,0 +1,34 @@
+{
+  "name": "@craig/tasks",
+  "version": "1.0.0",
+  "description": "Craig scheduled tasks",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "exports": "./dist/index.mjs",
+  "license": "MIT",
+  "scripts": {
+    "start": "dotenv -e ../../.env -e .env -c -- node dist/index.mjs",
+    "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
+    "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 restart ecosystem.config.cjs --update-env",
+    "build": "rimraf dist && tsdown src/index.ts src/runTask.ts",
+    "dev": "dotenv -e ../../.env -e .env -c -- tsx src/index",
+    "run-task": "dotenv -e ../../.env -e .env -c -- tsx src/runTask",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "@craig/db": "workspace:*",
+    "@craig/logger": "workspace:*",
+    "cron": "^4.3.4",
+    "dotenv": "^16.6.1",
+    "ms": "^2.1.3"
+  },
+  "devDependencies": {
+    "@types/ms": "^2.1.0",
+    "@types/node": "^22.15.21",
+    "tsdown": "0.20.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3"
+  }
+}
