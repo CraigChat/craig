@@ -1,4 +1,4 @@
-export interface ManagerRequestMessage<T = any> {
+export interface ManagerRequestMessage<T = Record<string, any>> {
   t: string;
   n: string;
   d: T;

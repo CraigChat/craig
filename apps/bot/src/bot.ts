@@ -96,28 +96,21 @@ export class CraigBot {
   }
 
   async loadModules() {
-    await Promise.all([
-      this.metrics,
-      this.upload,
-      this.entitlements,
-      this.slash,
-      this.sharding,
-      this.cache,
-      this.recorder,
-      this.autorecord
-    ].map((mod) => mod._load()))
+    await Promise.all(
+      [this.metrics, this.upload, this.entitlements, this.slash, this.sharding, this.cache, this.recorder, this.autorecord].map((mod) => mod._load())
+    );
   }
 
   logDysnomiaEvents() {
-    this.bot.on('error', (error, id) => this.log('error', 'dysnomia', [error]));
-    this.bot.removeAllListeners('warn').on('warn', (message, id) => {
+    this.bot.on('error', (error) => this.log('error', 'dysnomia', [error]));
+    this.bot.removeAllListeners('warn').on('warn', (message) => {
       if (
         !((message as unknown) instanceof Error && (message as unknown as Error).message.startsWith('Unknown guild text channel type:')) &&
         !(typeof message === 'string' && message.startsWith('Unhandled MESSAGE_CREATE type'))
       )
         this.log('warn', 'dysnomia', [message]);
     });
-    this.bot.on('debug', (message, id) => this.log('debug', 'dysnomia', [message]));
+    this.bot.on('debug', (message) => this.log('debug', 'dysnomia', [message]));
   }
 
   log(level: string, moduleName: string, args: any[], extra?: LoggerExtra) {
@@ -144,7 +137,8 @@ export class CraigBot {
     if (existing) return existing;
 
     const logger = new Logger(moduleName, {
-      level: this.config.logger.level || (PRODUCTION ? 'info' : 'debug')
+      level: this.config.logger.level || (PRODUCTION ? 'info' : 'debug'),
+      prefix: (chalk) => (process.env.SHARD_ID ? chalk.white.bgBlue(` shard ${process.env.SHARD_ID} `) : '')
     });
     this.loggers.set(moduleName, logger);
     return logger;
@@ -176,7 +170,7 @@ process.on('uncaughtException', (e) => {
 export async function connect() {
   await client.loadModules();
 
-  await i18nInit();
+  await i18nInit(client.config.assets.localeFolder);
   await redisClient.connect();
   await client.connect();
   await prisma.$connect();

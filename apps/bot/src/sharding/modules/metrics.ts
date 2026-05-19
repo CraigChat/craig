@@ -1,6 +1,6 @@
 import http from 'node:http';
 
-import { Counter, Gauge, register } from 'prom-client';
+import { Counter, Gauge, register } from '@craig/metrics';
 
 import * as logger from '../logger.js';
 import type ShardManager from '../manager.js';
@@ -16,7 +16,7 @@ function setPropPerShard(script: string, gauge: Gauge, manager: ShardManager) {
     Promise.all(
       Array.from(manager.shards.values()).map(async (shard) => {
         if (shard.status === 'ready' || shard.status === 'resuming') {
-          const result: number = await shard.eval(script);
+          const result = Number(await shard.eval(script));
           gauge.set({ shard: shard.id.toString() }, result);
         }
       })
@@ -29,7 +29,7 @@ function collectFromShards(stat: string, counter: Counter, manager: ShardManager
     Promise.all(
       Array.from(manager.shards.values()).map(async (shard) => {
         if (shard.status === 'ready' || shard.status === 'resuming') {
-          const result: number = await shard.eval(`this.metrics.collect("${stat}")`);
+          const result = Number(await shard.eval(`this.metrics.collect("${stat}")`));
           counter.inc({ shard: shard.id.toString() }, result);
         }
       })
@@ -37,7 +37,7 @@ function collectFromShards(stat: string, counter: Counter, manager: ShardManager
   );
 }
 
-function timeout(p: Promise<any>, ms = 500) {
+function timeout<T>(p: Promise<T>, ms = 500) {
   return Promise.race([p, wait(ms)]);
 }
 
@@ -170,7 +170,7 @@ export default class MetricsModule extends ShardManagerModule {
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (shard.status === 'ready' || shard.status === 'resuming') {
-                  const result: Record<string, number> = await shard.eval('this.metrics.collect("commands")');
+                  const result = (await shard.eval('this.metrics.collect("commands")')) as Record<string, number>;
                   for (const command in result) this.inc({ command }, result[command]);
                 }
               })
@@ -206,7 +206,7 @@ export default class MetricsModule extends ShardManagerModule {
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (shard.status === 'ready' || shard.status === 'resuming') {
-                  const result: Record<string, number> = await shard.eval('this.metrics.collect("voiceServersConnected")');
+                  const result = (await shard.eval('this.metrics.collect("voiceServersConnected")')) as Record<string, number>;
                   for (const region in result) this.inc({ region }, result[region]);
                 }
               })
@@ -259,12 +259,12 @@ export default class MetricsModule extends ShardManagerModule {
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (!shard.process) return void this.set({ shard: shard.id.toString() }, 0);
-                const result: boolean =
+                const result =
                   (await timeout(
                     shard.eval('true').catch(() => false),
                     100
                   )) ?? false;
-                this.set({ shard: shard.id.toString() }, result ? 1 : 0);
+                this.set({ shard: shard.id.toString() }, result === true ? 1 : 0);
               })
             )
           );

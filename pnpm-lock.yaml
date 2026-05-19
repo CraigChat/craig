@@ -46,6 +46,9 @@ importers:
       '@craig/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@craig/metrics':
+        specifier: workspace:*
+        version: link:../../packages/metrics
       '@discordjs/opus':
         specifier: ^0.10.0
         version: 0.10.0
@@ -100,9 +103,6 @@ importers:
       node-fetch:
         specifier: 2.7.0
         version: 2.7.0
-      prom-client:
-        specifier: ^15.1.3
-        version: 15.1.3
       semver:
         specifier: ^7.7.3
         version: 7.7.4

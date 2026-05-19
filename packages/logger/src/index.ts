@@ -7,6 +7,7 @@ import winston, { format } from 'winston';
 interface LoggerOptions {
   level?: string;
   time?: boolean;
+  prefix?(c: typeof chalk): string;
   winston?: winston.LoggerOptions;
 }
 
@@ -60,6 +61,7 @@ export class Logger {
           format.printf((info) => {
             const chalkedLevel = this.#levelColors[info.level] || chalk.yellow.bgBlack;
             return (
+              (opts?.prefix?.(chalk) ?? '') +
               (this.#chalkedName || '') +
               (opts?.time || opts?.time !== false ? chalk.black.bgWhite(` ${dayjs().format('MM/DD HH:mm:ss')} `) : '') +
               chalkedLevel(this.#centerPad(info.level, 10)) +

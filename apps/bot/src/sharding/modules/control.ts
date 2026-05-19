@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 
 import { getRedisOptions } from '../../config.js';
 import * as logger from '../logger.js';
+import type ShardManager from '../manager.js';
 import ShardManagerModule from '../module.js';
 
 function formatError(error: unknown) {
@@ -13,22 +14,22 @@ export default class ControlModule extends ShardManagerModule {
   app?: FastifyInstance;
   redis = new Redis(getRedisOptions());
 
-  constructor(client: any) {
-    super(client, {
+  constructor(manager: ShardManager) {
+    super(manager, {
       name: 'control',
       description: 'HTTP control API'
     });
   }
 
   async load() {
-    const control = this.manager.options.control;
-    if (!control?.port) return void logger.info('No control port defined, skipping...');
+    const config = this.manager.options.control;
+    if (!config?.port) return void logger.info('No control port defined, skipping...');
 
     this.app = fastify({ logger: false });
     this.app.addHook('preHandler', async (req, reply) => {
-      if (!control.token) return;
+      if (!config.token) return;
       const auth = req.headers.authorization;
-      if (auth !== `Bearer ${control.token}`) return reply.status(401).send({ error: 'Unauthorized' });
+      if (auth !== `Bearer ${config.token}`) return reply.status(401).send({ error: 'Unauthorized' });
     });
 
     this.app.get('/health', async () => ({ ok: true }));
@@ -72,8 +73,8 @@ export default class ControlModule extends ShardManagerModule {
     });
 
     await this.redis.connect();
-    await this.app.listen({ host: control.host, port: control.port });
-    logger.info(`Control API started on ${control.host}:${control.port}`);
+    await this.app.listen({ host: config.host, port: config.port });
+    logger.info(`Control API started on ${config.host}:${config.port}`);
   }
 
   async getInfo() {
@@ -89,7 +90,7 @@ export default class ControlModule extends ShardManagerModule {
   async getShardInfo() {
     const shards = await Promise.all(
       Array.from(this.manager.shards.values()).map(async (shard) => {
-        const details = await shard
+        const details = (await shard
           .eval(
             `
               ({
@@ -102,7 +103,7 @@ export default class ControlModule extends ShardManagerModule {
               })
             `
           )
-          .catch((error) => ({ error: formatError(error) }));
+          .catch((error) => ({ error: formatError(error) }))) as Record<string, unknown>;
         return {
           id: shard.id,
           process: shard.process?.pid ?? null,
@@ -124,7 +125,7 @@ export default class ControlModule extends ShardManagerModule {
 
   async sumClientValue(prop: string) {
     const values = await this.manager.fetchClientValues(prop, true).catch(() => []);
-    return values.reduce((acc, value) => acc + (typeof value === 'number' ? value : 0), 0);
+    return values.reduce<number>((acc, value) => acc + (typeof value === 'number' ? value : 0), 0);
   }
 
   async unload() {

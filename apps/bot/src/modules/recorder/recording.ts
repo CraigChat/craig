@@ -473,7 +473,7 @@ export default class Recording {
   }
 
   async playNowRecording() {
-    const filePath = this.recorder.client.config.craig.nowRecordingOpus || path.resolve(process.cwd(), 'data', 'nowrecording.opus');
+    const filePath = this.recorder.client.config.assets.nowRecordingOpus;
 
     try {
       await access(filePath);

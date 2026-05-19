@@ -2,10 +2,10 @@ import { timingSafeEqual } from 'node:crypto';
 import fs from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { convertToTimemark } from '@craig/common';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 
 import { REC_DIRECTORY } from './config.js';
-import { convertToTimemark } from '@craig/common';
 
 export async function pathExists(path: string) {
   try {

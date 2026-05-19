@@ -2,14 +2,15 @@ import { CronJob } from 'cron';
 
 import { wait } from '../../util.js';
 import * as logger from '../logger.js';
+import type ShardManager from '../manager.js';
 import ShardManagerModule from '../module.js';
 
 export default class ShardUtilModule extends ShardManagerModule {
   cron: CronJob;
   checkingRWA = false;
 
-  constructor(client: any) {
-    super(client, {
+  constructor(manager: ShardManager) {
+    super(manager, {
       name: 'shardutil',
       description: 'Shard utility'
     });
@@ -52,9 +53,9 @@ export default class ShardUtilModule extends ShardManagerModule {
     this.registerCommand('getCounts', async (shard, msg, respond) => {
       logger.debug(`Shard ${shard.id}: Getting counts`);
       const guildResponses = await this.manager.fetchClientValues('bot.guilds.size');
-      const guilds = guildResponses.reduce((acc, val) => acc + (val ?? 0), 0);
+      const guilds = guildResponses.reduce<number>((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
       const recResponses = await this.manager.fetchClientValues('recorder.recordings.size');
-      const recordings = recResponses.reduce((acc, val) => acc + (val ?? 0), 0);
+      const recordings = recResponses.reduce<number>((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
       return respond({ guilds, recordings });
     });
     this.registerCommand('getShardInfo', async (shard, msg, respond) => {

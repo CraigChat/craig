@@ -21,6 +21,12 @@ export interface CraigBotConfig {
   mentionPrefix: boolean;
   status: Dysnomia.ActivityPartial<Dysnomia.ActivityType>;
   kitchenURL?: string;
+  assets: {
+    emojiFolder: string;
+    voiceTestFolder: string;
+    nowRecordingOpus: string;
+    localeFolder: string;
+  };
 
   craig: {
     emoji: string;
@@ -28,7 +34,6 @@ export interface CraigBotConfig {
     downloadDomain: string;
     dashboardURL: string;
     systemNotificationURL?: string;
-    nowRecordingOpus?: string;
     homepage: string;
     recordingFolder: string;
     sizeLimit: number;
@@ -82,6 +87,15 @@ function listFromEnv(name: string): string[] {
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean);
+}
+
+function pathFromEnv(name: string, fallback: string): string {
+  const value = process.env[name];
+  return value ? path.resolve(value) : fallback;
+}
+
+function isLocalHost(host: string): boolean {
+  return ['127.0.0.1', '::1', 'localhost'].includes(host);
 }
 
 const defaultRewardTiers: Record<string, RewardTier> = {
@@ -157,6 +171,7 @@ export function getBotConfig(): CraigBotConfig {
 
   const shardId = optionalIntFromEnv('SHARD_ID');
   const shardCount = optionalIntFromEnv('SHARD_COUNT');
+  const assetRoot = pathFromEnv('BOT_ASSET_ROOT', path.resolve(process.cwd(), 'assets'));
   const gateway: NonNullable<Dysnomia.ClientOptions['gateway']> = {
     autoreconnect: true,
     intents: ['guilds', 'guildVoiceStates'],
@@ -177,6 +192,12 @@ export function getBotConfig(): CraigBotConfig {
     elevated: listFromEnv('ELEVATED_USERS'),
     gateway,
     kitchenURL: process.env.KITCHEN_URL || undefined,
+    assets: {
+      emojiFolder: pathFromEnv('BOT_EMOJI_FOLDER', path.resolve(process.cwd(), 'emojis')),
+      voiceTestFolder: pathFromEnv('BOT_VOICE_TEST_FOLDER', path.resolve(assetRoot, 'audio')),
+      nowRecordingOpus: pathFromEnv('NOW_RECORDING_OPUS', path.resolve(assetRoot, 'audio', 'nowrecording.opus')),
+      localeFolder: pathFromEnv('BOT_LOCALE_FOLDER', path.resolve(process.cwd(), '../../locale'))
+    },
     prefix: [],
     mentionPrefix: false,
     status: {
@@ -190,7 +211,6 @@ export function getBotConfig(): CraigBotConfig {
       downloadDomain: process.env.DOWNLOAD_DOMAIN || 'localhost:5029',
       dashboardURL: process.env.DASHBOARD_URL || 'https://my.craig.chat',
       systemNotificationURL: process.env.SYSTEM_NOTIFICATION_URL,
-      nowRecordingOpus: process.env.NOW_RECORDING_OPUS,
       homepage: process.env.CRAIG_HOMEPAGE || 'https://craig.chat/',
       recordingFolder: process.env.REC_DIRECTORY || path.resolve(process.cwd(), '../../rec'),
       sizeLimit: intFromEnv('SIZE_LIMIT', 536870912),
@@ -225,6 +245,7 @@ export function getBotConfig(): CraigBotConfig {
 
 export interface ShardManagerEnvOptions {
   file: string;
+  emojiFolder: string;
   shardCount?: number;
   concurrency?: number;
   readyTimeout: number;
@@ -239,17 +260,25 @@ export interface ShardManagerEnvOptions {
 }
 
 export function getShardManagerEnvOptions(): ShardManagerEnvOptions {
+  const controlHost = process.env.BOT_CONTROL_HOST || '127.0.0.1';
+  const controlPort = optionalIntFromEnv('BOT_CONTROL_PORT');
+  const controlToken = process.env.BOT_CONTROL_TOKEN;
+  if (controlPort && !isLocalHost(controlHost) && !controlToken) {
+    throw new Error('BOT_CONTROL_TOKEN is required when BOT_CONTROL_HOST is not local.');
+  }
+
   return {
     file: process.env.BOT_WORKER_FILE || './dist/index.mjs',
+    emojiFolder: pathFromEnv('BOT_EMOJI_FOLDER', path.resolve(process.cwd(), 'emojis')),
     shardCount: optionalIntFromEnv('BOT_SHARD_COUNT'),
     concurrency: optionalIntFromEnv('BOT_SHARD_CONCURRENCY'),
     readyTimeout: intFromEnv('BOT_READY_TIMEOUT', 60000),
     respawn: boolFromEnv('BOT_RESPAWN', true),
     metricsPort: optionalIntFromEnv('METRICS_PORT'),
     control: {
-      host: process.env.BOT_CONTROL_HOST || '127.0.0.1',
-      port: optionalIntFromEnv('BOT_CONTROL_PORT'),
-      token: process.env.BOT_CONTROL_TOKEN,
+      host: controlHost,
+      port: controlPort,
+      token: controlToken,
       allowEval: boolFromEnv('BOT_CONTROL_ALLOW_EVAL', false)
     }
   };

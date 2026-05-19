@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
+import path from 'node:path';
 
 import { EmojiManager } from '@snazzah/emoji-sync';
-import path from 'path';
 
 import { wait } from '../util.js';
 import * as logger from './logger.js';
@@ -11,6 +11,7 @@ import { ManagerRequestMessage } from './types.js';
 
 export interface ManagerOptions {
   file: string;
+  emojiFolder: string;
   token: string;
   applicationID: string;
   shardCount: number;
@@ -28,7 +29,11 @@ export interface ManagerOptions {
   };
 }
 
-export type CommandHandler = (shard: Shard, msg: any, respond: (data: any) => Promise<void>) => void | Promise<void>;
+export type CommandHandler<T = Record<string, any>> = (
+  shard: Shard,
+  msg: ManagerRequestMessage<T>,
+  respond: (data: unknown) => Promise<void>
+) => void | Promise<void>;
 
 export default class ShardManager extends EventEmitter {
   readonly options: ManagerOptions;
@@ -68,7 +73,7 @@ export default class ShardManager extends EventEmitter {
       token: this.options.token,
       applicationId: this.options.applicationID
     });
-    await this.#emojis.loadFromFolder(path.resolve(process.cwd(), 'emojis'));
+    await this.#emojis.loadFromFolder(path.resolve(this.options.emojiFolder));
     await this.#emojis.sync();
     this.emojiSyncData = Array.from(this.#emojis.emojis.values());
   }
@@ -78,7 +83,7 @@ export default class ShardManager extends EventEmitter {
     if (!msg.t || !msg.n) return;
     if (!this.commands.has(msg.t)) return;
     const cmd = this.commands.get(msg.t)!;
-    const respond = (data: any) => shard.send({ r: msg.n, d: data });
+    const respond = (data: unknown) => shard.send({ r: msg.n, d: data });
     try {
       if (cmd) await cmd(shard, msg, respond);
     } catch (e) {

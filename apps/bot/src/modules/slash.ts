@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import { prisma } from '@craig/db';
 import type { DAVESession } from '@snazzah/davey';
 import { EmojiManager } from '@snazzah/emoji-sync';
@@ -94,7 +92,7 @@ export default class SlashModule extends BotModule {
     this.creator.on('error', (error) => this.logger.error(error.stack || error.toString()));
     this.creator.on('commandRun', (command, _, ctx) => {
       this.client.metrics.onCommandRan(command.commandName);
-      this.logger.info(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
+      this.logger.info(`${ctx.user.username} (${ctx.user.id}) ran command ${command.commandName}`);
     });
     this.creator.on('commandError', (command, error, ctx) => {
       reportErrorFromCommand(ctx, error, command.commandName, 'command');
@@ -110,7 +108,7 @@ export default class SlashModule extends BotModule {
       this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
       this.logger.info('Loaded emojis from shard manager');
     } else {
-      await this.emojis.loadFromFolder(path.resolve(process.cwd(), 'emojis'));
+      await this.emojis.loadFromFolder(this.client.config.assets.emojiFolder);
       await this.emojis.sync();
     }
     this.emojis.on('warn', (message) => this.logger.warn('[emoji] ' + message));

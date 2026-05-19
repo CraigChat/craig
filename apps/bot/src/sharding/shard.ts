@@ -1,31 +1,38 @@
-import childProcess, { ChildProcess } from 'child_process';
-import EventEmitter from 'events';
+import childProcess, { ChildProcess } from 'node:child_process';
+import EventEmitter from 'node:events';
+import path from 'node:path';
+
 import { nanoid } from 'nanoid';
-import path from 'path';
 
 import { makeError, makePlainError, wait } from '../util.js';
 import * as logger from './logger.js';
 import ShardManager from './manager.js';
-import { ManagerResponseMessage, ShardEvalResponse } from './types.js';
+import { ManagerRequestMessage, ManagerResponseMessage, ShardEvalResponse } from './types.js';
+
+interface AwaitedPromise<T = unknown> {
+  resolve: (value: ManagerResponseMessage<T>) => void;
+  reject: (reason?: unknown) => void;
+  timeout: ReturnType<typeof setTimeout>;
+}
 
 export default class Shard extends EventEmitter {
   id: number;
   manager: ShardManager;
-  env: { [key: string]: any };
+  env: NodeJS.ProcessEnv;
   ready = false;
   guildCount = 0;
   status = 'idle';
   lastActivity = 0;
   respawnWhenAvailable = false;
   process: ChildProcess | null = null;
-  _awaitedPromises = new Map<string, { resolve: (value: any) => void; reject: (reason?: unknown) => void }>();
-  _exitListener: any;
+  _awaitedPromises = new Map<string, AwaitedPromise>();
+  _exitListener: () => void;
 
   constructor(manager: ShardManager, id: number) {
     super();
     this.id = id;
     this.manager = manager;
-    this.env = Object.assign({}, process.env);
+    this.env = { ...process.env };
 
     this._exitListener = this._handleExit.bind(this, undefined);
   }
@@ -52,10 +59,26 @@ export default class Shard extends EventEmitter {
     this.manager.emit('shardSpawn', this);
 
     return new Promise((resolve, reject) => {
-      this.once('ready', resolve);
-      // this.once('disconnect', () => reject(new Error(`Shard ${this.id}'s Client disconnected before becoming ready.`)));
-      this.once('death', () => reject(new Error(`Shard ${this.id}'s process exited before its Client became ready.`)));
-      setTimeout(() => reject(new Error(`Shard ${this.id}'s Client took too long to become ready.`)), this.manager.options.readyTimeout);
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Shard ${this.id}'s Client took too long to become ready.`));
+      }, this.manager.options.readyTimeout);
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.removeListener('ready', onReady);
+        this.removeListener('death', onDeath);
+      };
+      const onReady = () => {
+        cleanup();
+        resolve(this.process);
+      };
+      const onDeath = () => {
+        cleanup();
+        reject(new Error(`Shard ${this.id}'s process exited before its Client became ready.`));
+      };
+
+      this.once('ready', onReady);
+      this.once('death', onDeath);
     }).then(() => this.process);
   }
 
@@ -68,7 +91,7 @@ export default class Shard extends EventEmitter {
   async respawnWithRetry(delay = 500, respawnDelay = 1000) {
     let retries = 0;
     let ok = false;
-    let lastError: any;
+    let lastError: unknown;
     while (retries < 5) {
       logger.info(`Respawning shard ${this.id}... (attempt ${retries + 1})`);
       try {
@@ -102,51 +125,54 @@ export default class Shard extends EventEmitter {
     });
   }
 
-  async fetchClientValue(prop: string): Promise<any> {
+  async fetchClientValue(prop: string): Promise<unknown> {
     if (!this.process) return Promise.reject(new Error('Shard is not running.'));
     const response = await this.sendAndRecieve<ShardEvalResponse>('fetchProp', { prop });
     if (!response.d.error) return response.d.result;
     else throw makeError(response.d.error);
   }
 
-  async eval(script: string): Promise<any> {
+  async eval(script: string): Promise<unknown> {
     if (!this.process) return Promise.reject(new Error('Shard is not running.'));
     const response = await this.sendAndRecieve<ShardEvalResponse>('eval', { script });
     if (!response.d.error) return response.d.result;
     else throw makeError(response.d.error);
   }
 
-  _handleMessage(message: any) {
+  _handleMessage(message: ManagerRequestMessage | ManagerResponseMessage | unknown) {
     const now = Date.now();
     if (now > this.lastActivity) this.lastActivity = now;
 
-    if (typeof message === 'object') {
+    if (message && typeof message === 'object') {
+      const ipcMessage = message as Partial<ManagerRequestMessage & ManagerResponseMessage>;
       // Respond to requests
-      if (message.r && this._awaitedPromises.has(message.r)) {
-        const { resolve } = this._awaitedPromises.get(message.r)!;
-        this._awaitedPromises.delete(message.r);
-        resolve(message);
+      if (ipcMessage.r && this._awaitedPromises.has(ipcMessage.r)) {
+        const awaited = this._awaitedPromises.get(ipcMessage.r)!;
+        this._awaitedPromises.delete(ipcMessage.r);
+        clearTimeout(awaited.timeout);
+        awaited.resolve(message as ManagerResponseMessage);
         return;
       }
 
-      if (message.t) {
-        if (message.d?._status) this.status = message.d._status;
-        if (message.d?._guilds) this.guildCount = message.d._guilds;
-        switch (message.t) {
+      if (ipcMessage.t) {
+        const data = ipcMessage.d as Record<string, unknown> | undefined;
+        if (typeof data?._status === 'string') this.status = data._status;
+        if (typeof data?._guilds === 'number') this.guildCount = data._guilds;
+        switch (ipcMessage.t) {
           case 'ready':
             this.ready = true;
-            this.emit('ready', message);
-            this.manager.emit('ready', this, message);
+            this.emit('ready', ipcMessage);
+            this.manager.emit('ready', this, ipcMessage);
             return;
           case 'disconnect':
             this.ready = false;
-            this.emit('disconnect', message.d.error);
-            this.manager.emit('disconnect', this, message.d.error);
+            this.emit('disconnect', data?.error);
+            this.manager.emit('disconnect', this, data?.error);
             return;
           case 'reconnecting':
             this.ready = false;
-            this.emit('reconnecting', message.d.msg);
-            this.manager.emit('reconnecting', this, message.d.msg);
+            this.emit('reconnecting', data?.msg);
+            this.manager.emit('reconnecting', this, data?.msg);
             return;
           case 'resuming':
             this.ready = false;
@@ -155,26 +181,26 @@ export default class Shard extends EventEmitter {
             return;
           case 'error':
             this.ready = false;
-            this.emit('shardError', message.d.error);
-            this.manager.emit('shardError', this, message.d.error);
+            this.emit('shardError', data?.error);
+            this.manager.emit('shardError', this, data?.error);
             return;
           case 'fetchProp':
-            this.manager.fetchClientValues(message._sFetchProp).then(
-              (results) => this.send({ r: message.r, d: { result: results } }),
-              (err) => this.send({ r: message.r, d: { error: makePlainError(err) } })
+            this.manager.fetchClientValues(String(data?.prop)).then(
+              (results) => this.send({ r: ipcMessage.n, d: { result: results } }),
+              (err) => this.send({ r: ipcMessage.n, d: { error: makePlainError(err) } })
             );
             return;
           case 'eval':
-            this.manager.broadcastEval(message._sEval).then(
-              (results) => this.send({ r: message.r, d: { result: results } }),
-              (err) => this.send({ r: message.r, d: { error: makePlainError(err) } })
+            this.manager.broadcastEval(String(data?.script)).then(
+              (results) => this.send({ r: ipcMessage.n, d: { result: results } }),
+              (err) => this.send({ r: ipcMessage.n, d: { error: makePlainError(err) } })
             );
             return;
           case 'findGuild':
-            if (message.d?.guild && message.n)
-              this.manager.findGuild(message.d.guild).then(
-                (shard) => this.send({ r: message.r, d: { shard: shard ? shard.id : undefined } }),
-                (err) => this.send({ r: message.r, d: { _error: makePlainError(err) } })
+            if (data?.guild && ipcMessage.n)
+              this.manager.findGuild(String(data.guild)).then(
+                (shard) => this.send({ r: ipcMessage.n, d: { shard: shard ? shard.id : undefined } }),
+                (err) => this.send({ r: ipcMessage.n, d: { _error: makePlainError(err) } })
               );
             return;
           case 'ping':
@@ -196,17 +222,25 @@ export default class Shard extends EventEmitter {
     this.emit('death', this.process);
 
     this.process = null;
+    for (const awaited of this._awaitedPromises.values()) {
+      clearTimeout(awaited.timeout);
+      awaited.reject(new Error(`Shard ${this.id}'s process exited before responding.`));
+    }
     this._awaitedPromises.clear();
 
     if (respawn) this.manager.spawn(this.id);
   }
 
-  sendAndRecieve<T = any>(type: string, data: any): Promise<ManagerResponseMessage<T>> {
+  sendAndRecieve<T = unknown>(type: string, data: unknown, timeoutMs = 5000): Promise<ManagerResponseMessage<T>> {
     return new Promise((resolve, reject) => {
       if (!this.process) return reject(new Error('Shard is not running.'));
 
       const nonce = nanoid();
-      this._awaitedPromises.set(nonce, { resolve, reject });
+      const timeout = setTimeout(() => {
+        this._awaitedPromises.delete(nonce);
+        reject(new Error(`Shard ${this.id} did not respond to ${type} within ${timeoutMs}ms.`));
+      }, timeoutMs);
+      this._awaitedPromises.set(nonce, { resolve: resolve as AwaitedPromise['resolve'], reject, timeout });
       this.process!.send({
         t: type,
         n: nonce,

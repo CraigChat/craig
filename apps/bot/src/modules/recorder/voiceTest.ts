@@ -1,10 +1,11 @@
+import { access } from 'node:fs/promises';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+
 import DiscordJsOpus from '@discordjs/opus';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndents } from 'common-tags';
-import { access } from 'fs/promises';
-import path from 'path';
 import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
-import { Readable } from 'stream';
 
 import type RecorderModule from './index.js';
 
@@ -137,7 +138,7 @@ export default class VoiceTest {
   }
 
   async playSound(filename: string): Promise<void> {
-    const filePath = path.resolve(process.cwd(), 'data', filename);
+    const filePath = path.resolve(this.recorder.client.config.assets.voiceTestFolder, filename);
 
     try {
       await access(filePath);

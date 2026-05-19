@@ -1,12 +1,11 @@
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import i18next, { TFunction } from 'i18next';
 import Backend from 'i18next-fs-backend';
-import path from 'path';
 import { CommandContext } from 'slash-create';
 
-const localePath = path.resolve(process.cwd(), '../../locale');
-
-export const init = async () => {
+export const init = async (localePath: string) => {
   await i18next.use(Backend).init({
     showSupportNotice: false,
     fallbackLng: 'en',
