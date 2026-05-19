@@ -124,20 +124,30 @@ const defaultRewardTiers: Record<string, RewardTier> = {
   '30': {
     recordHours: 24,
     downloadExpiryHours: 720,
-    features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac'],
+    features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'transcription'],
     sizeLimitMult: 2
   },
   '100': {
     recordHours: 24,
     downloadExpiryHours: 720,
-    features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3'],
+    features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3', 'transcription'],
     sizeLimitMult: 5
   }
 };
 
 function rewardTiersFromEnv(): Record<string, RewardTier> {
-  if (!process.env.REWARD_TIERS_JSON) return defaultRewardTiers;
-  return JSON.parse(process.env.REWARD_TIERS_JSON);
+  if (process.env.REWARD_TIERS_JSON) return JSON.parse(process.env.REWARD_TIERS_JSON);
+
+  const supporterMinimumTier = optionalIntFromEnv('SUPPORTER_MINIMUM_TIER');
+  if (supporterMinimumTier === undefined) return defaultRewardTiers;
+
+  return Object.fromEntries(
+    Object.entries(defaultRewardTiers).map(([tier, rewards]) => {
+      const tierNumber = parseInt(tier, 10);
+      if (tierNumber === -1 || tierNumber >= supporterMinimumTier) return [tier, rewards];
+      return [tier, { ...rewards, recordHours: 0 }];
+    })
+  );
 }
 
 export function getRedisOptions(): RedisOptions {
