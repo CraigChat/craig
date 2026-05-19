@@ -10,10 +10,10 @@
     "url": "https://snazzah.com/"
   },
   "engines": {
-    "node": ">=18.20.4",
+    "node": ">=22.15.0",
     "pnpm": ">=9"
   },
-  "packageManager": "pnpm@9.1.1",
+  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "dev": "turbo dev --no-daemon",
     "dev:no-bot": "turbo dev --no-daemon -F '!@craig/bot'",
@@ -41,13 +41,5 @@
     "rimraf": "5.0.10",
     "turbo": "2.8.11",
     "tsdown": "0.20.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "supports-color": "8.1.1"
-    },
-    "patchedDependencies": {
-      "svelte-awesome-color-picker@4.0.2": "patches/svelte-awesome-color-picker@4.0.2.patch"
-    }
   }
 }

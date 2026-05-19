@@ -8,7 +8,7 @@ VSC_REDIS_CLIENT=data/User/globalStorage/cweijan.vscode-redis-client
   cp -f .devcontainer/database-client-config.json /home/node/.vscode-remote/${VSC_REDIS_CLIENT}/config.json
 
 # Update pnpm
-npm i -g pnpm@9.1.1
+npm i -g pnpm@10.33.4
 
 # Install global modules
 sudo npm i -g turbo slash-up prisma tsx

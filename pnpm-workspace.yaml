@@ -1,3 +1,18 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+allowBuilds:
+  '@discordjs/opus': true
+  '@parcel/watcher': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  es5-ext: true
+  esbuild: true
+  prisma: true
+  sharp: true
+blockExoticSubdeps: true
+minimumReleaseAge: 1440
+overrides:
+  "supports-color": "8.1.1"
+patchedDependencies:
+  "svelte-awesome-color-picker@4.0.2": "patches/svelte-awesome-color-picker@4.0.2.patch"
