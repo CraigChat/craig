@@ -53,7 +53,7 @@
     "slash-create": "^6.6.3",
     "sodium-native": "^4.1.1",
     "winston": "^3.11.0",
-    "ws": "^8.10.0"
+    "ws": "^8.20.1"
   },
   "devDependencies": {
     "@trpc/server": "^9.20.3",
