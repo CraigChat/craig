@@ -3,9 +3,17 @@ import { stripIndents } from 'common-tags';
 import type { ActionResult, BotInfo, ShardInfo } from './controlClient.js';
 import type { ControlEndpoint } from './store.js';
 
+export interface OverviewInstanceInfo {
+  endpoint: ControlEndpoint;
+  info?: BotInfo;
+  shards?: ShardInfo;
+  error?: string;
+}
+
 export function formatInfo(name: string, info: BotInfo): string {
   return stripIndents`
     ${name}
+    Application ID: ${info.applicationID ?? '<unknown>'}
     Shards: ${info.shardCount}/${info.configuredShards}
     Guilds: ${info.guilds.toLocaleString()}
     Recordings: ${info.recordings.toLocaleString()}
@@ -15,7 +23,10 @@ export function formatInfo(name: string, info: BotInfo): string {
 export function formatEndpoints(endpoints: ControlEndpoint[]): string {
   if (!endpoints.length) return 'No endpoints configured.';
   const nameWidth = Math.max(4, ...endpoints.map((endpoint) => endpoint.name.length));
-  return ['Name'.padEnd(nameWidth) + '  URL', ...endpoints.map((endpoint) => `${endpoint.name.padEnd(nameWidth)}  ${endpoint.url}`)].join('\n');
+  return [
+    'Name'.padEnd(nameWidth) + '  Application ID       URL',
+    ...endpoints.map((endpoint) => `${endpoint.name.padEnd(nameWidth)}  ${(endpoint.applicationID ?? '-').padEnd(20)} ${endpoint.url}`)
+  ].join('\n');
 }
 
 export function formatAction(result: ActionResult, success: string): string {
@@ -53,6 +64,36 @@ export function formatShardInfo(info: ShardInfo): string {
       ].join(' | ')
     )
   ].join('\n');
+}
+
+export function formatOverviewInstances(instances: OverviewInstanceInfo[]): string {
+  if (!instances.length) return 'No endpoints configured.';
+
+  return instances
+    .map((instance) => {
+      const label = formatEndpointMention(instance.endpoint, instance.info);
+      if (instance.error || !instance.info || !instance.shards) return `${label} - offline (${instance.error || 'unavailable'})`;
+
+      const rwa = instance.shards.shards.filter((shard) => shard.respawnWhenAvailable).length;
+      const ready = instance.shards.shards.filter((shard) => isShardReady(shard)).length;
+      const notReady = Math.max(instance.shards.total - ready, 0);
+
+      return `${label} - ${instance.info.guilds.toLocaleString()} guilds | ${instance.info.recordings.toLocaleString()} rec | ${
+        instance.shards.spawned
+      }/${instance.shards.total} shards | ${rwa} RWA | ${notReady} not ready`;
+    })
+    .join('\n');
+}
+
+function formatEndpointMention(endpoint: ControlEndpoint, info?: BotInfo): string {
+  const applicationID = info?.applicationID ?? endpoint.applicationID;
+  return applicationID ? `<@${applicationID}> (${endpoint.name})` : endpoint.name;
+}
+
+function isShardReady(shard: ShardInfo['shards'][number]) {
+  if (shard.ready === false) return false;
+  const status = shard.status ?? shard.managerStatus;
+  return status === 'ready' || shard.ready === true;
 }
 
 export function formatDuration(seconds?: number) {

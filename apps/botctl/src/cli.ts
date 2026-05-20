@@ -3,8 +3,17 @@ import { stdin } from 'node:process';
 
 import { getConfig } from './config.js';
 import { ControlClient, inspectEvalResult, type ShardSelector } from './controlClient.js';
-import { codeBlock, formatAction, formatEndpoints, formatInfo, formatShardInfo, redact } from './format.js';
-import { EndpointStore } from './store.js';
+import {
+  codeBlock,
+  formatAction,
+  formatEndpoints,
+  formatInfo,
+  formatOverviewInstances,
+  formatShardInfo,
+  type OverviewInstanceInfo,
+  redact
+} from './format.js';
+import { type ControlEndpoint, EndpointStore } from './store.js';
 
 interface ParsedArgs {
   positionals: string[];
@@ -24,6 +33,7 @@ async function main(args: string[]) {
   if (!command || command === 'help' || command === '--help' || command === '-h') return printHelp();
 
   if (command === 'endpoint') return handleEndpoint(rest);
+  if (command === 'overview') return console.log(formatOverviewInstances(await getOverviewInstances(await store.list())));
 
   const parsed = parseArgs(rest);
   const endpointName = parsed.positionals[0];
@@ -32,8 +42,11 @@ async function main(args: string[]) {
   const client = new ControlClient(endpoint);
 
   switch (command) {
-    case 'info':
-      return console.log(formatInfo(endpoint.name, await client.getInfo()));
+    case 'info': {
+      const info = await client.getInfo();
+      await store.updateApplicationID(endpoint.name, info.applicationID);
+      return console.log(formatInfo(endpoint.name, info));
+    }
     case 'shards':
       return console.log(formatShardInfo(await client.getShards()));
     case 'restart':
@@ -89,12 +102,38 @@ async function handleEndpoint(args: string[]) {
       const [name] = parsed.positionals;
       if (!name) throw new Error('Usage: botctl endpoint test <name>');
       const endpoint = await store.get(name);
-      await new ControlClient(endpoint).getInfo();
+      const info = await new ControlClient(endpoint).getInfo();
+      await store.updateApplicationID(endpoint.name, info.applicationID);
       return console.log(`Endpoint "${name}" is reachable.`);
     }
     default:
       throw new Error(`Unknown endpoint action "${action || ''}".`);
   }
+}
+
+async function getOverviewInstances(endpoints: ControlEndpoint[]): Promise<OverviewInstanceInfo[]> {
+  return Promise.all(
+    endpoints.map(async (endpoint) => {
+      const client = new ControlClient(endpoint);
+      try {
+        const [info, shards] = await Promise.all([client.getInfo(), client.getShards()]);
+        await store.updateApplicationID(endpoint.name, info.applicationID);
+        return {
+          endpoint: {
+            ...endpoint,
+            applicationID: info.applicationID ?? endpoint.applicationID
+          },
+          info,
+          shards
+        };
+      } catch (error) {
+        return {
+          endpoint,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    })
+  );
 }
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -171,6 +210,7 @@ Endpoint management:
   botctl endpoint test <name>
 
 Control:
+  botctl overview
   botctl info <name>
   botctl shards <name>
   botctl eval <name> --target manager|shard [--shard <id>] [code]

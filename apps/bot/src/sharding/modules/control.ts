@@ -132,7 +132,8 @@ export default class ControlModule extends ShardManagerModule {
         }
       }
 
-      if (shardId === undefined || !Number.isInteger(shardId) || shardId < 0) return reply.status(400).send({ error: 'shardId must be a non-negative integer' });
+      if (shardId === undefined || !Number.isInteger(shardId) || shardId < 0)
+        return reply.status(400).send({ error: 'shardId must be a non-negative integer' });
       const shard = this.manager.shards.get(shardId);
       if (!shard) return reply.status(404).send({ error: 'Shard not found' });
       try {
@@ -167,6 +168,7 @@ export default class ControlModule extends ShardManagerModule {
   async getInfo() {
     const [guilds, recordings] = await Promise.all([this.sumClientValue('bot.guilds.size'), this.sumClientValue('recorder.recordings.size')]);
     return {
+      applicationID: this.manager.options.applicationID,
       shardCount: this.manager.shards.size,
       configuredShards: this.manager.options.shardCount,
       guilds,

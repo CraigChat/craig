@@ -3,6 +3,7 @@ import { inspect } from 'node:util';
 import type { ControlEndpoint } from './store.js';
 
 export interface BotInfo {
+  applicationID?: string;
   shardCount: number;
   configuredShards: number;
   guilds: number;

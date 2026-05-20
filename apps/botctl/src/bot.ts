@@ -56,7 +56,9 @@ export class BotCTLBot {
     this.creator.registerCommand(new CtlCommand(this.creator));
     this.creator.on('warn', (message) => this.logger.warn(message));
     this.creator.on('error', (error) => this.logger.error(error.stack || error.toString()));
-    this.creator.on('commandRun', (command, _, ctx) => this.logger.info(`${ctx.user.username} (${ctx.user.id}) ran /${command.commandName} ${ctx.subcommands.join(' ')}`));
+    this.creator.on('commandRun', (command, _, ctx) =>
+      this.logger.info(`${ctx.user.username} (${ctx.user.id}) ran /${command.commandName} ${ctx.subcommands.join(' ')}`)
+    );
     this.creator.on('commandError', (command, error) =>
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString())
     );

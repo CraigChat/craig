@@ -13,7 +13,17 @@ import {
 
 import type { BotCTLBot } from '../bot.js';
 import { ControlClient, inspectEvalResult, type ShardSelector } from '../controlClient.js';
-import { codeBlock, formatAction, formatInfo, formatShardInfo, redact, truncateForDiscord } from '../format.js';
+import {
+  codeBlock,
+  formatAction,
+  formatInfo,
+  formatOverviewInstances,
+  formatShardInfo,
+  type OverviewInstanceInfo,
+  redact,
+  truncateForDiscord
+} from '../format.js';
+import type { ControlEndpoint } from '../store.js';
 
 const statusChoices = ['online', 'idle', 'dnd', 'default', 'custom'].map((value) => ({ name: value, value }));
 const targetChoices = ['manager', 'shard'].map((value) => ({ name: value, value }));
@@ -37,6 +47,11 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
           name: 'shards',
           description: 'Show shard information.',
           options: [botOption()]
+        },
+        {
+          type: CommandOptionType.SUB_COMMAND,
+          name: 'overview',
+          description: 'Show an overview for all stored bot instances.'
         },
         {
           type: CommandOptionType.SUB_COMMAND,
@@ -132,13 +147,21 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
     if (subcommand === 'eval') return this.openEvalModal(ctx);
 
     try {
+      if (subcommand === 'overview') {
+        const content = formatOverviewInstances(await this.getOverviewInstances(await this.botctl.store.list()));
+        return ephemeral(truncateForDiscord(content));
+      }
+
       const options = ctx.options[subcommand] ?? {};
       const endpoint = await this.botctl.store.get(String(options.bot));
       const client = new ControlClient(endpoint);
 
       switch (subcommand) {
-        case 'info':
-          return ephemeral(formatInfo(endpoint.name, await client.getInfo()));
+        case 'info': {
+          const info = await client.getInfo();
+          await this.botctl.store.updateApplicationID(endpoint.name, info.applicationID);
+          return ephemeral(formatInfo(endpoint.name, info));
+        }
         case 'shards':
           return shardInfoResponse(formatShardInfo(await client.getShards()));
         case 'rwa':
@@ -231,6 +254,31 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
 
   private isAuthorized(userID: string) {
     return this.botctl.config.adminUsers.includes(userID);
+  }
+
+  private async getOverviewInstances(endpoints: ControlEndpoint[]): Promise<OverviewInstanceInfo[]> {
+    return Promise.all(
+      endpoints.map(async (endpoint) => {
+        const client = new ControlClient(endpoint);
+        try {
+          const [info, shards] = await Promise.all([client.getInfo(), client.getShards()]);
+          await this.botctl.store.updateApplicationID(endpoint.name, info.applicationID);
+          return {
+            endpoint: {
+              ...endpoint,
+              applicationID: info.applicationID ?? endpoint.applicationID
+            },
+            info,
+            shards
+          };
+        } catch (error) {
+          return {
+            endpoint,
+            error: error instanceof Error ? error.message : String(error)
+          };
+        }
+      })
+    );
   }
 }
 

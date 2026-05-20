@@ -5,6 +5,7 @@ export interface ControlEndpoint {
   name: string;
   url: string;
   token: string;
+  applicationID?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,6 +67,18 @@ export class EndpointStore {
     return true;
   }
 
+  async updateApplicationID(name: string, applicationID: string | null | undefined): Promise<void> {
+    if (!applicationID) return;
+
+    const data = await this.read();
+    const endpoint = data.endpoints.find((item) => item.name === name);
+    if (!endpoint || endpoint.applicationID === applicationID) return;
+
+    endpoint.applicationID = applicationID;
+    endpoint.updatedAt = new Date().toISOString();
+    await this.write(data);
+  }
+
   private async read(): Promise<EndpointStoreData> {
     try {
       const raw = await fs.readFile(this.file, 'utf8');
@@ -77,6 +90,7 @@ export class EndpointStore {
           name: normalizeName(endpoint.name),
           url: normalizeUrl(endpoint.url),
           token: String(endpoint.token ?? ''),
+          applicationID: endpoint.applicationID ? String(endpoint.applicationID) : undefined,
           createdAt: String(endpoint.createdAt ?? new Date(0).toISOString()),
           updatedAt: String(endpoint.updatedAt ?? endpoint.createdAt ?? new Date(0).toISOString())
         }))
