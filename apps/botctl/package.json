@@ -1,0 +1,37 @@
+{
+  "name": "@craig/botctl",
+  "version": "1.0.0",
+  "description": "Craig bot control CLI and Discord slash bot",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "bin": {
+    "botctl": "dist/cli.mjs"
+  },
+  "license": "MIT",
+  "scripts": {
+    "start:discord": "dotenv -e ../../.env -e .env -c -- node dist/index.mjs",
+    "dev:discord": "dotenv -e ../../.env -e .env -c -- tsx src/index",
+    "cli": "dotenv -e ../../.env -e .env -c -- tsx src/cli",
+    "build": "rimraf dist && tsdown",
+    "sync": "dotenv -e ../../.env -e .env -c -- slash-up sync",
+    "sync:dev": "dotenv -e ../../.env -e .env -c -- slash-up sync -e development",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "@craig/logger": "workspace:*",
+    "@projectdysnomia/dysnomia": "github:projectdysnomia/dysnomia#de437ad5b6230b62a9594bafc951fff3a1f6d6c8",
+    "common-tags": "^1.8.2",
+    "dotenv": "^16.6.1",
+    "slash-create": "^6.8.1"
+  },
+  "devDependencies": {
+    "@types/common-tags": "^1.8.4",
+    "@types/node": "^22.15.21",
+    "slash-up": "^1.2.0",
+    "tsdown": "0.20.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3"
+  }
+}

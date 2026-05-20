@@ -28,7 +28,8 @@
     "db:push": "dotenv -c -- pnpm -F db run db:push",
     "db:migrate:dev": "dotenv -c -- pnpm -F db run db:migrate:dev",
     "prisma": "dotenv -c -- pnpm -F db run prisma",
-    "run-task": "pnpm -F tasks run-task"
+    "run-task": "pnpm -F tasks run-task",
+    "ctl": "pnpm -F botctl cli"
   },
   "repository": {
     "type": "git",

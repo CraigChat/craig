@@ -10,6 +10,13 @@ function formatError(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
+type ShardSelector = 'all' | number[];
+
+function parseShardID(id: string) {
+  const shardID = parseInt(id, 10);
+  return Number.isInteger(shardID) && shardID >= 0 ? shardID : null;
+}
+
 export default class ControlModule extends ShardManagerModule {
   app?: FastifyInstance;
   redis = new Redis(getRedisOptions());
@@ -37,23 +44,103 @@ export default class ControlModule extends ShardManagerModule {
     this.app.get('/shards', async () => this.getShardInfo());
 
     this.app.post<{ Params: { id: string } }>('/shards/:id/restart', async (req, reply) => {
-      const shard = this.manager.shards.get(parseInt(req.params.id, 10));
+      const shardID = parseShardID(req.params.id);
+      if (shardID === null) return reply.status(400).send({ error: 'Invalid shard ID' });
+      const shard = this.manager.shards.get(shardID);
       if (!shard) return reply.status(404).send({ error: 'Shard not found' });
       await shard.respawnWithRetry();
       return { ok: true };
     });
 
     this.app.post<{ Params: { id: string }; Body: { value?: boolean } }>('/shards/:id/rwa', async (req, reply) => {
-      const shard = this.manager.shards.get(parseInt(req.params.id, 10));
+      const shardID = parseShardID(req.params.id);
+      if (shardID === null) return reply.status(400).send({ error: 'Invalid shard ID' });
+      const shard = this.manager.shards.get(shardID);
       if (!shard) return reply.status(404).send({ error: 'Shard not found' });
       if (typeof req.body?.value !== 'boolean') return reply.status(400).send({ error: 'value must be boolean' });
       shard.respawnWhenAvailable = req.body.value;
       return { ok: true };
     });
 
-    this.app.post('/shards/restart', async () => {
-      await this.manager.respawnAll();
-      return { ok: true };
+    this.app.post<{ Body?: { ids?: ShardSelector } }>('/shards/restart', async (req, reply) => {
+      const ids = req.body?.ids ?? 'all';
+      if (ids === 'all') {
+        await this.manager.respawnAll();
+        return { ok: true };
+      }
+      if (!Array.isArray(ids)) return reply.status(400).send({ error: 'ids must be "all" or an array of shard IDs' });
+
+      const results = [];
+      for (const shardID of [...new Set(ids)]) {
+        if (!Number.isInteger(shardID) || shardID < 0) {
+          results.push({ id: shardID, ok: false, error: 'Invalid shard ID' });
+          continue;
+        }
+
+        const shard = this.manager.shards.get(shardID);
+        if (!shard) {
+          results.push({ id: shardID, ok: false, error: 'Shard not found' });
+          continue;
+        }
+
+        await shard
+          .respawnWithRetry()
+          .then(() => results.push({ id: shardID, ok: true }))
+          .catch((error) => results.push({ id: shardID, ok: false, error: formatError(error) }));
+      }
+      return { ok: results.every((result) => result.ok), results };
+    });
+
+    this.app.post<{ Body: { value?: boolean; ids?: ShardSelector } }>('/shards/rwa', async (req, reply) => {
+      if (typeof req.body?.value !== 'boolean') return reply.status(400).send({ error: 'value must be boolean' });
+
+      const ids = req.body.ids ?? 'all';
+      const shardIDs = ids === 'all' ? Array.from(this.manager.shards.keys()) : Array.isArray(ids) ? [...new Set(ids)] : null;
+      if (!shardIDs) return reply.status(400).send({ error: 'ids must be "all" or an array of shard IDs' });
+
+      const results = [];
+      for (const shardID of shardIDs) {
+        if (!Number.isInteger(shardID) || shardID < 0) {
+          results.push({ id: shardID, ok: false, error: 'Invalid shard ID' });
+          continue;
+        }
+
+        const shard = this.manager.shards.get(shardID);
+        if (!shard) {
+          results.push({ id: shardID, ok: false, error: 'Shard not found' });
+          continue;
+        }
+
+        shard.respawnWhenAvailable = req.body.value;
+        results.push({ id: shardID, ok: true });
+      }
+      return { ok: results.every((result) => result.ok), results };
+    });
+
+    this.app.post<{ Body: { target?: 'manager' | 'shard'; script?: string; shardId?: number } }>('/eval', async (req, reply) => {
+      if (!config.allowEval) return reply.status(403).send({ error: 'Eval is disabled for this control API' });
+      const { target, script, shardId } = req.body ?? {};
+      if (target !== 'manager' && target !== 'shard') return reply.status(400).send({ error: 'target must be "manager" or "shard"' });
+      if (!script || typeof script !== 'string') return reply.status(400).send({ error: 'script must be a non-empty string' });
+
+      if (target === 'manager') {
+        try {
+          const result = Function('script', 'return eval(script)').call(this.manager, script);
+          return { result };
+        } catch (error) {
+          return reply.status(500).send({ result: null, error: formatError(error) });
+        }
+      }
+
+      if (shardId === undefined || !Number.isInteger(shardId) || shardId < 0) return reply.status(400).send({ error: 'shardId must be a non-negative integer' });
+      const shard = this.manager.shards.get(shardId);
+      if (!shard) return reply.status(404).send({ error: 'Shard not found' });
+      try {
+        const result = await shard.eval(script);
+        return { result };
+      } catch (error) {
+        return reply.status(500).send({ result: null, error: formatError(error) });
+      }
     });
 
     this.app.post<{ Body: { message?: string | null } }>('/maintenance', async (req) => {

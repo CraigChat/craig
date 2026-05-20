@@ -147,6 +147,43 @@ importers:
         specifier: ^7.16.0
         version: 7.18.2
 
+  apps/botctl:
+    dependencies:
+      '@craig/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      '@projectdysnomia/dysnomia':
+        specifier: github:projectdysnomia/dysnomia#de437ad5b6230b62a9594bafc951fff3a1f6d6c8
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8(@discordjs/opus@0.10.0)(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+      common-tags:
+        specifier: ^1.8.2
+        version: 1.8.2
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
+      slash-create:
+        specifier: ^6.8.1
+        version: 6.8.1(fastify@4.29.1)
+    devDependencies:
+      '@types/common-tags':
+        specifier: ^1.8.4
+        version: 1.8.4
+      '@types/node':
+        specifier: ^22.15.21
+        version: 22.15.21
+      slash-up:
+        specifier: ^1.2.0
+        version: 1.4.2(fastify@4.29.1)
+      tsdown:
+        specifier: 0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   apps/dashboard:
     dependencies:
       '@craig/common':
@@ -2228,7 +2265,7 @@ packages:
     resolution: {integrity: sha512-X1LxiFXinJ4iQehrodGp0f66Dv6cDL0GbRlcCoLtSu6f4Wi+hgo7eND/afIs5029GQLgNWKZ46vn8hjyXTsHLA==}
 
   '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8':
-    resolution: {gitHosted: true, integrity: sha512-UyT+sb16XpnXYrEfYWPLfGFVNy5xVBQ9gByT+S/6CxiMQbzZputExJbRWudi5YNv/r3vLfPDJi8z+xuTfxyYWQ==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8}
     version: 0.3.0-dev
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -5525,7 +5562,7 @@ packages:
     hasBin: true
 
   uWebSockets.js@https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df:
-    resolution: {gitHosted: true, integrity: sha512-eUPBlSskGAN5hYzFjuf+b0LFohKxIRe8EdMmkaNrZ6r8JtEnU05CKXZknoInYJaNfMLUfjgDA7bwsynah5pX9g==, tarball: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df}
+    resolution: {gitHosted: true, tarball: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df}
     version: 20.51.0
 
   unconfig-core@7.5.0:
