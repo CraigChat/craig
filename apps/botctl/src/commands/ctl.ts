@@ -23,6 +23,7 @@ import {
   redact,
   truncateForDiscord
 } from '../format.js';
+import { formatMaintenanceUpdate, resolveMaintenanceTargets, updateMaintenance } from '../maintenance.js';
 import type { ControlEndpoint } from '../store.js';
 
 const statusChoices = ['online', 'idle', 'dnd', 'default', 'custom'].map((value) => ({ name: value, value }));
@@ -94,7 +95,7 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
           name: 'maintenance',
           description: 'Set or clear maintenance mode.',
           options: [
-            botOption(),
+            botOption('Stored bot endpoint name, comma-separated names, or all.', false),
             {
               type: CommandOptionType.STRING,
               name: 'message',
@@ -153,6 +154,13 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
       }
 
       const options = ctx.options[subcommand] ?? {};
+      if (subcommand === 'maintenance') {
+        const message = options.message ? String(options.message) : undefined;
+        const endpoints = await resolveMaintenanceTargets(this.botctl.store, String(options.bot));
+        const result = await updateMaintenance(endpoints, message);
+        return ephemeral(formatMaintenanceUpdate(result, Boolean(message)));
+      }
+
       const endpoint = await this.botctl.store.get(String(options.bot));
       const client = new ControlClient(endpoint);
 
@@ -166,10 +174,6 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
           return shardInfoResponse(formatShardInfo(await client.getShards()));
         case 'rwa':
           return ephemeral(formatAction(await client.setRWA(parseShardSelector(options.shards || 'all'), Boolean(options.value)), 'Updated RWA.'));
-        case 'maintenance': {
-          const result = await client.setMaintenance(options.message || undefined);
-          return ephemeral(result.enabled ? 'Maintenance mode has been set.' : 'Maintenance mode has been removed.');
-        }
         case 'restart':
           return ephemeral(formatAction(await client.restart(parseShardSelector(options.shards || 'all')), 'Restarted shards.'));
         case 'status':
@@ -282,13 +286,13 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
   }
 }
 
-function botOption() {
+function botOption(description = 'Stored bot endpoint name.', autocomplete = true) {
   return {
     type: CommandOptionType.STRING,
     name: 'bot',
-    description: 'Stored bot endpoint name.',
+    description,
     required: true,
-    autocomplete: true
+    autocomplete
   };
 }
 

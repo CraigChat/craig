@@ -13,6 +13,7 @@ import {
   type OverviewInstanceInfo,
   redact
 } from './format.js';
+import { formatMaintenanceUpdate, resolveMaintenanceTargets, updateMaintenance } from './maintenance.js';
 import { type ControlEndpoint, EndpointStore } from './store.js';
 
 interface ParsedArgs {
@@ -38,6 +39,13 @@ async function main(args: string[]) {
   const parsed = parseArgs(rest);
   const endpointName = parsed.positionals[0];
   if (!endpointName) throw new Error(`Usage: botctl ${command} <endpoint>`);
+  if (command === 'maintenance') {
+    const endpoints = await resolveMaintenanceTargets(store, endpointName);
+    const message = parsed.positionals.slice(1).join(' ');
+    const result = await updateMaintenance(endpoints, message || undefined);
+    return console.log(formatMaintenanceUpdate(result, Boolean(message)));
+  }
+
   const endpoint = await store.get(endpointName);
   const client = new ControlClient(endpoint);
 
@@ -55,11 +63,6 @@ async function main(args: string[]) {
       return console.log(
         formatAction(await client.setRWA(parseShardSelector(String(parsed.flags.shards || 'all')), parseBoolean(parsed.flags.value)), 'Updated RWA.')
       );
-    case 'maintenance': {
-      const message = parsed.positionals.slice(1).join(' ');
-      const result = await client.setMaintenance(message || undefined);
-      return console.log(result.enabled ? 'Maintenance mode has been set.' : 'Maintenance mode has been removed.');
-    }
     case 'status':
       await client.setStatus(requireStringFlag(parsed.flags.type, 'type'), optionalStringFlag(parsed.flags.message));
       return console.log('Updated status.');
@@ -215,7 +218,7 @@ Control:
   botctl shards <name>
   botctl eval <name> --target manager|shard [--shard <id>] [code]
   botctl rwa <name> --value true|false --shards all|0,1
-  botctl maintenance <name> [message]
+  botctl maintenance <name[,name...]|all> [message]
   botctl restart <name> --shards all|0,1
   botctl status <name> --type online|idle|dnd|default|custom [--message text]`);
 }
