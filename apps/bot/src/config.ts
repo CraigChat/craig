@@ -181,7 +181,6 @@ export function getBotConfig(): CraigBotConfig {
 
   const shardId = optionalIntFromEnv('SHARD_ID');
   const shardCount = optionalIntFromEnv('SHARD_COUNT');
-  const assetRoot = pathFromEnv('BOT_ASSET_ROOT', path.resolve(process.cwd(), 'assets'));
   const gateway: NonNullable<Dysnomia.ClientOptions['gateway']> = {
     autoreconnect: true,
     intents: ['guilds', 'guildVoiceStates'],
@@ -204,8 +203,8 @@ export function getBotConfig(): CraigBotConfig {
     kitchenURL: process.env.KITCHEN_URL || undefined,
     assets: {
       emojiFolder: pathFromEnv('BOT_EMOJI_FOLDER', path.resolve(process.cwd(), 'emojis')),
-      voiceTestFolder: pathFromEnv('BOT_VOICE_TEST_FOLDER', path.resolve(assetRoot, 'audio')),
-      nowRecordingOpus: pathFromEnv('NOW_RECORDING_OPUS', path.resolve(assetRoot, 'audio', 'nowrecording.opus')),
+      voiceTestFolder: pathFromEnv('BOT_VOICE_TEST_FOLDER', path.resolve(process.cwd(), 'audio')),
+      nowRecordingOpus: pathFromEnv('NOW_RECORDING_OPUS', path.resolve(process.cwd(), 'audio', 'nowrecording.opus')),
       localeFolder: pathFromEnv('BOT_LOCALE_FOLDER', path.resolve(process.cwd(), '../../locale'))
     },
     prefix: [],
