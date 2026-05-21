@@ -17,7 +17,8 @@
     "sync": "dotenv -e ../../.env -e .env -c -- slash-up sync",
     "sync:dev": "dotenv -e ../../.env -e .env -c -- slash-up sync -e development",
     "lint": "eslint .",
-    "format": "eslint . --fix"
+    "format": "eslint . --fix",
+    "instance": "node scripts/instance.mjs"
   },
   "dependencies": {
     "@craig/common": "workspace:*",
