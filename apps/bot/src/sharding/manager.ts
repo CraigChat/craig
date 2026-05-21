@@ -26,6 +26,8 @@ export interface ManagerOptions {
     port?: number;
     token?: string;
     allowEval: boolean;
+    allowedCIDRs: string[];
+    trustHeader?: string;
   };
 }
 

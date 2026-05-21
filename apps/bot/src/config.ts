@@ -266,6 +266,8 @@ export interface ShardManagerEnvOptions {
     port?: number;
     token?: string;
     allowEval: boolean;
+    allowedCIDRs: string[];
+    trustHeader?: string;
   };
 }
 
@@ -289,7 +291,9 @@ export function getShardManagerEnvOptions(): ShardManagerEnvOptions {
       host: controlHost,
       port: controlPort,
       token: controlToken,
-      allowEval: boolFromEnv('BOT_CONTROL_ALLOW_EVAL', false)
+      allowEval: boolFromEnv('BOT_CONTROL_ALLOW_EVAL', false),
+      allowedCIDRs: listFromEnv('BOT_CONTROL_ALLOWED_CIDRS'),
+      trustHeader: process.env.BOT_CONTROL_TRUST_HEADER || undefined
     }
   };
 }

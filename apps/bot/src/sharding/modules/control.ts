@@ -1,4 +1,5 @@
 import fastify, { FastifyInstance } from 'fastify';
+import { BlockList, isIP } from 'node:net';
 import { Redis } from 'ioredis';
 
 import { getRedisOptions } from '../../config.js';
@@ -17,6 +18,20 @@ function parseShardID(id: string) {
   return Number.isInteger(shardID) && shardID >= 0 ? shardID : null;
 }
 
+function normalizeIP(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const bracketed = trimmed.match(/^\[([^\]]+)\](?::\d+)?$/);
+  let candidate = bracketed?.[1] ?? trimmed;
+  if (!isIP(candidate)) {
+    candidate = candidate.replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, '$1');
+  }
+
+  const normalized = candidate.startsWith('::ffff:') ? candidate.slice(7) : candidate;
+  return isIP(normalized) ? normalized : null;
+}
+
 export default class ControlModule extends ShardManagerModule {
   app?: FastifyInstance;
   redis = new Redis(getRedisOptions());
@@ -33,7 +48,35 @@ export default class ControlModule extends ShardManagerModule {
     if (!config?.port) return void logger.info('No control port defined, skipping...');
 
     this.app = fastify({ logger: false });
+    const allowedCIDRs = new BlockList();
+    for (const cidr of config.allowedCIDRs) {
+      const [address, prefixLengthRaw] = cidr.split('/');
+      const prefixLength = parseInt(prefixLengthRaw ?? '', 10);
+      const family = isIP(address);
+      const expectedPrefixLength = family === 4 ? 32 : family === 6 ? 128 : 0;
+      if (!family || !Number.isInteger(prefixLength) || prefixLength < 0 || prefixLength > expectedPrefixLength) {
+        throw new Error(`Invalid BOT_CONTROL_ALLOWED_CIDRS entry: "${cidr}"`);
+      }
+      allowedCIDRs.addSubnet(address, prefixLength, family === 4 ? 'ipv4' : 'ipv6');
+    }
+
     this.app.addHook('preHandler', async (req, reply) => {
+      const remoteIP = normalizeIP(req.ip);
+      if (!remoteIP) return reply.status(403).send({ error: 'Forbidden' });
+
+      const local = remoteIP === '127.0.0.1' || remoteIP === '::1';
+      if (!local && config.allowedCIDRs.length) {
+        const source = config.trustHeader ? req.headers[config.trustHeader.toLowerCase()] : undefined;
+        const trustedValue = Array.isArray(source) ? source[0] : source;
+        const trustedIP = typeof trustedValue === 'string' ? normalizeIP(trustedValue.split(',')[0] ?? '') : null;
+        const candidateIP = trustedIP ?? remoteIP;
+        const family = isIP(candidateIP);
+        const inAllowedCIDR = family && allowedCIDRs.check(candidateIP, family === 4 ? 'ipv4' : 'ipv6');
+        if (!inAllowedCIDR) {
+          return reply.status(403).send({ error: 'Forbidden' });
+        }
+      }
+
       if (!config.token) return;
       const auth = req.headers.authorization;
       if (auth !== `Bearer ${config.token}`) return reply.status(401).send({ error: 'Unauthorized' });
