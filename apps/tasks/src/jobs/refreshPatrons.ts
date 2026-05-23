@@ -266,8 +266,27 @@ export class RefreshPatronsJob extends TaskJob {
     const now = new Date();
     const activePatronIds = new Set<string>();
     const affectedUserIds = new Set<string>();
+    const activePatrons = patrons.filter((item) => item.status === 'active_patron');
+    const linkedUsers = await prisma.user.findMany({
+      where: {
+        patronId: {
+          in: activePatrons.map((patron) => patron.id)
+        }
+      },
+      select: {
+        id: true,
+        patronId: true
+      }
+    });
+    const linkedUsersByPatronId = new Map<string, (typeof linkedUsers)[number][]>();
+    for (const user of linkedUsers) {
+      if (!user.patronId) continue;
+      const users = linkedUsersByPatronId.get(user.patronId) ?? [];
+      users.push(user);
+      linkedUsersByPatronId.set(user.patronId, users);
+    }
 
-    for (const patron of patrons.filter((item) => item.status === 'active_patron')) {
+    for (const patron of activePatrons) {
       const { id: patreonId, name, email, cents, tiers, discordId } = patron;
       activePatronIds.add(patreonId);
 
@@ -281,20 +300,14 @@ export class RefreshPatronsJob extends TaskJob {
 
       let resolvedDiscordId = discordId;
       if (!resolvedDiscordId) {
-        const user = await prisma.user.findFirst({ where: { patronId: patreonId }, select: { id: true } });
+        const user = linkedUsersByPatronId.get(patreonId)?.[0];
         if (user) resolvedDiscordId = user.id;
       }
       if (!resolvedDiscordId) continue;
 
       affectedUserIds.add(resolvedDiscordId);
 
-      const unlinked = await prisma.user.findMany({
-        where: {
-          patronId: patreonId,
-          id: { not: resolvedDiscordId }
-        },
-        select: { id: true }
-      });
+      const unlinked = linkedUsersByPatronId.get(patreonId)?.filter((user) => user.id !== resolvedDiscordId) ?? [];
 
       if (unlinked.length > 0) {
         operations.push(
@@ -345,15 +358,26 @@ export class RefreshPatronsJob extends TaskJob {
     if (operations.length > 0) await prisma.$transaction(operations);
 
     this.logger.info('Checking for stale Patreon entitlements.');
+    const staleEntitlementWhere: Prisma.EntitlementWhereInput = { source: 'patreon' };
+    if (activePatronIds.size > 0)
+      staleEntitlementWhere.user = {
+        OR: [{ patronId: null }, { patronId: { notIn: [...activePatronIds] } }]
+      };
+
     const staleEntitlements = await prisma.entitlement.findMany({
-      where: { source: 'patreon' },
-      select: { userId: true, user: { select: { patronId: true } } }
+      where: staleEntitlementWhere,
+      select: { userId: true }
     });
 
-    for (const { userId, user } of staleEntitlements) {
-      if (user?.patronId && activePatronIds.has(user.patronId)) continue;
-      await prisma.entitlement.deleteMany({ where: { userId, source: 'patreon' } });
-      affectedUserIds.add(userId);
+    if (staleEntitlements.length > 0) {
+      const staleUserIds = staleEntitlements.map(({ userId }) => userId);
+      await prisma.entitlement.deleteMany({
+        where: {
+          source: 'patreon',
+          userId: { in: staleUserIds }
+        }
+      });
+      for (const userId of staleUserIds) affectedUserIds.add(userId);
     }
 
     this.logger.info(`Re-evaluating ${affectedUserIds.size.toLocaleString()} users.`);
@@ -367,14 +391,15 @@ export class RefreshPatronsJob extends TaskJob {
         tier: true
       }
     });
+    const entitlementsByUserId = new Map<string, { tier: number }[]>();
+    for (const entitlement of entitlements) {
+      const userEntitlements = entitlementsByUserId.get(entitlement.userId) ?? [];
+      userEntitlements.push(entitlement);
+      entitlementsByUserId.set(entitlement.userId, userEntitlements);
+    }
 
-    await prisma.$transaction(
-      [...affectedUserIds].map((userId) =>
-        this.resolveUserEntitlement(
-          entitlements.filter((entitlement) => entitlement.userId === userId),
-          userId
-        )
-      )
-    );
+    if (affectedUserIds.size > 0) {
+      await prisma.$transaction([...affectedUserIds].map((userId) => this.resolveUserEntitlement(entitlementsByUserId.get(userId) ?? [], userId)));
+    }
   }
 }
