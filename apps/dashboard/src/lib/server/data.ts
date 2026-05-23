@@ -24,11 +24,11 @@ export async function getUserData(userId: string) {
         expiresAt: true
       }
     }),
-    prisma.patreon.findUnique({ where: { id: userId } }),
-    prisma.googleDriveUser.findUnique({ where: { id: userId } }),
-    prisma.microsoftUser.findUnique({ where: { id: userId } }),
-    prisma.dropboxUser.findUnique({ where: { id: userId } }),
-    prisma.boxUser.findUnique({ where: { id: userId } })
+    prisma.patreon.findUnique({ where: { id: userId }, select: { name: true } }),
+    prisma.googleDriveUser.findUnique({ where: { id: userId }, select: { id: true } }),
+    prisma.microsoftUser.findUnique({ where: { id: userId }, select: { name: true } }),
+    prisma.dropboxUser.findUnique({ where: { id: userId }, select: { name: true } }),
+    prisma.boxUser.findUnique({ where: { id: userId }, select: { name: true } })
   ]);
 
   return {
@@ -64,16 +64,16 @@ export async function setNextAvailableService(user: User, exclude: string) {
     let serviceData;
     switch (service) {
       case 'google':
-        serviceData = await prisma.googleDriveUser.findUnique({ where: { id: user.id } });
+        serviceData = await prisma.googleDriveUser.findUnique({ where: { id: user.id }, select: { id: true } });
         break;
       case 'onedrive':
-        serviceData = await prisma.microsoftUser.findUnique({ where: { id: user.id } });
+        serviceData = await prisma.microsoftUser.findUnique({ where: { id: user.id }, select: { id: true } });
         break;
       case 'dropbox':
-        serviceData = await prisma.dropboxUser.findUnique({ where: { id: user.id } });
+        serviceData = await prisma.dropboxUser.findUnique({ where: { id: user.id }, select: { id: true } });
         break;
       case 'box':
-        serviceData = await prisma.boxUser.findUnique({ where: { id: user.id } });
+        serviceData = await prisma.boxUser.findUnique({ where: { id: user.id }, select: { id: true } });
         break;
     }
 

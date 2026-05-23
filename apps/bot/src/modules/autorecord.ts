@@ -85,33 +85,33 @@ export default class AutorecordModule extends BotModule {
   }
 
   async upsert(data: AutoRecordUpsert) {
-    const autoRecording = await prisma.autoRecord.findFirst({
-      where: { guildId: data.guildId, clientId: this.client.bot.user.id, channelId: data.channelId }
+    const clientId = this.client.bot.user.id;
+    const newAutoRecording: AutoRecord = await prisma.autoRecord.upsert({
+      where: {
+        clientId_guildId_channelId: {
+          clientId,
+          guildId: data.guildId,
+          channelId: data.channelId
+        }
+      },
+      update: {
+        userId: data.userId,
+        minimum: data.minimum,
+        triggerUsers: data.triggerUsers,
+        triggerRoles: data.triggerRoles,
+        postChannelId: data.postChannelId || null
+      },
+      create: {
+        clientId,
+        guildId: data.guildId,
+        channelId: data.channelId,
+        userId: data.userId,
+        postChannelId: data.postChannelId || null,
+        minimum: data.minimum,
+        triggerUsers: data.triggerUsers,
+        triggerRoles: data.triggerRoles
+      }
     });
-
-    const newAutoRecording: AutoRecord = autoRecording
-      ? await prisma.autoRecord.update({
-          where: { id: autoRecording.id },
-          data: {
-            userId: data.userId,
-            minimum: data.minimum,
-            triggerUsers: data.triggerUsers,
-            triggerRoles: data.triggerRoles,
-            postChannelId: data.postChannelId || null
-          }
-        })
-      : await prisma.autoRecord.create({
-          data: {
-            clientId: this.client.bot.user.id,
-            guildId: data.guildId,
-            channelId: data.channelId,
-            userId: data.userId,
-            postChannelId: data.postChannelId || null,
-            minimum: data.minimum,
-            triggerUsers: data.triggerUsers,
-            triggerRoles: data.triggerRoles
-          }
-        });
 
     this.autorecords.set(newAutoRecording.channelId, newAutoRecording);
   }
@@ -167,9 +167,9 @@ export default class AutorecordModule extends BotModule {
 
     if (shouldRecord && !recording) {
       // Get rewards
-      const userData = await prisma.user.findFirst({ where: { id: autoRecording.userId } });
-      const blessing = await prisma.blessing.findFirst({ where: { guildId: guildId } });
-      const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+      const userData = await prisma.user.findUnique({ where: { id: autoRecording.userId }, select: { rewardTier: true, webapp: true } });
+      const blessing = await prisma.blessing.findUnique({ where: { guildId: guildId }, select: { userId: true } });
+      const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
       const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
       // Remove auto-recording if they lost the ability to autorecord

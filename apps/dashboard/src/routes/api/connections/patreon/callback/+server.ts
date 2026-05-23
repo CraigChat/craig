@@ -64,7 +64,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   logger.info(`OAuth connection established (user=${auth.id}, service=patreon, serviceUserId=${me.data.id})`, JSON.stringify(me, null, 2));
 
-  const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id } });
+  const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id }, select: { id: true } });
   if (otherUser && otherUser.id !== auth.id) {
     logger.info(
       `Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`

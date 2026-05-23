@@ -20,8 +20,13 @@ export default class EntitlementsModule extends BotModule {
   async getCurrentUser(ctx: ComponentContext | CommandContext) {
     const userId = ctx.user.id;
 
-    const dbEntitlement = await prisma.entitlement.findFirst({
-      where: { userId, source: 'discord' }
+    const dbEntitlement = await prisma.entitlement.findUnique({
+      where: {
+        userId_source: {
+          userId,
+          source: 'discord'
+        }
+      }
     });
 
     if (ctx.entitlements.length > 0) {

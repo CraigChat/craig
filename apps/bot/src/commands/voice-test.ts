@@ -63,7 +63,7 @@ export default class VoiceTestCommand extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
+    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {

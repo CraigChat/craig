@@ -122,7 +122,7 @@ export default class RecorderModule extends BotModule {
     });
 
     // Detect and track versions
-    const voiceVersionSeen = await prisma.voiceVersion.findFirst({
+    const voiceVersionSeen = await prisma.voiceVersion.findUnique({
       where: { version: voiceVersion }
     });
 
@@ -131,7 +131,7 @@ export default class RecorderModule extends BotModule {
         data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
       });
 
-    const rtcWorkerVersionSeen = await prisma.rtcVersion.findFirst({
+    const rtcWorkerVersionSeen = await prisma.rtcVersion.findUnique({
       where: { version: rtcWorkerVersion }
     });
 

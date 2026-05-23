@@ -56,7 +56,7 @@ function createOAuthClient(driveUser: GoogleDriveUser) {
 export async function googlePreflight(userId: string) {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return false;
 
-  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.googleDriveUser.findUnique({ where: { id: userId } });
   if (!driveUser) return false;
   const oAuth2Client = createOAuthClient(driveUser);
   const drive = google.drive({ version: 'v3', auth: oAuth2Client });
@@ -69,7 +69,7 @@ export async function googlePreflight(userId: string) {
 export async function googleUpload(job: Job, info: RecordingInfo, fileName: string) {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return;
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await prisma.googleDriveUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.googleDriveUser.findUnique({ where: { id: userId } });
   if (!driveUser) return;
   const oAuth2Client = createOAuthClient(driveUser);
   const drive = google.drive({ version: 'v3', auth: oAuth2Client });

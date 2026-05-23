@@ -200,8 +200,8 @@ async function getFeaturesFromGuild(guildId: string): Promise<string[]> {
   const features: string[] = [];
 
   try {
-    const blessing = await prisma.blessing.findFirst({ where: { guildId } });
-    const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+    const blessing = await prisma.blessing.findUnique({ where: { guildId }, select: { userId: true } });
+    const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
 
     const rewardTier = blessingUser?.rewardTier ?? 0;
     features.push(...rewardTierToFeatures(rewardTier));

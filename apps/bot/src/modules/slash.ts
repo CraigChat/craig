@@ -138,7 +138,7 @@ export default class SlashModule extends BotModule {
       });
     }
     if (recording.channel.guild.id !== ctx.guildID) return;
-    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode')
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
@@ -270,7 +270,7 @@ export default class SlashModule extends BotModule {
       });
     }
 
-    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage voice tests.',

@@ -247,9 +247,13 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
 }
 
 export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis']): Promise<MessageOptions> {
-  const userData = await prisma.user.findFirst({ where: { id: userID } });
-  const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
-  const blessingUser = blessing ? (blessing.userId === userID ? userData : await prisma.user.findFirst({ where: { id: blessing.userId } })) : null;
+  const userData = await prisma.user.findUnique({ where: { id: userID }, select: { id: true, rewardTier: true } });
+  const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
+  const blessingUser = blessing
+    ? blessing.userId === userID
+      ? userData
+      : await prisma.user.findUnique({ where: { id: blessing.userId }, select: { id: true, rewardTier: true } })
+    : null;
 
   const userTier = userData?.rewardTier || 0;
   const guildTier = blessingUser?.rewardTier || 0;
@@ -302,7 +306,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 }
 
 export async function unblessServer(userID: string, guildID: string): Promise<MessageOptions> {
-  const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
+  const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
 
   if (!blessing || blessing.userId !== userID)
     return {
@@ -321,16 +325,33 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
 }
 
 export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
-  const recordings = await prisma.recording.findMany({
-    where: {
-      userId: userID,
-      clientId: client.bot.user.id,
-      expiresAt: { gt: new Date() }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
+  const MAX_PAGE_AMOUNT = 5;
+  const requested = Number.isFinite(requestedPage) ? Math.max(1, Math.trunc(requestedPage)) : 1;
+  const where = {
+    userId: userID,
+    clientId: client.bot.user.id,
+    expiresAt: { gt: new Date() }
+  };
+  const [recordings, recordingCount] = await prisma.$transaction([
+    prisma.recording.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (requested - 1) * MAX_PAGE_AMOUNT,
+      take: MAX_PAGE_AMOUNT,
+      select: {
+        id: true,
+        accessKey: true,
+        deleteKey: true,
+        channelId: true,
+        autorecorded: true,
+        createdAt: true,
+        expiresAt: true
+      }
+    }),
+    prisma.recording.count({ where })
+  ]);
 
-  if (recordings.length === 0)
+  if (recordingCount === 0)
     return {
       flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
       components: [
@@ -344,10 +365,26 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
   const downloadDomain = client.config.craig.downloadDomain;
   const baseUrl = `${client.config.craig.downloadProtocol ?? 'https'}://${downloadDomain}`;
   const emojis = client.slash.emojis;
-  const MAX_PAGE_AMOUNT = 5;
-  const pages = Math.ceil(recordings.length / MAX_PAGE_AMOUNT);
-  const page = Math.min(pages, Math.max(1, requestedPage));
-  const pagedRecordings = recordings.slice((page - 1) * MAX_PAGE_AMOUNT, page * MAX_PAGE_AMOUNT);
+  const pages = Math.ceil(recordingCount / MAX_PAGE_AMOUNT);
+  const page = Math.min(pages, requested);
+  const pagedRecordings =
+    page === requested
+      ? recordings
+      : await prisma.recording.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * MAX_PAGE_AMOUNT,
+          take: MAX_PAGE_AMOUNT,
+          select: {
+            id: true,
+            accessKey: true,
+            deleteKey: true,
+            channelId: true,
+            autorecorded: true,
+            createdAt: true,
+            expiresAt: true
+          }
+        });
 
   return {
     flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
@@ -362,9 +399,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: `## Previous recordings on ${
-              client.bot.user.mention
-            }\n-# ${recordings.length.toLocaleString()} recording(s), Page ${page}/${pages}`
+            content: `## Previous recordings on ${client.bot.user.mention}\n-# ${recordingCount.toLocaleString()} recording(s), Page ${page}/${pages}`
           },
           {
             type: ComponentType.SEPARATOR,

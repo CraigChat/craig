@@ -47,7 +47,7 @@ async function getRefreshedMicrosoftAccessToken(
 
 export async function onedrivePreflight(userId: string) {
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return false;
-  const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.microsoftUser.findUnique({ where: { id: userId } });
   if (!driveUser) return false;
   const { token: accessToken, authInvalidated } = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
@@ -101,7 +101,7 @@ export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: st
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await prisma.microsoftUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.microsoftUser.findUnique({ where: { id: userId } });
   if (!driveUser) return;
   const { token: accessToken, authInvalidated } = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {

@@ -109,7 +109,7 @@ export default class Join extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
+    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
@@ -260,8 +260,8 @@ export default class Join extends GeneralCommand {
 
     // Get rewards
     const userData = await this.entitlements.getCurrentUser(ctx);
-    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+    const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
+    const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
     const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Check if user can record

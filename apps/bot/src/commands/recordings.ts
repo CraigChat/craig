@@ -31,24 +31,6 @@ export default class Recordings extends GeneralCommand {
       };
     }
 
-    // Get the last 5 recordings that arent expired
-    const recordings = await this.prisma.recording.findMany({
-      where: {
-        userId: ctx.user.id,
-        clientId: this.client.bot.user.id,
-        expiresAt: { gt: new Date() }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10
-    });
-
-    if (recordings.length === 0)
-      return {
-        content: `You haven't done any recordings recently on ${this.client.bot.user.username}.`,
-        ephemeral: true
-      };
-
-    const content = await paginateRecordings(this.client as any, ctx.user.id);
-    return content;
+    return await paginateRecordings(this.client as any, ctx.user.id);
   }
 }

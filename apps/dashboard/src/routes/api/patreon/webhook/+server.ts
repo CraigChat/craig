@@ -27,7 +27,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
   const dbPatron = await prisma.patreon.findUnique({ where: { id: patron.id } });
 
   if (event === 'members:pledge:delete') {
-    const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
+    const user = await prisma.user.findFirst({ where: { patronId: patron.id }, select: { id: true } });
     console.info(new Date().toISOString(), `Deleted patron ${patron.id} (${body.data.attributes.patron_status}, user ${user?.id})`);
     if (body.data.attributes.patron_status !== 'active_patron') await prisma.patreon.delete({ where: { id: patron.id } });
     if (user) {
@@ -77,7 +77,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
     }
 
     if (patron.discordId) {
-      const user = await prisma.user.findFirst({ where: { patronId: patron.id } });
+      const user = await prisma.user.findFirst({ where: { patronId: patron.id }, select: { id: true } });
       if (user && user.id !== patron.discordId) {
         console.info(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
         await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
@@ -85,7 +85,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       }
     }
 
-    const userId = patron.discordId ?? (await prisma.user.findFirst({ where: { patronId: patron.id } }))?.id;
+    const userId = patron.discordId ?? (await prisma.user.findFirst({ where: { patronId: patron.id }, select: { id: true } }))?.id;
     if (!userId) return;
 
     const tier = determineRewardTier(patron.tiers);
