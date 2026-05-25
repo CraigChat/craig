@@ -14,25 +14,24 @@ import {
 } from 'mediabunny';
 import { OpusDecoderWebWorker } from 'opus-decoder';
 
+import { CraigOggState, type CraigAudioType, type CorrectedCraigPacket, CraigTrackCorrector, normalizeAudioToStereo } from './craig';
 import type { PageMeta, WorkerMessage } from './oggParser.worker';
 import {
-  bytesEqual,
   CHUNK_SIZE,
-  FLAC,
   HIGH_WATERMARK,
   LOW_WATERMARK,
   type MinizelFormat,
   MIX_BUFFER_SECONDS,
   MIX_STEP,
-  OPUS,
   SAMPLE_RATE
 } from './util';
 
 type MixFormat = Exclude<MinizelFormat, 'ogg'>;
 
 type MixPacket = {
-  left: Float32Array;
-  right: Float32Array;
+  left?: Float32Array;
+  right?: Float32Array;
+  length: number;
   granulePosition: number;
 };
 
@@ -76,12 +75,14 @@ export class MixedProcessor {
   private readerPaused = false;
   private readerPausedResolve: (() => void) | null = null;
   private _workerDone: (() => void) | null = null;
+  private workerError: Error | null = null;
   private aborted = false;
 
   // Stream state
   private streamTypes = new Map<number, 'opus' | 'flac'>();
   private streamFlacRates = new Map<number, number>();
-  private granuleOffset: bigint | null = null;
+  private craigState = new CraigOggState();
+  private correctors = new Map<number, CraigTrackCorrector>();
   private streamPositions = new Map<number, bigint>();
 
   // Stats
@@ -103,9 +104,8 @@ export class MixedProcessor {
   private queue = newQueue(1);
   private decodingQueue = newQueue(1);
 
-  // Mix buffer - bounded to prevent unbounded growth
+  // Mix buffer
   private mixCache: MixPacket[] = [];
-  private maxMixCacheSamples = SAMPLE_RATE * MIX_BUFFER_SECONDS;
 
   // Callbacks
   onProgress?: () => void;
@@ -128,7 +128,7 @@ export class MixedProcessor {
   estimatedQueuedBytes(): number {
     // Calculate approximate size of mix cache (Float32Array = 4 bytes per sample, 2 channels)
     const mixCacheBytes = this.mixCache.reduce((sum, packet) => {
-      return sum + packet.left.length * 4 + packet.right.length * 4;
+      return sum + (packet.left?.length ?? 0) * 4 + (packet.right?.length ?? 0) * 4;
     }, 0);
     return this.outstandingNetworkBytes + mixCacheBytes;
   }
@@ -226,9 +226,7 @@ export class MixedProcessor {
   }
 
   private pruneMixCache(): void {
-    // Remove packets that are too far behind current write position
-    const cutoff = this.currentMixPosition - this.maxMixCacheSamples;
-    this.mixCache = this.mixCache.filter((packet) => packet.granulePosition + packet.left.length > cutoff);
+    this.mixCache = this.mixCache.filter((packet) => packet.granulePosition + packet.length > this.currentMixPosition);
   }
 
   private async processMix(finalize = false): Promise<void> {
@@ -249,7 +247,7 @@ export class MixedProcessor {
 
       // Calculate the latest end position of any packet
       const latestEnd = this.mixCache.reduce((max, packet) => {
-        const packetEnd = packet.granulePosition + packet.left.length;
+        const packetEnd = packet.granulePosition + packet.length;
         return packetEnd > max ? packetEnd : max;
       }, 0);
 
@@ -264,7 +262,7 @@ export class MixedProcessor {
       // If data is ahead, fill with silence
       if (minStart >= blockEnd) {
         const gap = minStart - blockStart;
-        const blocksToFill = finalize ? Math.ceil(gap / MIX_STEP) : Math.floor(gap / MIX_STEP);
+        const blocksToFill = Math.floor(gap / MIX_STEP);
         if (!finalize && blocksToFill === 0) break;
 
         for (let i = 0; i < blocksToFill; i++) {
@@ -279,15 +277,14 @@ export class MixedProcessor {
       // Mix all overlapping packets into this block
       const blockLeft = new Float32Array(MIX_STEP);
       const blockRight = new Float32Array(MIX_STEP);
+      const activeInputs = new Uint16Array(MIX_STEP);
       let audioAdded = false;
 
       for (const packet of this.mixCache) {
         const packetStart = packet.granulePosition;
-        const packetEnd = packetStart + packet.left.length;
+        const packetEnd = packetStart + packet.length;
 
         if (packetEnd <= blockStart || packetStart >= blockEnd) continue;
-
-        audioAdded = true;
 
         const overlapStart = Math.max(blockStart, packetStart);
         const overlapEnd = Math.min(blockEnd, packetEnd);
@@ -296,9 +293,20 @@ export class MixedProcessor {
         const overlapLength = overlapEnd - overlapStart;
 
         for (let i = 0; i < overlapLength; i++) {
-          blockLeft[destOffset + i]! += packet.left[srcOffset + i]!;
-          blockRight[destOffset + i]! += packet.right[srcOffset + i]!;
+          activeInputs[destOffset + i]!++;
+          if (packet.left && packet.right) {
+            audioAdded = true;
+            blockLeft[destOffset + i]! += packet.left[srcOffset + i]!;
+            blockRight[destOffset + i]! += packet.right[srcOffset + i]!;
+          }
         }
+      }
+
+      // Approximate FFmpeg amix=normalize=1 with unit weights for active timeline inputs.
+      for (let i = 0; i < MIX_STEP; i++) {
+        const scale = activeInputs[i] || 1;
+        blockLeft[i] = Math.max(-1, Math.min(1, blockLeft[i]! / scale));
+        blockRight[i] = Math.max(-1, Math.min(1, blockRight[i]! / scale));
       }
 
       // wait for more data if nothing mixed and we are fine
@@ -306,8 +314,51 @@ export class MixedProcessor {
 
       await this.enqueueSample(blockLeft, blockRight, blockStart);
       this.currentMixPosition += MIX_STEP;
+      this.pruneMixCache();
       this.onProgress?.();
     }
+  }
+
+  private enqueueCorrectedPackets(type: CraigAudioType, outputs: CorrectedCraigPacket[]): void {
+    this.decodingQueue.add(async () => {
+      if (this.aborted) return;
+
+      for (const output of outputs) {
+        if (output.kind === 'silence') {
+          this.mixCache.push({
+            length: Number(output.durationSamples),
+            granulePosition: Number(output.logicalGranulePosition)
+          });
+          continue;
+        }
+
+        this.packetsDecoded++;
+        const decoded = type === 'opus' ? await this.opusDecoder!.decodeFrame(output.payload) : await this.flacDecoder!.decode(output.payload);
+        let channelData = normalizeAudioToStereo(decoded.channelData);
+
+        if (decoded.sampleRate !== SAMPLE_RATE) channelData = resampleAudioBuffer(channelData, decoded.sampleRate, SAMPLE_RATE);
+
+        this.mixCache.push({
+          left: channelData[0]!,
+          right: channelData[1]!,
+          length: channelData[0]!.length,
+          granulePosition: Number(output.logicalGranulePosition)
+        });
+      }
+
+      await this.processMix();
+      this.onProgress?.();
+      this.checkResume();
+    });
+  }
+
+  private failWorker(message: string): void {
+    if (this.workerError) return;
+    this.workerError = new Error(`Ogg parser worker failed: ${message}`);
+    this._workerDone?.();
+    this.reader.cancel(this.workerError).catch(() => {});
+    this.readerPausedResolve?.();
+    this.readerPausedResolve = null;
   }
 
   private onWorkerMessage(msg: WorkerMessage): void {
@@ -317,95 +368,58 @@ export class MixedProcessor {
       this.pagesReceived++;
       const pageBuf = new Uint8Array(msg.page);
       const meta: PageMeta = msg.meta;
-      this.outstandingNetworkBytes = Math.max(0, this.outstandingNetworkBytes - meta.payloadLength);
-
       const serial = meta.serial;
-
-      if (this.isTrackExcluded(serial)) {
-        this.checkResume();
-        return;
-      }
 
       const pageSegments = pageBuf[26]!;
       const headerTotalLen = 27 + pageSegments;
       // Copy payload to avoid issues with transferred buffer
       const payload = pageBuf.slice(headerTotalLen);
       const granulePosition = BigInt(meta.granulePosition);
+      const event = this.craigState.acceptPage({
+        serial,
+        granulePosition,
+        headerType: meta.headerType,
+        pageSequenceNumber: meta.pageSequenceNumber,
+        payload
+      });
+      if (!event) return;
 
-      // Determine stream type if header
-      if (granulePosition === 0n) {
-        if (payload.length < 5) return;
-        if (bytesEqual(payload.subarray(0, 4), OPUS)) {
-          this.streamTypes.set(serial, 'opus');
-        } else if (bytesEqual(payload.subarray(0, 5), FLAC)) {
-          this.streamTypes.set(serial, 'flac');
-          if (payload.length > 29) {
-            const flacRate = (payload[27]! << 12) + (payload[28]! << 4) + (payload[29]! >> 4);
-            this.streamFlacRates.set(serial, flacRate);
-          }
+      if (event.kind === 'meta' || event.kind === 'note') {
+        this.checkResume();
+        return;
+      }
+
+      if (event.kind === 'audio-header') {
+        this.streamTypes.set(serial, event.type);
+        if (event.flacRate) this.streamFlacRates.set(serial, event.flacRate);
+        if (!this.isTrackExcluded(serial) && !this.correctors.has(serial)) {
+          this.correctors.set(serial, new CraigTrackCorrector({ type: event.type, flacRate: event.flacRate }));
         }
         return;
       }
 
-      if (!this.granuleOffset) this.granuleOffset = granulePosition;
-      if (payload.length <= 1) return;
+      if (this.isTrackExcluded(serial)) {
+        this.checkResume();
+        return;
+      }
 
-      const type = this.streamTypes.get(serial);
-      if (!type) return;
+      const corrector = this.correctors.get(serial) ?? new CraigTrackCorrector({ type: event.type, flacRate: event.flacRate });
+      this.correctors.set(serial, corrector);
 
-      // Queue decoding (payload is already copied above)
-      this.decodingQueue.add(async () => {
-        if (this.aborted) return;
-
-        const currentPosition = this.streamPositions.get(serial) ?? this.granuleOffset!;
-        let chosenStartPosition = currentPosition;
-
-        // Packet far behind: drop
-        if (currentPosition > granulePosition + BigInt(960 * 25)) {
-          console.debug(`[Minizel] Dropping packet: too far behind (current: ${currentPosition}, granule: ${granulePosition})`);
-          return;
-        }
-
-        // Packet far ahead: set position
-        if (currentPosition + 960n * 25n < granulePosition) chosenStartPosition = granulePosition;
-
-        // Decode
-        this.packetsDecoded++;
-        const decoded = type === 'opus' ? await this.opusDecoder!.decodeFrame(payload) : await this.flacDecoder!.decode(payload);
-        let channelData = decoded.channelData;
-
-        // Resample if needed
-        if (decoded.sampleRate !== SAMPLE_RATE) channelData = resampleAudioBuffer(channelData, decoded.sampleRate, SAMPLE_RATE);
-
-        // Add to mix cache (bounded)
-        const startPosition = Number(chosenStartPosition - this.granuleOffset!);
-        this.mixCache.push({
-          left: channelData[0]!,
-          right: channelData[1]!,
-          granulePosition: startPosition
-        });
-        this.streamPositions.set(serial, chosenStartPosition + BigInt(channelData[0]!.length));
-
-        // Process mix
-        await this.processMix();
-
-        // Update progress after processing
-        this.onProgress?.();
-
-        // Check resume
-        if (this.readerPaused && this.estimatedQueuedBytes() <= LOW_WATERMARK) {
-          this.readerPaused = false;
-          if (this.readerPausedResolve) {
-            this.readerPausedResolve();
-            this.readerPausedResolve = null;
-          }
-        }
+      const outputs = corrector.acceptPacket({
+        granulePosition: event.inputGranulePosition,
+        payload: event.payload,
+        framesInPacket: event.framesInPacket,
+        frameSize: event.frameSize
       });
+      this.streamPositions.set(serial, corrector.position);
+
+      this.enqueueCorrectedPackets(event.type, outputs);
     } else if (msg.type === 'consumed') {
       this.outstandingNetworkBytes = Math.max(0, this.outstandingNetworkBytes - (msg.consumed ?? 0));
       this.checkResume();
     } else if (msg.type === 'error') {
-      console.error('Mixed worker error', msg.message);
+      this.failWorker(msg.message);
     } else if (msg.type === 'done') {
       this._workerDone?.();
     }
@@ -436,6 +450,7 @@ export class MixedProcessor {
         while (!this.aborted) {
           const { done, value } = await this.reader.read();
           if (done) {
+            if (this.workerError) throw this.workerError;
             worker.postMessage({ type: 'end' });
             break;
           }
@@ -458,10 +473,18 @@ export class MixedProcessor {
         } catch {}
       }
 
-      if (!this.aborted) await waitForWorker;
+      if (!this.aborted) {
+        await waitForWorker;
+        if (this.workerError) throw this.workerError;
+      }
       worker.terminate();
 
       console.debug(`[Minizel] Worker done. Pages: ${this.pagesReceived}, Streams: ${this.streamTypes.size}`);
+
+      for (const [serial, corrector] of this.correctors) {
+        this.enqueueCorrectedPackets(this.streamTypes.get(serial)!, corrector.finish());
+        this.streamPositions.set(serial, corrector.position);
+      }
 
       // Wait for decoding to finish
       await this.decodingQueue.done();
@@ -477,12 +500,18 @@ export class MixedProcessor {
       const cacheBeforeFinalize = this.mixCache.length;
       await this.processMix(true);
 
+      if (this.samplesWritten === 0 && this.correctors.size > 0) {
+        await this.enqueueSample(new Float32Array(MIX_STEP), new Float32Array(MIX_STEP), 0);
+        this.currentMixPosition = MIX_STEP;
+      }
+
       console.debug(
         `[Minizel] Final mix done. Cache before: ${cacheBeforeFinalize}, Samples written: ${this.samplesWritten}, Position: ${this.currentMixPosition}`
       );
 
       // Finalize output
       await this.queue.done();
+      this.mbSampleSource?.close();
       await this.mbOutput!.finalize();
 
       console.debug(`[Minizel] Output finalized. Bytes written: ${this.bytesWritten}`);

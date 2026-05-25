@@ -45,6 +45,7 @@
   let processState = $state<ProcessState>('idle');
   let errorMessage = $state('');
   let processor: MinizelProcessor | MixedProcessor | null = $state(null);
+  let abortController: AbortController | null = $state(null);
   let iconElem: HTMLLinkElement | undefined = $state();
 
   // Stats
@@ -225,7 +226,7 @@
       startTime = performance.now();
 
       // Create resilient stream that auto-retries on connection drops
-      const abortController = new AbortController();
+      abortController = new AbortController();
       const rawStream = createResilientStream(`/api/v1/recordings/${recording.id}/raw.dat?key=${key}`, {
         maxRetries: 15,
         retryDelay: 1000,
@@ -272,6 +273,7 @@
       processState = 'error';
     } finally {
       processor = null;
+      abortController = null;
     }
   }
 
@@ -284,6 +286,9 @@
   }
 
   async function handleCancel() {
+    abortController?.abort();
+    abortController = null;
+
     if ((processState === 'processing' || processState === 'downloading') && processor) {
       processor.abort();
       try {
@@ -314,6 +319,8 @@
   });
 
   onDestroy(() => {
+    abortController?.abort();
+    abortController = null;
     if ((processState === 'processing' || processState === 'downloading') && processor) {
       processor.abort();
       processor.cleanup().catch(() => {});
@@ -475,7 +482,7 @@
                     {#if isExcluded}
                       —
                     {:else if stats}
-                      {convertToTimemark(stats.position / 48000)}
+                      {convertToTimemark(stats.positionSeconds)}
                     {:else}
                       —
                     {/if}
@@ -535,7 +542,7 @@
                   {#if isExcluded}
                     —
                   {:else if stats}
-                    {convertToTimemark(stats.position / 48000)}
+                    {convertToTimemark(stats.positionSeconds)}
                   {:else}
                     —
                   {/if}

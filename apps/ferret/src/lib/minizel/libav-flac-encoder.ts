@@ -14,7 +14,7 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
   private _q = newQueue(1);
   private meta?: EncodedAudioChunkMetadata;
 
-  static override supports(codec: AudioCodec, config: AudioDecoderConfig): boolean {
+  static override supports(codec: AudioCodec, config: AudioEncoderConfig): boolean {
     return codec === 'flac' && config.numberOfChannels === 2;
   }
 
@@ -64,10 +64,11 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
 
     const format = LibAV.AV_SAMPLE_FMT_S16;
     const raw = this.#toS16(audioSample);
-    const nb_samples = audioSample.allocationSize({ planeIndex: 0, format: 'u8-planar' });
+    const nb_samples = audioSample.numberOfFrames;
 
-    // Convert the timestamp
-    const [pts, ptshi] = LibAV.f64toi64(audioSample.timestamp);
+    // LibAV FLAC uses a 1/sample_rate time base, so PTS is in samples.
+    const ptsInSamples = Math.round(audioSample.timestamp * audioSample.sampleRate);
+    const [pts, ptshi] = LibAV.f64toi64(ptsInSamples);
 
     // Convert the channel layout
     const cc = audioSample.numberOfChannels;
@@ -109,36 +110,33 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
       await this._libav.AVCodecContext_frame_size_s(this._c!, nb_samples);
 
       const encodedOutputs = await this._libav.ff_encode_multi(this._c!, this._frame!, this._pkt!, [frame]);
-      for (const packet of encodedOutputs)
-        this.onPacket(
-          new EncodedPacket(
-            packet.data,
-            'key',
-            packet.time_base_num! / packet.time_base_den!,
-            LibAV.i64tof64(packet.duration!, packet.durationhi || 0) / 1000
-          ),
-          await this.#getMeta(audioSample)
-        );
+      for (const packet of encodedOutputs) await this.emitPacket(packet, audioSample);
     });
   }
 
   async flush() {
     this._q.add(async () => {
-      if (!this._libav) throw new TypeError('No LibAV');
+      if (!this._libav || !this._c) return;
       const encodedOutputs = await this._libav.ff_encode_multi(this._c!, this._frame!, this._pkt!, [], true);
       for (const packet of encodedOutputs)
-        if (packet.data.length)
-          this.onPacket(
-            new EncodedPacket(
-              packet.data,
-              'key',
-              packet.time_base_num! / packet.time_base_den!,
-              LibAV.i64tof64(packet.duration!, packet.durationhi || 0) / 1000
-            ),
-            this.meta!
-          );
+        if (packet.data.length && this.meta?.decoderConfig) await this.emitPacket(packet, this.meta.decoderConfig);
     });
     await this._q.done();
+  }
+
+  private async emitPacket(packet: LibAV.Packet, metaSource: AudioSample | NonNullable<EncodedAudioChunkMetadata['decoderConfig']>) {
+    const sampleRate = metaSource instanceof AudioSample ? metaSource.sampleRate : metaSource.sampleRate;
+    const rawPacket = packet as LibAV.Packet & {
+      pts?: number;
+      ptshi?: number;
+      duration?: number;
+      durationhi?: number;
+    };
+    const packetPts = rawPacket.pts === undefined ? 0 : LibAV.i64tof64(rawPacket.pts, rawPacket.ptshi || 0);
+    const packetDuration = rawPacket.duration === undefined ? 0 : LibAV.i64tof64(rawPacket.duration, rawPacket.durationhi || 0);
+    const meta = metaSource instanceof AudioSample ? await this.#getMeta(metaSource) : this.meta!;
+
+    this.onPacket(new EncodedPacket(packet.data, 'key', packetPts / sampleRate, packetDuration / sampleRate), meta);
   }
 
   async close() {

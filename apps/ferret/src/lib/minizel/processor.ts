@@ -14,20 +14,17 @@ import {
 } from 'mediabunny';
 import { OpusDecoderWebWorker } from 'opus-decoder';
 
+import { CraigOggState, type CraigAudioType, type CorrectedCraigPacket, CraigTrackCorrector, makePlanarF32, normalizeAudioToStereo } from './craig';
 import { createPage } from './ogg';
 import type { PageMeta, WorkerMessage } from './oggParser.worker';
-import { getFramesInPacket, getFrameSize } from './opus';
 import {
   bytesEqual,
   CHUNK_SIZE,
   concatUint8Arrays,
-  DEFAULT_PACKET_TIME,
-  FLAC,
   HIGH_WATERMARK,
   LOW_WATERMARK,
   MAX_PENDING_SAMPLES,
   type MinizelFormat,
-  OPUS,
   OPUS_TAGS,
   opusTagsAreIncorrect,
   SILENT_FLAC_44K,
@@ -52,6 +49,8 @@ export interface TrackStats {
   queuedBytes: number;
   queueSize: number;
   position: number; // in samples
+  sampleRate: number;
+  positionSeconds: number;
 }
 
 /**
@@ -88,6 +87,7 @@ export class MinizelProcessor {
   private readerPaused = false;
   private readerPausedResolve: (() => void) | null = null;
   private _workerDone: (() => void) | null = null;
+  private workerError: Error | null = null;
   private aborted = false;
 
   // File system
@@ -98,7 +98,8 @@ export class MinizelProcessor {
   // Stream state
   private streamTypes = new Map<number, 'opus' | 'flac'>();
   private streamFlacRates = new Map<number, number>();
-  private granuleOffset: bigint | null = null;
+  private craigState = new CraigOggState();
+  private correctors = new Map<number, CraigTrackCorrector>();
   private positions = new Map<number, bigint>();
   private lastSequenceNo = new Map<number, number>();
 
@@ -155,15 +156,20 @@ export class MinizelProcessor {
   /** Get stats for all tracks */
   getTrackStats(): TrackStats[] {
     const stats: TrackStats[] = [];
-    for (const [serial, type] of this.streamTypes)
+    for (const [serial, type] of this.streamTypes) {
+      const sampleRate = type === 'flac' ? (this.streamFlacRates.get(serial) ?? 48_000) : 48_000;
+      const position = Number(this.positions.get(serial) ?? 0n);
       stats.push({
         serial,
         type,
         bytesWritten: this.bytesWritten.get(serial) ?? 0,
         queuedBytes: this.queuedBytes.get(serial) ?? 0,
         queueSize: this.boundedQueues.get(serial)?.size ?? 0,
-        position: Number(this.positions.get(serial) ?? 0n)
+        position,
+        sampleRate,
+        positionSeconds: position / sampleRate
       });
+    }
     return stats.sort((a, b) => a.serial - b.serial);
   }
 
@@ -270,18 +276,13 @@ export class MinizelProcessor {
           sampleRate = decoded.sampleRate;
         }
 
-        // Create sample with proper format - combine channels into planar format
-        const numChannels = channelData.length;
-        const frameCount = channelData[0]!.length;
-        const planarData = new Float32Array(numChannels * frameCount);
-        for (let ch = 0; ch < numChannels; ch++) {
-          planarData.set(channelData[ch]!, ch * frameCount);
-        }
+        channelData = normalizeAudioToStereo(channelData);
+        const planarData = makePlanarF32(channelData);
 
         const sample = new AudioSample({
           data: planarData,
           format: 'f32-planar',
-          numberOfChannels: numChannels,
+          numberOfChannels: 2,
           sampleRate,
           timestamp: Number(position) / sampleRate
         });
@@ -310,18 +311,27 @@ export class MinizelProcessor {
     }
 
     const q = this.queues.get(serial)!;
+    this.queuedBytes.set(serial, (this.queuedBytes.get(serial) ?? 0) + chunk.byteLength);
     q.add(async () => {
-      await this.ensureWriter(serial);
-      const cache = this.writerCache.get(serial) ?? [];
-      cache.push(chunk);
-      this.writerCache.set(serial, cache);
+      let movedToCache = false;
+      try {
+        await this.ensureWriter(serial);
+        const cache = this.writerCache.get(serial) ?? [];
+        cache.push(chunk);
+        this.writerCache.set(serial, cache);
+        movedToCache = true;
+        this.queuedBytes.set(serial, Math.max(0, (this.queuedBytes.get(serial) ?? 0) - chunk.byteLength));
 
-      // Flush if over the chunk size
-      const byteLength = cache.reduce((p, data) => p + data.length, 0);
-      if (byteLength > CHUNK_SIZE) {
-        await this.flushWriterCache(serial);
+        // Flush if over the chunk size
+        const byteLength = cache.reduce((p, data) => p + data.length, 0);
+        if (byteLength > CHUNK_SIZE) {
+          await this.flushWriterCache(serial);
+        }
+      } finally {
+        if (!movedToCache) this.queuedBytes.set(serial, Math.max(0, (this.queuedBytes.get(serial) ?? 0) - chunk.byteLength));
+        this.checkResume();
+        this.onProgress?.();
       }
-      this.onProgress?.();
     });
   }
 
@@ -372,164 +382,146 @@ export class MinizelProcessor {
     }
   }
 
+  private writeCorrectedPackets(serial: number, type: CraigAudioType, flacRate: number, outputs: CorrectedCraigPacket[]): void {
+    for (const output of outputs) {
+      const payload =
+        output.kind === 'silence' ? (type === 'opus' ? SILENT_OPUS : flacRate === 44_100 ? SILENT_FLAC_44K : SILENT_FLAC_48K) : output.payload;
+
+      if (this.format === 'ogg') {
+        this.writePage(
+          serial,
+          createPage({
+            version: 0,
+            headerType: 0,
+            granulePosition: output.granulePosition,
+            bitstreamSerialNumber: serial,
+            pageSequenceNumber: this.getNextSequenceNumber(serial),
+            payload
+          })
+        );
+      } else {
+        this.writePacket(serial, output.granulePosition, output.kind === 'silence' ? undefined : payload);
+      }
+    }
+  }
+
+  private failWorker(message: string): void {
+    if (this.workerError) return;
+    this.workerError = new Error(`Ogg parser worker failed: ${message}`);
+    this._workerDone?.();
+    this.reader.cancel(this.workerError).catch(() => {});
+    this.readerPausedResolve?.();
+    this.readerPausedResolve = null;
+  }
+
+  private async finalizeOutputs(): Promise<void> {
+    await Promise.all(
+      Array.from(this.queues.entries()).map(async ([serial, queue]) => {
+        await queue.done();
+        if (this.format === 'ogg') {
+          await this.flushWriterCache(serial);
+          await this.writers.get(serial)?.close();
+          return;
+        }
+
+        this.mbSampleSources.get(serial)?.close();
+        await this.mbOutputs.get(serial)?.finalize();
+      })
+    );
+  }
+
   private onWorkerMessage(msg: WorkerMessage): void {
     if (this.aborted) return;
 
     if (msg.type === 'page') {
       const pageBuf = new Uint8Array(msg.page);
       const meta: PageMeta = msg.meta;
-      this.outstandingNetworkBytes = Math.max(0, this.outstandingNetworkBytes - meta.payloadLength);
-
       const serial = meta.serial;
-
-      // Skip excluded tracks entirely
-      if (this.isTrackExcluded(serial)) {
-        this.checkResume();
-        return;
-      }
 
       const pageSegments = pageBuf[26]!;
       const headerTotalLen = 27 + pageSegments;
       // Copy payload to avoid issues with transferred buffer
       const payload = pageBuf.slice(headerTotalLen);
       const granulePosition = BigInt(meta.granulePosition);
+      const event = this.craigState.acceptPage({
+        serial,
+        granulePosition,
+        headerType: meta.headerType,
+        pageSequenceNumber: meta.pageSequenceNumber,
+        payload
+      });
+      if (!event) return;
 
-      // Determine stream type if header
-      if (granulePosition === 0n) {
-        if (payload.length < 5) return;
-        if (bytesEqual(payload.subarray(0, 4), OPUS)) {
-          this.streamTypes.set(serial, 'opus');
-          this.onTrackDiscovered?.(serial, 'opus');
+      if (event.kind === 'meta' || event.kind === 'note') {
+        this.checkResume();
+        return;
+      }
 
-          if (this.format === 'ogg') {
-            if (bytesEqual(payload.subarray(0, 8), OPUS_TAGS) && opusTagsAreIncorrect(payload)) {
-              // Fix opus tags
-              this.writePage(
-                serial,
-                createPage({
-                  version: 0,
-                  headerType: meta.headerType,
-                  granulePosition: 0n,
-                  bitstreamSerialNumber: serial,
-                  pageSequenceNumber: meta.pageSequenceNumber,
-                  payload: concatUint8Arrays(payload, new Uint8Array([0, 0, 0, 0]))
-                })
-              );
-            } else {
-              // Rewrite page due to potential CRC mismatches
-              this.writePage(
-                serial,
-                createPage({
-                  version: 0,
-                  headerType: meta.headerType,
-                  granulePosition: 0n,
-                  bitstreamSerialNumber: serial,
-                  pageSequenceNumber: meta.pageSequenceNumber,
-                  payload
-                })
-              );
-            }
-            this.lastSequenceNo.set(serial, meta.pageSequenceNumber);
-          }
-        } else if (bytesEqual(payload.subarray(0, 5), FLAC)) {
-          this.streamTypes.set(serial, 'flac');
-          this.onTrackDiscovered?.(serial, 'flac');
+      if (event.kind === 'audio-header') {
+        const wasKnown = this.streamTypes.has(serial);
+        this.streamTypes.set(serial, event.type);
+        if (event.flacRate) this.streamFlacRates.set(serial, event.flacRate);
+        if (!wasKnown) this.onTrackDiscovered?.(serial, event.type);
 
-          if (payload.length > 29) {
-            const flacRate = (payload[27]! << 12) + (payload[28]! << 4) + (payload[29]! >> 4);
-            this.streamFlacRates.set(serial, flacRate);
+        if (!this.isTrackExcluded(serial)) {
+          if (!this.correctors.has(serial)) {
+            this.correctors.set(serial, new CraigTrackCorrector({ type: event.type, flacRate: event.flacRate }));
           }
-          if (this.format === 'ogg') {
-            // Copy the entire page since pageBuf references transferred buffer
-            this.writePage(serial, pageBuf.slice());
-            this.lastSequenceNo.set(serial, meta.pageSequenceNumber);
-          }
+        }
+
+        if (this.format === 'ogg' && !this.isTrackExcluded(serial)) {
+          const outPayload =
+            event.type === 'opus' && bytesEqual(event.payload.subarray(0, 8), OPUS_TAGS) && opusTagsAreIncorrect(event.payload)
+              ? concatUint8Arrays(event.payload, new Uint8Array([0, 0, 0, 0]))
+              : event.payload;
+          this.writePage(
+            serial,
+            createPage({
+              version: 0,
+              headerType: event.headerType,
+              granulePosition: 0n,
+              bitstreamSerialNumber: serial,
+              pageSequenceNumber: event.pageSequenceNumber,
+              payload: outPayload
+            })
+          );
+          this.lastSequenceNo.set(serial, event.pageSequenceNumber);
         }
         return;
       }
 
-      if (!this.granuleOffset) this.granuleOffset = granulePosition;
-      if (payload.length <= 1) return;
-
-      const type = this.streamTypes.get(serial);
-      if (!type) return;
-
-      const frameCount = type === 'opus' ? getFramesInPacket(payload) : 1;
-      const frameSize = type === 'opus' ? getFrameSize(payload) : 960;
-      const packetSamples = BigInt(frameCount * frameSize);
-
-      const flacRate = this.streamFlacRates.get(serial) ?? 48000;
-      const convert = (p: bigint) => (flacRate === 44100 ? ((p - this.granuleOffset!) * 147n) / 160n : p - this.granuleOffset!);
-
-      let currentPosition = this.positions.get(serial) ?? this.granuleOffset;
-
-      // Packet far behind: drop
-      if (currentPosition > granulePosition + BigInt(frameSize * 25)) return;
-
-      // Packet far ahead: insert silence
-      if (currentPosition + DEFAULT_PACKET_TIME * 25n < granulePosition) {
-        const gap = granulePosition - currentPosition;
-        const framesToInsert = Number(gap) / Number(DEFAULT_PACKET_TIME);
-
-        for (let i = 0; i < Math.round(framesToInsert); i++) {
-          const payloadSilent = type === 'opus' ? SILENT_OPUS : flacRate === 44100 ? SILENT_FLAC_44K : SILENT_FLAC_48K;
-          const outPage = createPage({
-            version: 0,
-            headerType: 0,
-            granulePosition: convert(currentPosition),
-            bitstreamSerialNumber: serial,
-            pageSequenceNumber: this.getNextSequenceNumber(serial),
-            payload: payloadSilent
-          });
-          if (this.format === 'ogg') {
-            this.writePage(serial, outPage);
-          } else {
-            this.writePacket(serial, convert(currentPosition));
-          }
-          currentPosition += DEFAULT_PACKET_TIME;
-        }
-
-        // Append the real packet after silence
-        const dataOut = createPage({
-          version: 0,
-          headerType: 0,
-          granulePosition: convert(currentPosition),
-          bitstreamSerialNumber: serial,
-          pageSequenceNumber: this.getNextSequenceNumber(serial),
-          payload
-        });
-        if (this.format === 'ogg') this.writePage(serial, dataOut);
-        else this.writePacket(serial, convert(currentPosition), payload);
-        currentPosition += packetSamples;
-        this.positions.set(serial, currentPosition);
-      } else {
-        // Normal append
-        const outPage = createPage({
-          version: 0,
-          headerType: 0,
-          granulePosition: convert(currentPosition),
-          bitstreamSerialNumber: serial,
-          pageSequenceNumber: this.getNextSequenceNumber(serial),
-          payload
-        });
-        if (this.format === 'ogg') this.writePage(serial, outPage);
-        else this.writePacket(serial, convert(currentPosition), payload);
-        this.positions.set(serial, currentPosition + packetSamples);
+      if (this.isTrackExcluded(serial)) {
+        this.checkResume();
+        return;
       }
+
+      const corrector = this.correctors.get(serial) ?? new CraigTrackCorrector({ type: event.type, flacRate: event.flacRate });
+      this.correctors.set(serial, corrector);
+
+      const outputs = corrector.acceptPacket({
+        granulePosition: event.inputGranulePosition,
+        payload: event.payload,
+        framesInPacket: event.framesInPacket,
+        frameSize: event.frameSize
+      });
+      this.writeCorrectedPackets(serial, event.type, event.flacRate, outputs);
+
+      this.positions.set(serial, corrector.outputPosition);
 
       // Check backpressure
       const totalQueued = this.totalQueuedBytes();
       if (this.readerPaused && totalQueued <= LOW_WATERMARK) {
         this.readerPaused = false;
         if (this.readerPausedResolve) {
-          this.readerPausedResolve();
+          const resolve = this.readerPausedResolve;
           this.readerPausedResolve = null;
+          resolve();
         }
       }
     } else if (msg.type === 'consumed') {
       this.outstandingNetworkBytes = Math.max(0, this.outstandingNetworkBytes - (msg.consumed ?? 0));
       this.checkResume();
-    } else if (msg.type === 'error') console.error('Worker error', msg.message);
+    } else if (msg.type === 'error') this.failWorker(msg.message);
     else if (msg.type === 'done') this._workerDone?.();
   }
 
@@ -565,6 +557,7 @@ export class MinizelProcessor {
         while (!this.aborted) {
           const { done, value } = await this.reader.read();
           if (done) {
+            if (this.workerError) throw this.workerError;
             worker.postMessage({ type: 'end' });
             break;
           }
@@ -588,26 +581,22 @@ export class MinizelProcessor {
         } catch {}
       }
 
-      if (!this.aborted) await waitForWorker;
+      if (!this.aborted) {
+        await waitForWorker;
+        if (this.workerError) throw this.workerError;
+      }
       worker.terminate();
 
       console.debug(`[Minizel] Worker done. Streams discovered: ${this.streamTypes.size}, Downloaded: ${this.downloadedBytes} bytes`);
 
-      if (this.format === 'ogg')
-        await Promise.all(
-          Array.from(this.writers.entries()).map(async ([serial, w]) => {
-            await this.queues.get(serial)?.done();
-            await this.flushWriterCache(serial);
-            await w.close();
-          })
-        );
-      else
-        await Promise.all(
-          Array.from(this.mbSampleSources.entries()).map(async ([serial]) => {
-            await this.queues.get(serial)?.done();
-            await this.mbOutputs.get(serial)?.finalize();
-          })
-        );
+      for (const [serial, corrector] of this.correctors) {
+        const type = this.streamTypes.get(serial)!;
+        const flacRate = this.streamFlacRates.get(serial) ?? 48_000;
+        this.writeCorrectedPackets(serial, type, flacRate, corrector.finish());
+        this.positions.set(serial, corrector.outputPosition);
+      }
+
+      await this.finalizeOutputs();
 
       console.debug(
         `[Minizel] Finalized. Tracks: ${this.streamTypes.size}, Total bytes written: ${Array.from(this.bytesWritten.values()).reduce((a, b) => a + b, 0)}`
@@ -626,6 +615,13 @@ export class MinizelProcessor {
           q.clear();
           await this.mbOutputs.get(serial)?.cancel();
           this.mbSampleSources.get(serial)?.close();
+        })
+      );
+      await Promise.all(
+        Array.from(this.writers.values()).map(async (writer) => {
+          try {
+            await writer.abort();
+          } catch {}
         })
       );
       throw e;
