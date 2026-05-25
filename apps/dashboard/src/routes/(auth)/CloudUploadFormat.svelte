@@ -76,6 +76,7 @@
     { id: 'opus-zip', section: 'mt', text: 'Opus', allowNorm: true },
     { id: 'adpcm-zip', section: 'mt', text: 'ADPCM wav', allowNorm: true },
     { id: 'wav8-zip', section: 'mt', text: '8-bit wav', allowNorm: true },
+    { id: 'vorbis-zip', section: 'mt', text: 'Ogg Vorbis', allowNorm: true },
 
     // single track smart mix
     { id: 'flac-mix', text: 'FLAC', section: 'stsm' },
