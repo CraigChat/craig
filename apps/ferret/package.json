@@ -13,6 +13,7 @@
     "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 reload ecosystem.config.cjs --update-env",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test:minizel": "tsx --test src/lib/minizel/minizel.test.ts src/lib/minizel/oggcorrect-parity.test.ts",
     "lint": "eslint .",
     "format": "eslint . --fix"
   },
@@ -27,7 +28,7 @@
     "eventemitter3": "^5.0.1",
     "ioredis": "^5.9.2",
     "just-clone": "^6.2.0",
-    "mediabunny": "^1.21.1",
+    "mediabunny": "^1.45.3",
     "nanoid": "^5.1.6",
     "opus-decoder": "^0.7.10",
     "zod": "^4.3.5"
