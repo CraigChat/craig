@@ -95,7 +95,7 @@ export function relativeTime(rtf: Intl.RelativeTimeFormat, seconds: number) {
 }
 
 export const currentTime = writable(Math.floor(Date.now() / 1000), (set, update) => {
-  const interval = setInterval(() => update((time) => (time += 1)), 1000);
+  const interval = setInterval(() => update((time) => time + 1), 1000);
   return () => clearInterval(interval);
 });
 

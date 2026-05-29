@@ -31,6 +31,12 @@ importers:
       eslint-config-craig:
         specifier: workspace:*
         version: link:packages/eslint-config
+      prettier-plugin-svelte:
+        specifier: ^3.5.0
+        version: 3.5.0(prettier@3.8.1)(svelte@5.53.5(@typescript-eslint/types@8.56.1))
+      prettier-plugin-tailwindcss:
+        specifier: ^0.7.2
+        version: 0.7.2(prettier-plugin-svelte@3.5.0(prettier@3.8.1)(svelte@5.53.5(@typescript-eslint/types@8.56.1)))(prettier@3.8.1)
       rimraf:
         specifier: 5.0.10
         version: 5.0.10

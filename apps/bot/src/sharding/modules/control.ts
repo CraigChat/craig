@@ -1,5 +1,6 @@
-import fastify, { FastifyInstance } from 'fastify';
 import { BlockList, isIP } from 'node:net';
+
+import fastify, { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 
 import { getRedisOptions } from '../../config.js';

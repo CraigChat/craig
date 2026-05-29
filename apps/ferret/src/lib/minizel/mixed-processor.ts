@@ -14,17 +14,9 @@ import {
 } from 'mediabunny';
 import { OpusDecoderWebWorker } from 'opus-decoder';
 
-import { CraigOggState, type CraigAudioType, type CorrectedCraigPacket, CraigTrackCorrector, normalizeAudioToStereo } from './craig';
+import { type CorrectedCraigPacket, type CraigAudioType, CraigOggState, CraigTrackCorrector, normalizeAudioToStereo } from './craig';
 import type { PageMeta, WorkerMessage } from './oggParser.worker';
-import {
-  CHUNK_SIZE,
-  HIGH_WATERMARK,
-  LOW_WATERMARK,
-  type MinizelFormat,
-  MIX_BUFFER_SECONDS,
-  MIX_STEP,
-  SAMPLE_RATE
-} from './util';
+import { CHUNK_SIZE, HIGH_WATERMARK, LOW_WATERMARK, type MinizelFormat, MIX_BUFFER_SECONDS, MIX_STEP, SAMPLE_RATE } from './util';
 
 type MixFormat = Exclude<MinizelFormat, 'ogg'>;
 

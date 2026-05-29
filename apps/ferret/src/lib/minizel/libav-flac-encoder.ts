@@ -118,8 +118,7 @@ export class LibAVFlacEncoder extends CustomAudioEncoder {
     this._q.add(async () => {
       if (!this._libav || !this._c) return;
       const encodedOutputs = await this._libav.ff_encode_multi(this._c!, this._frame!, this._pkt!, [], true);
-      for (const packet of encodedOutputs)
-        if (packet.data.length && this.meta?.decoderConfig) await this.emitPacket(packet, this.meta.decoderConfig);
+      for (const packet of encodedOutputs) if (packet.data.length && this.meta?.decoderConfig) await this.emitPacket(packet, this.meta.decoderConfig);
     });
     await this._q.done();
   }

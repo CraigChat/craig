@@ -1,5 +1,3 @@
-import type { Timeout } from './types';
-
 let id = 1;
 
 export const animate = async (add: string, remove: string, tooltip: HTMLElement | null): Promise<void> => {
@@ -14,18 +12,12 @@ export const animate = async (add: string, remove: string, tooltip: HTMLElement 
   });
 };
 
-export const wait = (time: number, fn: Timeout): Promise<void> => {
-  clearWait(fn);
+export const wait = (time: number): Promise<void> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      clearWait(fn);
       resolve();
     }, time);
   });
 };
 
 export const ID = () => id++;
-
-const clearWait = (fn: Timeout): void => {
-  clearTimeout(fn);
-};

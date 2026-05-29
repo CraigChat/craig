@@ -49,8 +49,6 @@ export default (node: HTMLElement, options: Options) => {
   let hovering = false;
   let visible = false;
 
-  let currentDelay: ReturnType<typeof setTimeout> | undefined;
-
   let wasDestroyed = false;
 
   const handleKeys = ({ key }: KeyboardEvent) => {
@@ -122,7 +120,7 @@ export default (node: HTMLElement, options: Options) => {
   const show = async () => {
     if (!TIP && _visibility) {
       if (_delay.in > 0) {
-        await wait(_delay.in, currentDelay);
+        await wait(_delay.in);
         if (wasDestroyed || !hovering || visible || TIP) return;
       }
 
@@ -149,7 +147,7 @@ export default (node: HTMLElement, options: Options) => {
   const hide = async () => {
     if (TIP || visible) {
       if (_delay.out > 0) {
-        await wait(_delay.out, currentDelay);
+        await wait(_delay.out);
       }
 
       await animate(classes.animationLeave!, classes.animationEnter!, TIP);

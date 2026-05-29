@@ -161,7 +161,13 @@ function runMinizelStreamCorrection(pages: FixturePage[], keepSerial: number): C
     });
     for (const output of outputs) {
       const payload =
-        output.kind === 'silence' ? (event.type === 'opus' ? SILENT_OPUS : event.flacRate === 44_100 ? SILENT_FLAC_44K : SILENT_FLAC_48K) : output.payload;
+        output.kind === 'silence'
+          ? event.type === 'opus'
+            ? SILENT_OPUS
+            : event.flacRate === 44_100
+              ? SILENT_FLAC_44K
+              : SILENT_FLAC_48K
+          : output.payload;
       corrected.push({ serial: keepSerial, granulePosition: output.granulePosition, payload });
     }
   });
@@ -170,7 +176,13 @@ function runMinizelStreamCorrection(pages: FixturePage[], keepSerial: number): C
   if (corrector) {
     for (const output of corrector.finish()) {
       const payload =
-        output.kind === 'silence' ? (keptType === 'opus' ? SILENT_OPUS : keptFlacRate === 44_100 ? SILENT_FLAC_44K : SILENT_FLAC_48K) : output.payload;
+        output.kind === 'silence'
+          ? keptType === 'opus'
+            ? SILENT_OPUS
+            : keptFlacRate === 44_100
+              ? SILENT_FLAC_44K
+              : SILENT_FLAC_48K
+          : output.payload;
       corrected.push({ serial: keepSerial, granulePosition: output.granulePosition, payload });
     }
   }
