@@ -1,9 +1,12 @@
 <script lang="ts">
   import type { Component, Snippet } from 'svelte';
 
+  type ReplacementSnippet = Snippet<[]> | (() => ReturnType<Snippet<[]>>);
+  type Replacement = string | Component | { html: string } | ReplacementSnippet;
+
   interface Props {
     template: string;
-    replacements: Record<string, string | Component | { html: string } | Snippet<[]>>;
+    replacements: Record<string, Replacement>;
   }
 
   let { template, replacements }: Props = $props();
@@ -16,7 +19,7 @@
     return 'html' in (thing as any) && typeof (thing as any).html === 'string';
   }
 
-  function isSnippet(thing: Props['replacements'][string]): thing is Snippet<[]> {
+  function isSnippet(thing: Props['replacements'][string]): thing is ReplacementSnippet {
     return typeof thing === 'function';
   }
 

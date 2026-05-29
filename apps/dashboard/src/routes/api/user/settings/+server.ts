@@ -76,7 +76,8 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
   if (parsed.data.driveOptions?.includeTranscription && !(user && (user.rewardTier >= 30 || user.rewardTier === -1)))
     return errorResponse(APIErrorCode.NEED_HIGHER_TIER, { status: 400 });
 
-  const driveOptions = { ...(user?.driveOptions ?? {}), ...(parsed.data.driveOptions ?? {}) };
+  const userDriveOptions = user?.driveOptions && typeof user.driveOptions === 'object' && !Array.isArray(user.driveOptions) ? user.driveOptions : {};
+  const driveOptions = { ...userDriveOptions, ...(parsed.data.driveOptions ?? {}) };
   await prisma.user.upsert({
     where: { id: auth.id },
     create: { id: auth.id, ...parsed.data, driveOptions },

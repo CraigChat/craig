@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@craig/common": "workspace:*",
-    "@craig/metrics": "workspace:*",
     "@craig/logger": "workspace:*",
+    "@craig/metrics": "workspace:*",
     "destr": "^2.0.5",
     "dotenv": "^16.5.0",
     "execa": "^9.5.3",
@@ -29,8 +29,8 @@
   "devDependencies": {
     "@craig/types": "workspace:*",
     "@types/node": "^22.15.21",
-    "tsdown": "0.20.3",
+    "tsdown": "0.21.10",
     "tsx": "^4.21.0",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   }
 }

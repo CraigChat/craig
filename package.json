@@ -46,7 +46,7 @@
     "prettier-plugin-svelte": "^3.5.0",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "rimraf": "5.0.10",
-    "tsdown": "0.20.3",
+    "tsdown": "0.21.10",
     "tsx": "^4.21.0",
     "turbo": "2.8.11"
   },

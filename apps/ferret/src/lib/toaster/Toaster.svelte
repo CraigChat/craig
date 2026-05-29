@@ -138,12 +138,12 @@
     };
   });
 
-  function removeToast(event: CustomEvent<ToastT>) {
-    toasts = toasts.filter(({ id }) => id !== event.detail.id);
+  function removeToast(toast: ToastT) {
+    toasts = toasts.filter(({ id }) => id !== toast.id);
   }
 
-  function setHeights(event: CustomEvent<HeightT[]>) {
-    heights = event.detail;
+  function setHeights(nextHeights: HeightT[]) {
+    heights = nextHeights;
   }
 
   function handleBlur(
@@ -213,10 +213,10 @@
           {interacting}
           {position}
           style={toastOptions?.style ?? ''}
-          on:removeToast={removeToast}
+          onRemoveToast={removeToast}
           {toasts}
           {heights}
-          on:setHeights={setHeights}
+          onSetHeights={setHeights}
           expandByDefault={Boolean(expand)}
           {expanded}
         />

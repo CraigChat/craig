@@ -60,7 +60,7 @@
           else resolve(r);
         })
       );
-      const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
+      const url = URL.createObjectURL(new Blob([new Uint8Array(zip)], { type: 'application/zip' }));
       const a = document.createElement('a');
       a.href = url;
       a.download = `craig-${recording.id}-avatars.png.zip`;
