@@ -54,9 +54,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     const dropboxUser = await dbx.usersGetCurrentAccount();
 
-    logger.info(
-      `OAuth connection established (user=${user.id}, service=dropbox, serviceUserId=${dropboxUser.result.account_id})`
-    );
+    logger.info(`OAuth connection established (user=${user.id}, service=dropbox, serviceUserId=${dropboxUser.result.account_id})`);
 
     await prisma.dropboxUser.upsert({
       where: { id: user.id },

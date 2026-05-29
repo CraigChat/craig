@@ -57,6 +57,7 @@
     "vite-plugin-devtools-json": "^0.2.1"
   },
   "dependencies": {
+    "@craig/common": "workspace:*",
     "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
     "@henrygd/semaphore": "^0.1.0",

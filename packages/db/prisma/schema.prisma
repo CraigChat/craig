@@ -38,6 +38,8 @@ model User {
 
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([patronId])
 }
 
 model Ban {
@@ -73,6 +75,7 @@ model Recording {
   expiresAt    DateTime  @db.Timestamptz(6)
 
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, clientId, createdAt(sort: Desc)])
 }
 
 model AutoRecord {
@@ -87,7 +90,9 @@ model AutoRecord {
   triggerRoles  String[]
   updatedAt     DateTime @updatedAt @db.Timestamptz(6)
 
+  @@unique([clientId, guildId, channelId])
   @@index([clientId], type: Hash)
+  @@index([guildId, clientId])
 }
 
 // Cloud Backup

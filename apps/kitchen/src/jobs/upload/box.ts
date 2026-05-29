@@ -142,7 +142,7 @@ async function findCraigDirectory(accessToken: string, userId: string) {
 
 export async function boxPreflight(userId: string) {
   if (!BOX_CLIENT_ID || !BOX_CLIENT_SECRET) return false;
-  const driveUser = await prisma.boxUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.boxUser.findUnique({ where: { id: userId } });
   if (!driveUser) return false;
   const { token: accessToken, authInvalidated } = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
@@ -237,7 +237,7 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
   if (!BOX_CLIENT_ID || !BOX_CLIENT_SECRET) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await prisma.boxUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.boxUser.findUnique({ where: { id: userId } });
   if (!driveUser) return;
   const { token: accessToken, authInvalidated } = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {

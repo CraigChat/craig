@@ -5,7 +5,8 @@ export default [
   {
     ignores: [
       'node_modules/',
-      'dist/',
+      '**/dist/',
+      '**/.prisma-client/',
       'rec/',
       'downloads/',
       'build/',

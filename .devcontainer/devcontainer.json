@@ -58,26 +58,29 @@
 	"postCreateCommand": "./.devcontainer/post-create-command.sh",
 
 	"portsAttributes": {
-		"9000": {
-			"label": "Kitchen"
+		"4173": {
+			"label": "Ferret (Preview)",
+			"onAutoForward": "openPreview"
 		},
 		"5173": {
 			"label": "Ferret (Development)",
 			"onAutoForward": "openPreview"
 		},
-		"4173": {
-			"label": "Ferret (Preview)",
-			"onAutoForward": "openPreview"
+		"9000": {
+			"label": "Kitchen"
 		},
 		"9001": {
 			"label": "Ennuizel Streamer"
 		},
-		"57131": {
-			"label": "Dashboard (Development)",
-			"onAutoForward": "openPreview"
+		"9200": {
+			"label": "Bot Control API"
 		},
 		"47131": {
 			"label": "Dashboard (Preview)",
+			"onAutoForward": "openPreview"
+		},
+		"57131": {
+			"label": "Dashboard (Development)",
 			"onAutoForward": "openPreview"
 		}
 	},

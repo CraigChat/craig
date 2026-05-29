@@ -264,12 +264,7 @@ export class CraigTrackCorrector {
     return this.toOutputGranule(this.position);
   }
 
-  acceptPacket(packet: {
-    granulePosition: bigint;
-    payload: Uint8Array;
-    framesInPacket: number;
-    frameSize: number;
-  }): CorrectedCraigPacket[] {
+  acceptPacket(packet: { granulePosition: bigint; payload: Uint8Array; framesInPacket: number; frameSize: number }): CorrectedCraigPacket[] {
     if (this.finished) return [];
     this.receivedPacket = true;
 
@@ -300,12 +295,7 @@ export class CraigTrackCorrector {
     return outputs;
   }
 
-  private emitPacket(packet: {
-    granulePosition: bigint;
-    payload: Uint8Array;
-    framesInPacket: number;
-    frameSize: number;
-  }): CorrectedCraigPacket[] {
+  private emitPacket(packet: { granulePosition: bigint; payload: Uint8Array; framesInPacket: number; frameSize: number }): CorrectedCraigPacket[] {
     const firstPacket = this.logicalPosition === null;
     let logicalPosition = this.logicalPosition ?? 0n;
 

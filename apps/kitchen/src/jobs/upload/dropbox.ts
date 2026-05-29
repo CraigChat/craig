@@ -15,7 +15,7 @@ const DROPBOX_UPLOAD_FILE_SIZE_LIMIT = 150 * 1024 * 1024;
 export async function dropboxPreflight(userId: string) {
   if (!DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET || !DROPBOX_FOLDER_NAME) return false;
 
-  const driveUser = await prisma.dropboxUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.dropboxUser.findUnique({ where: { id: userId } });
   if (!driveUser) return false;
 
   const auth = new DropboxAuth({
@@ -48,7 +48,7 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
   if (!DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET || !DROPBOX_FOLDER_NAME) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await prisma.dropboxUser.findFirst({ where: { id: userId } });
+  const driveUser = await prisma.dropboxUser.findUnique({ where: { id: userId } });
   if (!driveUser) return;
 
   const auth = new DropboxAuth({

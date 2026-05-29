@@ -68,7 +68,6 @@ function processBuffer(): void {
     if (idx > 0) {
       buf = buf.slice(idx);
       pageView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-      idx = 0;
     }
 
     const BASE_HEADER_LEN = 27;

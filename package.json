@@ -10,12 +10,13 @@
     "url": "https://snazzah.com/"
   },
   "engines": {
-    "node": ">=18.20.4",
+    "node": ">=22.15.0",
     "pnpm": ">=9"
   },
-  "packageManager": "pnpm@9.1.1",
+  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "dev": "turbo dev --no-daemon",
+    "dev:no-bot": "turbo dev --no-daemon -F '!@craig/bot'",
     "inspect": "turbo inspect",
     "build": "git submodule update --init && turbo build",
     "lint": "turbo lint",
@@ -26,26 +27,30 @@
     "db:deploy": "dotenv -c -- pnpm -F db run db:migrate:deploy",
     "db:push": "dotenv -c -- pnpm -F db run db:push",
     "db:migrate:dev": "dotenv -c -- pnpm -F db run db:migrate:dev",
-    "prisma": "dotenv -c -- pnpm -F db run prisma"
+    "prisma": "dotenv -c -- pnpm -F db run prisma",
+    "run-task": "pnpm -F tasks run-task",
+    "entitlement": "dotenv -c -- tsx scripts/manageEntitlements.mts",
+    "ctl": "pnpm -F botctl cli",
+    "bot-instance": "pnpm -F bot instance"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/CraigChat/craig"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "@craig/db": "workspace:*",
     "dotenv-cli": "8.0.0",
     "eslint": "10.0.2",
     "eslint-config-craig": "workspace:*",
+    "prettier-plugin-svelte": "^3.5.0",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "rimraf": "5.0.10",
-    "turbo": "2.8.11",
-    "tsdown": "0.20.3"
+    "tsdown": "0.20.3",
+    "tsx": "^4.21.0",
+    "turbo": "2.8.11"
   },
-  "pnpm": {
-    "overrides": {
-      "supports-color": "8.1.1"
-    },
-    "patchedDependencies": {
-      "svelte-awesome-color-picker@4.0.2": "patches/svelte-awesome-color-picker@4.0.2.patch"
-    }
+  "devDependencies": {
+    "@types/node": "^22.15.21"
   }
 }

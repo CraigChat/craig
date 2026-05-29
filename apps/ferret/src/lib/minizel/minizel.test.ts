@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createPage } from './ogg';
-import { getFramesInPacket, getFrameSize } from './opus';
-import { FLAC, OPUS, SILENT_OPUS } from './util';
 import {
   CraigOggState,
   CraigTrackCorrector,
@@ -14,7 +11,10 @@ import {
   stripVadPacket
 } from './craig';
 import { MixedProcessor } from './mixed-processor';
+import { createPage } from './ogg';
+import { getFramesInPacket, getFrameSize } from './opus';
 import { MinizelProcessor } from './processor';
+import { FLAC, OPUS, SILENT_OPUS } from './util';
 
 const text = new TextEncoder();
 const VAD_HEADER = new Uint8Array([0x45, 0x43, 0x56, 0x41, 0x44, 0x44, 0x03, 0x00, 0x00, 0x03, 0x01]);
@@ -86,7 +86,13 @@ test('CraigOggState applies pause/resume metadata to later packet positions', ()
   state.acceptPage({ serial: 1, granulePosition: 4_800n, headerType: 0, pageSequenceNumber: 2, payload: new Uint8Array([0xf8, 0xff, 0xfe]) });
   state.acceptPage({ serial: 9, granulePosition: 9_600n, headerType: 0, pageSequenceNumber: 1, payload: text.encode('{"c":"pause"}') });
   state.acceptPage({ serial: 9, granulePosition: 19_200n, headerType: 0, pageSequenceNumber: 2, payload: text.encode('{"c":"resume"}') });
-  const event = state.acceptPage({ serial: 1, granulePosition: 24_000n, headerType: 0, pageSequenceNumber: 3, payload: new Uint8Array([0xf8, 0xff, 0xfe]) });
+  const event = state.acceptPage({
+    serial: 1,
+    granulePosition: 24_000n,
+    headerType: 0,
+    pageSequenceNumber: 3,
+    payload: new Uint8Array([0xf8, 0xff, 0xfe])
+  });
 
   assert.equal(event?.kind, 'audio-packet');
   assert.equal(event.inputGranulePosition, 9_600n);
@@ -100,7 +106,10 @@ test('CraigTrackCorrector inserts silence for true gaps and drops late packets',
   const end = corrector.finish();
 
   assert.equal(first.length, 0);
-  assert.deepEqual(gap.map((p) => p.kind), ['packet']);
+  assert.deepEqual(
+    gap.map((p) => p.kind),
+    ['packet']
+  );
   assert.equal(late.length, 0);
   assert.equal(end.filter((p) => p.kind === 'silence').length, 31);
   assert.equal(end.at(-1)?.kind, 'packet');
@@ -112,7 +121,10 @@ test('CraigTrackCorrector preserves leading silence before a late first voice pa
   const packets = corrector.finish();
 
   assert.deepEqual(initial, []);
-  assert.deepEqual(packets.map((p) => p.kind), ['silence', 'silence', 'silence', 'packet']);
+  assert.deepEqual(
+    packets.map((p) => p.kind),
+    ['silence', 'silence', 'silence', 'packet']
+  );
   assert.deepEqual(
     packets.map((p) => p.granulePosition),
     [0n, 960n, 1_920n, 2_880n]
@@ -160,7 +172,10 @@ test('normalizeAudioToStereo duplicates mono and truncates extra channels', () =
   assert.deepEqual([...mono[1]!], [0.5, 0.25]);
 
   const surround = normalizeAudioToStereo([new Float32Array([1]), new Float32Array([2]), new Float32Array([3])]);
-  assert.deepEqual(surround.map((c) => c[0]), [1, 2]);
+  assert.deepEqual(
+    surround.map((c) => c[0]),
+    [1, 2]
+  );
 });
 
 test('makePlanarF32 packs stereo channels for Mediabunny AudioSample', () => {

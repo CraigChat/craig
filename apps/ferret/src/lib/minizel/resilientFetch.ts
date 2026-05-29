@@ -78,7 +78,7 @@ export function createResilientStream(url: string, options: ResilientFetchOption
       if (aborted || signal?.aborted) return false;
 
       retryCount++;
-      if (retryCount > maxRetries) throw new Error(`Failed after ${maxRetries} retries: ${err}`);
+      if (retryCount > maxRetries) throw new Error(`Failed after ${maxRetries} retries`, { cause: err });
 
       onRetry?.(retryCount, bytesReceived);
 

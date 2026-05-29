@@ -56,7 +56,6 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
 
   // Create a combined Node.js readable stream from all files with range support
   async function* generateChunks(): AsyncGenerator<Buffer> {
-    let globalOffset = 0;
     let bytesToSkip = rangeStart;
     let bytesRemaining = contentLength;
 
@@ -67,7 +66,6 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
       // Skip entire file if range starts after it
       if (bytesToSkip >= fileSize) {
         bytesToSkip -= fileSize;
-        globalOffset += fileSize;
         continue;
       }
 
@@ -103,8 +101,6 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
       } finally {
         await handle.close().catch(() => {});
       }
-
-      globalOffset += fileSize;
     }
   }
 

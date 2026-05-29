@@ -187,7 +187,7 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
   )
     return send(400, { error: 'Recording already being uploaded' });
 
-  user = await prisma.user.findFirst({ where: { id: userId } });
+  user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return send(204); // Not found
   if (user.rewardTier === 0) return send(204); // Not allowed
   if (!user.driveEnabled) return send(204); // Not enabled

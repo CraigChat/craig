@@ -17,7 +17,7 @@
   import RecordingUserChip from '$components/RecordingUserChip.svelte';
   import { loadingIcon } from '$lib/icons';
   import {
-    convertToTimeMark,
+    convertToTimemark,
     createResilientStream,
     formatBytes,
     LibAVFlacEncoder,
@@ -414,7 +414,7 @@
             </div>
           {/if}
           <div class="text-right font-mono text-sm text-neutral-300">
-            {convertToTimeMark(elapsedMs / 1000)}
+            {convertToTimemark(elapsedMs / 1000)}
           </div>
         </div>
 
@@ -447,7 +447,7 @@
         <div class="rounded bg-zinc-800 p-3">
           <div class="flex items-center justify-between text-sm">
             <span class="text-neutral-300">{$t('download.minizel.position')}</span>
-            <span class="font-mono text-white">{convertToTimeMark(mixPosition / 48000)}</span>
+            <span class="font-mono text-white">{convertToTimemark(mixPosition / 48000)}</span>
           </div>
         </div>
       {:else}
@@ -482,7 +482,7 @@
                     {#if isExcluded}
                       —
                     {:else if stats}
-                      {convertToTimeMark(stats.positionSeconds)}
+                      {convertToTimemark(stats.positionSeconds)}
                     {:else}
                       —
                     {/if}
@@ -502,7 +502,7 @@
         <p class="text-sm text-neutral-400">
           {$t('download.minizel.complete_stats', {
             values: {
-              time: convertToTimeMark(elapsedMs / 1000),
+              time: convertToTimemark(elapsedMs / 1000),
               size: formatBytes(bytesWritten)
             }
           })}
@@ -542,7 +542,7 @@
                   {#if isExcluded}
                     —
                   {:else if stats}
-                    {convertToTimeMark(stats.positionSeconds)}
+                    {convertToTimemark(stats.positionSeconds)}
                   {:else}
                     —
                   {/if}

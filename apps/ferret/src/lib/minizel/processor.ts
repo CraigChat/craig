@@ -14,7 +14,7 @@ import {
 } from 'mediabunny';
 import { OpusDecoderWebWorker } from 'opus-decoder';
 
-import { CraigOggState, type CraigAudioType, type CorrectedCraigPacket, CraigTrackCorrector, makePlanarF32, normalizeAudioToStereo } from './craig';
+import { type CorrectedCraigPacket, type CraigAudioType, CraigOggState, CraigTrackCorrector, makePlanarF32, normalizeAudioToStereo } from './craig';
 import { createPage } from './ogg';
 import type { PageMeta, WorkerMessage } from './oggParser.worker';
 import {

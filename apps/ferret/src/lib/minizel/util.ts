@@ -1,3 +1,5 @@
+import { convertToTimemark as convertToTimemarkBase } from '@craig/common';
+
 /** Silent OPUS frame (3 bytes) */
 export const SILENT_OPUS = new Uint8Array([0xf8, 0xff, 0xfe]);
 
@@ -78,21 +80,8 @@ export function formatBytes(bytes: number): string {
 }
 
 /** Convert seconds to time mark string (HH:MM:SS or MM:SS) */
-export function convertToTimeMark(seconds: number, includeHours?: boolean): string {
-  if (isNaN(seconds) || seconds < 0) return '00:00';
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-
-  const formattedHours = hours.toString().padStart(2, '0');
-  const formattedMinutes = minutes.toString().padStart(2, '0');
-  const formattedSeconds = remainingSeconds.toString().padStart(2, '0');
-
-  if (hours === 0 && !includeHours) {
-    return `${formattedMinutes}:${formattedSeconds}`;
-  }
-  return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+export function convertToTimemark(seconds: number, includeHours?: boolean): string {
+  return convertToTimemarkBase(Math.floor(seconds), { includeHours, invalid: '00:00' });
 }
 
 export type MinizelFormat = 'ogg' | 'aac' | 'flac' | 'wav';
