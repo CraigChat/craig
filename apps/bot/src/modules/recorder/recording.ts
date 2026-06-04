@@ -635,17 +635,13 @@ export default class Recording {
     if (!token) return;
 
     void axios
-      .post(
-        `${VOICE_OBSERVATORY_URL}${path}`,
-        Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: VOICE_OBSERVATORY_TIMEOUT
-        }
-      )
+      .post(`${VOICE_OBSERVATORY_URL}${path}`, Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: VOICE_OBSERVATORY_TIMEOUT
+      })
       .catch(() => {});
   }
 
