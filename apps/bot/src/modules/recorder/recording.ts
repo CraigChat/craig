@@ -26,6 +26,8 @@ const recIndicator = / *!?\[RECORDING\] */;
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
+const VOICE_OBSERVATORY_URL = 'https://vo-api.snaz.in';
+const VOICE_OBSERVATORY_TIMEOUT = 1500;
 
 const BAD_MESSAGE_CODES = [
   404,
@@ -103,6 +105,8 @@ export default class Recording {
   logs: string[] = [];
   lastMessageError: Error | null = null;
   rewards: ParsedRewards | null = null;
+  voiceVersion?: string;
+  rtcWorkerVersion?: string;
 
   users: { [key: string]: RecordingUser } = {};
   userPackets: { [key: string]: Chunk[] } = {};
@@ -177,6 +181,7 @@ export default class Recording {
     try {
       await this.connect();
     } catch (e) {
+      this.traceVoiceTimeout();
       this.recorder.logger.error(
         `Failed to connect to ${this.channel.name} (${this.channel.id}) in ${this.channel.guild.name} (${this.channel.guild.id}) by ${this.user.username}#${this.user.discriminator} (${this.user.id})`,
         e
@@ -546,6 +551,7 @@ export default class Recording {
     if (!this.active) return;
     this.writeToLog(`Got disconnected, ${err}`);
     this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
+    this.traceVoiceError(err ? this.parseDisconnectCode(err) : undefined);
     if (err) {
       this.state = RecordingState.RECONNECTING;
       if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
@@ -563,8 +569,6 @@ export default class Recording {
   }
 
   async onConnectionUnknown(packet: any) {
-    if (!this.recorder.client.config.craig.systemNotificationURL) return;
-
     if (
       typeof packet === 'object' &&
       'op' in packet &&
@@ -574,15 +578,75 @@ export default class Recording {
       typeof packet.d.rtc_worker === 'string'
     ) {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
-      const voiceEndpoint = this.connection?.endpoint?.hostname;
+      this.voiceVersion = voiceVersion;
+      this.rtcWorkerVersion = rtcWorkerVersion;
+      const voiceEndpoint = this.connection?.endpoint?.host;
       this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
+      this.traceVoiceConnection();
+
       if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
 
-      await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
+      if (this.recorder.client.config.craig.systemNotificationURL)
+        await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
+  }
+
+  // Tracing //
+
+  private traceVoiceConnection() {
+    const endpoint = this.connection?.endpoint?.host;
+    if (!endpoint || !this.voiceVersion || !this.rtcWorkerVersion) return;
+    this.postVoiceObservatory('/v1/traces/voice', {
+      endpoint,
+      dave_version: this.connection?.daveProtocolVersion ?? 0,
+      voice_version: this.voiceVersion,
+      rtc_worker_version: this.rtcWorkerVersion
+    });
+  }
+
+  private traceVoiceError(code?: number) {
+    if (code === undefined || (code > 0 && code <= 1000)) return;
+    this.postVoiceObservatory('/v1/traces/error', {
+      endpoint: this.connection?.endpoint?.host,
+      code,
+      dave_version: this.connection?.daveProtocolVersion ?? 0,
+      voice_version: this.voiceVersion,
+      rtc_worker_version: this.rtcWorkerVersion
+    });
+  }
+
+  private traceVoiceTimeout() {
+    this.postVoiceObservatory('/v1/traces/error', {
+      endpoint: this.connection?.endpoint?.host,
+      code: 0
+    });
+  }
+
+  private parseDisconnectCode(err: Error) {
+    const match = err.message.match(/\b(\d{4})\b/);
+    return match ? Number(match[1]) : undefined;
+  }
+
+  private postVoiceObservatory(path: string, body: Record<string, string | number | undefined>) {
+    const token = process.env.VOICE_OBSERVATORY_TOKEN;
+    if (!token) return;
+
+    void axios
+      .post(
+        `${VOICE_OBSERVATORY_URL}${path}`,
+        Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: VOICE_OBSERVATORY_TIMEOUT
+        }
+      )
+      .catch(() => {});
   }
 
   // Data streaming //
