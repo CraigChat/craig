@@ -14,6 +14,15 @@ import Recording, { RecordingState } from './recording.js';
 import { VoiceTestState } from './voiceTest.js';
 
 const RECORDING_TTL = 5 * 60 * 1000;
+const VOICE_OBSERVATORY_URL = 'https://vo-api.snaz.in';
+const VOICE_OBSERVATORY_TIMEOUT = 1500;
+
+interface VoiceTraceOptions {
+  connection: Dysnomia.VoiceConnection | null;
+  voiceVersion?: string;
+  rtcWorkerVersion?: string;
+  code?: number;
+}
 
 export default class RecorderModule extends BotModule {
   recordings = new Map<string, Recording>();
@@ -104,6 +113,57 @@ export default class RecorderModule extends BotModule {
     for (const recording of this.recordings.values()) {
       if (recording.id === id) return recording;
     }
+  }
+
+  traceVoiceConnection({ connection, voiceVersion, rtcWorkerVersion }: VoiceTraceOptions) {
+    const endpoint = connection?.endpoint?.host;
+    if (!endpoint || !voiceVersion || !rtcWorkerVersion) return;
+    this.postVoiceObservatory('/v1/traces/voice', {
+      endpoint,
+      dave_version: connection?.daveProtocolVersion ?? 0,
+      voice_version: voiceVersion,
+      rtc_worker_version: rtcWorkerVersion
+    });
+  }
+
+  traceVoiceError({ connection, voiceVersion, rtcWorkerVersion, code }: VoiceTraceOptions) {
+    if (code === undefined || (code > 0 && code <= 1000)) return;
+    this.postVoiceObservatory('/v1/traces/error', {
+      endpoint: connection?.endpoint?.host,
+      code,
+      dave_version: connection?.daveProtocolVersion ?? 0,
+      voice_version: voiceVersion,
+      rtc_worker_version: rtcWorkerVersion
+    });
+  }
+
+  traceVoiceTimeout(connection: Dysnomia.VoiceConnection | null) {
+    this.postVoiceObservatory('/v1/traces/error', {
+      endpoint: connection?.endpoint?.host,
+      code: 0
+    });
+  }
+
+  parseVoiceDisconnectCode(err: Error) {
+    const match = err.message.match(/\b(\d{4})\b/);
+    return match ? Number(match[1]) : undefined;
+  }
+
+  private postVoiceObservatory(path: string, body: Record<string, string | number | undefined>) {
+    const token = process.env.VOICE_OBSERVATORY_TOKEN;
+    if (!token) return;
+
+    void globalThis
+      .fetch(`${VOICE_OBSERVATORY_URL}${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined))),
+        signal: AbortSignal.timeout(VOICE_OBSERVATORY_TIMEOUT)
+      })
+      .catch(() => {});
   }
 
   async pushVoiceVersions(voiceEndpoint: string, voiceVersion: string, rtcWorkerVersion: string) {

@@ -49,6 +49,8 @@ export default class VoiceTest {
   startTime: [number, number] | null = null;
   recordingEndTime: number | null = null;
   recordingTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  voiceVersion?: string;
+  rtcWorkerVersion?: string;
 
   // Audio storage - userID -> packets
   userPackets: Map<string, Chunk[]> = new Map();
@@ -70,6 +72,7 @@ export default class VoiceTest {
     try {
       await this.connect();
     } catch (e) {
+      this.recorder.traceVoiceTimeout(this.connection);
       this.recorder.logger.error(`Failed to connect for voice test in ${this.guildId}`, e);
       this.state = VoiceTestState.ERROR;
       this.stateDescription = 'Failed to connect to your channel, try again later.';
@@ -301,6 +304,12 @@ export default class VoiceTest {
   async onConnectionDisconnect(err?: Error) {
     if (!this.active) return;
     this.recorder.logger.debug(`Voice test ${this.guildId} disconnected`, err);
+    this.recorder.traceVoiceError({
+      connection: this.connection,
+      code: err ? this.recorder.parseVoiceDisconnectCode(err) : undefined,
+      voiceVersion: this.voiceVersion,
+      rtcWorkerVersion: this.rtcWorkerVersion
+    });
 
     this.state = VoiceTestState.CANCELLED;
     this.stateDescription = 'I was disconnected from the voice channel.';
@@ -312,8 +321,6 @@ export default class VoiceTest {
   }
 
   async onConnectionUnknown(packet: any) {
-    if (!this.recorder.client.config.craig.systemNotificationURL) return;
-
     if (
       typeof packet === 'object' &&
       'op' in packet &&
@@ -323,13 +330,22 @@ export default class VoiceTest {
       typeof packet.d.rtc_worker === 'string'
     ) {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
-      const voiceEndpoint = this.connection?.endpoint?.hostname;
+      this.voiceVersion = voiceVersion;
+      this.rtcWorkerVersion = rtcWorkerVersion;
+      const voiceEndpoint = this.connection?.endpoint?.host;
+      this.recorder.traceVoiceConnection({
+        connection: this.connection,
+        voiceVersion: this.voiceVersion,
+        rtcWorkerVersion: this.rtcWorkerVersion
+      });
+
       if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
 
-      await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
+      if (this.recorder.client.config.craig.systemNotificationURL)
+        await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
   }
 

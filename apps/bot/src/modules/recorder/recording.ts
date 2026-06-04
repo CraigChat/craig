@@ -4,7 +4,6 @@ import DiscordJsOpus from '@discordjs/opus';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { DiscordRESTError } from '@projectdysnomia/dysnomia';
 import type { DAVESession } from '@snazzah/davey';
-import axios from 'axios';
 import { stripIndents } from 'common-tags';
 import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
@@ -26,9 +25,6 @@ const recIndicator = / *!?\[RECORDING\] */;
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
-const VOICE_OBSERVATORY_URL = 'https://vo-api.snaz.in';
-const VOICE_OBSERVATORY_TIMEOUT = 1500;
-
 const BAD_MESSAGE_CODES = [
   404,
   10003, // Unknown channel
@@ -181,7 +177,7 @@ export default class Recording {
     try {
       await this.connect();
     } catch (e) {
-      this.traceVoiceTimeout();
+      this.recorder.traceVoiceTimeout(this.connection);
       this.recorder.logger.error(
         `Failed to connect to ${this.channel.name} (${this.channel.id}) in ${this.channel.guild.name} (${this.channel.guild.id}) by ${this.user.username}#${this.user.discriminator} (${this.user.id})`,
         e
@@ -551,7 +547,12 @@ export default class Recording {
     if (!this.active) return;
     this.writeToLog(`Got disconnected, ${err}`);
     this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
-    this.traceVoiceError(err ? this.parseDisconnectCode(err) : undefined);
+    this.recorder.traceVoiceError({
+      connection: this.connection,
+      code: err ? this.recorder.parseVoiceDisconnectCode(err) : undefined,
+      voiceVersion: this.voiceVersion,
+      rtcWorkerVersion: this.rtcWorkerVersion
+    });
     if (err) {
       this.state = RecordingState.RECONNECTING;
       if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
@@ -582,7 +583,11 @@ export default class Recording {
       this.rtcWorkerVersion = rtcWorkerVersion;
       const voiceEndpoint = this.connection?.endpoint?.host;
       this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
-      this.traceVoiceConnection();
+      this.recorder.traceVoiceConnection({
+        connection: this.connection,
+        voiceVersion: this.voiceVersion,
+        rtcWorkerVersion: this.rtcWorkerVersion
+      });
 
       if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
         return this.recorder.logger.warn(
@@ -592,57 +597,6 @@ export default class Recording {
       if (this.recorder.client.config.craig.systemNotificationURL)
         await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
-  }
-
-  // Tracing //
-
-  private traceVoiceConnection() {
-    const endpoint = this.connection?.endpoint?.host;
-    if (!endpoint || !this.voiceVersion || !this.rtcWorkerVersion) return;
-    this.postVoiceObservatory('/v1/traces/voice', {
-      endpoint,
-      dave_version: this.connection?.daveProtocolVersion ?? 0,
-      voice_version: this.voiceVersion,
-      rtc_worker_version: this.rtcWorkerVersion
-    });
-  }
-
-  private traceVoiceError(code?: number) {
-    if (code === undefined || (code > 0 && code <= 1000)) return;
-    this.postVoiceObservatory('/v1/traces/error', {
-      endpoint: this.connection?.endpoint?.host,
-      code,
-      dave_version: this.connection?.daveProtocolVersion ?? 0,
-      voice_version: this.voiceVersion,
-      rtc_worker_version: this.rtcWorkerVersion
-    });
-  }
-
-  private traceVoiceTimeout() {
-    this.postVoiceObservatory('/v1/traces/error', {
-      endpoint: this.connection?.endpoint?.host,
-      code: 0
-    });
-  }
-
-  private parseDisconnectCode(err: Error) {
-    const match = err.message.match(/\b(\d{4})\b/);
-    return match ? Number(match[1]) : undefined;
-  }
-
-  private postVoiceObservatory(path: string, body: Record<string, string | number | undefined>) {
-    const token = process.env.VOICE_OBSERVATORY_TOKEN;
-    if (!token) return;
-
-    void axios
-      .post(`${VOICE_OBSERVATORY_URL}${path}`, Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined)), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: VOICE_OBSERVATORY_TIMEOUT
-      })
-      .catch(() => {});
   }
 
   // Data streaming //
@@ -756,8 +710,10 @@ export default class Recording {
 
     if (user) {
       try {
-        const { data } = await axios.get(user.dynamicAvatarURL('png', 2048), { responseType: 'arraybuffer' });
-        recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data, 'binary').toString('base64');
+        const response = await fetch(user.dynamicAvatarURL('png', 2048));
+        if (!response.ok) throw new Error(`Failed to fetch avatar: ${response.status} ${response.statusText}`);
+        const data = await response.arrayBuffer();
+        recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data).toString('base64');
       } catch (e) {
         this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
         this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);

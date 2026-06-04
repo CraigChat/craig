@@ -32,7 +32,6 @@
     "@sentry/tracing": "^7.120.4",
     "@snazzah/davey": "^0.1.10",
     "@snazzah/emoji-sync": "^0.1.2",
-    "axios": "^1.13.2",
     "common-tags": "^1.8.2",
     "cron": "^4.3.4",
     "dotenv": "^16.6.1",

@@ -1,7 +1,6 @@
 import type { Ban, Guild } from '@craig/db';
 import { prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
-import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import {
   AnyComponent,
@@ -117,10 +116,12 @@ export function disableComponents(components: AnyComponent[]) {
 
 export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | 'major' | 'minor' | 'maintenence'> {
   try {
-    const response = await axios.get('https://discordstatus.com/api/v2/status.json', {
+    const response = await fetch('https://discordstatus.com/api/v2/status.json', {
       headers: { 'User-Agent': userAgent }
     });
-    return response.data?.status?.indicator;
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data?.status?.indicator;
   } catch (e) {
     return null;
   }
