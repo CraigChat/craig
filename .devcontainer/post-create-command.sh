@@ -11,7 +11,7 @@ VSC_REDIS_CLIENT=data/User/globalStorage/cweijan.vscode-redis-client
 npm i -g pnpm@10.33.4
 
 # Install global modules
-sudo npm i -g turbo slash-up prisma tsx
+sudo npm i -g turbo slash-up prisma tsx pm2
 
 # Create folders
 [ -d rec ] || mkdir rec
