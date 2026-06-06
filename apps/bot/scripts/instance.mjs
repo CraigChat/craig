@@ -34,6 +34,7 @@ const mergedEnv = {
 };
 
 const pm2ProcessName = mergedEnv.PM2_PROCESS_NAME || mergedEnv.PM2_NAME || instanceName;
+mergedEnv.PM2_PROCESS_NAME = pm2ProcessName;
 
 let bin;
 let args;
@@ -42,7 +43,7 @@ if (command === 'sync') {
   args = ['sync', '--env', instancePath, ...extraArgs];
 } else {
   bin = 'pm2';
-  args = [command, 'ecosystem.config.cjs', '--name', pm2ProcessName, '--update-env', ...extraArgs];
+  args = [command, 'ecosystem.config.cjs', '--update-env', ...extraArgs];
 }
 
 const result = spawnSync(bin, args, {
