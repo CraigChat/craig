@@ -35,7 +35,7 @@ _MODE_LABEL = {
 
 def make_handler(secret: str, mode: int):
     class Handler(http.server.BaseHTTPRequestHandler):
-        def log_message(self, fmt, *args):  # quieten the default access log
+        def log_message(self, format, *args):  # noqa: A002
             pass
 
         def do_POST(self):

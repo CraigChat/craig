@@ -37,17 +37,17 @@ SUMMARY_PROMPT = (
 )
 
 
-def _env_float(name: str, alt_name: str, default: float) -> float:
+def env_float(name: str, alt_name: str, default: float) -> float:
     raw = os.environ.get(name) or os.environ.get(alt_name)
     return float(raw) if raw else default
 
 
-def _env_int(name: str, alt_name: str, default: int) -> int:
+def env_int(name: str, alt_name: str, default: int) -> int:
     raw = os.environ.get(name) or os.environ.get(alt_name)
     return int(raw) if raw else default
 
 
-def _parse_sse_payload(line: str) -> dict[str, Any] | None:
+def parse_sse_payload(line: str) -> dict[str, Any] | None:
     if not line.startswith("data:"):
         return None
     data = line.removeprefix("data:").strip()
@@ -84,13 +84,13 @@ class ChatCompletionsProvider(SummaryProvider):
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": f"{SUMMARY_PROMPT}{transcript}"}],
-            "max_tokens": _env_int("AI_SUMMARY_MAX_TOKENS", "NVIDIA_SUMMARY_MAX_TOKENS", 2048),
-            "temperature": _env_float("AI_SUMMARY_TEMPERATURE", "NVIDIA_SUMMARY_TEMPERATURE", 0.15),
-            "top_p": _env_float("AI_SUMMARY_TOP_P", "NVIDIA_SUMMARY_TOP_P", 1.0),
-            "frequency_penalty": _env_float(
+            "max_tokens": env_int("AI_SUMMARY_MAX_TOKENS", "NVIDIA_SUMMARY_MAX_TOKENS", 2048),
+            "temperature": env_float("AI_SUMMARY_TEMPERATURE", "NVIDIA_SUMMARY_TEMPERATURE", 0.15),
+            "top_p": env_float("AI_SUMMARY_TOP_P", "NVIDIA_SUMMARY_TOP_P", 1.0),
+            "frequency_penalty": env_float(
                 "AI_SUMMARY_FREQUENCY_PENALTY", "NVIDIA_SUMMARY_FREQUENCY_PENALTY", 0.0
             ),
-            "presence_penalty": _env_float(
+            "presence_penalty": env_float(
                 "AI_SUMMARY_PRESENCE_PENALTY", "NVIDIA_SUMMARY_PRESENCE_PENALTY", 0.0
             ),
             "stream": True,
@@ -118,7 +118,7 @@ class ChatCompletionsProvider(SummaryProvider):
                     line = raw_line.decode("utf-8", errors="replace").strip()
                     if not line:
                         continue
-                    chunk = _parse_sse_payload(line)
+                    chunk = parse_sse_payload(line)
                     if chunk is None:
                         continue
                     if chunk.get("usage"):
@@ -163,6 +163,10 @@ class SummaryChain:
     def __init__(self, providers: list[SummaryProvider], retry_delay_s: int) -> None:
         self._providers = [p for p in providers if p.is_available()]
         self._retry_delay_s = retry_delay_s
+
+    @property
+    def providers(self) -> list[SummaryProvider]:
+        return self._providers.copy()
 
     def run(self, transcript_path: Path, timestamp: str) -> Path | None:
         if not self._providers:
