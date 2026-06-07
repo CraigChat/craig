@@ -81,7 +81,7 @@ export default class ServerSettings extends GeneralCommand {
               description: "Reset the bot's server profile."
             }
           ]
-        },
+        }
       ]
     });
 

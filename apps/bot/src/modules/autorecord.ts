@@ -253,7 +253,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
         if (recording.state !== RecordingState.ERROR) {
           recording.state = RecordingState.ERROR;
-          await recording.stop(true).catch(() => { });
+          await recording.stop(true).catch(() => {});
         }
 
         if (recording.messageID && recording.messageChannelID) {
@@ -285,7 +285,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
                 }
               ]
             })
-            .catch(() => { });
+            .catch(() => {});
         }
         return;
       }
