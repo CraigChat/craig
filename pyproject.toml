@@ -1,0 +1,73 @@
+[project]
+name = "tasmas-sidecar"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["tasmas", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "B",        # flake8-bugbear  (many real bug-detection rules)
+    "B9",       # flake8-bugbear opinionated extras
+    "I",        # isort
+    "N",        # pep8-naming
+    "S",        # flake8-bandit (security)
+    "C4",       # flake8-comprehensions
+    "SIM",      # flake8-simplify
+    "UP",       # pyupgrade
+    "RUF",      # ruff-specific rules
+    "PL",       # pylint
+    "PTH",      # use pathlib (ban os.path)
+    "TRY",      # flake8-try-except-raise
+    "EM",       # flake8-errmsg
+    "G",        # flake8-logging-format
+    "A",        # flake8-builtins (shadowed names)
+    "PERF",     # perflint
+    "T20",      # flake8-print
+]
+ignore = [
+    "S101",    # assert is fine in tests
+    "S603",    # subprocess with list args is safe
+    "S607",    # partial executable path in subprocess is fine
+    "TRY003",  # long messages in raise are acceptable
+    "EM101",   # string literal in raise is fine here
+    "EM102",   # f-string in raise is fine here
+    "T201",    # print() is intentional in logging_utils.log
+    "G004",    # f-string in logging is fine (custom log())
+    "PTH123",  # open() alongside Path.open is fine
+    "PLR2004", # magic value comparisons in logic are fine
+    "ARG002",  # unused method args (handlers, abstract impls)
+    "PLC0415", # import not at top level (lazy import in summarize_transcript)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "PLR", "ARG"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+include = ["tasmas", "tests"]
+exclude = ["**/__pycache__"]
+reportMissingImports = true
+reportMissingModuleSource = false
+reportUnusedImport = true
+reportUnusedVariable = true
+reportUntypedFunctionDecorator = true
+reportPrivateUsage = true
+# tasmas modules import each other with bare names (no package prefix)
+extraPaths = ["tasmas"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

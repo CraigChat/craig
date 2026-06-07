@@ -1,0 +1,48 @@
+name: Python checks
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'tasmas/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/python.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'tasmas/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - '.github/workflows/python.yml'
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: Ruff · Pyright · pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install toolchain
+        run: pip install ruff pyright pytest
+
+      - name: Ruff — lint
+        run: ruff check tasmas/ tests/
+
+      - name: Ruff — formatting
+        run: ruff format --check tasmas/ tests/
+
+      - name: Pyright — type checking
+        run: pyright tasmas/ tests/
+
+      - name: pytest
+        run: pytest

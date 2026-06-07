@@ -1,0 +1,46 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'tasmas/**'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'tasmas/**'
+      - '.github/workflows/codeql.yml'
+  schedule:
+    # Weekly scan every Monday at 07:00 UTC
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: CodeQL — Python
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          # Focus analysis on the Python source directory
+          config: |
+            paths:
+              - tasmas
+            paths-ignore:
+              - tasmas/test
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:python
