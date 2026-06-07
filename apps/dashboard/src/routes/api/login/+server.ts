@@ -4,8 +4,9 @@ import { randomBytes } from 'crypto';
 import type { APIUser } from 'discord-api-types/v10';
 import jwt from 'jsonwebtoken';
 
-import { DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, JWT_SECRET } from '$env/static/private';
-import { PUBLIC_DISCORD_CLIENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/private';
+import { env as publicEnv } from '$env/dynamic/public';
+import { requiredEnv } from '$lib/server/env';
 import { rateLimitRequest, redis } from '$lib/server/redis';
 import { INVITE_PERMISSIONS_BITFIELD } from '$lib/util';
 
@@ -17,6 +18,11 @@ const USER_URL = 'https://discord.com/api/users/@me';
 const SCOPES = ['identify', 'guilds', 'guilds.members.read'];
 
 export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) => {
+  const publicDiscordClientID = requiredEnv('PUBLIC_DISCORD_CLIENT_ID', publicEnv.PUBLIC_DISCORD_CLIENT_ID);
+  const discordClientSecret = requiredEnv('DISCORD_CLIENT_SECRET', env.DISCORD_CLIENT_SECRET);
+  const discordRedirectURI = requiredEnv('DISCORD_REDIRECT_URI', env.DISCORD_REDIRECT_URI);
+  const jwtSecret = requiredEnv('JWT_SECRET', env.JWT_SECRET);
+
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'login', limit: 10, window: 60 });
   if (rlResponse) return rlResponse;
 
@@ -40,8 +46,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     await redis.set(`oauth_state:${state}`, JSON.stringify({ next: validatedNext }), 'EX', 300);
 
     const params = new URLSearchParams({
-      client_id: PUBLIC_DISCORD_CLIENT_ID,
-      redirect_uri: DISCORD_REDIRECT_URI,
+      client_id: publicDiscordClientID,
+      redirect_uri: discordRedirectURI,
       response_type: 'code',
       ...(nextParam === 'add_bot'
         ? {
@@ -79,11 +85,11 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   } catch {}
 
   const body = new URLSearchParams({
-    client_id: PUBLIC_DISCORD_CLIENT_ID,
-    client_secret: DISCORD_CLIENT_SECRET,
+    client_id: publicDiscordClientID,
+    client_secret: discordClientSecret,
     grant_type: 'authorization_code',
     code,
-    redirect_uri: DISCORD_REDIRECT_URI
+    redirect_uri: discordRedirectURI
   });
   const tokenRes = await fetch(TOKEN_URL, {
     method: 'POST',
@@ -117,7 +123,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     }
   });
 
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id: user.id, username: user.username }, jwtSecret, { expiresIn: '7d' });
   cookies.set('session', token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
 
   redirect(307, redirectTo);

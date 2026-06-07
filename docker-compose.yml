@@ -4,15 +4,22 @@ x-shared-storage: &shared-storage
   - ./rec:/data/rec
   - ./downloads:/data/downloads
   - ./output:/data/output
+  - ./tmp:/data/tmp
 
 x-runtime-environment: &runtime-environment
   NODE_ENV: production
-  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-craig}?schema=public
+  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker.env}@db:5432/${POSTGRES_DB:-craig}?schema=public
   REDIS_HOST: redis
   REDIS_PORT: 6379
+  REDIS_DATABASE: ${REDIS_DATABASE:-0}
+  REDIS_PREFIX: ${REDIS_PREFIX:-craig:}
   REC_DIRECTORY: /data/rec
   DOWNLOADS_DIRECTORY: /data/downloads
   OUTPUT_DIRECTORY: /data/output
+  TMP_DIRECTORY: /data/tmp
+  BOT_LOCALE_FOLDER: /opt/craig/locale
+  KITCHEN_URL: http://127.0.0.1:9000
+  WEBAPP_URL: ws://127.0.0.1:9001/shard
 
 services:
   db:
@@ -20,7 +27,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-craig}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker.env}
       POSTGRES_DB: ${POSTGRES_DB:-craig}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -39,135 +46,27 @@ services:
       timeout: 5s
       retries: 5
 
-  bot:
-    image: ghcr.io/craigchat/craig-bot:${CRAIG_IMAGE_TAG:-latest}
+  craig:
+    image: ghcr.io/craigchat/craig:${CRAIG_IMAGE_TAG:-latest}
+    build:
+      context: .
+      args:
+        CRAIG_VERSION: ${CRAIG_VERSION:-local}
     restart: unless-stopped
     env_file:
-      - apps/bot/.env
-      - .env
+      - path: docker.env
+        required: false
     environment:
       <<: *runtime-environment
-      BOT_LOCALE_FOLDER: /app/locale
-      KITCHEN_URL: http://kitchen:9000
-    volumes: *shared-storage
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "test", "-f", "/tmp/craig-migrations-complete"]
-      interval: 5s
-      timeout: 2s
-      retries: 12
-
-  kitchen:
-    image: ghcr.io/craigchat/craig-kitchen:${CRAIG_IMAGE_TAG:-latest}
-    restart: unless-stopped
-    env_file:
-      - apps/kitchen/.env
-      - .env
-    environment:
-      <<: *runtime-environment
-      HOST: 0.0.0.0
-    volumes: *shared-storage
-    depends_on:
-      bot:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-
-  ferret:
-    image: ghcr.io/craigchat/craig-ferret:${CRAIG_IMAGE_TAG:-latest}
-    restart: unless-stopped
-    env_file:
-      - apps/ferret/.env
-      - .env
-    environment:
-      <<: *runtime-environment
-      HOST: 0.0.0.0
-      KITCHEN_URL: http://kitchen:9000
     volumes: *shared-storage
     ports:
-      - 127.0.0.1:9100:9100
+      - ${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
+      - ${CRAIG_FERRET_HOST_PORT:-9100}:9100
+      - ${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
     depends_on:
-      bot:
-        condition: service_healthy
       db:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      kitchen:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-
-  ennuizel-streamer:
-    image: ghcr.io/craigchat/craig-ennuizel-streamer:${CRAIG_IMAGE_TAG:-latest}
-    restart: unless-stopped
-    env_file:
-      - apps/ennuizel-streamer/.env
-      - .env
-    environment:
-      <<: *runtime-environment
-      HOST: 0.0.0.0
-    volumes: *shared-storage
-    ports:
-      - 127.0.0.1:9001:9001
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-
-  dashboard:
-    image: ghcr.io/craigchat/craig-dashboard:${CRAIG_IMAGE_TAG:-latest}
-    restart: unless-stopped
-    env_file:
-      - apps/dashboard/.env
-      - .env
-    environment:
-      <<: *runtime-environment
-      HOST: 0.0.0.0
-    volumes: *shared-storage
-    ports:
-      - 127.0.0.1:9200:9200
-    depends_on:
-      bot:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9200/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-
-  tasks:
-    image: ghcr.io/craigchat/craig-tasks:${CRAIG_IMAGE_TAG:-latest}
-    restart: unless-stopped
-    env_file:
-      - apps/tasks/.env
-      - .env
-    environment:
-      <<: *runtime-environment
-    volumes: *shared-storage
-    depends_on:
-      bot:
-        condition: service_healthy
-      db:
         condition: service_healthy
 
 volumes:

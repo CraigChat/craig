@@ -1,4 +1,4 @@
-name: Docker images
+name: Docker image
 
 on:
   pull_request:
@@ -17,8 +17,9 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-      has-images: ${{ steps.plan.outputs.has-images }}
+      dockerfile: ${{ steps.plan.outputs.dockerfile }}
+      has-image: ${{ steps.plan.outputs.has-image }}
+      image: ${{ steps.plan.outputs.image }}
       publish: ${{ steps.plan.outputs.publish }}
       tag: ${{ steps.plan.outputs.tag }}
     steps:
@@ -40,7 +41,7 @@ jobs:
           else
             git diff --name-only "$BASE_SHA" "$HEAD_SHA" > changed-paths.txt
           fi
-      - name: Create build matrix
+      - name: Create build plan
         id: plan
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -50,15 +51,12 @@ jobs:
           if [[ -f changed-paths.txt ]]; then
             export CHANGED_PATHS="$(cat changed-paths.txt)"
           fi
-          node .github/scripts/docker-matrix.mjs
+          node .github/scripts/docker-plan.mjs
 
-  build-images:
+  build-image:
     needs: changes
-    if: needs.changes.outputs.has-images == 'true'
+    if: needs.changes.outputs.has-image == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -71,21 +69,23 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Prepare build secret files
-        run: |
-          cp .env.example /tmp/root.env
-          cp apps/ferret/.env.example /tmp/ferret.env
-          cp apps/dashboard/.env.example /tmp/dashboard.env
       - name: Build image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: ${{ needs.changes.outputs.dockerfile }}
           push: ${{ needs.changes.outputs.publish == 'true' }}
-          tags: ghcr.io/craigchat/craig-${{ matrix.app }}:${{ needs.changes.outputs.tag }}
-          secret-files: |
-            root_env=/tmp/root.env
-            ferret_env=/tmp/ferret.env
-            dashboard_env=/tmp/dashboard.env
-          cache-from: type=gha,scope=${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          tags: ghcr.io/craigchat/${{ needs.changes.outputs.image }}:${{ needs.changes.outputs.tag }}
+          build-args: |
+            CRAIG_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=craig
+          cache-to: type=gha,mode=max,scope=craig
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Validate Compose config
+        run: docker compose --env-file docker.env.example config
