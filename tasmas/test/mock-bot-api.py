@@ -38,7 +38,7 @@ def make_handler(secret: str, mode: int):
         def log_message(self, fmt, *args):  # quieten the default access log
             pass
 
-        def do_POST(self):  # noqa: N802
+        def do_POST(self):
             if self.path != "/deliver-summary":
                 self._reply(404)
                 return
