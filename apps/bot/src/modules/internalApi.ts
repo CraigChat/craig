@@ -44,7 +44,7 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
 
       try {
         const recordingDir = path.join(tasmOutputDir, recordingId);
-        const summaryFile = fs.readdirSync(recordingDir).find((f) => f.startsWith('summary_') && f.endsWith('.md'));
+        const summaryFile = fs.readdirSync(recordingDir).find((f) => f.endsWith('_summary.md'));
         if (!summaryFile) {
           this.client.logger.warn(`No summary file found for recording ${recordingId}`);
           res.writeHead(404).end();

@@ -10,13 +10,12 @@ import time
 import urllib.error
 import urllib.request
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
-from zoneinfo import ZoneInfo
 
 from logging_utils import log
+from recording_names import recording_output_filename
 
 
 DEFAULT_NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
@@ -106,6 +105,8 @@ class ChatCompletionsProvider(SummaryProvider):
         )
 
         log(f"Summarizing with {self.label()}")
+        finish_reason: str | None = None
+        usage: dict[str, Any] = {}
         try:
             with urllib.request.urlopen(request, timeout=900) as response, partial_path.open("w", encoding="utf-8") as f:
                 for raw_line in response:
@@ -115,10 +116,14 @@ class ChatCompletionsProvider(SummaryProvider):
                     chunk = _parse_sse_payload(line)
                     if chunk is None:
                         continue
+                    if chunk.get("usage"):
+                        usage = chunk["usage"]
                     choices = chunk.get("choices") or []
                     if not choices:
                         continue
                     choice = choices[0]
+                    if choice.get("finish_reason"):
+                        finish_reason = choice["finish_reason"]
                     content = choice.get("delta", {}).get("content", "") or choice.get("message", {}).get("content", "")
                     if content:
                         f.write(content)
@@ -129,6 +134,13 @@ class ChatCompletionsProvider(SummaryProvider):
         except urllib.error.URLError as exc:
             raise RuntimeError(f"{self.label()} failed: {exc}") from exc
 
+        if usage:
+            log(f"Tokens used: prompt={usage.get('prompt_tokens')} completion={usage.get('completion_tokens')} total={usage.get('total_tokens')}")
+        if finish_reason and finish_reason != "stop":
+            log(f"WARNING: finish_reason={finish_reason!r} — summary may be truncated (increase AI_SUMMARY_MAX_TOKENS, currently {payload['max_tokens']})")
+        else:
+            log(f"finish_reason={finish_reason!r}")
+
         partial_path.replace(output_path)
         log(f"Wrote summary to {output_path}")
 
@@ -138,17 +150,16 @@ class SummaryChain:
         self._providers = [p for p in providers if p.is_available()]
         self._retry_delay_s = retry_delay_s
 
-    def run(self, transcript_path: Path) -> Path | None:
+    def run(self, transcript_path: Path, timestamp: str) -> Path | None:
         if not self._providers:
             log("No summary providers configured — skipping summarization")
             return None
 
         transcript = transcript_path.read_text(encoding="utf-8", errors="replace")
+        log(f"Transcript: {len(transcript)} chars, {len(transcript.encode('utf-8'))} bytes")
         errors: list[str] = []
         total = len(self._providers)
 
-        ny_now = datetime.now(ZoneInfo("America/New_York"))
-        timestamp = ny_now.strftime("%Y-%-m-%-d_%Hh%M")
         recording_id = transcript_path.parent.name.removeprefix("craig_")
 
         for i, provider in enumerate(self._providers):
@@ -157,7 +168,7 @@ class SummaryChain:
                 time.sleep(self._retry_delay_s)
             log(f"[{i + 1}/{total}] Trying {provider.label()}")
 
-            output_path = transcript_path.parent / f"{timestamp}_{recording_id}_summary.md"
+            output_path = transcript_path.parent / recording_output_filename(recording_id, "summary", "md", timestamp)
 
             try:
                 provider.summarize(transcript, output_path)

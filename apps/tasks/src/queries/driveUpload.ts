@@ -16,6 +16,10 @@ import { clearReadyState, setReadyState } from '../redis';
 
 const CHUNKS_PER_DRIVE_UPLOAD = 20;
 
+function findTasmasFile(entries: string[], suffix: string): string | undefined {
+  return entries.find((f) => f.endsWith(suffix));
+}
+
 const driveConfig = config.get<{
   clientId: string;
   clientSecret: string;
@@ -312,7 +316,7 @@ export async function driveSummaryUpload({
   let summaryContent: string;
   try {
     const entries = await fs.readdir(tasmDir);
-    const summaryFile = entries.find((f) => f.startsWith('summary_') && f.endsWith('.md'));
+    const summaryFile = findTasmasFile(entries, '_summary.md');
     if (!summaryFile) return { error: 'summary_not_found', uploaded: false };
     summaryContent = await fs.readFile(path.join(tasmDir, summaryFile), 'utf-8');
   } catch {
@@ -381,11 +385,16 @@ export async function driveTranscriptUpload({
   const info = JSON.parse(await fs.readFile(infoPath, 'utf8'));
   const startDate = new Date(info.startTime);
 
-  const transcriptPath = path.join(recPath, 'tasmas', recordingId, 'transcript.txt');
-  if (!(await fileExists(transcriptPath))) {
-    return { error: 'transcript_not_found', uploaded: false };
+  const tasmDir = path.join(recPath, 'tasmas', recordingId);
+  let transcriptContent: string;
+  try {
+    const entries = await fs.readdir(tasmDir);
+    const transcriptFile = findTasmasFile(entries, '_transcript.txt');
+    if (!transcriptFile) return { error: 'transcript_not_found', uploaded: false };
+    transcriptContent = await fs.readFile(path.join(tasmDir, transcriptFile), 'utf-8');
+  } catch {
+    return { error: 'transcript_dir_not_found', uploaded: false };
   }
-  const transcriptContent = await fs.readFile(transcriptPath, 'utf-8');
 
   const user = await prisma.user.findFirst({ where: { id: userId } });
   if (!user) return { error: 'user_not_found', uploaded: false };

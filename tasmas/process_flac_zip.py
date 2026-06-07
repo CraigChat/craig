@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from logging_utils import log
+from recording_names import recording_output_filename, recording_timestamp
 
 
 REPO_DIR = Path(__file__).resolve().parents[1]
@@ -182,9 +183,9 @@ def notify_summary_delivery(recording_id: str) -> bool:
     return False
 
 
-def summarize_transcript(transcript_path: Path) -> None:
+def summarize_transcript(transcript_path: Path, timestamp: str) -> None:
     from summarizer import build_summary_chain
-    summary = build_summary_chain().run(transcript_path)
+    summary = build_summary_chain().run(transcript_path, timestamp)
     if summary:
         notify_summary_delivery(transcript_path.parent.name)
 
@@ -305,9 +306,15 @@ def process_zip(zip_path: Path) -> Path:
         create_tasmas_audio_links(work_dir)
         run_tasmas(output_root, recording_id)
 
-        transcript_path = work_dir / "transcript.txt"
+        ts = recording_timestamp()
+        for plain, kind, ext in [("transcript.txt", "transcript", "txt"), ("raw.dat", "raw", "dat")]:
+            src = work_dir / plain
+            if src.exists():
+                src.rename(work_dir / recording_output_filename(recording_id, kind, ext, ts))
+
+        transcript_path = work_dir / recording_output_filename(recording_id, "transcript", "txt", ts)
         if transcript_path.exists():
-            summarize_transcript(transcript_path)
+            summarize_transcript(transcript_path, ts)
 
         done_marker.write_text(utc_now() + "\n", encoding="utf-8")
         update_recording_state(

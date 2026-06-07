@@ -22,7 +22,7 @@ for dir in "$TASMAS_DIR"/*/; do
   id=$(basename "$dir")
   [[ "$id" == "recordings.lock.json" ]] && continue
 
-  summary=$(ls "$dir"summary_*.md 2>/dev/null | head -1)
+  summary=$(ls "$dir"*_summary.md 2>/dev/null | head -1)
   [[ -z "$summary" ]] && continue
 
   info_file="$REC_DIR/${id}.ogg.info"
