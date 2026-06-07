@@ -1,13 +1,13 @@
 name: craig
 
 x-shared-storage: &shared-storage
-  - ../rec:/data/rec
-  - ../downloads:/data/downloads
-  - ../output:/data/output
+  - ./rec:/data/rec
+  - ./downloads:/data/downloads
+  - ./output:/data/output
 
 x-runtime-environment: &runtime-environment
   NODE_ENV: production
-  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker/.env}@db:5432/${POSTGRES_DB:-craig}?schema=public
+  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-craig}?schema=public
   REDIS_HOST: redis
   REDIS_PORT: 6379
   REC_DIRECTORY: /data/rec
@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-craig}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-craig}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -40,13 +40,11 @@ services:
       retries: 5
 
   bot:
-    build:
-      context: ..
-      dockerfile: apps/bot/Dockerfile
+    image: ghcr.io/craigchat/craig-bot:${CRAIG_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
-      - ../apps/bot/.env
-      - ../.env
+      - apps/bot/.env
+      - .env
     environment:
       <<: *runtime-environment
       BOT_LOCALE_FOLDER: /app/locale
@@ -64,13 +62,11 @@ services:
       retries: 12
 
   kitchen:
-    build:
-      context: ..
-      dockerfile: apps/kitchen/Dockerfile
+    image: ghcr.io/craigchat/craig-kitchen:${CRAIG_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
-      - ../apps/kitchen/.env
-      - ../.env
+      - apps/kitchen/.env
+      - .env
     environment:
       <<: *runtime-environment
       HOST: 0.0.0.0
@@ -89,16 +85,11 @@ services:
       retries: 6
 
   ferret:
-    build:
-      context: ..
-      dockerfile: apps/ferret/Dockerfile
-      secrets:
-        - root_env
-        - ferret_env
+    image: ghcr.io/craigchat/craig-ferret:${CRAIG_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
-      - ../apps/ferret/.env
-      - ../.env
+      - apps/ferret/.env
+      - .env
     environment:
       <<: *runtime-environment
       HOST: 0.0.0.0
@@ -122,13 +113,11 @@ services:
       retries: 6
 
   ennuizel-streamer:
-    build:
-      context: ..
-      dockerfile: apps/ennuizel-streamer/Dockerfile
+    image: ghcr.io/craigchat/craig-ennuizel-streamer:${CRAIG_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
-      - ../apps/ennuizel-streamer/.env
-      - ../.env
+      - apps/ennuizel-streamer/.env
+      - .env
     environment:
       <<: *runtime-environment
       HOST: 0.0.0.0
@@ -142,16 +131,11 @@ services:
       retries: 6
 
   dashboard:
-    build:
-      context: ..
-      dockerfile: apps/dashboard/Dockerfile
-      secrets:
-        - root_env
-        - dashboard_env
+    image: ghcr.io/craigchat/craig-dashboard:${CRAIG_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
-      - ../apps/dashboard/.env
-      - ../.env
+      - apps/dashboard/.env
+      - .env
     environment:
       <<: *runtime-environment
       HOST: 0.0.0.0
@@ -172,13 +156,11 @@ services:
       retries: 6
 
   tasks:
-    build:
-      context: ..
-      dockerfile: apps/tasks/Dockerfile
+    image: ghcr.io/craigchat/craig-tasks:${CRAIG_IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
-      - ../apps/tasks/.env
-      - ../.env
+      - apps/tasks/.env
+      - .env
     environment:
       <<: *runtime-environment
     volumes: *shared-storage
@@ -190,11 +172,3 @@ services:
 
 volumes:
   postgres-data:
-
-secrets:
-  root_env:
-    file: ../.env
-  dashboard_env:
-    file: ../apps/dashboard/.env
-  ferret_env:
-    file: ../apps/ferret/.env
