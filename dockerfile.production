@@ -1,0 +1,124 @@
+# =============================================================
+# Stage 1: builder
+# Full toolchain — compiles native addons, builds TS, generates
+# a separate /prod tree with production-only node_modules.
+# =============================================================
+FROM ubuntu:22.04 AS builder
+
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      build-essential python3 make \
+      inkscape dbus-x11 \
+      wget curl ca-certificates git locales && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+
+ARG NODE_VERSION=22
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
+    npm install -g yarn pm2 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ---- Full install + compile ----
+WORKDIR /build
+COPY . .
+
+RUN yarn install --frozen-lockfile
+RUN npx prisma generate --schema=/build/prisma/schema.prisma
+RUN mkdir -p /build/rec && \
+    /bin/bash /build/scripts/buildCook.sh && \
+    /bin/bash /build/scripts/downloadCookBuilds.sh
+RUN yarn workspaces run build
+RUN npm rebuild @discordjs/opus
+
+# ---- Production-only node_modules (separate tree) ----
+WORKDIR /prod
+COPY package.json yarn.lock ./
+COPY apps/bot/package.json      apps/bot/
+COPY apps/dashboard/package.json apps/dashboard/
+COPY apps/download/package.json  apps/download/
+COPY apps/tasks/package.json     apps/tasks/
+
+RUN yarn install --frozen-lockfile --production
+
+# Rebuild native addon in the production tree while build tools are still available
+RUN npm rebuild @discordjs/opus
+
+# Pull the generated Prisma client into the production tree
+RUN cp -r /build/node_modules/.prisma /prod/node_modules/.prisma
+
+
+# =============================================================
+# Stage 2: runtime
+# Minimal image — no compilers, no dev packages, no secrets.
+# All config is injected at runtime via env / mounted files.
+# =============================================================
+FROM ubuntu:22.04
+
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      inkscape dbus-x11 \
+      ffmpeg flac fdkaac vorbis-tools opus-tools \
+      zip unzip wget curl ca-certificates \
+      redis-tools locales && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV NODE_ENV=production
+
+ARG NODE_VERSION=22
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
+    npm install -g yarn pm2 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Production node_modules (no devDependencies, native addon pre-compiled)
+COPY --from=builder /prod/node_modules    node_modules
+COPY --from=builder /prod/package.json    package.json
+COPY --from=builder /prod/apps/bot/package.json      apps/bot/package.json
+COPY --from=builder /prod/apps/dashboard/package.json apps/dashboard/package.json
+COPY --from=builder /prod/apps/download/package.json  apps/download/package.json
+COPY --from=builder /prod/apps/tasks/package.json     apps/tasks/package.json
+
+# Compiled app artifacts
+COPY --from=builder /build/apps/bot/dist             apps/bot/dist
+COPY --from=builder /build/apps/dashboard/.next      apps/dashboard/.next
+COPY --from=builder /build/apps/dashboard/next.config.js apps/dashboard/next.config.js
+COPY --from=builder /build/apps/dashboard/public     apps/dashboard/public
+COPY --from=builder /build/apps/download/dist        apps/download/dist
+COPY --from=builder /build/apps/tasks/dist           apps/tasks/dist
+
+# Cook binaries and pre-rendered assets
+COPY --from=builder /build/cook cook
+
+# Prisma schema — needed by `prisma migrate deploy` at container start
+COPY --from=builder /build/prisma prisma
+
+# Locale/translation files
+COPY --from=builder /build/locale locale
+
+# PM2 process definitions
+COPY --from=builder /build/ecosystem.config.js             ecosystem.config.js
+COPY --from=builder /build/apps/bot/ecosystem.config.js    apps/bot/ecosystem.config.js
+COPY --from=builder /build/apps/dashboard/ecosystem.config.js apps/dashboard/ecosystem.config.js
+COPY --from=builder /build/apps/download/ecosystem.config.js  apps/download/ecosystem.config.js
+COPY --from=builder /build/apps/tasks/ecosystem.config.js     apps/tasks/ecosystem.config.js
+
+# App config defaults (config npm package convention)
+COPY --from=builder /build/apps/bot/config   apps/bot/config
+COPY --from=builder /build/apps/tasks/config apps/tasks/config
+
+# Entrypoint — expects install.config mounted at /app/install.config
+COPY --from=builder /build/start.sh start.sh
+
+RUN mkdir -p rec
+
+EXPOSE 3000 5029
+CMD ["/bin/bash", "/app/start.sh"]

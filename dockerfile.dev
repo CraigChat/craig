@@ -1,0 +1,52 @@
+# Dev image — source dirs are bind-mounted at runtime (see docker-compose.dev.yml).
+# No production build step; apps run via tsx watch / next dev / rollup --watch.
+FROM ubuntu:22.04
+
+# Install all required dependencies in advance, for performance
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    make inkscape ffmpeg flac fdkaac vorbis-tools opus-tools zip unzip \
+    wget lsb-release curl gpg ca-certificates redis redis-server redis-tools \
+    postgresql dbus-x11 sed coreutils build-essential python-setuptools \
+    sudo git locales && \
+    apt-get -y autoremove
+
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+
+# Used for Docker-specific build logic in install.sh
+ENV container=docker
+
+WORKDIR /app
+
+ARG NODE_VERSION=22
+ENV NODE_VERSION=${NODE_VERSION}
+
+# Install Node early so it's cached
+RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
+    npm install -g yarn pm2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy code and config
+COPY . .
+
+# Install yarn dependencies (includes devDependencies for tsx, rollup, etc.)
+RUN yarn install
+
+# Regenerate Prisma client from current schema (bypasses any cached client)
+RUN npx prisma generate --schema=/app/prisma/schema.prisma
+
+# Build cook utilities
+RUN mkdir -p /app/rec && \
+    /bin/bash /app/scripts/buildCook.sh && \
+    /bin/bash /app/scripts/downloadCookBuilds.sh
+
+# Expose app port
+EXPOSE 3000
+# Expose API port
+EXPOSE 5029
+# Start Craig in dev / watch mode
+CMD ["/bin/bash", "/app/start.dev.sh"]

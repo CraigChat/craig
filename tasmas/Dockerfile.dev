@@ -1,0 +1,25 @@
+# Dev image — /app/tasmas is bind-mounted at runtime (see docker-compose.dev.yml).
+# inotifywait restarts the Python process whenever any .py file changes.
+FROM docker:27-cli
+
+RUN apk add --no-cache inotify-tools python3 tzdata curl
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+RUN cat > /usr/local/bin/dev-watch.sh << 'SCRIPT'
+#!/bin/sh
+while true; do
+  python3 /app/tasmas/watch_flac_zips.py &
+  APP_PID=$!
+  inotifywait -qq -e modify,create,delete,move --exclude '__pycache__' -r /app/tasmas/
+  kill "$APP_PID" 2>/dev/null
+  wait "$APP_PID" 2>/dev/null
+  echo "[dev-watch] restarting after file change..."
+done
+SCRIPT
+RUN chmod +x /usr/local/bin/dev-watch.sh
+
+CMD ["/bin/sh", "/usr/local/bin/dev-watch.sh"]

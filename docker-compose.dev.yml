@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    env_file:
+      - ./install.config
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - 'db_data:/var/lib/postgresql/data'
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  craig:
+    build:
+      context: .
+      dockerfile: dockerfile.dev
+    env_file:
+      - ./install.config
+    ports:
+      - "3000:3000"
+      - "5029:5029"
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_started
+    volumes:
+      - '/mnt/media8tb/craig-recordings:/app/rec'
+      - '/mnt/media8tb/craig-recordings/tasmas:/app/rec/tasmas'
+      - './install.config:/app/install.config:ro'
+      - './prisma:/app/prisma'
+      - './apps/bot/config:/app/apps/bot/config'
+      - './apps/tasks/config:/app/apps/tasks/config'
+      - './tasmas:/app/tasmas:ro'
+      # Source bind-mounts — tsx watch / next dev / rollup --watch pick these up
+      - './apps/bot/src:/app/apps/bot/src'
+      - './apps/tasks/src:/app/apps/tasks/src'
+      - './apps/download/api/src:/app/apps/download/api/src'
+      - './apps/download/page:/app/apps/download/page'
+      - './apps/dashboard/pages:/app/apps/dashboard/pages'
+      - './apps/dashboard/components:/app/apps/dashboard/components'
+      - './apps/dashboard/lib:/app/apps/dashboard/lib'
+      - './apps/dashboard/styles:/app/apps/dashboard/styles'
+      - './apps/dashboard/utils:/app/apps/dashboard/utils'
+      - './apps/dashboard/public:/app/apps/dashboard/public'
+
+  tasmas:
+    build:
+      context: .
+      dockerfile: tasmas/Dockerfile.dev
+    restart: always
+    env_file:
+      - ./install.config
+    environment:
+      INSTALL_CONFIG: /app/install.config
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      craig:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - '/mnt/media8tb/craig-recordings:/mnt/media8tb/craig-recordings'
+      - './install.config:/app/install.config:ro'
+      - './tasmas:/app/tasmas:ro'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+
+volumes:
+  db_data:
+  craig_rec:

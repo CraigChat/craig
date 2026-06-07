@@ -1,3 +1,13 @@
+# Production compose — pulls the craig image from GHCR instead of building locally.
+#
+# Required files on the server (NOT in the image — contain your secrets/config):
+#   install.config              — copy from install.config.example and fill in
+#   apps/bot/config/default.js  — bot config (gitignored, see apps/bot/config/_default.js)
+#   apps/tasks/config/default.js — tasks config
+#
+# Set CRAIG_IMAGE to override the image (e.g. if using your own fork):
+#   CRAIG_IMAGE=ghcr.io/your-user/craig:latest docker compose -f docker-compose.production.yml up -d
+
 services:
   db:
     image: postgres:16-alpine
@@ -21,7 +31,8 @@ services:
       - "6379:6379"
 
   craig:
-    build: .
+    image: ${CRAIG_IMAGE:-ghcr.io/craigchat/craig:latest}
+    restart: always
     env_file:
       - ./install.config
     ports:
@@ -34,13 +45,14 @@ services:
       redis:
         condition: service_started
     volumes:
-      - '/mnt/media8tb/craig-recordings:/app/rec'
-      - '/mnt/media8tb/craig-recordings/tasmas:/app/rec/tasmas'
+      # Secrets/config — never inside the image
       - './install.config:/app/install.config:ro'
-      - './prisma:/app/prisma'
+      # Bot and tasks runtime config (gitignored, user-provided)
       - './apps/bot/config:/app/apps/bot/config'
       - './apps/tasks/config:/app/apps/tasks/config'
-      - './tasmas:/app/tasmas:ro'
+      # Recording storage
+      - '/mnt/media8tb/craig-recordings:/app/rec'
+      - '/mnt/media8tb/craig-recordings/tasmas:/app/rec/tasmas'
 
   tasmas:
     build:

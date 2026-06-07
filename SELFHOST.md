@@ -138,8 +138,12 @@ The installation should take a while. Please make note of any errors or warnings
 Ensure Docker is running on the host machine, then run the following:
 
 ```sh
-docker build -t craig .
+docker compose -f docker-compose.dev.yml up --build
 ```
+
+### Deploying with a pre-built image (recommended for servers)
+
+If you want to run Craig on a server without building from source, you can use the production image that's hosted on the GHCR. See [SELFHOST.DOCKER.md](SELFHOST.DOCKER.md) for the full guide.
 
 ## 5. Invite Craig to a server
 
