@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -11,13 +12,12 @@ import shlex
 import subprocess
 import sys
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from logging_utils import log
 from recording_names import recording_output_filename, recording_timestamp
-
 
 REPO_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_INSTALL_CONFIG = REPO_DIR / "install.config"
@@ -148,7 +148,9 @@ def run_tasmas(output_root: Path, recording_id: str) -> None:
     ]
 
     log(f"Running TASMAS semiauto for {recording_id}")
-    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1) as child:
+    with subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
+    ) as child:
         assert child.stdout is not None
         for line in child.stdout:
             log(f"[tasmas:{recording_id}] {line.rstrip()}")
@@ -166,25 +168,40 @@ def notify_summary_delivery(recording_id: str) -> bool:
     body = json.dumps({"recordingId": recording_id})
     result = subprocess.run(
         [
-            "curl", "-s", "-o", "/dev/stderr", "-w", "%{http_code}",
-            "-X", "POST",
-            "-H", "Content-Type: application/json",
+            "curl",
+            "-s",
+            "-o",
+            "/dev/stderr",
+            "-w",
+            "%{http_code}",
+            "-X",
+            "POST",
+            "-H",
+            "Content-Type: application/json",
             *(["-H", f"Authorization: Bearer {secret}"] if secret else []),
-            "--data-raw", body,
+            "--data-raw",
+            body,
             internal_url,
         ],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
     )
     status = result.stdout.strip()
     if status == "200":
         log(f"Summary delivered for {recording_id}")
         return True
-    log(f"Internal API returned {status} for {recording_id}, summary not delivered", stream=sys.stderr)
+    log(
+        f"Internal API returned {status} for {recording_id}, summary not delivered",
+        stream=sys.stderr,
+    )
     return False
 
 
 def summarize_transcript(transcript_path: Path, timestamp: str) -> None:
     from summarizer import build_summary_chain
+
     summary = build_summary_chain().run(transcript_path, timestamp)
     if summary:
         notify_summary_delivery(transcript_path.parent.name)
@@ -193,13 +210,14 @@ def summarize_transcript(transcript_path: Path, timestamp: str) -> None:
 def acquire_lock(lock_dir: Path) -> bool:
     try:
         lock_dir.mkdir()
-        return True
     except FileExistsError:
         return False
+    else:
+        return True
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def state_file_path(output_root: Path) -> Path:
@@ -212,7 +230,8 @@ def load_state(state_path: Path) -> dict[str, Any]:
     try:
         state = json.loads(state_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        backup_path = state_path.with_suffix(state_path.suffix + f".corrupt-{int(datetime.now(timezone.utc).timestamp())}")
+        corrupt_suffix = f".corrupt-{int(datetime.now(UTC).timestamp())}"
+        backup_path = state_path.with_suffix(state_path.suffix + corrupt_suffix)
         state_path.replace(backup_path)
         log(f"Moved corrupt recording state file to {backup_path}", stream=sys.stderr)
         return {"version": 1, "recordings": {}}
@@ -232,7 +251,9 @@ def save_state(state_path: Path, state: dict[str, Any]) -> None:
     temp_path.replace(state_path)
 
 
-def update_recording_state(output_root: Path, recording_id: str, status: str, **fields: Any) -> None:
+def update_recording_state(
+    output_root: Path, recording_id: str, status: str, **fields: Any
+) -> None:
     state_path = state_file_path(output_root)
     state = load_state(state_path)
     recordings = state["recordings"]
@@ -286,7 +307,13 @@ def process_zip(zip_path: Path) -> Path:
     if recording_completed(output_root, recording_id) or done_marker.exists():
         log(f"Already processed: {recording_id}")
         if done_marker.exists() and not recording_completed(output_root, recording_id):
-            update_recording_state(output_root, recording_id, "completed", archivePath=str(zip_path), workDir=str(work_dir))
+            update_recording_state(
+                output_root,
+                recording_id,
+                "completed",
+                archivePath=str(zip_path),
+                workDir=str(work_dir),
+            )
         return work_dir
 
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -295,7 +322,13 @@ def process_zip(zip_path: Path) -> Path:
         return work_dir
 
     try:
-        update_recording_state(output_root, recording_id, "processing", archivePath=str(zip_path), workDir=str(work_dir))
+        update_recording_state(
+            output_root,
+            recording_id,
+            "processing",
+            archivePath=str(zip_path),
+            workDir=str(work_dir),
+        )
         log(f"Staging {zip_path} -> {work_dir}")
         safe_extract_zip(zip_path, work_dir)
 
@@ -307,12 +340,16 @@ def process_zip(zip_path: Path) -> Path:
         run_tasmas(output_root, recording_id)
 
         ts = recording_timestamp()
-        for plain, kind, ext in [("transcript.txt", "transcript", "txt"), ("raw.dat", "raw", "dat")]:
+        for plain, kind, ext in [
+            ("transcript.txt", "transcript", "txt"),
+            ("raw.dat", "raw", "dat"),
+        ]:
             src = work_dir / plain
             if src.exists():
                 src.rename(work_dir / recording_output_filename(recording_id, kind, ext, ts))
 
-        transcript_path = work_dir / recording_output_filename(recording_id, "transcript", "txt", ts)
+        transcript_name = recording_output_filename(recording_id, "transcript", "txt", ts)
+        transcript_path = work_dir / transcript_name
         if transcript_path.exists():
             summarize_transcript(transcript_path, ts)
 
@@ -326,15 +363,21 @@ def process_zip(zip_path: Path) -> Path:
             transcriptPath=str(transcript_path) if transcript_path.exists() else None,
         )
         log(f"Done: {work_dir}")
-        return work_dir
     except Exception as exc:
-        update_recording_state(output_root, recording_id, "failed", archivePath=str(zip_path), workDir=str(work_dir), error=str(exc))
+        update_recording_state(
+            output_root,
+            recording_id,
+            "failed",
+            archivePath=str(zip_path),
+            workDir=str(work_dir),
+            error=str(exc),
+        )
         raise
+    else:
+        return work_dir
     finally:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             lock_dir.rmdir()
-        except FileNotFoundError:
-            pass
 
 
 def main() -> int:

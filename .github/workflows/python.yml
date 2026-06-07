@@ -33,7 +33,7 @@ jobs:
           cache: pip
 
       - name: Install toolchain
-        run: pip install ruff pyright pytest
+        run: pip install ruff pyright pytest pytest-cov
 
       - name: Ruff — lint
         run: ruff check tasmas/ tests/
@@ -45,4 +45,11 @@ jobs:
         run: pyright tasmas/ tests/
 
       - name: pytest
-        run: pytest
+        run: pytest --cov=tasmas --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: ignore

@@ -58,11 +58,11 @@ export default class Join extends GeneralCommand {
     };
 
     recording.state = RecordingState.ERROR;
-    await recording.stop(true).catch(() => { });
+    await recording.stop(true).catch(() => {});
     await ctx
       .editOriginal(errorMessage)
       .catch(() => ctx.send({ ...errorMessage, ephemeral: true }))
-      .catch(() => { });
+      .catch(() => {});
   }
 
   async run(ctx: CommandContext) {
@@ -363,7 +363,7 @@ export default class Join extends GeneralCommand {
         `Failed to edit message while starting recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
         err
       );
-      await this.reportError(ctx, err, recording).catch(() => { });
+      await this.reportError(ctx, err, recording).catch(() => {});
       return;
     }
 
@@ -379,7 +379,7 @@ export default class Join extends GeneralCommand {
         `Failed to start recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
         error
       );
-      await this.reportError(ctx, err, recording).catch(() => { });
+      await this.reportError(ctx, err, recording).catch(() => {});
       return;
     }
 
@@ -413,9 +413,10 @@ export default class Join extends GeneralCommand {
 
           **Recording ID:** \`${recording.id}\`
           **Delete key:** ||\`${recording.deleteKey}\`|| (click to show)
-          ${recording.webapp
-            ? `**Webapp URL:** ${this.client.config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
-            : ''
+          ${
+            recording.webapp
+              ? `**Webapp URL:** ${this.client.config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
+              : ''
           }
 
           To bring up the recording link again, use the \`/recordings\` command.

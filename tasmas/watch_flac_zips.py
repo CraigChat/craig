@@ -17,10 +17,11 @@ from process_flac_zip import DEFAULT_RECORDINGS_DIR, load_install_config, proces
 def try_process(zip_path: Path) -> bool:
     try:
         process_zip(zip_path)
-        return True
     except Exception as exc:
         log(f"error processing {zip_path}: {exc}", stream=sys.stderr)
         return False
+    else:
+        return True
 
 
 def is_stable(path: Path, wait_seconds: float) -> bool:
@@ -63,9 +64,8 @@ def watch_with_polling(watch_dir: Path, interval_seconds: float, settle_seconds:
         for zip_path in sorted(watch_dir.glob("*.flac.zip")):
             if zip_path in seen:
                 continue
-            if is_stable(zip_path, settle_seconds):
-                if try_process(zip_path):
-                    seen.add(zip_path)
+            if is_stable(zip_path, settle_seconds) and try_process(zip_path):
+                seen.add(zip_path)
         time.sleep(interval_seconds)
 
 

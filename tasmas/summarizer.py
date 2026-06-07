@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import time
 import urllib.error
 import urllib.request
@@ -16,7 +15,6 @@ from urllib.parse import urlparse
 
 from logging_utils import log
 from recording_names import recording_output_filename
-
 
 DEFAULT_NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 DEFAULT_AI_MODEL = "mistralai/mistral-large-3-675b-instruct-2512"
@@ -39,17 +37,17 @@ SUMMARY_PROMPT = (
 )
 
 
-def _env_float(name: str, alt_name: str, default: float) -> float:
+def env_float(name: str, alt_name: str, default: float) -> float:
     raw = os.environ.get(name) or os.environ.get(alt_name)
     return float(raw) if raw else default
 
 
-def _env_int(name: str, alt_name: str, default: int) -> int:
+def env_int(name: str, alt_name: str, default: int) -> int:
     raw = os.environ.get(name) or os.environ.get(alt_name)
     return int(raw) if raw else default
 
 
-def _parse_sse_payload(line: str) -> dict[str, Any] | None:
+def parse_sse_payload(line: str) -> dict[str, Any] | None:
     if not line.startswith("data:"):
         return None
     data = line.removeprefix("data:").strip()
@@ -86,14 +84,18 @@ class ChatCompletionsProvider(SummaryProvider):
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": f"{SUMMARY_PROMPT}{transcript}"}],
-            "max_tokens": _env_int("AI_SUMMARY_MAX_TOKENS", "NVIDIA_SUMMARY_MAX_TOKENS", 2048),
-            "temperature": _env_float("AI_SUMMARY_TEMPERATURE", "NVIDIA_SUMMARY_TEMPERATURE", 0.15),
-            "top_p": _env_float("AI_SUMMARY_TOP_P", "NVIDIA_SUMMARY_TOP_P", 1.0),
-            "frequency_penalty": _env_float("AI_SUMMARY_FREQUENCY_PENALTY", "NVIDIA_SUMMARY_FREQUENCY_PENALTY", 0.0),
-            "presence_penalty": _env_float("AI_SUMMARY_PRESENCE_PENALTY", "NVIDIA_SUMMARY_PRESENCE_PENALTY", 0.0),
+            "max_tokens": env_int("AI_SUMMARY_MAX_TOKENS", "NVIDIA_SUMMARY_MAX_TOKENS", 2048),
+            "temperature": env_float("AI_SUMMARY_TEMPERATURE", "NVIDIA_SUMMARY_TEMPERATURE", 0.15),
+            "top_p": env_float("AI_SUMMARY_TOP_P", "NVIDIA_SUMMARY_TOP_P", 1.0),
+            "frequency_penalty": env_float(
+                "AI_SUMMARY_FREQUENCY_PENALTY", "NVIDIA_SUMMARY_FREQUENCY_PENALTY", 0.0
+            ),
+            "presence_penalty": env_float(
+                "AI_SUMMARY_PRESENCE_PENALTY", "NVIDIA_SUMMARY_PRESENCE_PENALTY", 0.0
+            ),
             "stream": True,
         }
-        request = urllib.request.Request(
+        request = urllib.request.Request(  # noqa: S310
             self.url,
             data=json.dumps(payload).encode("utf-8"),
             headers={
@@ -108,12 +110,15 @@ class ChatCompletionsProvider(SummaryProvider):
         finish_reason: str | None = None
         usage: dict[str, Any] = {}
         try:
-            with urllib.request.urlopen(request, timeout=900) as response, partial_path.open("w", encoding="utf-8") as f:
+            with (
+                urllib.request.urlopen(request, timeout=900) as response,  # noqa: S310
+                partial_path.open("w", encoding="utf-8") as f,
+            ):
                 for raw_line in response:
                     line = raw_line.decode("utf-8", errors="replace").strip()
                     if not line:
                         continue
-                    chunk = _parse_sse_payload(line)
+                    chunk = parse_sse_payload(line)
                     if chunk is None:
                         continue
                     if chunk.get("usage"):
@@ -124,7 +129,9 @@ class ChatCompletionsProvider(SummaryProvider):
                     choice = choices[0]
                     if choice.get("finish_reason"):
                         finish_reason = choice["finish_reason"]
-                    content = choice.get("delta", {}).get("content", "") or choice.get("message", {}).get("content", "")
+                    content = choice.get("delta", {}).get("content", "") or choice.get(
+                        "message", {}
+                    ).get("content", "")
                     if content:
                         f.write(content)
                         f.flush()
@@ -135,9 +142,16 @@ class ChatCompletionsProvider(SummaryProvider):
             raise RuntimeError(f"{self.label()} failed: {exc}") from exc
 
         if usage:
-            log(f"Tokens used: prompt={usage.get('prompt_tokens')} completion={usage.get('completion_tokens')} total={usage.get('total_tokens')}")
+            log(
+                f"Tokens used: prompt={usage.get('prompt_tokens')}"
+                f" completion={usage.get('completion_tokens')}"
+                f" total={usage.get('total_tokens')}"
+            )
         if finish_reason and finish_reason != "stop":
-            log(f"WARNING: finish_reason={finish_reason!r} — summary may be truncated (increase AI_SUMMARY_MAX_TOKENS, currently {payload['max_tokens']})")
+            log(
+                f"WARNING: finish_reason={finish_reason!r} — summary may be truncated"
+                f" (increase AI_SUMMARY_MAX_TOKENS, currently {payload['max_tokens']})"
+            )
         else:
             log(f"finish_reason={finish_reason!r}")
 
@@ -149,6 +163,10 @@ class SummaryChain:
     def __init__(self, providers: list[SummaryProvider], retry_delay_s: int) -> None:
         self._providers = [p for p in providers if p.is_available()]
         self._retry_delay_s = retry_delay_s
+
+    @property
+    def providers(self) -> list[SummaryProvider]:
+        return self._providers.copy()
 
     def run(self, transcript_path: Path, timestamp: str) -> Path | None:
         if not self._providers:
@@ -168,17 +186,21 @@ class SummaryChain:
                 time.sleep(self._retry_delay_s)
             log(f"[{i + 1}/{total}] Trying {provider.label()}")
 
-            output_path = transcript_path.parent / recording_output_filename(recording_id, "summary", "md", timestamp)
+            output_path = transcript_path.parent / recording_output_filename(
+                recording_id, "summary", "md", timestamp
+            )
 
             try:
                 provider.summarize(transcript, output_path)
-                return output_path
             except Exception as exc:
                 msg = f"{provider.label()}: {exc}"
                 log(f"Provider failed: {msg}")
                 errors.append(msg)
+            else:
+                return output_path
 
-        raise RuntimeError("All summary providers failed:\n" + "\n".join(f"  - {e}" for e in errors))
+        msg = "All summary providers failed:\n" + "\n".join(f"  - {e}" for e in errors)
+        raise RuntimeError(msg)
 
 
 def build_summary_chain() -> SummaryChain:
@@ -196,8 +218,8 @@ def build_summary_chain() -> SummaryChain:
     providers.append(ChatCompletionsProvider(nvidia_url, nvidia_key, primary_model))
 
     # Fallbacks from SUMMARY_FALLBACK_CHAIN (semicolon-separated url|KEY_VAR|model)
-    for entry in os.environ.get("SUMMARY_FALLBACK_CHAIN", "").split(";"):
-        entry = entry.strip()
+    for raw_entry in os.environ.get("SUMMARY_FALLBACK_CHAIN", "").split(";"):
+        entry = raw_entry.strip()
         if not entry:
             continue
         parts = entry.split("|")

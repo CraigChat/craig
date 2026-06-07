@@ -71,3 +71,10 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["tasmas"]
+omit = ["tasmas/test/*"]
+
+[tool.coverage.report]
+show_missing = true

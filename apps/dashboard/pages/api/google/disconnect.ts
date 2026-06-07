@@ -9,7 +9,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'GET') {
     return res.redirect('/');
   }
-  
+
   const user = parseUser(req);
   if (!user) {
     return res.redirect('/');

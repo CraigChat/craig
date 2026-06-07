@@ -32,7 +32,7 @@ export async function getDownload(recordingId: string) {
   if (!data) {
     return null;
   }
-  
+
   return JSON.parse(data);
 }
 

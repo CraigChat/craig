@@ -58,3 +58,5 @@ apps/*/config/*.js
 .patreon-credentials.json
 install.config
 **.pyc
+.coverage
+coverage.xml

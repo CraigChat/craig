@@ -18,6 +18,7 @@ Response contract (mirrors InternalApiModule):
 Auth: if --secret is given, every request must include
       Authorization: Bearer <secret>  or the server returns 401.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,7 +35,7 @@ _MODE_LABEL = {
 
 def make_handler(secret: str, mode: int):
     class Handler(http.server.BaseHTTPRequestHandler):
-        def log_message(self, fmt, *args):  # quieten the default access log
+        def log_message(self, format, *args):  # noqa: A002
             pass
 
         def do_POST(self):

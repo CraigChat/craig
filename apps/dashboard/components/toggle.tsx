@@ -21,7 +21,7 @@ export default function Toggle({ label, description, checked, disabled, tooltip,
     if (onToggle) {
       onToggle(checked);
     }
-    
+
     setEnabled(checked);
   }
 

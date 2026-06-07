@@ -4,7 +4,6 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-
 LOG_TZ = ZoneInfo("America/New_York")
 
 

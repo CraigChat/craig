@@ -1,40 +1,84 @@
 # Craig AI
 
-Record your Discord meetings, get a transcript, and receive an AI-generated summary — all on your own infrastructure, with no data leaving your server.
+Craig AI automatically records your team's Discord voice meetings, converts the audio to a written transcript, and delivers a clear AI-generated summary — all running on your own server so your conversations never leave your infrastructure.
 
-Built on top of [Craig](https://craig.chat/), the open-source multi-track Discord recorder. Craig AI keeps everything Craig does and layers a fully automated post-processing pipeline on top: local Whisper transcription, a multi-provider AI summarization chain, and directly delivers the meeting summary to Discord.
+It's built on top of [Craig](https://craig.chat/), an open-source Discord recording bot, and adds a fully automated pipeline on top: audio is transcribed locally, summarized by an AI provider, and the finished summary is posted back to Discord.
 
-
-## Pipeline
+## How it works
 
 ```mermaid
-flowchart LR
-    A([Discord\nVoice Channel]) --> B[Craig Bot]
-    B -- ".flac.zip" --> C[TASMAS\nSidecar]
-    C --> D[Whisper\nTranscription]
-    D --> E[transcript.txt]
-    E --> F[Primary\nProvider]
-    F -- success --> H[summary.md]
-    F -- failure --> G[Fallback\nProviders]
+flowchart TD
+    subgraph Discord["Discord"]
+        A(["`**Voice Channel**
+        Active meeting in progress`"])
+    end
+
+    subgraph Craig["Craig Bot"]
+        B["`**Craig Bot**
+        Joins the channel and records
+        each speaker on a separate track`"]
+    end
+
+    subgraph TASMAS["TASMAS — Transcription & Summarization"]
+        C["`**Audio Processor**
+        Unpacks the recording and
+        prepares it for transcription`"]
+        D["`**Whisper — Speech to Text**
+        Runs locally on your server;
+        converts spoken audio to written text`"]
+        E["`**Transcript**
+        A full written record
+        of everything said in the meeting`"]
+    end
+
+    subgraph AI["AI Summarization"]
+        F["`**Primary AI Provider**
+        Reads the transcript and
+        produces a concise summary`"]
+        G["`**Fallback AI Providers**
+        Automatically used if the
+        primary provider is unavailable`"]
+        H["`**Meeting Summary**
+        The finished, human-readable
+        summary ready to be delivered`"]
+    end
+
+    subgraph Deliver["Discord"]
+        I(["`**Webhook**
+        Receives the finished summary`"])
+    end
+
+    A --> B
+    B -- "audio recording" --> C
+    C --> D
+    D --> E
+    E --> F
+    F -- success --> H
+    F -- failure --> G
     G -- success --> H
-    H --> I([Discord\nWebhook])
+    H --> I
 ```
 
-## Services
+1. **Record** — the Craig bot joins a Discord voice channel and captures the meeting audio.
+2. **Transcribe** — audio is converted to text on your own server using Whisper, an open-source speech-to-text model.
+3. **Summarize** — the transcript is sent to an AI provider (with automatic fallback to a backup provider if needed) to produce a concise written summary.
+4. **Deliver** — the summary is posted directly to a Discord channel via webhook.
 
-| Service | Stack | Purpose |
-|---------|-------|---------|
-| `bot` | TypeScript / Eris | Discord bot — joins voice channels, records multi-track audio |
-| `dashboard` | Next.js / React | Web UI for account management, cloud storage OAuth |
-| `download` | Fastify (8 instances) | Recording download server |
-| `tasks` | Node.js / Winston | Background jobs — cloud uploads, expiry cleanup, format conversion |
-| `tasmas` | Python / Docker-in-Docker | Transcription & summarization sidecar (Whisper + AI) |
+## Components
+
+| Component | What it does |
+|-----------|--------------|
+| Bot | Joins Discord voice channels and records meeting audio |
+| Dashboard | Web interface for managing accounts and connected cloud storage |
+| Download server | Lets users retrieve their raw recordings |
+| Task runner | Handles background work — uploading to cloud storage, cleaning up old files, converting audio formats |
+| Transcription & summarization | Converts audio to text and generates the AI summary |
 
 ## Documentation
 
 - [Architecture overview](docs/architecture.md)
 - [AI summarization & fallback chain](docs/ai-summarization.md)
-- [TASMAS transcription sidecar](docs/tasmas.md)
+- [Transcription sidecar](docs/tasmas.md)
 - [Self-hosting guide](docs/self-hosting.md)
 - [Useful commands](docs/useful-commands.md)
 
