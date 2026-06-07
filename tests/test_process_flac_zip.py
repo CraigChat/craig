@@ -173,7 +173,9 @@ def test_load_install_config_export_prefix(tmp_path: Path, monkeypatch: pytest.M
     assert os.environ.get("TASMAS_TEST_EXPORTED") == "world"
 
 
-def test_load_install_config_double_quoted_value(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_install_config_double_quoted_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = tmp_path / "install.config"
     config.write_text('TASMAS_TEST_QUOTED="some value"\n', encoding="utf-8")
     monkeypatch.setenv("INSTALL_CONFIG", str(config))
@@ -182,7 +184,9 @@ def test_load_install_config_double_quoted_value(tmp_path: Path, monkeypatch: py
     assert os.environ.get("TASMAS_TEST_QUOTED") == "some value"
 
 
-def test_load_install_config_single_quoted_value(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_install_config_single_quoted_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = tmp_path / "install.config"
     config.write_text("TASMAS_TEST_SQ='single quoted'\n", encoding="utf-8")
     monkeypatch.setenv("INSTALL_CONFIG", str(config))
@@ -191,9 +195,14 @@ def test_load_install_config_single_quoted_value(tmp_path: Path, monkeypatch: py
     assert os.environ.get("TASMAS_TEST_SQ") == "single quoted"
 
 
-def test_load_install_config_variable_substitution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_install_config_variable_substitution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = tmp_path / "install.config"
-    config.write_text("TASMAS_TEST_BASE=/opt/foo\nTASMAS_TEST_DERIVED=$TASMAS_TEST_BASE/bar\n", encoding="utf-8")
+    config.write_text(
+        "TASMAS_TEST_BASE=/opt/foo\nTASMAS_TEST_DERIVED=$TASMAS_TEST_BASE/bar\n",
+        encoding="utf-8",
+    )
     monkeypatch.setenv("INSTALL_CONFIG", str(config))
     monkeypatch.delenv("TASMAS_TEST_BASE", raising=False)
     monkeypatch.delenv("TASMAS_TEST_DERIVED", raising=False)
@@ -201,7 +210,9 @@ def test_load_install_config_variable_substitution(tmp_path: Path, monkeypatch: 
     assert os.environ.get("TASMAS_TEST_DERIVED") == "/opt/foo/bar"
 
 
-def test_load_install_config_does_not_overwrite_existing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_install_config_does_not_overwrite_existing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = tmp_path / "install.config"
     config.write_text("TASMAS_TEST_EXISTING=new_value\n", encoding="utf-8")
     monkeypatch.setenv("INSTALL_CONFIG", str(config))
@@ -215,7 +226,9 @@ def test_load_install_config_missing_file(monkeypatch: pytest.MonkeyPatch) -> No
     process_flac_zip.load_install_config()  # must not raise
 
 
-def test_load_install_config_comments_and_blank_lines_skipped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_install_config_comments_and_blank_lines_skipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = tmp_path / "install.config"
     config.write_text("# comment\n\nTASMAS_TEST_VALID=yes\n", encoding="utf-8")
     monkeypatch.setenv("INSTALL_CONFIG", str(config))
@@ -368,7 +381,9 @@ def test_update_recording_state_completed_clears_error(tmp_path: Path) -> None:
 
 
 def test_update_recording_state_preserves_extra_fields(tmp_path: Path) -> None:
-    process_flac_zip.update_recording_state(tmp_path, "REC1", "processing", archivePath="/some/path")
+    process_flac_zip.update_recording_state(
+        tmp_path, "REC1", "processing", archivePath="/some/path"
+    )
     state = process_flac_zip.load_state(process_flac_zip.state_file_path(tmp_path))
     assert state["recordings"]["REC1"]["archivePath"] == "/some/path"
 

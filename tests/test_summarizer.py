@@ -93,7 +93,9 @@ def test_parse_sse_invalid_json_raises() -> None:
 
 
 def test_provider_label() -> None:
-    p = summarizer.ChatCompletionsProvider("https://api.example.com/v1/chat/completions", "key", "gpt-4")
+    p = summarizer.ChatCompletionsProvider(
+        "https://api.example.com/v1/chat/completions", "key", "gpt-4"
+    )
     assert p.label() == "api.example.com/gpt-4"
 
 
@@ -245,7 +247,9 @@ def test_build_summary_chain_no_key_yields_no_providers(monkeypatch: pytest.Monk
 def test_build_summary_chain_fallback_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("NVIDIA_API_KEY", "primary_key")
     monkeypatch.setenv("TASMAS_TEST_FALLBACK_KEY", "fallback_key")
-    monkeypatch.setenv("SUMMARY_FALLBACK_CHAIN", "https://fallback.com/v1|TASMAS_TEST_FALLBACK_KEY|gpt-4o")
+    monkeypatch.setenv(
+        "SUMMARY_FALLBACK_CHAIN", "https://fallback.com/v1|TASMAS_TEST_FALLBACK_KEY|gpt-4o"
+    )
     chain = summarizer.build_summary_chain()
     assert len(chain._providers) == 2
     p = chain._providers[1]

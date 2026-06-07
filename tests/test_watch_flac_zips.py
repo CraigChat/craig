@@ -59,8 +59,10 @@ def test_is_stable_returns_false_when_size_changes(tmp_path: Path) -> None:
     stat2.st_size = 200
     stat2.st_mtime_ns = 1000
 
-    with patch.object(Path, "stat", side_effect=[stat1, stat2]), \
-         patch("watch_flac_zips.time.sleep"):
+    with (
+        patch.object(Path, "stat", side_effect=[stat1, stat2]),
+        patch("watch_flac_zips.time.sleep"),
+    ):
         assert watch_flac_zips.is_stable(f, 1) is False
 
 
@@ -76,8 +78,10 @@ def test_is_stable_returns_false_when_mtime_changes(tmp_path: Path) -> None:
     stat2.st_size = 100
     stat2.st_mtime_ns = 2000
 
-    with patch.object(Path, "stat", side_effect=[stat1, stat2]), \
-         patch("watch_flac_zips.time.sleep"):
+    with (
+        patch.object(Path, "stat", side_effect=[stat1, stat2]),
+        patch("watch_flac_zips.time.sleep"),
+    ):
         assert watch_flac_zips.is_stable(f, 1) is False
 
 
@@ -89,8 +93,10 @@ def test_is_stable_returns_false_when_file_disappears_between_stats(tmp_path: Pa
     stat1.st_size = 100
     stat1.st_mtime_ns = 1000
 
-    with patch.object(Path, "stat", side_effect=[stat1, FileNotFoundError("gone")]), \
-         patch("watch_flac_zips.time.sleep"):
+    with (
+        patch.object(Path, "stat", side_effect=[stat1, FileNotFoundError("gone")]),
+        patch("watch_flac_zips.time.sleep"),
+    ):
         assert watch_flac_zips.is_stable(f, 1) is False
 
 
@@ -105,8 +111,10 @@ def test_process_existing_processes_stable_zips(tmp_path: Path) -> None:
     (tmp_path / "other.txt").write_text("ignored")
 
     processed: list[Path] = []
-    with patch("watch_flac_zips.is_stable", return_value=True), \
-         patch("watch_flac_zips.try_process", side_effect=lambda p: processed.append(p) or True):
+    with (
+        patch("watch_flac_zips.is_stable", return_value=True),
+        patch("watch_flac_zips.try_process", side_effect=lambda p: processed.append(p) or True),
+    ):
         watch_flac_zips.process_existing(tmp_path, 0)
 
     assert len(processed) == 2
@@ -116,8 +124,10 @@ def test_process_existing_processes_stable_zips(tmp_path: Path) -> None:
 def test_process_existing_skips_unstable_files(tmp_path: Path) -> None:
     (tmp_path / "rec1.flac.zip").write_bytes(b"")
 
-    with patch("watch_flac_zips.is_stable", return_value=False), \
-         patch("watch_flac_zips.try_process") as mock_process:
+    with (
+        patch("watch_flac_zips.is_stable", return_value=False),
+        patch("watch_flac_zips.try_process") as mock_process,
+    ):
         watch_flac_zips.process_existing(tmp_path, 0)
 
     mock_process.assert_not_called()
@@ -135,8 +145,13 @@ def test_process_existing_processes_in_sorted_order(tmp_path: Path) -> None:
     (tmp_path / "b.flac.zip").write_bytes(b"")
 
     processed: list[str] = []
-    with patch("watch_flac_zips.is_stable", return_value=True), \
-         patch("watch_flac_zips.try_process", side_effect=lambda p: processed.append(p.name) or True):
+    with (
+        patch("watch_flac_zips.is_stable", return_value=True),
+        patch(
+            "watch_flac_zips.try_process",
+            side_effect=lambda p: processed.append(p.name) or True,
+        ),
+    ):
         watch_flac_zips.process_existing(tmp_path, 0)
 
     assert processed == ["a.flac.zip", "b.flac.zip", "c.flac.zip"]
