@@ -386,7 +386,7 @@ export const avatarRoute: RouteOptions = {
         scope.setTag('format', `avatar:${format}.${container}`);
         captureException(err);
       });
-      
+
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }

@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { join } from 'path';
-
-const { version } = require(join(__dirname, '../package.json')) as { version: string };
+import { version } from '../../package.json';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN_API,

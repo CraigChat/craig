@@ -31,26 +31,44 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
       }
 
       let body = '';
-      for await (const chunk of req) body += chunk;
+      for await (const chunk of req) {
+        body += chunk;
+      }
 
       let recordingId: string;
       try {
         ({ recordingId } = JSON.parse(body));
-        if (!recordingId) throw new Error('missing recordingId');
+        if (!recordingId) {
+          throw new Error('missing recordingId');
+        }
       } catch {
         res.writeHead(400).end();
         return;
       }
 
       try {
-        const recordingDir = path.join(tasmOutputDir, recordingId);
-        const summaryFile = fs.readdirSync(recordingDir).find((f) => f.startsWith('summary_') && f.endsWith('.md'));
-        if (!summaryFile) {
+        if (!/^[0-9a-fA-F-]{36}$/.test(recordingId)) {
+          res.writeHead(400).end();
+          return;
+        }
+        const baseDir = path.resolve(tasmOutputDir);
+        const recordingDir = path.normalize(path.join(baseDir, recordingId));
+        if (recordingDir === baseDir || !recordingDir.startsWith(baseDir + path.sep)) {
+          res.writeHead(400).end();
+          return;
+        }
+        const summaryFile = fs.readdirSync(recordingDir).find((f) => f.endsWith('_summary.md'));
+        if (!summaryFile || path.basename(summaryFile) !== summaryFile) {
           this.client.logger.warn(`No summary file found for recording ${recordingId}`);
           res.writeHead(404).end();
           return;
         }
-        const content = fs.readFileSync(path.join(recordingDir, summaryFile), 'utf-8');
+        const summaryPath = path.normalize(path.join(recordingDir, summaryFile));
+        if (!summaryPath.startsWith(recordingDir + path.sep)) {
+          res.writeHead(400).end();
+          return;
+        }
+        const content = fs.readFileSync(summaryPath, 'utf-8');
 
         const recording = await prisma.recording.findUnique({ where: { id: recordingId } });
         let deliveryChannelId: string | null = null;
@@ -81,12 +99,12 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
             fireAndForget('driveTranscriptUpload', 'transcript');
           }
 
-          const erisGuild = this.client.bot.guilds.get(recording.guildId)
-            ?? await this.client.bot.getRESTGuild(recording.guildId).catch(() => null);
+          const erisGuild =
+            this.client.bot.guilds.get(recording.guildId) ?? (await this.client.bot.getRESTGuild(recording.guildId).catch(() => null));
 
           this.client.logger.info(
             `[deliver-summary] recording=${recordingId} guild=${recording.guildId} ` +
-            `systemChannelID=${erisGuild?.systemChannelID ?? 'null'} messageChannelId=${recording.messageChannelId ?? 'null'}`
+              `systemChannelID=${erisGuild?.systemChannelID ?? 'null'} messageChannelId=${recording.messageChannelId ?? 'null'}`
           );
 
           deliveryChannelId = erisGuild?.systemChannelID ?? recording.messageChannelId ?? null;
@@ -96,14 +114,14 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
               where: { voiceChannelId: recording.voiceChannelId, guildId: recording.guildId }
             });
             deliveryChannelId = autoRecord?.postChannelId ?? null;
-            this.client.logger.info(
-              `[deliver-summary] autoRecord postChannelId=${autoRecord?.postChannelId ?? 'null'}`
-            );
+            this.client.logger.info(`[deliver-summary] autoRecord postChannelId=${autoRecord?.postChannelId ?? 'null'}`);
           }
         }
 
         if (!deliveryChannelId) {
-          this.client.logger.warn(`No summary channel for recording ${recordingId} — no system channel, no message channel, and no autorecord post channel`);
+          this.client.logger.warn(
+            `No summary channel for recording ${recordingId} — no system channel, no message channel, and no autorecord post channel`
+          );
           res.writeHead(404).end();
           return;
         }
@@ -115,13 +133,17 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
         for (const line of full.split('\n')) {
           const candidate = current ? `${current}\n${line}` : line;
           if (candidate.length > 2000) {
-            if (current) chunks.push(current);
+            if (current) {
+              chunks.push(current);
+            }
             current = line;
           } else {
             current = candidate;
           }
         }
-        if (current) chunks.push(current);
+        if (current) {
+          chunks.push(current);
+        }
 
         for (const chunk of chunks) {
           await this.client.bot.createMessage(deliveryChannelId, chunk);

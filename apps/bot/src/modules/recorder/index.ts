@@ -23,9 +23,36 @@ import { VoiceTestState } from './voiceTest';
 type TRPCRouter = Router<
   unknown,
   unknown,
-  Record<'driveUpload', Procedure<unknown, unknown, { recordingId: string; userId: string }, { recordingId: string; userId: string }, { error: string | null; notify: boolean; id?: string | undefined; url?: string | undefined }>> &
-  Record<'driveSummaryUpload', Procedure<unknown, unknown, { recordingId: string; userId: string }, { recordingId: string; userId: string }, { error: string | null; uploaded: boolean; url?: string | undefined }>> &
-  Record<'driveTranscriptUpload', Procedure<unknown, unknown, { recordingId: string; userId: string }, { recordingId: string; userId: string }, { error: string | null; uploaded: boolean; url?: string | undefined }>>,
+  Record<
+    'driveUpload',
+    Procedure<
+      unknown,
+      unknown,
+      { recordingId: string; userId: string },
+      { recordingId: string; userId: string },
+      { error: string | null; notify: boolean; id?: string | undefined; url?: string | undefined }
+    >
+  > &
+    Record<
+      'driveSummaryUpload',
+      Procedure<
+        unknown,
+        unknown,
+        { recordingId: string; userId: string },
+        { recordingId: string; userId: string },
+        { error: string | null; uploaded: boolean; url?: string | undefined }
+      >
+    > &
+    Record<
+      'driveTranscriptUpload',
+      Procedure<
+        unknown,
+        unknown,
+        { recordingId: string; userId: string },
+        { recordingId: string; userId: string },
+        { error: string | null; uploaded: boolean; url?: string | undefined }
+      >
+    >,
   any,
   any,
   DefaultErrorShape
@@ -98,7 +125,8 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         now - recording.createdAt.valueOf() > RECORDING_TTL
       ) {
         this.logger.warn(
-          `Recording ${recording.id} seems to be a dead recording, removing from map... (${guildID}:${recording.state}, by ${recording.user.id
+          `Recording ${recording.id} seems to be a dead recording, removing from map... (${guildID}:${recording.state}, by ${
+            recording.user.id
           }, created ${recording.createdAt.toISOString()})`
         );
         this.recordings.delete(guildID);
@@ -108,7 +136,8 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     for (const [guildID, voiceTest] of this.voiceTests.entries()) {
       if (now - voiceTest.createdAt.valueOf() > RECORDING_TTL) {
         this.logger.warn(
-          `Voice test seems to be a stale test, removing from map... (${guildID}:${voiceTest.state}, by ${voiceTest.user.id
+          `Voice test seems to be a stale test, removing from map... (${guildID}:${voiceTest.state}, by ${
+            voiceTest.user.id
           }, created ${voiceTest.createdAt.toISOString()})`
         );
         this.voiceTests.delete(guildID);
@@ -321,7 +350,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
 
     // Delete errored recordings
     for (const recording of badRecordings) {
-      await prisma.recording.delete({ where: { id: recording.id } }).catch(() => { });
+      await prisma.recording.delete({ where: { id: recording.id } }).catch(() => {});
       await onRecordingEnd(
         recording.userId,
         recording.guildId,
@@ -330,7 +359,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         recording.autorecorded,
         false,
         true
-      ).catch(() => { });
+      ).catch(() => {});
     }
   }
 
@@ -364,7 +393,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       this.logger.warn(`Left guild ${guild.id} during a recording... (${recording.id})`);
       recording.state = RecordingState.ERROR;
       recording.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
-      await recording.stop(true).catch(() => { });
+      await recording.stop(true).catch(() => {});
       await recording.updateMessage();
     }
     if (this.voiceTests.has(guild.id)) {
@@ -372,7 +401,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       this.logger.warn(`Left guild ${guild.id} during a voice test...`);
       voiceTest.state = VoiceTestState.ERROR;
       voiceTest.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
-      await voiceTest.cancel().catch(() => { });
+      await voiceTest.cancel().catch(() => {});
       await voiceTest.updateMessage();
     }
   }
@@ -384,7 +413,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       this.logger.warn(`Guild ${guild.id} went unavailable during a recording... (${recording.id})`);
       recording.state = RecordingState.ERROR;
       recording.stateDescription = '⚠️ This guild went unavailable during recording! To prevent further errors, this recording has ended.';
-      await recording.stop(true).catch(() => { });
+      await recording.stop(true).catch(() => {});
       await recording.updateMessage();
     }
     if (this.voiceTests.has(guild.id)) {
@@ -392,7 +421,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       this.logger.warn(`Left guild ${guild.id} during a voice test...`);
       voiceTest.state = VoiceTestState.ERROR;
       voiceTest.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
-      await voiceTest.cancel().catch(() => { });
+      await voiceTest.cancel().catch(() => {});
       await voiceTest.updateMessage();
     }
   }

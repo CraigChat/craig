@@ -198,10 +198,9 @@ export default class AutoRecord extends GeneralCommand {
               title: 'Auto-recorded Channels',
               description: autoRecordings
                 .map((ar) => {
-                  const extra = [
-                    `${ar.minimum} minimum`,
-                    ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
-                  ].filter((e) => !!e) as string[];
+                  const extra = [`${ar.minimum} minimum`, ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null].filter(
+                    (e) => !!e
+                  ) as string[];
                   return `<#${ar.voiceChannelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
                 })
                 .join('\n')
