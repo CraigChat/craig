@@ -18,6 +18,7 @@ Response contract (mirrors InternalApiModule):
 Auth: if --secret is given, every request must include
       Authorization: Bearer <secret>  or the server returns 401.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,7 +38,7 @@ def make_handler(secret: str, mode: int):
         def log_message(self, fmt, *args):  # quieten the default access log
             pass
 
-        def do_POST(self):
+        def do_POST(self):  # noqa: N802
             if self.path != "/deliver-summary":
                 self._reply(404)
                 return
