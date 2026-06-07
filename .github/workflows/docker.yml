@@ -1,0 +1,91 @@
+name: Docker images
+
+on:
+  pull_request:
+    branches: [main, master, next]
+  push:
+    branches: ['**']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has-images: ${{ steps.plan.outputs.has-images }}
+      publish: ${{ steps.plan.outputs.publish }}
+      tag: ${{ steps.plan.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: true
+      - name: Collect changed paths
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "release" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            exit 0
+          fi
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            git ls-tree -r --name-only "$HEAD_SHA" > changed-paths.txt
+          else
+            git diff --name-only "$BASE_SHA" "$HEAD_SHA" > changed-paths.txt
+          fi
+      - name: Create build matrix
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ -f changed-paths.txt ]]; then
+            export CHANGED_PATHS="$(cat changed-paths.txt)"
+          fi
+          node .github/scripts/docker-matrix.mjs
+
+  build-images:
+    needs: changes
+    if: needs.changes.outputs.has-images == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        if: needs.changes.outputs.publish == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare build secret files
+        run: |
+          cp .env.example /tmp/root.env
+          cp apps/ferret/.env.example /tmp/ferret.env
+          cp apps/dashboard/.env.example /tmp/dashboard.env
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ needs.changes.outputs.publish == 'true' }}
+          tags: ghcr.io/craigchat/craig-${{ matrix.app }}:${{ needs.changes.outputs.tag }}
+          secret-files: |
+            root_env=/tmp/root.env
+            ferret_env=/tmp/ferret.env
+            dashboard_env=/tmp/dashboard.env
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}

@@ -1,0 +1,200 @@
+name: craig
+
+x-shared-storage: &shared-storage
+  - ../rec:/data/rec
+  - ../downloads:/data/downloads
+  - ../output:/data/output
+
+x-runtime-environment: &runtime-environment
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker/.env}@db:5432/${POSTGRES_DB:-craig}?schema=public
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REC_DIRECTORY: /data/rec
+  DOWNLOADS_DIRECTORY: /data/downloads
+  OUTPUT_DIRECTORY: /data/output
+
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-craig}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-craig}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-bookworm
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build:
+      context: ..
+      dockerfile: apps/bot/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../apps/bot/.env
+      - ../.env
+    environment:
+      <<: *runtime-environment
+      BOT_LOCALE_FOLDER: /app/locale
+      KITCHEN_URL: http://kitchen:9000
+    volumes: *shared-storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/craig-migrations-complete"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+
+  kitchen:
+    build:
+      context: ..
+      dockerfile: apps/kitchen/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../apps/kitchen/.env
+      - ../.env
+    environment:
+      <<: *runtime-environment
+      HOST: 0.0.0.0
+    volumes: *shared-storage
+    depends_on:
+      bot:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  ferret:
+    build:
+      context: ..
+      dockerfile: apps/ferret/Dockerfile
+      secrets:
+        - root_env
+        - ferret_env
+    restart: unless-stopped
+    env_file:
+      - ../apps/ferret/.env
+      - ../.env
+    environment:
+      <<: *runtime-environment
+      HOST: 0.0.0.0
+      KITCHEN_URL: http://kitchen:9000
+    volumes: *shared-storage
+    ports:
+      - 127.0.0.1:9100:9100
+    depends_on:
+      bot:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kitchen:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  ennuizel-streamer:
+    build:
+      context: ..
+      dockerfile: apps/ennuizel-streamer/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../apps/ennuizel-streamer/.env
+      - ../.env
+    environment:
+      <<: *runtime-environment
+      HOST: 0.0.0.0
+    volumes: *shared-storage
+    ports:
+      - 127.0.0.1:9001:9001
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: apps/dashboard/Dockerfile
+      secrets:
+        - root_env
+        - dashboard_env
+    restart: unless-stopped
+    env_file:
+      - ../apps/dashboard/.env
+      - ../.env
+    environment:
+      <<: *runtime-environment
+      HOST: 0.0.0.0
+    volumes: *shared-storage
+    ports:
+      - 127.0.0.1:9200:9200
+    depends_on:
+      bot:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9200/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  tasks:
+    build:
+      context: ..
+      dockerfile: apps/tasks/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../apps/tasks/.env
+      - ../.env
+    environment:
+      <<: *runtime-environment
+    volumes: *shared-storage
+    depends_on:
+      bot:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+
+secrets:
+  root_env:
+    file: ../.env
+  dashboard_env:
+    file: ../apps/dashboard/.env
+  ferret_env:
+    file: ../apps/ferret/.env
