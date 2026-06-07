@@ -5,7 +5,7 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /workspace
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends build-essential ca-certificates python3 unzip wget \
+  && apt-get install -y --no-install-recommends build-essential ca-certificates git python3 unzip wget \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 
