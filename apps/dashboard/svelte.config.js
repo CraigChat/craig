@@ -3,6 +3,15 @@ import * as child_process from 'node:child_process';
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
+function versionName() {
+  if (process.env.CRAIG_VERSION) return process.env.CRAIG_VERSION;
+  try {
+    return child_process.execSync('git rev-parse HEAD').toString().trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   // Consult https://kit.svelte.dev/docs/integrations#preprocessors
@@ -23,7 +32,7 @@ const config = {
 
     version: {
       pollInterval: 5000,
-      name: child_process.execSync('git rev-parse HEAD').toString().trim()
+      name: versionName()
     }
   }
 };

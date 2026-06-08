@@ -1,9 +1,10 @@
 import { env } from '$env/dynamic/public';
-import { PUBLIC_BASE_URL } from '$env/static/public';
 
-export const toRedirectUri = (service: string) => `${PUBLIC_BASE_URL}/api/connections/${service}/callback`;
+const publicBaseURL = () => env.PUBLIC_BASE_URL || '';
 
-export const PATREON_REDIRECT_URI = `${PUBLIC_BASE_URL}/api/connections/patreon/callback`;
+export const toRedirectUri = (service: string) => `${publicBaseURL()}/api/connections/${service}/callback`;
+
+export const PATREON_REDIRECT_URI = `${publicBaseURL()}/api/connections/patreon/callback`;
 export const PATREON_OAUTH_URL = `https://www.patreon.com/oauth2/authorize?${new URLSearchParams({
   client_id: env.PUBLIC_PATREON_CLIENT_ID!,
   redirect_uri: toRedirectUri('patreon'),

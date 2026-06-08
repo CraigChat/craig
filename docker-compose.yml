@@ -1,0 +1,73 @@
+name: craig
+
+x-shared-storage: &shared-storage
+  - ./rec:/data/rec
+  - ./downloads:/data/downloads
+  - ./output:/data/output
+  - ./tmp:/data/tmp
+
+x-runtime-environment: &runtime-environment
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker.env}@db:5432/${POSTGRES_DB:-craig}?schema=public
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_DATABASE: ${REDIS_DATABASE:-0}
+  REDIS_PREFIX: ${REDIS_PREFIX:-craig:}
+  REC_DIRECTORY: /data/rec
+  DOWNLOADS_DIRECTORY: /data/downloads
+  OUTPUT_DIRECTORY: /data/output
+  TMP_DIRECTORY: /data/tmp
+  BOT_LOCALE_FOLDER: /opt/craig/locale
+  KITCHEN_URL: http://127.0.0.1:9000
+  WEBAPP_URL: ws://127.0.0.1:9001/shard
+
+services:
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-craig}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker.env}
+      POSTGRES_DB: ${POSTGRES_DB:-craig}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-bookworm
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  craig:
+    image: ghcr.io/craigchat/craig:${CRAIG_IMAGE_TAG:-latest}
+    build:
+      context: .
+      args:
+        CRAIG_VERSION: ${CRAIG_VERSION:-local}
+    restart: unless-stopped
+    env_file:
+      - path: docker.env
+        required: false
+    environment:
+      <<: *runtime-environment
+    volumes: *shared-storage
+    ports:
+      - ${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
+      - ${CRAIG_FERRET_HOST_PORT:-9100}:9100
+      - ${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

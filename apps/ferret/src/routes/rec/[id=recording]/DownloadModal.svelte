@@ -14,7 +14,7 @@
   import Checkbox from '$components/Checkbox.svelte';
   import DynamicTranslatable from '$components/DynamicTranslatable.svelte';
   import Modal from '$components/Modal.svelte';
-  import { PUBLIC_ENNUIZEL_API_HOSTNAME, PUBLIC_ENNUIZEL_URL } from '$env/static/public';
+  import { env } from '$env/dynamic/public';
   import { ennuizelWarned } from '$lib/data';
   import { getFileIcon, loadingIcon } from '$lib/icons';
   import { jobPostError, jobPosting, postJob } from '$lib/recording/data';
@@ -97,7 +97,7 @@
   let ezTimerTween = new Tween(5);
   let ezTimer = $derived(Math.ceil(ezTimerTween.current));
   let ezEnable = $derived(ezTimer === 0);
-  let ezUrl = `${PUBLIC_ENNUIZEL_URL}?i=${recording.id}&k=${key}&w=${(button.ennuizel ?? 0).toString(36)}&a=${PUBLIC_ENNUIZEL_API_HOSTNAME || location.host}`;
+  let ezUrl = `${env.PUBLIC_ENNUIZEL_URL}?i=${recording.id}&k=${key}&w=${(button.ennuizel ?? 0).toString(36)}&a=${env.PUBLIC_ENNUIZEL_API_HOSTNAME || location.host}`;
 
   async function startDownload() {
     if (ennuizel) {

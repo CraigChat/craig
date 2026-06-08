@@ -3,9 +3,8 @@ import { google } from 'googleapis';
 
 import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
-import { PUBLIC_BASE_URL } from '$env/static/public';
 
-export const toRedirectUri = (service: string) => `${PUBLIC_BASE_URL}/api/connections/${service}/callback`;
+export const toRedirectUri = (service: string) => `${envPub.PUBLIC_BASE_URL || ''}/api/connections/${service}/callback`;
 export const dropboxScopes = ['account_info.read', 'files.content.write'];
 export const dbxAuth = new DropboxAuth({
   clientId: envPub.PUBLIC_DROPBOX_CLIENT_ID,

@@ -3,20 +3,25 @@ import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
 import jwt from 'jsonwebtoken';
 
-import { DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, JWT_SECRET } from '$env/static/private';
-import { PUBLIC_DISCORD_CLIENT_ID } from '$env/static/public';
+import { env } from '$env/dynamic/private';
+import { env as publicEnv } from '$env/dynamic/public';
 
+import { requiredEnv } from './env';
 import { cacheData } from './redis';
 
 export async function checkAndRefreshTokens(userTokens: UserToken) {
+  const publicDiscordClientID = requiredEnv('PUBLIC_DISCORD_CLIENT_ID', publicEnv.PUBLIC_DISCORD_CLIENT_ID);
+  const discordClientSecret = requiredEnv('DISCORD_CLIENT_SECRET', env.DISCORD_CLIENT_SECRET);
+  const discordRedirectURI = requiredEnv('DISCORD_REDIRECT_URI', env.DISCORD_REDIRECT_URI);
+
   let accessToken = userTokens.accessToken;
   if (userTokens.expiresAt < new Date()) {
     const body = new URLSearchParams({
-      client_id: PUBLIC_DISCORD_CLIENT_ID,
-      client_secret: DISCORD_CLIENT_SECRET,
+      client_id: publicDiscordClientID,
+      client_secret: discordClientSecret,
       grant_type: 'refresh_token',
       refresh_token: userTokens.refreshToken,
-      redirect_uri: DISCORD_REDIRECT_URI
+      redirect_uri: discordRedirectURI
     });
     const res = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -45,9 +50,10 @@ export async function checkAndRefreshTokens(userTokens: UserToken) {
 export async function validateAuth(token: string | null) {
   if (!token) return null;
 
+  const jwtSecret = requiredEnv('JWT_SECRET', env.JWT_SECRET);
   let payload: any;
   try {
-    payload = jwt.verify(token, JWT_SECRET);
+    payload = jwt.verify(token, jwtSecret);
   } catch {
     return null;
   }

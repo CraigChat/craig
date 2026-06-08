@@ -5,9 +5,10 @@ import { json, type RequestEvent } from '@sveltejs/kit';
 import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 
-import { JWT_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 import { REDIS_OPTIONS } from './config';
+import { requiredEnv } from './env';
 
 export const redis = new Redis(REDIS_OPTIONS);
 
@@ -84,7 +85,7 @@ export async function rateLimitRequest(
   try {
     const session = event.cookies.get('session');
     if (session) {
-      const decoded: any = jwt.verify(session, JWT_SECRET);
+      const decoded: any = jwt.verify(session, requiredEnv('JWT_SECRET', env.JWT_SECRET));
       if (decoded?.id) id = `user:${decoded.id}`;
     }
   } catch {}
