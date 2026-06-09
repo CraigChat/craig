@@ -26,7 +26,7 @@ ENV NODE_VERSION=${NODE_VERSION}
 # Install Node early so it's cached
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
-    npm install -g yarn pm2 && \
+    npm install -g yarn && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -44,9 +44,4 @@ RUN mkdir -p /app/rec && \
     /bin/bash /app/scripts/buildCook.sh && \
     /bin/bash /app/scripts/downloadCookBuilds.sh
 
-# Expose app port
-EXPOSE 3000
-# Expose API port
-EXPOSE 5029
-# Start Craig in dev / watch mode
-CMD ["/bin/bash", "/app/start.dev.sh"]
+EXPOSE 3000 5029 3001 2022

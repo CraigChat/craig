@@ -20,6 +20,11 @@ export default class InternalApiModule<T extends DexareClient<CraigBotConfig>> e
     const tasmOutputDir = '/app/rec/tasmas';
 
     this.server = http.createServer(async (req, res) => {
+      if (req.method === 'GET' && req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}');
+        return;
+      }
+
       if (req.method !== 'POST' || req.url !== '/deliver-summary') {
         res.writeHead(404).end();
         return;

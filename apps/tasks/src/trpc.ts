@@ -6,6 +6,9 @@ import { driveUpload, driveSummaryUpload, driveTranscriptUpload } from './querie
 
 export const appRouter = trpc
   .router()
+  .query('health', {
+    resolve: () => ({ ok: true })
+  })
   .query('driveUpload', {
     input: z.object({
       recordingId: z.string(),

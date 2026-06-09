@@ -11,14 +11,12 @@
   },
   "scripts": {
     "start": "node ./dist/index.js",
-    "build": "npm run build:api && npm run build:page",
+    "build": "yarn build:api && yarn build:page",
     "build:api": "cd api && tsc",
     "build:page": "rollup -c",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "init": "yarn && rimraf dist && tsc && devScript --copyOnly",
-    "pm2": "pm2 start pm2.json",
-    "pm2:prod": "pm2 start pm2.json --env production"
+    "init": "yarn && rimraf dist && tsc && devScript --copyOnly"
   },
   "dependencies": {
     "@fastify/helmet": "^9.1.0",

@@ -19,7 +19,7 @@ ENV LANG=en_US.UTF-8
 ARG NODE_VERSION=22
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
-    npm install -g yarn pm2 && \
+    npm install -g yarn && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---- Full install + compile ----
@@ -34,7 +34,13 @@ RUN mkdir -p /build/rec && \
 RUN yarn workspaces run build
 RUN npm rebuild @discordjs/opus
 
-# ---- Production-only node_modules (separate tree) ----
+# =============================================================
+# Stage 2: prod-modules
+# Production-only node_modules tree (no devDeps, native addon
+# pre-compiled, Prisma client injected).
+# =============================================================
+FROM builder AS prod-modules
+
 WORKDIR /prod
 COPY package.json yarn.lock ./
 COPY apps/bot/package.json      apps/bot/
@@ -50,13 +56,12 @@ RUN npm rebuild @discordjs/opus
 # Pull the generated Prisma client into the production tree
 RUN cp -r /build/node_modules/.prisma /prod/node_modules/.prisma
 
-
 # =============================================================
-# Stage 2: runtime
+# Stage 3: runtime-base
 # Minimal image — no compilers, no dev packages, no secrets.
 # All config is injected at runtime via env / mounted files.
 # =============================================================
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS runtime-base
 
 RUN apt-get update && \
     apt-get -y upgrade && \
@@ -74,51 +79,104 @@ ENV NODE_ENV=production
 ARG NODE_VERSION=22
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
-    npm install -g yarn pm2 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# =============================================================
+# Stage 4: bot
+# =============================================================
+FROM runtime-base AS bot
 
 WORKDIR /app
 
-# Production node_modules (no devDependencies, native addon pre-compiled)
-COPY --from=builder /prod/node_modules    node_modules
-COPY --from=builder /prod/package.json    package.json
-COPY --from=builder /prod/apps/bot/package.json      apps/bot/package.json
-COPY --from=builder /prod/apps/dashboard/package.json apps/dashboard/package.json
-COPY --from=builder /prod/apps/download/package.json  apps/download/package.json
-COPY --from=builder /prod/apps/tasks/package.json     apps/tasks/package.json
+# Production node_modules (hoisted at /app/node_modules)
+COPY --from=prod-modules /prod/node_modules        node_modules
+COPY --from=prod-modules /prod/package.json        package.json
+COPY --from=prod-modules /prod/apps/bot/package.json      apps/bot/package.json
+COPY --from=prod-modules /prod/apps/dashboard/package.json apps/dashboard/package.json
+COPY --from=prod-modules /prod/apps/download/package.json  apps/download/package.json
+COPY --from=prod-modules /prod/apps/tasks/package.json     apps/tasks/package.json
 
-# Compiled app artifacts
-COPY --from=builder /build/apps/bot/dist             apps/bot/dist
-COPY --from=builder /build/apps/dashboard/.next      apps/dashboard/.next
-COPY --from=builder /build/apps/dashboard/next.config.js apps/dashboard/next.config.js
-COPY --from=builder /build/apps/dashboard/public     apps/dashboard/public
-COPY --from=builder /build/apps/download/dist        apps/download/dist
-COPY --from=builder /build/apps/tasks/dist           apps/tasks/dist
-
-# Cook binaries and pre-rendered assets
-COPY --from=builder /build/cook cook
-
-# Prisma schema — needed by `prisma migrate deploy` at container start
-COPY --from=builder /build/prisma prisma
-
+# Compiled bot
+COPY --from=builder /build/apps/bot/dist      apps/bot/dist
+# Emojis (loaded at runtime from __dirname-relative path)
+COPY --from=builder /build/apps/bot/emojis    apps/bot/emojis
+# Bot config defaults (config npm package reads cwd/config/)
+COPY --from=builder /build/apps/bot/config    apps/bot/config
 # Locale/translation files
-COPY --from=builder /build/locale locale
-
-# PM2 process definitions
-COPY --from=builder /build/ecosystem.config.js             ecosystem.config.js
-COPY --from=builder /build/apps/bot/ecosystem.config.js    apps/bot/ecosystem.config.js
-COPY --from=builder /build/apps/dashboard/ecosystem.config.js apps/dashboard/ecosystem.config.js
-COPY --from=builder /build/apps/download/ecosystem.config.js  apps/download/ecosystem.config.js
-COPY --from=builder /build/apps/tasks/ecosystem.config.js     apps/tasks/ecosystem.config.js
-
-# App config defaults (config npm package convention)
-COPY --from=builder /build/apps/bot/config   apps/bot/config
-COPY --from=builder /build/apps/tasks/config apps/tasks/config
-
-# Entrypoint — expects install.config mounted at /app/install.config
-COPY --from=builder /build/start.sh start.sh
+COPY --from=builder /build/locale             locale
+# Prisma schema — needed by `prisma migrate deploy` in the migrate service
+COPY --from=builder /build/prisma             prisma
 
 RUN mkdir -p rec
 
-EXPOSE 3000 5029
-CMD ["/bin/bash", "/app/start.sh"]
+WORKDIR /app/apps/bot
+EXPOSE 3001
+CMD ["node", "/app/apps/bot/dist/sharding/index.js"]
+
+# =============================================================
+# Stage 5: dashboard
+# =============================================================
+FROM runtime-base AS dashboard
+
+WORKDIR /app
+
+COPY --from=prod-modules /prod/node_modules        node_modules
+COPY --from=prod-modules /prod/package.json        package.json
+COPY --from=prod-modules /prod/apps/bot/package.json      apps/bot/package.json
+COPY --from=prod-modules /prod/apps/dashboard/package.json apps/dashboard/package.json
+COPY --from=prod-modules /prod/apps/download/package.json  apps/download/package.json
+COPY --from=prod-modules /prod/apps/tasks/package.json     apps/tasks/package.json
+
+COPY --from=builder /build/apps/dashboard/.next         apps/dashboard/.next
+COPY --from=builder /build/apps/dashboard/next.config.js apps/dashboard/next.config.js
+COPY --from=builder /build/apps/dashboard/public        apps/dashboard/public
+
+WORKDIR /app/apps/dashboard
+EXPOSE 3000
+CMD ["node", "/app/node_modules/.bin/next", "start", "-p", "3000"]
+
+# =============================================================
+# Stage 6: download
+# =============================================================
+FROM runtime-base AS download
+
+WORKDIR /app
+
+COPY --from=prod-modules /prod/node_modules        node_modules
+COPY --from=prod-modules /prod/package.json        package.json
+COPY --from=prod-modules /prod/apps/bot/package.json      apps/bot/package.json
+COPY --from=prod-modules /prod/apps/dashboard/package.json apps/dashboard/package.json
+COPY --from=prod-modules /prod/apps/download/package.json  apps/download/package.json
+COPY --from=prod-modules /prod/apps/tasks/package.json     apps/tasks/package.json
+
+COPY --from=builder /build/apps/download/dist apps/download/dist
+COPY --from=builder /build/cook               cook
+
+RUN mkdir -p rec
+
+EXPOSE 5029
+CMD ["node", "/app/apps/download/dist/index.js"]
+
+# =============================================================
+# Stage 7: tasks
+# =============================================================
+FROM runtime-base AS tasks
+
+WORKDIR /app
+
+COPY --from=prod-modules /prod/node_modules        node_modules
+COPY --from=prod-modules /prod/package.json        package.json
+COPY --from=prod-modules /prod/apps/bot/package.json      apps/bot/package.json
+COPY --from=prod-modules /prod/apps/dashboard/package.json apps/dashboard/package.json
+COPY --from=prod-modules /prod/apps/download/package.json  apps/download/package.json
+COPY --from=prod-modules /prod/apps/tasks/package.json     apps/tasks/package.json
+
+COPY --from=builder /build/apps/tasks/dist  apps/tasks/dist
+COPY --from=builder /build/apps/tasks/config apps/tasks/config
+COPY --from=builder /build/cook             cook
+
+RUN mkdir -p rec
+
+WORKDIR /app/apps/tasks
+EXPOSE 2022
+CMD ["node", "/app/apps/tasks/dist/index.js"]

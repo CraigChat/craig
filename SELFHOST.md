@@ -263,28 +263,28 @@ sudo systemctl status craig.service
 
 ### Monitoring, starting, and stopping Craig
 
-Here are some useful commands for debugging the installation and for monitoring the Craig application. Make sure that you have sourced `nvm` and you are using the installed version of `node` in order to run `pm2` commands:
+When running with Docker, use `docker compose` commands to manage services.
+
+#### Stream logs per service
 
 ```sh
-source ~/.nvm/nvm.sh
-nvm use node
+docker compose logs -f bot
+docker compose logs -f dashboard
+docker compose logs -f download
+docker compose logs -f tasks
 ```
 
-#### Monitor processes
+#### Restart a service
 
-`pm2 monit`
+```sh
+docker compose restart bot
+```
 
-#### Output process logs to a file
+#### Stop all services
 
-`pm2 logs > pm2.log`
-
-#### Restart all processes
-
-`pm2 restart all`
-
-#### Kill all processes
-
-`pm2 stop all`
+```sh
+docker compose down
+```
 
 ## Transcribing and summarizing Craig FLAC archives with TASMAS
 

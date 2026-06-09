@@ -1,6 +1,11 @@
 # Deploying Craig with Docker
 
-A production image is published to GHCR on every merge to `master`.
+Production images are published to GHCR on every merge to `master`. Each service has its own image:
+
+- `ghcr.io/mhd-hi/craig/bot:latest`
+- `ghcr.io/mhd-hi/craig/dashboard:latest`
+- `ghcr.io/mhd-hi/craig/download:latest`
+- `ghcr.io/mhd-hi/craig/tasks:latest`
 
 ## Setup
 
@@ -13,15 +18,29 @@ A production image is published to GHCR on every merge to `master`.
 
 2. Fill in your secrets in `install.config` (Discord token, database password, etc.).
 
-3. Start:
+3. Pull all images and start:
 
    ```sh
-   docker compose -f ~/craig/docker-compose.yml up -d
+   docker compose pull
+   docker compose up -d
    ```
+
+   The `migrate` service runs automatically on first start and applies any pending database migrations, then exits. All other services start after it completes.
 
 ## Updating
 
 ```sh
-docker compose -f ~/craig/docker-compose.yml pull craig
-docker compose -f ~/craig/docker-compose.yml up -d craig
+docker compose pull
+docker compose up -d
+```
+
+Compose pulls all four images and restarts any service whose image has changed.
+
+## Logs
+
+```sh
+docker compose logs -f bot
+docker compose logs -f dashboard
+docker compose logs -f download
+docker compose logs -f tasks
 ```

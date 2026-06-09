@@ -54,57 +54,51 @@ docker ps
 
 ## Logs
 
-Stream Craig container logs:
+Stream bot logs:
 
 ```bash
-docker logs -f craig-craig-1
+docker compose -f docker-compose.production.yml logs -f bot
+```
+
+Stream dashboard logs:
+
+```bash
+docker compose -f docker-compose.production.yml logs -f dashboard
+```
+
+Stream download logs:
+
+```bash
+docker compose -f docker-compose.production.yml logs -f download
+```
+
+Stream tasks logs:
+
+```bash
+docker compose -f docker-compose.production.yml logs -f tasks
 ```
 
 Stream TASMAS sidecar logs:
 
 ```bash
-docker logs -f craig-tasmas-1
-```
-
-Check PM2 process list inside the Craig container:
-
-```bash
-docker exec craig-craig-1 pm2 list
-```
-
-Monitor PM2 processes live:
-
-```bash
-docker exec -it craig-craig-1 pm2 monit
-```
-
-Restart all PM2 processes:
-
-```bash
-docker exec craig-craig-1 pm2 restart all
+docker compose -f docker-compose.production.yml logs -f tasmas
 ```
 
 ## Build and Typecheck
 
-Build every workspace:
-
-```bash
-docker exec craig-craig-1 bash -lc 'cd /app && yarn build'
-```
-
-Build only the bot:
+Build only the bot (dev container):
 
 ```bash
 docker exec craig-craig-1 bash -lc 'cd /app && yarn workspace craig-bot build'
 ```
 
-Build only the tasks service:
+Build only the tasks service (dev container):
 
 ```bash
 docker exec craig-craig-1 bash -lc 'cd /app && yarn workspace craig-tasks build'
 ```
 
-Typecheck the tasks service:
+Typecheck the tasks service (dev container):
 
 ```bash
 docker exec craig-craig-1 bash -lc 'cd /app/apps/tasks && yarn tsc --noEmit'
@@ -112,16 +106,10 @@ docker exec craig-craig-1 bash -lc 'cd /app/apps/tasks && yarn tsc --noEmit'
 
 ## Environment Checks
 
-Verify the public recording URL base:
+Verify the public recording URL base (bot container):
 
 ```bash
-docker exec craig-craig-1 printenv API_HOMEPAGE
-```
-
-Verify a recording link shape:
-
-```bash
-docker exec craig-craig-1 node -e "const api = new URL(process.env.API_HOMEPAGE); console.log(api.protocol + \"//\" + api.host + \"/rec/RECORDING_ID?key=ACCESS_KEY\")"
+docker compose -f docker-compose.production.yml exec bot printenv API_HOMEPAGE
 ```
 
 ## Database
@@ -132,10 +120,10 @@ Open a psql shell:
 docker exec -it craig-db-1 psql -U $POSTGRESQL_USER -d $DATABASE_NAME
 ```
 
-Run Prisma migrations manually:
+Run Prisma migrations manually (bot container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'cd /app && yarn prisma migrate deploy'
+docker compose -f docker-compose.production.yml exec bot npx prisma migrate deploy --schema=/app/prisma/schema.prisma
 ```
 
 ## TASMAS
@@ -158,7 +146,7 @@ Check recording state (processing / completed / failed):
 cat /mnt/media8tb/craig-recordings/tasmas/recordings.lock.json | python3 -m json.tool
 ```
 
-Restart craig & tasmas :
+Restart craig & tasmas (dev):
 ```bash
 docker compose -f docker-compose.dev.yml up -d --build craig tasmas
 ```

@@ -67,7 +67,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   recordingsChecked = false;
   trpc = createTRPCClient<TRPCRouter>({
     fetch: fetch as any,
-    links: [httpLink({ url: 'http://localhost:2022' })]
+    links: [httpLink({ url: process.env.TASKS_URL ?? 'http://localhost:2022' })]
   });
   cron: CronJob;
 

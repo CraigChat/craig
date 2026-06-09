@@ -1,4 +1,4 @@
-name: Publish Docker Image
+name: Publish Docker Images
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -33,22 +32,51 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix=master_,format=short
-
-      - name: Build and push
+      - name: Build and push bot
         uses: docker/build-push-action@v6
         with:
           context: .
           file: dockerfile.production
+          target: bot
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/bot:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/bot:master_${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build and push dashboard
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile.production
+          target: dashboard
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/dashboard:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/dashboard:master_${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Build and push download
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile.production
+          target: download
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/download:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/download:master_${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Build and push tasks
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile.production
+          target: tasks
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/tasks:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/tasks:master_${{ github.sha }}
+          cache-from: type=gha

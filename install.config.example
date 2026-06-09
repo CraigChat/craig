@@ -95,7 +95,7 @@ SUMMARY_RETRY_DELAY_SECONDS=120
 CRAIG_INTERNAL_PORT=3001
 CRAIG_INTERNAL_SECRET=change-me-generate-a-random-value
 # Used by TASMAS to notify the bot:
-CRAIG_INTERNAL_API_URL=http://craig:3001/deliver-summary
+CRAIG_INTERNAL_API_URL=http://bot:3001/deliver-summary
 # Used by the bot (path to TASMAS output dir from inside the craig container):
 
 ##################################################
