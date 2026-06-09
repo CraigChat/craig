@@ -18,27 +18,13 @@ docker compose -f docker-compose.dev.yml up --build
 
 TypeScript apps (bot, tasks, download API) restart instantly via `tsx watch` when any `.ts` file in their `src/` is saved. The Next.js dashboard uses its built-in HMR. The rollup page bundle rebuilds on change. Python tasmas restarts via `inotifywait` on any `.py` file change.
 
-Rebuild only the Craig dev image:
+Rebuild and recreate a single service:
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build craig
-```
-
-Rebuild only the TASMAS dev image:
-
-```bash
-docker compose -f docker-compose.dev.yml up --build tasmas
-```
-
-Rebuild and recreate only the Craig service:
-
-```bash
-docker compose -f docker-compose.dev.yml up -d --build craig
-```
-
-Rebuild and recreate only the TASMAS sidecar:
-
-```bash
+docker compose -f docker-compose.dev.yml up -d --build bot
+docker compose -f docker-compose.dev.yml up -d --build dashboard
+docker compose -f docker-compose.dev.yml up -d --build download
+docker compose -f docker-compose.dev.yml up -d --build tasks
 docker compose -f docker-compose.dev.yml up -d --build tasmas
 ```
 
@@ -54,33 +40,23 @@ docker ps
 
 ## Logs
 
-Stream bot logs:
+Stream logs per service (dev):
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f bot
+docker compose -f docker-compose.dev.yml logs -f dashboard
+docker compose -f docker-compose.dev.yml logs -f download
+docker compose -f docker-compose.dev.yml logs -f tasks
+docker compose -f docker-compose.dev.yml logs -f tasmas
+```
+
+Stream logs per service (production):
 
 ```bash
 docker compose -f docker-compose.production.yml logs -f bot
-```
-
-Stream dashboard logs:
-
-```bash
 docker compose -f docker-compose.production.yml logs -f dashboard
-```
-
-Stream download logs:
-
-```bash
 docker compose -f docker-compose.production.yml logs -f download
-```
-
-Stream tasks logs:
-
-```bash
 docker compose -f docker-compose.production.yml logs -f tasks
-```
-
-Stream TASMAS sidecar logs:
-
-```bash
 docker compose -f docker-compose.production.yml logs -f tasmas
 ```
 
@@ -89,19 +65,19 @@ docker compose -f docker-compose.production.yml logs -f tasmas
 Build only the bot (dev container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'cd /app && yarn workspace craig-bot build'
+docker exec craig-bot-1 bash -lc 'cd /app && yarn workspace craig-bot build'
 ```
 
 Build only the tasks service (dev container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'cd /app && yarn workspace craig-tasks build'
+docker exec craig-tasks-1 bash -lc 'cd /app && yarn workspace craig-tasks build'
 ```
 
 Typecheck the tasks service (dev container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'cd /app/apps/tasks && yarn tsc --noEmit'
+docker exec craig-tasks-1 bash -lc 'cd /app/apps/tasks && yarn tsc --noEmit'
 ```
 
 ## Environment Checks
@@ -144,9 +120,4 @@ Check recording state (processing / completed / failed):
 
 ```bash
 cat /mnt/media8tb/craig-recordings/tasmas/recordings.lock.json | python3 -m json.tool
-```
-
-Restart craig & tasmas (dev):
-```bash
-docker compose -f docker-compose.dev.yml up -d --build craig tasmas
 ```

@@ -27,7 +27,7 @@ docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /path/to/
 
 ## Whisper model
 
-TASMAS defaults to the `small` Whisper model. It downloads automatically on first run. To pre-cache it, run the image with `--entrypoint python` and call `whisper.load_model('small')` — see `SELFHOST.md` for the full command.
+TASMAS defaults to the `small` Whisper model. It downloads automatically on first run. To pre-cache it, run the image with `--entrypoint python` and call `whisper.load_model('small')` — see [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md) for the full command.
 
 Set `TASMAS_GPU_ARGS=--gpus all` in `install.config` to use a GPU; leave it empty for CPU-only.
 

@@ -84,4 +84,4 @@ flowchart TD
 
 ## Quick start
 
-See the [self-hosting guide](docs/self-hosting.md) for full setup instructions, or the original [SELFHOST.md](SELFHOST.md) for bare-metal installation.
+See [SELFHOST.DOCKER.md](SELFHOST.DOCKER.md) for full setup instructions.

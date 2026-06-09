@@ -2,7 +2,7 @@
 
 Craig AI runs entirely in Docker. See `install.config.example` for the full configuration reference.
 
-For bare-metal installation, see [SELFHOST.md](../SELFHOST.md).
+See [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md) for the full setup guide.
 
 ## Prerequisites
 
