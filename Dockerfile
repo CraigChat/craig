@@ -76,6 +76,9 @@ RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV NODE_ENV=production
 
+RUN groupadd --system appgroup && \
+    useradd --system --gid appgroup --home /app --no-create-home appuser
+
 ARG NODE_VERSION=22
 RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
@@ -107,9 +110,10 @@ COPY --from=builder /build/locale             locale
 # Prisma schema — needed by `prisma migrate deploy` in the migrate service
 COPY --from=builder /build/prisma             prisma
 
-RUN mkdir -p rec
+RUN mkdir -p rec && chown appuser:appgroup rec
 
 WORKDIR /app/apps/bot
+USER appuser
 EXPOSE 3001
 CMD ["node", "/app/apps/bot/dist/sharding/index.js"]
 
@@ -132,6 +136,7 @@ COPY --from=builder /build/apps/dashboard/next.config.js apps/dashboard/next.con
 COPY --from=builder /build/apps/dashboard/public        apps/dashboard/public
 
 WORKDIR /app/apps/dashboard
+USER appuser
 EXPOSE 3000
 CMD ["node", "/app/node_modules/.bin/next", "start", "-p", "3000"]
 
@@ -152,8 +157,9 @@ COPY --from=prod-modules /prod/apps/tasks/package.json     apps/tasks/package.js
 COPY --from=builder /build/apps/download/dist apps/download/dist
 COPY --from=builder /build/cook               cook
 
-RUN mkdir -p rec
+RUN mkdir -p rec && chown appuser:appgroup rec
 
+USER appuser
 EXPOSE 5029
 CMD ["node", "/app/apps/download/dist/index.js"]
 
@@ -175,8 +181,9 @@ COPY --from=builder /build/apps/tasks/dist  apps/tasks/dist
 COPY --from=builder /build/apps/tasks/config apps/tasks/config
 COPY --from=builder /build/cook             cook
 
-RUN mkdir -p rec
+RUN mkdir -p rec && chown appuser:appgroup rec
 
 WORKDIR /app/apps/tasks
+USER appuser
 EXPOSE 2022
 CMD ["node", "/app/apps/tasks/dist/index.js"]
