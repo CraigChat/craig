@@ -56,7 +56,7 @@ indent-style = "space"
 pythonVersion = "3.11"
 typeCheckingMode = "standard"
 include = ["tasmas", "tests"]
-exclude = ["**/__pycache__"]
+exclude = ["**/__pycache__", "**/node_modules", "**/.*"]
 reportMissingImports = true
 reportMissingModuleSource = false
 reportUnusedImport = true
@@ -78,3 +78,6 @@ omit = ["tasmas/test/*"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.vulture]
+ignore_names = ["format"]  # builtin-shadowing override param in log_message
