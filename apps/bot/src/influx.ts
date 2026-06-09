@@ -10,18 +10,18 @@ import type MetricsModule from './modules/metrics';
 import type RecorderModule from './modules/recorder';
 
 const influxOpts: any = config.has('influx') ? config.get('influx') : null;
-export const client: InfluxDB | null = influxOpts && influxOpts.url ? new InfluxDB({ url: influxOpts.url, token: influxOpts.token }) : null;
+const client: InfluxDB | null = influxOpts && influxOpts.url ? new InfluxDB({ url: influxOpts.url, token: influxOpts.token }) : null;
 
 export const cron = new CronJob('*/5 * * * *', collect, null, false, 'America/New_York');
 
-export let activeUsers: string[] = [];
-export let activeGuilds: string[] = [];
-export const commandCounts = new Map<string, { users: string[]; used: number }>();
-export let commandsRan = 0;
-export let recordingsStarted = 0;
-export let autorecordingsStarted = 0;
+let activeUsers: string[] = [];
+let activeGuilds: string[] = [];
+const commandCounts = new Map<string, { users: string[]; used: number }>();
+let commandsRan = 0;
+let recordingsStarted = 0;
+let autorecordingsStarted = 0;
 
-export let pointQueue: Point[] = [];
+let pointQueue: Point[] = [];
 
 function getMetricsModule() {
   return dexareClient.modules.get('metrics') as any as MetricsModule;

@@ -3,7 +3,7 @@ import { WriteStream } from 'fs';
 import crc32 from './crc32';
 
 export const BOS = 2;
-export const EOS = 4;
+const EOS = 4;
 
 export default class OggEncoder {
   stream: WriteStream;

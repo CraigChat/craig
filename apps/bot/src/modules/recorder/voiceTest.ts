@@ -26,7 +26,7 @@ export enum VoiceTestState {
   ERROR
 }
 
-export interface Chunk {
+interface Chunk {
   data: Buffer;
   timestamp: number;
   time: number;

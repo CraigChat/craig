@@ -37,13 +37,11 @@ export const appRouter = trpc
     }
   });
 
-export type AppRouter = typeof appRouter;
-
-const { server, listen } = createHTTPServer({
+const { listen } = createHTTPServer({
   router: appRouter,
   createContext() {
     return {};
   }
 });
 
-export { listen, server };
+export { listen };

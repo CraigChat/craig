@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "Node16",
+    "module": "NodeNext",
     "strict": true,
     "esModuleInterop": true,
     "removeComments": true,
     "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node16",
+    "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "skipLibCheck": true
   },

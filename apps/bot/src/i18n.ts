@@ -21,7 +21,7 @@ export const init = async () => {
   await i18next.loadLanguages(lngs.filter((lng) => !lng.includes('.')));
 };
 
-export function createT(lang: string) {
+function createT(lang: string) {
   return i18next.getFixedT(lang);
 }
 
@@ -48,7 +48,7 @@ export function createCtxT(ctx: CommandContext): [TFunction, string] {
   return [createT('en'), 'en'];
 }
 
-export function formatNumber(number: number, lang: string) {
+function formatNumber(number: number, lang: string) {
   try {
     return new Intl.NumberFormat(lang.replace('_', '-')).format(number);
   } catch (e) {

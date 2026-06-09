@@ -23,12 +23,12 @@ import { blessServer, checkRecordingPermission, cutoffText, disableComponents, f
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
 
-export interface SlashConfig extends BaseConfig {
+interface SlashConfig extends BaseConfig {
   applicationID: string;
   slash?: SlashModuleOptions;
 }
 
-export interface SlashModuleOptions {
+interface SlashModuleOptions {
   creator?: SlashCreatorOptions;
 }
 

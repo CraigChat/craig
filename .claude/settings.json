@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; echo \"$f\" | grep -qE '\\.(ts|tsx|js|jsx)$' && npx --no-install prettier --write --single-quote --print-width 150 --tab-width 2 --trailing-comma none --arrow-parens always \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Formatting with prettier..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; echo \"$f\" | grep -qE '\\.py$' && ruff format --line-length 100 \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Formatting with ruff..."
+          }
+        ]
+      }
+    ]
+  }
+}

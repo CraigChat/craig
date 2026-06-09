@@ -19,10 +19,7 @@ import SlashModule from './modules/slash';
 import UploadModule from './modules/upload';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
-import { close as closeSentry } from './sentry';
 import { version } from './util';
-
-export const PRODUCTION = process.env.NODE_ENV === 'production';
 
 export interface CraigBotConfig extends BaseConfig {
   applicationID: string;
@@ -158,11 +155,4 @@ export async function connect() {
   process.title = `Craig - ${
     process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
   }`;
-}
-
-export async function disconnect() {
-  await client.disconnect();
-  await closeSentry();
-  await prisma.$disconnect();
-  redisClient.disconnect();
 }

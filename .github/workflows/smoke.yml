@@ -3,8 +3,16 @@ name: Smoke Tests
 on:
   push:
     branches: [master]
+    paths:
+      - 'docker-compose*.yml'
+      - '**/Dockerfile'
+      - '.env.example'
   pull_request:
     branches: [master]
+    paths:
+      - 'docker-compose*.yml'
+      - '**/Dockerfile'
+      - '.env.example'
   workflow_dispatch:
 
 jobs:

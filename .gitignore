@@ -3,10 +3,11 @@ node_modules/
 
 # development
 .next/
-.vscode/
 .idea/
 node_modules/
 .vercel
+.vscode/*
+!.vscode/settings.json
 
 # production
 apps/*/data/*
