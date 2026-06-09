@@ -1,6 +1,6 @@
 # Self-hosting Craig AI
 
-Craig AI runs entirely in Docker. See `install.config.example` for the full configuration reference.
+Craig AI runs entirely in Docker. See `.env.example` for the full configuration reference.
 
 See [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md) for the full setup guide.
 
@@ -16,12 +16,12 @@ See [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md) for the full setup guide.
 **2. Configure the environment:**
 
 ```sh
-cp ./install.config.example ./install.config
+cp ./.env.example ./.env
 ```
 
-Fill in the Discord credentials and set `DATABASE_URL` to point to the `db` Compose service. See the recommended changes section in `install.config.example` for `API_HOST`, `API_HOMEPAGE`, and `RECORDING_RETENTION_DAYS`.
+Fill in the Discord credentials and set `DATABASE_URL` to point to the `db` Compose service. See the recommended changes section in `.env.example` for `API_HOST`, `API_HOMEPAGE`, and `RECORDING_RETENTION_DAYS`.
 
-**3. (Optional) Configure AI summarization** — set `NVIDIA_API_KEY` and/or `SUMMARY_FALLBACK_CHAIN` in `install.config`. See [ai-summarization.md](ai-summarization.md).
+**3. (Optional) Configure AI summarization** — set `NVIDIA_API_KEY` and/or `SUMMARY_FALLBACK_CHAIN` in `.env`. See [ai-summarization.md](ai-summarization.md).
 
 **4. Build and start:**
 

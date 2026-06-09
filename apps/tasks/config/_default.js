@@ -31,7 +31,7 @@ module.exports = {
 
   downloads: {
     expiration: 24 * 60 * 60 * 1000,
-    path: '../download/downloads'
+    path: process.env.DOWNLOADS_PATH || '../../downloads'
   },
 
   recording: {

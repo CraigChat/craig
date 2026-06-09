@@ -6,6 +6,8 @@ Run these from the Craig AI repo root:
 cd /root/projects/docker/craig-whisperr/craig
 ```
 
+> All `docker compose` commands use `.env` for configuration. Copy `.env.example` to `.env` and fill in your values before running.
+
 ## Docker
 
 ### Dev (HMR / hot reload)
@@ -13,7 +15,7 @@ cd /root/projects/docker/craig-whisperr/craig
 Build dev images and start the full stack:
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build --remove-orphans
 ```
 
 TypeScript apps (bot, tasks, download API) restart instantly via `tsx watch` when any `.ts` file in their `src/` is saved. The Next.js dashboard uses its built-in HMR. The rollup page bundle rebuilds on change. Python tasmas restarts via `inotifywait` on any `.py` file change.
@@ -93,7 +95,7 @@ docker compose -f docker-compose.production.yml exec bot printenv API_HOMEPAGE
 Open a psql shell:
 
 ```bash
-docker exec -it craig-db-1 psql -U $POSTGRESQL_USER -d $DATABASE_NAME
+docker exec -it craig-db-1 psql -U craig -d craig
 ```
 
 Run Prisma migrations manually (bot container):
@@ -107,7 +109,8 @@ docker compose -f docker-compose.production.yml exec bot npx prisma migrate depl
 Process one recording manually (skips the watcher):
 
 ```bash
-docker compose -f docker-compose.dev.yml run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/media8tb/craig-recordings/RECORDING_ID.flac.zip
+docker compose -f docker-compose.dev.yml run --rm tasmas \
+  python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/RECORDING_ID.flac.zip"
 ```
 
 Re-trigger AI summarization for an already-transcribed recording:
@@ -119,5 +122,5 @@ Re-trigger AI summarization for an already-transcribed recording:
 Check recording state (processing / completed / failed):
 
 ```bash
-cat /mnt/media8tb/craig-recordings/tasmas/recordings.lock.json | python3 -m json.tool
+cat "$CRAIG_RECORDINGS_DIR/tasmas/recordings.lock.json" | python3 -m json.tool
 ```

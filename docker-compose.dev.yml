@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     restart: always
     env_file:
-      - ./install.config
+      - ./.env
     ports:
       - "5432:5432"
     healthcheck:
@@ -29,11 +29,11 @@ services:
   migrate:
     build:
       context: .
-      dockerfile: dockerfile.dev
-    command: sh -c "cd /app && yarn prisma:deploy"
+      dockerfile: Dockerfile.dev
+    command: ["npx", "prisma", "migrate", "deploy", "--schema=/app/prisma/schema.prisma"]
     restart: "no"
     env_file:
-      - ./install.config
+      - ./.env
     depends_on:
       db:
         condition: service_healthy
@@ -41,11 +41,11 @@ services:
   bot:
     build:
       context: .
-      dockerfile: dockerfile.dev
+      dockerfile: Dockerfile.dev
     command: ["/app/node_modules/.bin/tsx", "watch", "src/sharding/index.ts"]
     working_dir: /app/apps/bot
     env_file:
-      - ./install.config
+      - ./.env
     environment:
       NODE_ENV: development
       TASKS_URL: http://tasks:2022
@@ -61,8 +61,8 @@ services:
       redis:
         condition: service_started
     volumes:
-      - '/mnt/media8tb/craig-recordings:/app/rec'
-      - './install.config:/app/install.config:ro'
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
+      - './.env:/app/.env:ro'
       - './prisma:/app/prisma'
       - './apps/bot/config:/app/apps/bot/config'
       - './apps/bot/src:/app/apps/bot/src'
@@ -70,11 +70,11 @@ services:
   dashboard:
     build:
       context: .
-      dockerfile: dockerfile.dev
+      dockerfile: Dockerfile.dev
     command: ["npm", "run", "dev"]
     working_dir: /app/apps/dashboard
     env_file:
-      - ./install.config
+      - ./.env
     environment:
       NODE_ENV: development
     ports:
@@ -89,7 +89,7 @@ services:
       migrate:
         condition: service_completed_successfully
     volumes:
-      - './install.config:/app/install.config:ro'
+      - './.env:/app/.env:ro'
       - './apps/dashboard/pages:/app/apps/dashboard/pages'
       - './apps/dashboard/components:/app/apps/dashboard/components'
       - './apps/dashboard/lib:/app/apps/dashboard/lib'
@@ -100,13 +100,13 @@ services:
   download:
     build:
       context: .
-      dockerfile: dockerfile.dev
+      dockerfile: Dockerfile.dev
     # Rollup rebuilds the page in the background; tsx watch runs the API in the foreground
     command: >
       sh -c "cd /app/apps/download && /app/node_modules/.bin/rollup -c --watch &
              cd /app/apps/download/api && exec /app/node_modules/.bin/tsx watch src/index.ts"
     env_file:
-      - ./install.config
+      - ./.env
     environment:
       NODE_ENV: development
     ports:
@@ -121,19 +121,20 @@ services:
       redis:
         condition: service_started
     volumes:
-      - '/mnt/media8tb/craig-recordings:/app/rec'
-      - './install.config:/app/install.config:ro'
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
+      - './.env:/app/.env:ro'
       - './apps/download/api/src:/app/apps/download/api/src'
       - './apps/download/page:/app/apps/download/page'
+      - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
 
   tasks:
     build:
       context: .
-      dockerfile: dockerfile.dev
+      dockerfile: Dockerfile.dev
     command: ["/app/node_modules/.bin/tsx", "watch", "src/index.ts"]
     working_dir: /app/apps/tasks
     env_file:
-      - ./install.config
+      - ./.env
     environment:
       NODE_ENV: development
     ports:
@@ -150,10 +151,11 @@ services:
       redis:
         condition: service_started
     volumes:
-      - '/mnt/media8tb/craig-recordings:/app/rec'
-      - './install.config:/app/install.config:ro'
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
+      - './.env:/app/.env:ro'
       - './apps/tasks/config:/app/apps/tasks/config'
       - './apps/tasks/src:/app/apps/tasks/src'
+      - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
 
   tasmas:
     build:
@@ -161,9 +163,9 @@ services:
       dockerfile: tasmas/Dockerfile.dev
     restart: always
     env_file:
-      - ./install.config
+      - ./.env
     environment:
-      INSTALL_CONFIG: /app/install.config
+      INSTALL_CONFIG: /app/.env
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
       CRAIG_INTERNAL_API_URL: http://bot:3001/deliver-summary
@@ -180,10 +182,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - '/mnt/media8tb/craig-recordings:/mnt/media8tb/craig-recordings'
-      - './install.config:/app/install.config:ro'
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:${CRAIG_RECORDINGS_DIR}'
+      - './.env:/app/.env:ro'
       - './tasmas:/app/tasmas:ro'
       - '/var/run/docker.sock:/var/run/docker.sock'
 
 volumes:
   db_data:
+  download_cache:

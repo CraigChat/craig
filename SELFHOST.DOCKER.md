@@ -20,7 +20,7 @@ cd craig
 ## 3. Configure the environment
 
 ```sh
-cp install.config.example install.config
+cp .env.example .env
 ```
 
 Fill in at minimum:
@@ -80,7 +80,7 @@ The `migrate` service runs automatically on first start, applies pending databas
 ### Development (hot reload)
 
 ```sh
-docker compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build --remove-orphans
 ```
 
 TypeScript apps (bot, tasks, download API) restart instantly via `tsx watch` on `.ts` file saves. The Next.js dashboard uses built-in HMR. The rollup page bundle rebuilds on change.
@@ -124,7 +124,7 @@ docker compose -f docker-compose.production.yml logs -f tasks
 
 TASMAS watches the recordings directory, transcribes each `.flac.zip` with Whisper, and posts an AI summary to Discord. It is optional — Craig works without it.
 
-Configure it in `install.config` using the `TASMAS transcription sidecar` section from `install.config.example`.
+Configure it in `.env` using the `TASMAS transcription sidecar` section from `.env.example`.
 
 ```sh
 docker compose -f docker-compose.production.yml up -d tasmas
@@ -133,10 +133,10 @@ docker compose -f docker-compose.production.yml up -d tasmas
 To pre-download the Whisper model before first use:
 
 ```sh
-mkdir -p /mnt/media8tb/craig-recordings/tasmas-model-cache
+mkdir -p "$TASMAS_MODEL_CACHE_DIR"
 docker run --rm --gpus all \
   --entrypoint python \
-  -v /mnt/media8tb/craig-recordings/tasmas-model-cache:/root/.cache \
+  -v "$TASMAS_MODEL_CACHE_DIR:/root/.cache" \
   kaddaok/tasmas:latest \
   -c "import whisper_timestamped as whisper; whisper.load_model('small', device='cuda')"
 ```
@@ -145,7 +145,7 @@ Process one existing recording manually:
 
 ```sh
 docker compose -f docker-compose.production.yml run --rm tasmas \
-  python3 /app/tasmas/process_flac_zip.py /mnt/media8tb/craig-recordings/RECORDING_ID.flac.zip
+  python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/RECORDING_ID.flac.zip"
 ```
 
 See [docs/tasmas.md](docs/tasmas.md) for full details.

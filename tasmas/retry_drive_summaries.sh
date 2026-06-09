@@ -3,16 +3,20 @@
 # but whose upload may have failed (e.g. due to the _summary.md vs summary_*.md bug).
 #
 # Usage: ./retry_drive_summaries.sh [tasmas_dir]
-#   tasmas_dir defaults to /mnt/media8tb/craig-recordings/tasmas
+#   tasmas_dir defaults to $TASMAS_OUTPUT_DIR or $CRAIG_RECORDINGS_DIR/tasmas
 #
 # Reads CRAIG_INTERNAL_TRPC_URL from environment (default: http://localhost:2022).
-# Reads CRAIG_REC_DIR for the recordings root (default: /mnt/media8tb/craig-recordings).
+# Reads CRAIG_RECORDINGS_DIR for the recordings root.
 
 set -euo pipefail
 
-TASMAS_DIR="${1:-/mnt/media8tb/craig-recordings/tasmas}"
+REC_DIR="${CRAIG_RECORDINGS_DIR:-${CRAIG_REC_DIR:-}}"
+if [[ -z "$REC_DIR" ]]; then
+  echo "Error: CRAIG_RECORDINGS_DIR is not set" >&2
+  exit 1
+fi
+TASMAS_DIR="${1:-${TASMAS_OUTPUT_DIR:-$REC_DIR/tasmas}}"
 TRPC_URL="${CRAIG_INTERNAL_TRPC_URL:-http://localhost:2022}"
-REC_DIR="${CRAIG_REC_DIR:-/mnt/media8tb/craig-recordings}"
 
 ok=0
 skip=0

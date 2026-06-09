@@ -36,7 +36,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dockerfile.production
+          file: Dockerfile
           target: bot
           push: true
           tags: |
@@ -49,7 +49,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dockerfile.production
+          file: Dockerfile
           target: dashboard
           push: true
           tags: |
@@ -61,7 +61,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dockerfile.production
+          file: Dockerfile
           target: download
           push: true
           tags: |
@@ -73,7 +73,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dockerfile.production
+          file: Dockerfile
           target: tasks
           push: true
           tags: |
