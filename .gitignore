@@ -57,6 +57,7 @@ config.json
 apps/*/config/*.js
 !apps/*/config/_default.js
 !apps/tasks/config/default.js
+!apps/bot/config/default.js
 .patreon-credentials.json
 **.pyc
 .coverage
