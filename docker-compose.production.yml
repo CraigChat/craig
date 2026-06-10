@@ -100,7 +100,7 @@ services:
       start_period: 30s
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
       - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
