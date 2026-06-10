@@ -451,7 +451,7 @@ export async function replyOrSend(ctx: CommandContext, content: Eris.MessageCont
   }
 }
 
-export default abstract class TextCommand extends DexareCommand {
+export abstract class TextCommand extends DexareCommand {
   // @ts-ignore
   client!: CraigBot;
 

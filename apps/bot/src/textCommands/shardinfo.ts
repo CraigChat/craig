@@ -1,7 +1,7 @@
 import { CommandContext, DexareClient } from 'dexare';
 
 import ShardingModule from '../modules/sharding';
-import TextCommand, { replyOrSend } from '../util';
+import { TextCommand, replyOrSend } from '../util';
 
 export default class ShardInfoCommand extends TextCommand {
   constructor(client: DexareClient<any>) {

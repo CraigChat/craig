@@ -2,7 +2,7 @@ import { stripIndents } from 'common-tags';
 import { CommandContext, DexareClient } from 'dexare';
 import { ButtonStyle, ComponentType } from 'slash-create';
 
-import TextCommand, { replyOrSend } from '../util';
+import { TextCommand, replyOrSend } from '../util';
 
 export default class JoinCommand extends TextCommand {
   constructor(client: DexareClient<any>) {

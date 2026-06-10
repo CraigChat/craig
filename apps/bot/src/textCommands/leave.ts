@@ -4,7 +4,7 @@ import { ButtonStyle, ComponentType } from 'slash-create';
 
 import RecorderModule from '../modules/recorder';
 import { prisma } from '../prisma';
-import TextCommand, { checkRecordingPermissionEris, replyOrSend } from '../util';
+import { TextCommand, checkRecordingPermissionEris, replyOrSend } from '../util';
 
 export default class LeaveCommand extends TextCommand {
   constructor(client: DexareClient<any>) {

@@ -3,6 +3,12 @@
   "description": "The bot client for Craig",
   "version": "2.1.1",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sharding": "./src/sharding/index.ts",
+    "./commands/*": "./src/commands/*.ts",
+    "./textCommands/*": "./src/textCommands/*.ts"
+  },
   "private": true,
   "author": {
     "name": "Snazzah",

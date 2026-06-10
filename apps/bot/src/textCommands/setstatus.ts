@@ -2,7 +2,7 @@ import { CommandContext, DexareClient } from 'dexare';
 import Eris from 'eris';
 
 import ShardingModule from '../modules/sharding';
-import TextCommand, { replyOrSend } from '../util';
+import { TextCommand, replyOrSend } from '../util';
 
 type AllowedType = Eris.SelfStatus & 'default' & 'custom';
 const ALLOWED_TYPES = ['online', 'idle', 'dnd', 'default', 'custom'] as AllowedType[];

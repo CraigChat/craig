@@ -8,33 +8,30 @@
   "ignore": [
     "cook/recinfo.js",
     "cook/userinfo.js",
-    "tests/smoke/tasks-config.js"
+    "tests/smoke/tasks-config.js",
+    "scripts/manageEntitlements.ts"
   ],
+  "ignoreBinaries": ["dotenv"],
   "ignoreDependencies": [
     "@typescript-eslint/eslint-plugin",
     "eslint-plugin-import",
     "eslint-plugin-json",
     "eslint-plugin-simple-import-sort",
     "eslint-plugin-unused-imports",
-    "@prisma/client"
+    "@prisma/client",
+    "prisma"
   ],
   "workspaces": {
     "apps/bot": {
-      "entry": [
-        "src/index.ts",
-        "src/commands/*.ts",
-        "src/textCommands/*.ts",
-        "src/sharding/index.ts",
-        "src/sharding/modules/*.ts",
-        "slash-up.config.js"
-      ]
+      "entry": ["slash-up.config.js"]
     },
     "apps/dashboard": {
       "entry": ["pages/**/*.{ts,tsx}"],
       "ignoreDependencies": ["preact"]
     },
     "apps/download": {
-      "entry": ["api/src/index.ts", "page/src/index.tsx"]
+      "entry": ["api/src/index.ts", "page/src/index.tsx"],
+      "ignore": ["page/src/**"]
     },
     "apps/tasks": {
       "entry": ["src/index.ts", "src/jobs/*.ts", "src/runJob.ts"]

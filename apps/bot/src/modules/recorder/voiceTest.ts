@@ -33,7 +33,7 @@ interface Chunk {
   userID: string;
 }
 
-export default class VoiceTest {
+export class VoiceTest {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   guildId: string;
   channel: Eris.StageChannel | Eris.VoiceChannel;

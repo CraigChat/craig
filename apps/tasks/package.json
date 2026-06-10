@@ -2,7 +2,10 @@
   "name": "craig-tasks",
   "description": "The task manager",
   "version": "1.0.0",
-  "exports": "./dist/index.js",
+  "exports": {
+    ".": "./src/index.ts",
+    "./runJob": "./src/runJob.ts"
+  },
   "private": true,
   "author": {
     "name": "Snazzah",

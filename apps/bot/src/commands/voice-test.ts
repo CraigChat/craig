@@ -1,6 +1,6 @@
 import { ButtonStyle, CommandContext, ComponentType } from 'slash-create';
 
-import VoiceTest from '../modules/recorder/voiceTest';
+import { VoiceTest } from '../modules/recorder/voiceTest';
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
 import { checkBan, checkRecordingPermission, mainBotCommandOnly } from '../util';
