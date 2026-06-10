@@ -62,7 +62,7 @@ const RECORDING_TTL = 5 * 60 * 1000;
 
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
-  voiceTests = new Map<string, import('./voiceTest').default>();
+  voiceTests = new Map<string, import('./voiceTest').VoiceTest>();
   recordingPath: string;
   recordingsChecked = false;
   trpc = createTRPCClient<TRPCRouter>({
