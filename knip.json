@@ -13,13 +13,16 @@
   ],
   "ignoreBinaries": ["dotenv"],
   "ignoreDependencies": [
+    "@clack/prompts",
     "@typescript-eslint/eslint-plugin",
     "eslint-plugin-import",
     "eslint-plugin-json",
     "eslint-plugin-simple-import-sort",
     "eslint-plugin-unused-imports",
     "@prisma/client",
-    "prisma"
+    "prisma",
+    "rimraf",
+    "tsx"
   ],
   "workspaces": {
     "apps/bot": {
