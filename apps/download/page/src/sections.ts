@@ -13,7 +13,7 @@ import singleTrackIcon from '@iconify-icons/mdi/merge';
 import { RecordingInfo } from './api';
 import { PlatformInfo, StringT } from './util';
 
-export interface Section {
+interface Section {
   title: StringT;
   icon?: IconifyIcon;
   buttons: SectionButton[];

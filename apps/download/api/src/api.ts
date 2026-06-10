@@ -16,7 +16,7 @@ import { close as closeSentry } from './sentry';
 import { ErrorCode } from './util';
 import { downloadPath } from './util/download';
 
-export let server: FastifyInstance;
+let server: FastifyInstance;
 
 export async function start(): Promise<void> {
   try {

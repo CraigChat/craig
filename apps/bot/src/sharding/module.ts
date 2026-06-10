@@ -1,6 +1,6 @@
 import ShardManager, { CommandHandler } from './manager';
 
-export interface ModuleOptions {
+interface ModuleOptions {
   name: string;
   requires?: string[];
   description?: string;

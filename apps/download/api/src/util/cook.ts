@@ -6,8 +6,8 @@ import { clearReadyState, getReadyState, setReadyState } from '../cache';
 import { registerProcess } from './processManager';
 import { RecordingNote, recPath } from './recording';
 
-export const cookPath = path.join(__dirname, '..', '..', '..', '..', 'cook');
-export const tmpPath = path.join(__dirname, '..', '..', '..', 'tmp');
+const cookPath = path.join(__dirname, '..', '..', '..', '..', 'cook');
+const tmpPath = path.join(__dirname, '..', '..', '..', 'tmp');
 
 export interface ReadyState {
   message?: string;

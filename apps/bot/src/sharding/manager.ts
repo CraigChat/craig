@@ -11,7 +11,7 @@ import ManagerModule from './module';
 import Shard from './shard';
 import { ManagerRequestMessage } from './types';
 
-export interface ManagerOptions {
+interface ManagerOptions {
   file: string;
   shardCount: number;
   concurrency?: number;

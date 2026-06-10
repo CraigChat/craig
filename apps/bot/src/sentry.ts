@@ -84,7 +84,7 @@ export function reportAutorecordingError(member: Eris.Member, guildId: string, v
   });
 }
 
-export function close() {
+function close() {
   if (!sentryOpts) {
     return;
   }

@@ -5,6 +5,19 @@
     "cook/**/*.js",
     "tests/**/*.js"
   ],
+  "ignore": [
+    "cook/recinfo.js",
+    "cook/userinfo.js",
+    "tests/smoke/tasks-config.js"
+  ],
+  "ignoreDependencies": [
+    "@typescript-eslint/eslint-plugin",
+    "eslint-plugin-import",
+    "eslint-plugin-json",
+    "eslint-plugin-simple-import-sort",
+    "eslint-plugin-unused-imports",
+    "@prisma/client"
+  ],
   "workspaces": {
     "apps/bot": {
       "entry": [
@@ -17,7 +30,8 @@
       ]
     },
     "apps/dashboard": {
-      "entry": ["pages/**/*.{ts,tsx}"]
+      "entry": ["pages/**/*.{ts,tsx}"],
+      "ignoreDependencies": ["preact"]
     },
     "apps/download": {
       "entry": ["api/src/index.ts", "page/src/index.tsx"]

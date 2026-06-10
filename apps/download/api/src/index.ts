@@ -13,6 +13,9 @@ if (path.parse(process.cwd()).name === 'dist') {
 dotenv.config({ path: dotenvPath });
 
 // eslint-disable-next-line import/first
-import { start } from './api';
+import { start, stop } from './api';
 
 start();
+
+process.once('SIGTERM', stop);
+process.once('SIGINT', stop);
