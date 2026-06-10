@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { driveUpload, driveSummaryUpload, driveTranscriptUpload } from './queries/driveUpload';
 
-export const appRouter = trpc
+const appRouter = trpc
   .router()
   .query('health', {
     resolve: () => ({ ok: true })

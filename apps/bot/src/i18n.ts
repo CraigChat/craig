@@ -25,7 +25,7 @@ function createT(lang: string) {
   return i18next.getFixedT(lang);
 }
 
-export function createCtxT(ctx: CommandContext): [TFunction, string] {
+function createCtxT(ctx: CommandContext): [TFunction, string] {
   const langMap: { [key: string]: string } = {
     'en-US': 'en',
     'en-GB': 'en'
