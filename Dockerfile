@@ -10,7 +10,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
       build-essential python3 make \
       inkscape dbus-x11 \
-      wget curl ca-certificates git locales && \
+      wget curl ca-certificates git locales unzip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN locale-gen en_US.UTF-8

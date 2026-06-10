@@ -126,7 +126,6 @@ export async function start(): Promise<void> {
   const addr = await server.listen({ host, port });
   console.info(`Running webhook on ${addr}, env: ${process.env.NODE_ENV || 'development'}`);
 
-  // PM2 graceful start/shutdown
   if (process.send) {
     process.send('ready');
   }

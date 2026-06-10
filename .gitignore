@@ -8,6 +8,7 @@ node_modules/
 .vercel
 .vscode/*
 !.vscode/settings.json
+!.vscode/extensions.json
 
 # production
 apps/*/data/*

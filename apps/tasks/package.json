@@ -27,8 +27,8 @@
     "cron": "^2.1.0",
     "dayjs": "^1.11.6",
     "dropbox": "^10.34.0",
-    "ioredis": "^5.0.6",
     "googleapis": "^104.0.0",
+    "ioredis": "^5.0.6",
     "lodash.isequal": "^4.5.0",
     "winston": "^3.11.0",
     "zod": "^3.19.1"
