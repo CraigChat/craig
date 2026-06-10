@@ -154,8 +154,9 @@ COPY --from=prod-modules /prod/apps/dashboard/package.json apps/dashboard/packag
 COPY --from=prod-modules /prod/apps/download/package.json  apps/download/package.json
 COPY --from=prod-modules /prod/apps/tasks/package.json     apps/tasks/package.json
 
-COPY --from=builder /build/apps/download/dist apps/download/dist
-COPY --from=builder /build/cook               cook
+COPY --from=builder /build/apps/download/dist      apps/download/dist
+COPY --from=builder /build/apps/download/page/public apps/download/page/public
+COPY --from=builder /build/cook                cook
 
 RUN mkdir -p rec && chown appuser:appgroup rec
 
