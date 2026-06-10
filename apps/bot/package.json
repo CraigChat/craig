@@ -29,7 +29,6 @@
     "@discordjs/opus": "^0.10.0",
     "@influxdata/influxdb-client": "^1.24.0",
     "@prisma/client": "^5.12.1",
-    "@sentry/node": "^7.2.0",
     "@snazzah/davey": "^0.1.8",
     "@snazzah/emoji-sync": "^0.1.2",
     "@trpc/client": "^9.26.2",

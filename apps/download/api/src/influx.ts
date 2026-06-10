@@ -1,5 +1,4 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
-import { captureException, withScope } from '@sentry/node';
 import { CronJob } from 'cron';
 import { hostname } from 'os';
 
@@ -70,11 +69,6 @@ async function collect(timestamp = new Date()) {
     writeApi.writePoints(points);
     await writeApi.close();
   } catch (e) {
-    withScope((scope) => {
-      scope.clear();
-      scope.setExtra('date', timestamp || cron.lastDate());
-      captureException(e);
-    });
     console.error('Error sending stats to Influx.', e);
   }
 

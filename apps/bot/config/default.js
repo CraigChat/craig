@@ -25,9 +25,6 @@ module.exports = {
   // InfluxDB options
   influx: false,
 
-  // Sentry options
-  sentry: false,
-
   dexare: {
     // Bot token
     token: process.env.DISCORD_BOT_TOKEN || '',

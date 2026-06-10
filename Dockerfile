@@ -158,7 +158,7 @@ COPY --from=builder /build/apps/download/dist      apps/download/dist
 COPY --from=builder /build/apps/download/page/public apps/download/page/public
 COPY --from=builder /build/cook                cook
 
-RUN mkdir -p rec && chown appuser:appgroup rec
+RUN mkdir -p rec downloads && chown appuser:appgroup rec downloads
 
 USER appuser
 EXPOSE 5029

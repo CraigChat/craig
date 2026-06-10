@@ -1,4 +1,3 @@
-import { captureException, withScope } from '@sentry/node';
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import { CronJob } from 'cron';
 
@@ -63,11 +62,6 @@ async function clean(timestamp = new Date()) {
       }
     }
   } catch (e) {
-    withScope((scope) => {
-      scope.clear();
-      scope.setExtra('date', timestamp || cron.lastDate());
-      captureException(e);
-    });
     console.error('Error cleaning processes.', e);
   }
 }

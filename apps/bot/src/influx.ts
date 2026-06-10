@@ -1,5 +1,4 @@
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
-import { captureException, withScope } from '@sentry/node';
 import config from 'config';
 import { CronJob } from 'cron';
 import { DexareClient } from 'dexare';
@@ -110,10 +109,6 @@ export async function onRecordingEnd(
 
     pointQueue = [];
   } catch (e) {
-    withScope((scope) => {
-      scope.clear();
-      captureException(e);
-    });
     console.error('Error writing points to Influx.', e);
   }
 }
@@ -198,11 +193,6 @@ async function collect() {
     writeApi.writePoints(points);
     await writeApi.close();
   } catch (e) {
-    withScope((scope) => {
-      scope.clear();
-      scope.setExtra('date', timestamp || cron.lastDate());
-      captureException(e);
-    });
     console.error('Error sending stats to Influx.', e);
   }
 

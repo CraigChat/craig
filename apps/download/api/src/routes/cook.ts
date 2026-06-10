@@ -1,4 +1,3 @@
-import { captureException, withScope } from '@sentry/node';
 import { RouteOptions } from 'fastify';
 
 import { clearDownload, getDownload } from '../cache';
@@ -49,10 +48,6 @@ export const durationRoute: RouteOptions = {
       const duration = await getDuration(id);
       return reply.status(200).send({ ok: true, duration });
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        captureException(err);
-      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -89,10 +84,6 @@ export const notesRoute: RouteOptions = {
       const notes = await getNotes(id);
       return reply.status(200).send({ ok: true, notes });
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        captureException(err);
-      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -143,11 +134,6 @@ export const ennuizelRoute: RouteOptions = {
       const stream = rawPartwise(id, trackNum);
       return reply.status(200).send(stream);
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        scope.setExtra('trackNum', trackNum);
-        captureException(err);
-      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -191,11 +177,6 @@ export const getRoute: RouteOptions = {
       const download = await getDownload(id);
       return reply.status(200).send({ ok: true, ready: ready === true, ...(ready !== true ? ready : {}), download });
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        captureException(err);
-      });
-
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -274,11 +255,6 @@ export const postRoute: RouteOptions = {
       await writeToFile(stream, id, ext, format, container, dynaudnorm);
       return reply.status(200).send({ ok: true });
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        scope.setTag('format', `${format}.${container}${dynaudnorm ? ':dynaudnorm' : ''}`);
-        captureException(err);
-      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
@@ -381,12 +357,6 @@ export const avatarRoute: RouteOptions = {
 
       return reply.status(200).send({ ok: true });
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        scope.setTag('format', `avatar:${format}.${container}`);
-        captureException(err);
-      });
-
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }
