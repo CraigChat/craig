@@ -22,7 +22,11 @@ const tasksConfig: {
     const jobPath = join(__dirname, 'jobs', job);
     const jobName = job.replace('.js', '');
     const jobModule = await import(jobPath);
-    const jobClass = jobModule.default;
+    // Node.js ESM-CJS interop: import() wraps CJS module.exports as .default,
+    // so TS-compiled CJS files (with __esModule:true) end up double-wrapped.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawExport = jobModule.default as any;
+    const jobClass = rawExport?.__esModule ? rawExport.default : rawExport;
 
     if (tasksConfig && tasksConfig.ignore.includes(jobName)) {
       logger.info('Ignoring job %s', jobName);

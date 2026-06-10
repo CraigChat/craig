@@ -53,8 +53,10 @@ RUN yarn install --frozen-lockfile --production
 # Rebuild native addon in the production tree while build tools are still available
 RUN npm rebuild @discordjs/opus
 
-# Pull the generated Prisma client into the production tree
-RUN cp -r /build/node_modules/.prisma /prod/node_modules/.prisma
+# Pull the generated Prisma client into the production tree.
+# @prisma/client's postinstall may have created a partial .prisma directory;
+# remove it first so cp doesn't double-nest the client inside it.
+RUN rm -rf /prod/node_modules/.prisma && cp -r /build/node_modules/.prisma /prod/node_modules/.prisma
 
 # =============================================================
 # Stage 3: runtime-base
