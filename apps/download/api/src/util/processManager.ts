@@ -1,11 +1,10 @@
-import { captureException, withScope } from '@sentry/node';
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import { CronJob } from 'cron';
 
 const processes = new Map<number, { process: ChildProcessWithoutNullStreams; onClose: () => any; started: number }>();
 const lastActivity = new Map<number, number>();
 
-export const cron = new CronJob('*/5 * * * *', clean, null, false, 'America/New_York');
+const cron = new CronJob('*/5 * * * *', clean, null, false, 'America/New_York');
 
 function killProcessTree(p: ChildProcessWithoutNullStreams) {
   if (p.killed || !p.pid) {
@@ -44,7 +43,7 @@ export function registerProcess(p: ChildProcessWithoutNullStreams, onClose: () =
   });
 }
 
-export function removeProcess(pid: number) {
+function removeProcess(pid: number) {
   if (processes.has(pid)) {
     const { process, onClose } = processes.get(pid)!;
     processes.delete(pid);
@@ -63,11 +62,6 @@ async function clean(timestamp = new Date()) {
       }
     }
   } catch (e) {
-    withScope((scope) => {
-      scope.clear();
-      scope.setExtra('date', timestamp || cron.lastDate());
-      captureException(e);
-    });
     console.error('Error cleaning processes.', e);
   }
 }

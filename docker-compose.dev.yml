@@ -1,0 +1,192 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - 'db_data:/var/lib/postgresql/data'
+
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: ["npx", "prisma", "migrate", "deploy", "--schema=/app/prisma/schema.prisma"]
+    restart: "no"
+    env_file:
+      - ./.env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: ["/app/node_modules/.bin/tsx", "watch", "src/sharding/index.ts"]
+    working_dir: /app/apps/bot
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: development
+      TASKS_URL: http://tasks:2022
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    volumes:
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
+      - './.env:/app/.env:ro'
+      - './prisma:/app/prisma'
+      - './apps/bot/config:/app/apps/bot/config'
+      - './apps/bot/src:/app/apps/bot/src'
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: ["npm", "run", "dev"]
+    working_dir: /app/apps/dashboard
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - './.env:/app/.env:ro'
+      - './apps/dashboard/pages:/app/apps/dashboard/pages'
+      - './apps/dashboard/components:/app/apps/dashboard/components'
+      - './apps/dashboard/lib:/app/apps/dashboard/lib'
+      - './apps/dashboard/styles:/app/apps/dashboard/styles'
+      - './apps/dashboard/utils:/app/apps/dashboard/utils'
+      - './apps/dashboard/public:/app/apps/dashboard/public'
+
+  download:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # Rollup rebuilds the page in the background; tsx watch runs the API in the foreground
+    command: >
+      sh -c "cd /app/apps/download && /app/node_modules/.bin/rollup -c --watch &
+             cd /app/apps/download/api && exec /app/node_modules/.bin/tsx watch src/index.ts"
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: development
+    ports:
+      - "5029:5029"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5029/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_started
+    volumes:
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
+      - './.env:/app/.env:ro'
+      - './apps/download/api/src:/app/apps/download/api/src'
+      - './apps/download/page:/app/apps/download/page'
+      - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
+
+  tasks:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: ["/app/node_modules/.bin/tsx", "watch", "src/index.ts"]
+    working_dir: /app/apps/tasks
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: development
+    ports:
+      - "2022:2022"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2022/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    volumes:
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
+      - './.env:/app/.env:ro'
+      - './apps/tasks/config:/app/apps/tasks/config'
+      - './apps/tasks/src:/app/apps/tasks/src'
+      - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
+
+  tasmas:
+    build:
+      context: .
+      dockerfile: tasmas/Dockerfile.dev
+    restart: always
+    env_file:
+      - ./.env
+    environment:
+      INSTALL_CONFIG: /app/.env
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      CRAIG_INTERNAL_API_URL: http://bot:3001/deliver-summary
+      CRAIG_INTERNAL_TRPC_URL: http://tasks:2022
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      bot:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:${CRAIG_RECORDINGS_DIR}'
+      - './.env:/app/.env:ro'
+      - './tasmas:/app/tasmas:ro'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+
+volumes:
+  db_data:
+  download_cache:

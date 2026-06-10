@@ -20,13 +20,13 @@ from logging_utils import log
 from recording_names import recording_output_filename, recording_timestamp
 
 REPO_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_INSTALL_CONFIG = REPO_DIR / "install.config"
-DEFAULT_RECORDINGS_DIR = Path("/mnt/media8tb/craig-recordings")
+DEFAULT_INSTALL_CONFIG = REPO_DIR / ".env"
+DEFAULT_RECORDINGS_DIR = Path(os.environ.get("CRAIG_RECORDINGS_DIR", "/craig-recordings"))
 DEFAULT_TASMAS_IMAGE = "kaddaok/tasmas:latest"
 
 
 def load_install_config() -> None:
-    """Load Craig's install.config as default environment for the sidecar."""
+    """Load Craig's .env as default environment for the sidecar."""
     config_path = Path(os.environ.get("INSTALL_CONFIG", str(DEFAULT_INSTALL_CONFIG))).expanduser()
     if not config_path.exists():
         return

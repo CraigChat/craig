@@ -3,8 +3,8 @@ import infoIcon from '@iconify-icons/ic/baseline-info';
 import warnIcon from '@iconify-icons/ic/round-warning';
 import { h } from 'preact';
 import { useTranslation } from 'react-i18next';
-import { getDownloadsSection, getOtherFormatsSection, SectionButton } from 'src/sections';
-import { asT, PlatformInfo } from 'src/util';
+import { getDownloadsSection, getOtherFormatsSection, SectionButton } from '../sections';
+import { asT, PlatformInfo } from '../util';
 
 import { ReadyState, RecordingInfo, RecordingUser } from '../api';
 import DiscordElement from './discordElement';

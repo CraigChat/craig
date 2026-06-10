@@ -1,4 +1,3 @@
-import { captureException, withScope } from '@sentry/node';
 import destr from 'destr';
 import { RouteOptions } from 'fastify';
 import internal from 'node:stream';
@@ -142,11 +141,6 @@ export const ennuizelWebsocketRoute: RouteOptions = {
           stream.destroy();
         });
       } catch (err) {
-        withScope((scope) => {
-          scope.setTag('recordingID', payload.i);
-          scope.setExtra('trackNum', payload.t);
-          captureException(err);
-        });
         return connection.socket.close(4000);
       }
     });

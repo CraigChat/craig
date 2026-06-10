@@ -12,11 +12,10 @@ import * as cookRoute from './routes/cook';
 import { ennuizelWebsocketRoute } from './routes/ennuizel';
 import * as pageRoute from './routes/page';
 import * as recordingRoute from './routes/recording';
-import { close as closeSentry } from './sentry';
 import { ErrorCode } from './util';
 import { downloadPath } from './util/download';
 
-export let server: FastifyInstance;
+let server: FastifyInstance;
 
 export async function start(): Promise<void> {
   try {
@@ -42,7 +41,7 @@ export async function start(): Promise<void> {
         'default-src': ["'self'"],
         'img-src': ["'self'", 'data:', 'https://cdn.discordapp.com', 'https://media.discordapp.net'],
         'style-src': ["'self'", 'https:', "'unsafe-inline'"],
-        'connect-src': ["'self'", process.env.SENTRY_HOST]
+        'connect-src': ["'self'"]
       }
     },
     crossOriginResourcePolicy: {
@@ -126,7 +125,6 @@ export async function start(): Promise<void> {
   const addr = await server.listen({ host, port });
   console.info(`Running webhook on ${addr}, env: ${process.env.NODE_ENV || 'development'}`);
 
-  // PM2 graceful start/shutdown
   if (process.send) {
     process.send('ready');
   }
@@ -143,7 +141,6 @@ export async function stop(): Promise<void> {
   await server.close();
   redisClient.disconnect();
   influxCron.stop();
-  closeSentry();
 
   console.info('All things disconnected.');
   process.exit(0);

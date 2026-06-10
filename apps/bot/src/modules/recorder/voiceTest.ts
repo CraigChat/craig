@@ -26,14 +26,14 @@ export enum VoiceTestState {
   ERROR
 }
 
-export interface Chunk {
+interface Chunk {
   data: Buffer;
   timestamp: number;
   time: number;
   userID: string;
 }
 
-export default class VoiceTest {
+export class VoiceTest {
   recorder: RecorderModule<DexareClient<CraigBotConfig>>;
   guildId: string;
   channel: Eris.StageChannel | Eris.VoiceChannel;

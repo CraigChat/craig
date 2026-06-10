@@ -4,8 +4,11 @@ import { z } from 'zod';
 
 import { driveUpload, driveSummaryUpload, driveTranscriptUpload } from './queries/driveUpload';
 
-export const appRouter = trpc
+const appRouter = trpc
   .router()
+  .query('health', {
+    resolve: () => ({ ok: true })
+  })
   .query('driveUpload', {
     input: z.object({
       recordingId: z.string(),
@@ -34,13 +37,11 @@ export const appRouter = trpc
     }
   });
 
-export type AppRouter = typeof appRouter;
-
-const { server, listen } = createHTTPServer({
+const { listen } = createHTTPServer({
   router: appRouter,
   createContext() {
     return {};
   }
 });
 
-export { listen, server };
+export { listen };

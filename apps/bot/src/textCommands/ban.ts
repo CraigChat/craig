@@ -1,7 +1,7 @@
 import { CommandContext, DexareClient } from 'dexare';
 
 import { prisma } from '../prisma';
-import TextCommand, { replyOrSend } from '../util';
+import { TextCommand, replyOrSend } from '../util';
 
 export default class BanCommand extends TextCommand {
   constructor(client: DexareClient<any>) {

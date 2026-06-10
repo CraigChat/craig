@@ -9,19 +9,11 @@ export const client = new Redis({
   lazyConnect: true
 });
 
-export interface ReadyState {
+interface ReadyState {
   message?: string;
   file?: string;
   time?: string;
   progress?: number;
-}
-
-export async function getReadyState(recordingId: string) {
-  const data = await client.get(`ready:${recordingId}`);
-  if (!data) {
-    return null;
-  }
-  return JSON.parse(data);
 }
 
 export async function setReadyState(recordingId: string, data: ReadyState) {

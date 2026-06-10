@@ -1,1 +1,33 @@
 .installed
+
+# Secrets — never bake these into an image
+.env
+.env.*
+install.config
+apps/**/.env
+apps/**/.env.*
+.patreon-credentials.json
+
+# Dependencies — reinstalled inside the build
+node_modules
+**/node_modules
+
+# Build artifacts — regenerated inside the build
+dist/
+build/
+.next/
+apps/*/dist
+apps/*/.next
+
+# Dev tooling
+.vscode/
+.idea/
+.git/
+
+# Misc
+*.log
+rec/
+**.pyc
+**/__pycache__
+.coverage
+coverage.xml

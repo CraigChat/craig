@@ -6,7 +6,7 @@ import StreamConcat from './streamConcat';
 
 export const recPath = path.join(__dirname, '..', '..', '..', '..', 'rec');
 
-export interface RecordingInfo {
+interface RecordingInfo {
   format: 1;
   key: number | string;
   delete: number | string;
@@ -41,7 +41,7 @@ export interface RecordingInfo {
   features: { [features: string]: boolean };
 }
 
-export interface RecordingUser {
+interface RecordingUser {
   id: string;
   name?: string;
   discrim?: string;
@@ -55,7 +55,7 @@ export interface RecordingNote {
   note: string;
 }
 
-export async function fileExists(file: string) {
+async function fileExists(file: string) {
   try {
     await fs.access(file);
     return true;

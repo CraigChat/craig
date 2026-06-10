@@ -4,7 +4,7 @@ import Eris from 'eris';
 import util from 'util';
 
 import ShardingModule from '../modules/sharding';
-import TextCommand, { makeError, replyOrSend } from '../util';
+import { TextCommand, makeError, replyOrSend } from '../util';
 
 const nl = '!!NL!!';
 const nlPattern = new RegExp(nl, 'g');

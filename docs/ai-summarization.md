@@ -16,7 +16,7 @@ Providers are skipped if their API key env var is empty. If a provider fails at 
 
 ## Configuration
 
-All settings live in `install.config`. Key variables:
+All settings live in `.env`. Key variables:
 
 - `NVIDIA_API_KEY` — API key for the primary provider
 - `NVIDIA_API_URL` — primary endpoint URL (defaults to NVIDIA NIM)
@@ -25,7 +25,7 @@ All settings live in `install.config`. Key variables:
 - `SUMMARY_RETRY_DELAY_SECONDS` — wait between provider attempts (default: 120s)
 - `DISCORD_SUMMARY_WEBHOOK_URL` — posts the summary to a Discord channel after each recording
 
-See `install.config.example` for generation parameters (temperature, max tokens, etc.).
+See `.env.example` for generation parameters (temperature, max tokens, etc.).
 
 ## Output
 

@@ -29,12 +29,12 @@ import ModalButtonDownloadLink from './modalButtonDownloadLink';
 import ModalContent from './modalContent';
 import Recording from './recording';
 
-export interface ModalOptions {
+interface ModalOptions {
   contentLabel?: string;
   allowClose?: boolean;
 }
 
-export type OpenModalFunction = (content: any, opts?: ModalOptions) => void;
+type OpenModalFunction = (content: any, opts?: ModalOptions) => void;
 
 interface AppState {
   loading: boolean;

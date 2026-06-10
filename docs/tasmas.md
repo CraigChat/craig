@@ -27,13 +27,13 @@ docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /path/to/
 
 ## Whisper model
 
-TASMAS defaults to the `small` Whisper model. It downloads automatically on first run. To pre-cache it, run the image with `--entrypoint python` and call `whisper.load_model('small')` — see `SELFHOST.md` for the full command.
+TASMAS defaults to the `small` Whisper model. It downloads automatically on first run. To pre-cache it, run the image with `--entrypoint python` and call `whisper.load_model('small')` — see [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md) for the full command.
 
-Set `TASMAS_GPU_ARGS=--gpus all` in `install.config` to use a GPU; leave it empty for CPU-only.
+Set `TASMAS_GPU_ARGS=--gpus all` in `.env` to use a GPU; leave it empty for CPU-only.
 
 ## Configuration
 
-All settings live in `install.config`. Key variables: `CRAIG_RECORDINGS_DIR`, `TASMAS_OUTPUT_DIR`, `TASMAS_IMAGE`, `TASMAS_GPU_ARGS`, `TASMAS_MODEL_CACHE_DIR`. See `install.config.example` for the full list.
+All settings live in `.env`. Key variables: `CRAIG_RECORDINGS_DIR`, `TASMAS_OUTPUT_DIR`, `TASMAS_IMAGE`, `TASMAS_GPU_ARGS`, `TASMAS_MODEL_CACHE_DIR`. See `.env.example` for the full list.
 
 ## Output
 

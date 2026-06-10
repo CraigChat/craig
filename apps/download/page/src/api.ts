@@ -39,7 +39,7 @@ export interface RecordingUser {
   avatar?: string;
 }
 
-export interface CookPayload {
+interface CookPayload {
   format?: string;
   container?: string;
   dynaudnorm?: boolean;
@@ -62,7 +62,7 @@ export interface ReadyState {
   download?: DownloadState;
 }
 
-export interface DownloadState {
+interface DownloadState {
   file: string;
   format: string;
   container: string;
@@ -102,7 +102,7 @@ export async function isReady(id: string, key: string | number): Promise<ReadySt
   return readyState;
 }
 
-export async function getRawRecording(id: string, key: string | number): Promise<Response> {
+async function getRawRecording(id: string, key: string | number): Promise<Response> {
   const response = await fetch(`/api/recording/${id}/raw?key=${key}`);
   if (response.status !== 200) throw response;
   return response;

@@ -20,7 +20,6 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
   logger.info('Fetching emojis...');
   await manager.syncEmojis();
   logger.info('Starting to spawn...');
-  // PM2 graceful start/shutdown
   if (process.send) {
     process.send('ready');
   }

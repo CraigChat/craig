@@ -4,11 +4,11 @@ import { BaseConfig, DexareClient, DexareModule, LoggerExtra } from 'dexare';
 import * as util from 'node:util';
 import winston, { format } from 'winston';
 
-export interface LoggerConfig extends BaseConfig {
+interface LoggerConfig extends BaseConfig {
   logger?: LoggerModuleOptions;
 }
 
-export interface LoggerModuleOptions {
+interface LoggerModuleOptions {
   level?: string;
   inspectOptions?: any;
 }

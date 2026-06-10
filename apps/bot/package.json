@@ -3,6 +3,12 @@
   "description": "The bot client for Craig",
   "version": "2.1.1",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sharding": "./src/sharding/index.ts",
+    "./commands/*": "./src/commands/*.ts",
+    "./textCommands/*": "./src/textCommands/*.ts"
+  },
   "private": true,
   "author": {
     "name": "Snazzah",
@@ -23,7 +29,6 @@
     "@discordjs/opus": "^0.10.0",
     "@influxdata/influxdb-client": "^1.24.0",
     "@prisma/client": "^5.12.1",
-    "@sentry/node": "^7.2.0",
     "@snazzah/davey": "^0.1.8",
     "@snazzah/emoji-sync": "^0.1.2",
     "@trpc/client": "^9.26.2",
@@ -58,15 +63,11 @@
     "@types/common-tags": "^1.8.1",
     "@types/config": "^3.3.0",
     "@types/cron": "^2.0.0",
-    "@types/dotenv": "^8.2.0",
     "@types/i18next-fs-backend": "^1.1.2",
-    "@types/ioredis": "^4.28.10",
     "@types/node": "^22.0.0",
-    "@types/qs": "^6.9.7",
     "@types/semver": "^7.7.0",
     "@types/ws": "^8.5.4",
     "slash-up": "^1.2.0",
-    "typescript": "^5.8.3",
-    "undici-types": "^7.8.0"
+    "typescript": "^5.8.3"
   }
 }

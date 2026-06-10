@@ -128,7 +128,7 @@ export enum DataTypeFlag {
   FLAC = 0x10
 }
 
-export const FeaturesMask = 0xff00;
+const FeaturesMask = 0xff00;
 
 export enum Feature {
   CONTINUOUS = 0x100
@@ -176,15 +176,9 @@ export enum EnnuicastrInfo {
   SAMPLE_RATE = 0,
   // S->C, uint32: Give the client its ID number
   ID = 0x10,
-  /* S->C, uint32 + double + double: Inform the user of the current
-   * mode, the server time when that mode was set, and the recording
-   * time when that mode was set */
-  MODE = 0x14,
   /* S->C, double: Inform the user of the timestamp at which
    * recording formally began */
-  START_TIME = 0x15,
-  /* S->C, string: Inform the client of the name of this recording */
-  REC_NAME = 0x16
+  START_TIME = 0x15
 }
 
 export enum WebappOp {

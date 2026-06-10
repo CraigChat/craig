@@ -58,7 +58,7 @@ export enum RecordingState {
   ENDED
 }
 
-export enum WarningState {
+enum WarningState {
   DEAFENED,
   MOVED,
   SILENT

@@ -5,7 +5,7 @@ set -euo pipefail
 
 RID="${1:?Usage: $0 <RECORDING_ID>}"
 
-RECORDINGS_DIR="${CRAIG_RECORDINGS_DIR:-/mnt/media8tb/craig-recordings}"
+RECORDINGS_DIR="${CRAIG_RECORDINGS_DIR:?CRAIG_RECORDINGS_DIR is not set}"
 TASMAS_DIR="${TASMAS_OUTPUT_DIR:-$RECORDINGS_DIR/tasmas}"
 ZIP="$RECORDINGS_DIR/$RID.flac.zip"
 LOCK="$TASMAS_DIR/recordings.lock.json"

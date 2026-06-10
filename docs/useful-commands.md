@@ -6,25 +6,33 @@ Run these from the Craig AI repo root:
 cd /root/projects/docker/craig-whisperr/craig
 ```
 
+> All `docker compose` commands use `.env` for configuration. Copy `.env.example` to `.env` and fill in your values before running.
+
 ## Docker
 
-Build the image and start the full stack in the background:
+### Dev (HMR / hot reload)
+
+Build dev images and start the full stack:
 
 ```bash
-docker compose build && docker compose up -d
+docker compose -f docker-compose.dev.yml up --build --remove-orphans
 ```
 
-Rebuild and recreate only the Craig service:
+TypeScript apps (bot, tasks, download API) restart instantly via `tsx watch` when any `.ts` file in their `src/` is saved. The Next.js dashboard uses its built-in HMR. The rollup page bundle rebuilds on change. Python tasmas restarts via `inotifywait` on any `.py` file change.
+
+Rebuild and recreate a single service:
 
 ```bash
-docker compose up -d --build craig
+docker compose -f docker-compose.dev.yml up -d --build bot
+docker compose -f docker-compose.dev.yml up -d --build dashboard
+docker compose -f docker-compose.dev.yml up -d --build download
+docker compose -f docker-compose.dev.yml up -d --build tasks
+docker compose -f docker-compose.dev.yml up -d --build tasmas
 ```
 
-Rebuild and recreate only the TASMAS sidecar:
+### Production (pull from GHCR)
 
-```bash
-docker compose up -d --build tasmas
-```
+See [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md).
 
 Show running containers:
 
@@ -34,74 +42,52 @@ docker ps
 
 ## Logs
 
-Stream Craig container logs:
+Stream logs per service (dev):
 
 ```bash
-docker logs -f craig-craig-1
+docker compose -f docker-compose.dev.yml logs -f bot
+docker compose -f docker-compose.dev.yml logs -f dashboard
+docker compose -f docker-compose.dev.yml logs -f download
+docker compose -f docker-compose.dev.yml logs -f tasks
+docker compose -f docker-compose.dev.yml logs -f tasmas
 ```
 
-Stream TASMAS sidecar logs:
+Stream logs per service (production):
 
 ```bash
-docker logs -f craig-tasmas-1
-```
-
-Check PM2 process list inside the Craig container:
-
-```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && pm2 list'
-```
-
-Monitor PM2 processes live:
-
-```bash
-docker exec -it craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && pm2 monit'
-```
-
-Restart all PM2 processes:
-
-```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && pm2 restart all'
+docker compose -f docker-compose.production.yml logs -f bot
+docker compose -f docker-compose.production.yml logs -f dashboard
+docker compose -f docker-compose.production.yml logs -f download
+docker compose -f docker-compose.production.yml logs -f tasks
+docker compose -f docker-compose.production.yml logs -f tasmas
 ```
 
 ## Build and Typecheck
 
-Build every workspace:
+Build only the bot (dev container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn build'
+docker exec craig-bot-1 bash -lc 'cd /app && yarn workspace craig-bot build'
 ```
 
-Build only the bot:
+Build only the tasks service (dev container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn workspace craig-bot build'
+docker exec craig-tasks-1 bash -lc 'cd /app && yarn workspace craig-tasks build'
 ```
 
-Build only the tasks service:
+Typecheck the tasks service (dev container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn workspace craig-tasks build'
-```
-
-Typecheck the tasks service:
-
-```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app/apps/tasks && yarn tsc --noEmit'
+docker exec craig-tasks-1 bash -lc 'cd /app/apps/tasks && yarn tsc --noEmit'
 ```
 
 ## Environment Checks
 
-Verify the public recording URL base:
+Verify the public recording URL base (bot container):
 
 ```bash
-docker exec craig-craig-1 printenv API_HOMEPAGE
-```
-
-Verify a recording link shape:
-
-```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && node -e "const api = new URL(process.env.API_HOMEPAGE); console.log(api.protocol + \"//\" + api.host + \"/rec/RECORDING_ID?key=ACCESS_KEY\")"'
+docker compose -f docker-compose.production.yml exec bot printenv API_HOMEPAGE
 ```
 
 ## Database
@@ -109,13 +95,13 @@ docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_
 Open a psql shell:
 
 ```bash
-docker exec -it craig-db-1 psql -U $POSTGRESQL_USER -d $DATABASE_NAME
+docker exec -it craig-db-1 psql -U craig -d craig
 ```
 
-Run Prisma migrations manually:
+Run Prisma migrations manually (bot container):
 
 ```bash
-docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_VERSION:-22}" >/dev/null && cd /app && yarn prisma migrate deploy'
+docker compose -f docker-compose.production.yml exec bot npx prisma migrate deploy --schema=/app/prisma/schema.prisma
 ```
 
 ## TASMAS
@@ -123,7 +109,8 @@ docker exec craig-craig-1 bash -lc 'source /root/.nvm/nvm.sh && nvm use "${NODE_
 Process one recording manually (skips the watcher):
 
 ```bash
-docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/media8tb/craig-recordings/RECORDING_ID.flac.zip
+docker compose -f docker-compose.dev.yml run --rm tasmas \
+  python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/RECORDING_ID.flac.zip"
 ```
 
 Re-trigger AI summarization for an already-transcribed recording:
@@ -135,10 +122,5 @@ Re-trigger AI summarization for an already-transcribed recording:
 Check recording state (processing / completed / failed):
 
 ```bash
-cat /mnt/media8tb/craig-recordings/tasmas/recordings.lock.json | python3 -m json.tool
-```
-
-Restart craig & tasmas :
-```bash
-docker compose up -d --build craig tasmas
+cat "$CRAIG_RECORDINGS_DIR/tasmas/recordings.lock.json" | python3 -m json.tool
 ```

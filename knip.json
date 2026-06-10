@@ -1,0 +1,43 @@
+{
+  "entry": [
+    "*.js",
+    "scripts/*.ts",
+    "cook/**/*.js",
+    "tests/**/*.js"
+  ],
+  "ignore": [
+    "cook/recinfo.js",
+    "cook/userinfo.js",
+    "tests/smoke/tasks-config.js",
+    "scripts/manageEntitlements.ts"
+  ],
+  "ignoreBinaries": ["dotenv"],
+  "ignoreDependencies": [
+    "@clack/prompts",
+    "@typescript-eslint/eslint-plugin",
+    "eslint-plugin-import",
+    "eslint-plugin-json",
+    "eslint-plugin-simple-import-sort",
+    "eslint-plugin-unused-imports",
+    "@prisma/client",
+    "prisma",
+    "rimraf",
+    "tsx"
+  ],
+  "workspaces": {
+    "apps/bot": {
+      "entry": ["slash-up.config.js"]
+    },
+    "apps/dashboard": {
+      "entry": ["pages/**/*.{ts,tsx}"],
+      "ignoreDependencies": ["preact"]
+    },
+    "apps/download": {
+      "entry": ["api/src/index.ts", "page/src/index.tsx"],
+      "ignore": ["page/src/**"]
+    },
+    "apps/tasks": {
+      "entry": ["src/index.ts", "src/jobs/*.ts", "src/runJob.ts"]
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { CommandContext, DexareClient } from 'dexare';
 import RecorderModule from '../modules/recorder';
 import ShardingModule from '../modules/sharding';
 import { removeMaintenance, setMaintenance } from '../redis';
-import TextCommand, { replyOrSend } from '../util';
+import { TextCommand, replyOrSend } from '../util';
 
 export default class MaintenanceCommand extends TextCommand {
   constructor(client: DexareClient<any>) {

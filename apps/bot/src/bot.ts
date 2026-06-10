@@ -19,10 +19,7 @@ import SlashModule from './modules/slash';
 import UploadModule from './modules/upload';
 import { prisma } from './prisma';
 import { client as redisClient } from './redis';
-import { close as closeSentry } from './sentry';
 import { version } from './util';
-
-export const PRODUCTION = process.env.NODE_ENV === 'production';
 
 export interface CraigBotConfig extends BaseConfig {
   applicationID: string;
@@ -155,29 +152,7 @@ export async function connect() {
   influxCron.start();
   client.bot.editStatus('online', client.config.status);
 
-  let botName = 'Craig';
-  if (process.env.pm_pid_path && process.env.pm_id) {
-    try {
-      const pm2Name = process.env.pm_pid_path
-        .split('\\')
-        .reverse()[0]
-        .split('/')
-        .reverse()[0]
-        .slice(0, -`-${process.env.pm_id}.pid`.length)
-        .split('-')
-        .join(' ');
-      botName = `${pm2Name} [${process.env.pm_id}]`;
-    } catch (e) {}
-  }
-
-  process.title = `${botName} - ${
+  process.title = `Craig - ${
     process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
   }`;
-}
-
-export async function disconnect() {
-  await client.disconnect();
-  await closeSentry();
-  await prisma.$disconnect();
-  redisClient.disconnect();
 }

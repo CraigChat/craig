@@ -44,7 +44,7 @@ function langExists(lang: string) {
   return !!locales[lang];
 }
 
-export interface Language {
+interface Language {
   value: string;
   title: string;
   icon: IconifyIcon;

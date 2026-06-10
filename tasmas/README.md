@@ -12,7 +12,7 @@ sudo apt install docker.io docker-compose-plugin
 
 The sidecar image includes Python, Docker CLI, and `inotifywait`.
 
-Configuration lives in Craig's root `install.config`. The scripts load that file automatically and then apply any environment variables supplied for a single command.
+Configuration lives in Craig's root `.env`. The scripts load that file automatically and then apply any environment variables supplied for a single command.
 
 ## Start the sidecar
 
@@ -27,10 +27,10 @@ TASMAS uses `whisper_timestamped` and defaults to Whisper `small`, which is a go
 To pre-download it into the persistent cache:
 
 ```sh
-mkdir -p /mnt/media8tb/craig-recordings/tasmas-model-cache
+mkdir -p "$TASMAS_MODEL_CACHE_DIR"
 docker run --rm --gpus all \
   --entrypoint python \
-  -v /mnt/media8tb/craig-recordings/tasmas-model-cache:/root/.cache \
+  -v "$TASMAS_MODEL_CACHE_DIR:/root/.cache" \
   kaddaok/tasmas:latest \
   -c "import whisper_timestamped as whisper; whisper.load_model('small', device='cuda')"
 ```
@@ -40,12 +40,12 @@ If NVIDIA Docker support is not installed yet, the same command will fail at `--
 ## Process one recording
 
 ```sh
-docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py /mnt/media8tb/craig-recordings/xMOdSpsi9mLY.flac.zip
+docker compose run --rm tasmas python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/xMOdSpsi9mLY.flac.zip"
 ```
 
 ## Summaries
 
-For NVIDIA summaries, set `NVIDIA_API_KEY` in `install.config`. The default model is:
+For NVIDIA summaries, set `NVIDIA_API_KEY` in `.env`. The default model is:
 
 ```txt
 mistralai/mistral-large-3-675b-instruct-2512
@@ -60,13 +60,13 @@ summary_nvidia_mistralai_mistral-large-3-675b-instruct-2512.md
 
 ## Configuration
 
-Set these in `install.config`:
+Set these in `.env`:
 
-- `CRAIG_RECORDINGS_DIR`: Craig recording folder. Default: `/mnt/media8tb/craig-recordings`.
+- `CRAIG_RECORDINGS_DIR`: Craig recording folder. **Required** — set this in `.env`.
 - `TASMAS_OUTPUT_DIR`: staged audio, transcripts, and summaries. Default: `$CRAIG_RECORDINGS_DIR/tasmas`.
 - `TASMAS_IMAGE`: TASMAS Docker image. Default: `kaddaok/tasmas:latest`.
 - `TASMAS_GPU_ARGS`: Docker GPU args. Default: `--gpus all`. Set to an empty value for CPU-only.
-- `TASMAS_MODEL_CACHE_DIR`: persistent Whisper/Torch model cache. Default in this setup: `/mnt/media8tb/craig-recordings/tasmas-model-cache`.
+- `TASMAS_MODEL_CACHE_DIR`: persistent Whisper/Torch model cache. Default: `$CRAIG_RECORDINGS_DIR/tasmas-model-cache`.
 - `TASMAS_EXTRA_ARGS`: extra TASMAS args before `semiauto`, such as `--showTimestamps`.
 - `NVIDIA_API_KEY`: enables NVIDIA-hosted summary generation when set.
 - `NVIDIA_API_URL`: NVIDIA chat completions endpoint.

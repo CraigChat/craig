@@ -3,7 +3,6 @@ import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMess
 
 import Recording, { RecordingState } from '../modules/recorder/recording';
 import { checkMaintenance, processCooldown } from '../redis';
-import { reportRecordingError } from '../sentry';
 import GeneralCommand from '../slashCommand';
 import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
 
@@ -26,9 +25,7 @@ export default class Join extends GeneralCommand {
     this.filePath = __filename;
   }
 
-  async reportError(ctx: CommandContext, error: Error, recording: Recording) {
-    reportRecordingError(ctx, error, recording);
-
+  async reportError(ctx: CommandContext, _error: Error, recording: Recording) {
     const errorMessage: EditMessageOptions = {
       embeds: [
         {

@@ -7,7 +7,6 @@ import { ButtonStyle, ComponentType } from 'slash-create';
 import type { CraigBotConfig } from '../bot';
 import { prisma } from '../prisma';
 import { checkMaintenance, processCooldown } from '../redis';
-import { reportAutorecordingError } from '../sentry';
 import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
 import EntitlementsModule from './entitlements';
 import type RecorderModule from './recorder';
@@ -249,8 +248,6 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
           `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
           error
         );
-        reportAutorecordingError(member, guildId, voiceChannelId, error, recording);
-
         if (recording.state !== RecordingState.ERROR) {
           recording.state = RecordingState.ERROR;
           await recording.stop(true).catch(() => {});

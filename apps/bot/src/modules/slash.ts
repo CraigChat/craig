@@ -18,17 +18,16 @@ import {
 import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
 import { prisma } from '../prisma';
-import { reportErrorFromCommand } from '../sentry';
 import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
 
-export interface SlashConfig extends BaseConfig {
+interface SlashConfig extends BaseConfig {
   applicationID: string;
   slash?: SlashModuleOptions;
 }
 
-export interface SlashModuleOptions {
+interface SlashModuleOptions {
   creator?: SlashCreatorOptions;
 }
 
@@ -76,8 +75,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       onCommandRun(ctx.user.id, command.commandName, ctx.guildID);
       this.logger.info(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
     });
-    this.creator.on('commandError', (command, error, ctx) => {
-      reportErrorFromCommand(ctx, error, command.commandName, 'command');
+    this.creator.on('commandError', (command, error) => {
       this.logger.error(`Command ${command.commandName} errored:`, error.stack || error.toString());
     });
     this.creator.on('componentInteraction', async (ctx) => {

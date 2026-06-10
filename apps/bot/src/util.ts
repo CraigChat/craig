@@ -1,5 +1,4 @@
 import { Ban, Guild } from '@prisma/client';
-import axios from 'axios';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
 import { CommandContext, DexareCommand } from 'dexare';
 import Eris from 'eris';
@@ -21,8 +20,6 @@ import type SlashModule from './modules/slash';
 import { prisma } from './prisma';
 
 export { version };
-
-export const userAgent = `CraigBot (https://craig.chat ${version}) Node.js/${process.version}`;
 
 let lastBanUpdate = 0;
 let bans: Ban[] = [];
@@ -134,17 +131,6 @@ export function disableComponents(components: AnyComponent[]) {
 
   disableButtons(clone);
   return clone;
-}
-
-export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | 'major' | 'minor' | 'maintenence'> {
-  try {
-    const response = await axios.get('https://discordstatus.com/api/v2/status.json', {
-      headers: { 'User-Agent': userAgent }
-    });
-    return response.data?.status?.indicator;
-  } catch (e) {
-    return null;
-  }
 }
 
 export const mainBotCommandOnly = process.argv?.[1].includes('slash-up') && process.env.EXTRA_BOT == 'true' ? [] : undefined;
@@ -465,7 +451,7 @@ export async function replyOrSend(ctx: CommandContext, content: Eris.MessageCont
   }
 }
 
-export default abstract class TextCommand extends DexareCommand {
+export abstract class TextCommand extends DexareCommand {
   // @ts-ignore
   client!: CraigBot;
 

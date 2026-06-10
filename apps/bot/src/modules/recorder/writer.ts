@@ -17,7 +17,7 @@ import {
 } from './util';
 import type { WebUser } from './webapp';
 
-export type WriteTask =
+type WriteTask =
   | {
       type: 'writeChunk';
       streamNo: number;

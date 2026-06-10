@@ -2,7 +2,11 @@
 # Removes processed recording files and tasmas work directories.
 # Cleans: *.ogg.*, *.flac.zip, tasmas subdirs, and resets recordings.lock.json.
 
-RECORDINGS_DIR="${1:-/mnt/media8tb/craig-recordings}"
+RECORDINGS_DIR="${1:-${CRAIG_RECORDINGS_DIR:-}}"
+if [ -z "$RECORDINGS_DIR" ]; then
+  echo "Error: pass the recordings directory as \$1 or set CRAIG_RECORDINGS_DIR" >&2
+  exit 1
+fi
 TASMAS_DIR="$RECORDINGS_DIR/tasmas"
 LOCK_FILE="$TASMAS_DIR/recordings.lock.json"
 

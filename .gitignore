@@ -3,10 +3,12 @@ node_modules/
 
 # development
 .next/
-.vscode/
 .idea/
 node_modules/
 .vercel
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # production
 apps/*/data/*
@@ -55,8 +57,8 @@ config.json
 apps/*/config/*.js
 !apps/*/config/_default.js
 !apps/tasks/config/default.js
+!apps/bot/config/default.js
 .patreon-credentials.json
-install.config
 **.pyc
 .coverage
 coverage.xml

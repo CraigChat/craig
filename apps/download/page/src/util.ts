@@ -23,7 +23,7 @@ export const getPlatformInfo = (): PlatformInfo => {
   };
 };
 
-export function useWindowEvent<TType extends keyof WindowEventMap>(
+function useWindowEvent<TType extends keyof WindowEventMap>(
   type: TType,
   listener: (this: Window, ev: WindowEventMap[TType]) => any,
   options?: boolean | AddEventListenerOptions

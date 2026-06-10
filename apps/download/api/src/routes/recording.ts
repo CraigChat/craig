@@ -1,4 +1,3 @@
-import { captureException, withScope } from '@sentry/node';
 import { RouteOptions } from 'fastify';
 
 import { onRequest } from '../influx';
@@ -105,10 +104,6 @@ export const textRoute: RouteOptions = {
             .join('\n')
         );
     } catch (err) {
-      withScope((scope) => {
-        scope.setTag('recordingID', id);
-        captureException(err);
-      });
       return reply.status(500).send({ ok: false, error: err.message });
     }
   }

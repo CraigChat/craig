@@ -30,7 +30,7 @@ Discord voice → bot records → .flac.zip written to disk
 
 - **PostgreSQL** — persistent data (users, recordings metadata)
 - **Redis** — session cache and bot state
-- All services run inside Docker; the `craig` container manages the four Node services under PM2
+- All services run inside Docker; each Node service runs in its own container
 
 ## Ports
 

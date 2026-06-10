@@ -13,7 +13,7 @@ export interface DownloadState {
   type: string;
 }
 
-export const downloadPath = path.join(__dirname, '..', '..', 'downloads');
+export const downloadPath = process.env.DOWNLOADS_PATH ?? path.join(__dirname, '..', '..', 'downloads');
 
 export async function writeToFile(
   stream: Readable,

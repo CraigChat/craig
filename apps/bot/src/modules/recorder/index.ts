@@ -62,12 +62,12 @@ const RECORDING_TTL = 5 * 60 * 1000;
 
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
   recordings = new Map<string, Recording>();
-  voiceTests = new Map<string, import('./voiceTest').default>();
+  voiceTests = new Map<string, import('./voiceTest').VoiceTest>();
   recordingPath: string;
   recordingsChecked = false;
   trpc = createTRPCClient<TRPCRouter>({
     fetch: fetch as any,
-    links: [httpLink({ url: 'http://localhost:2022' })]
+    links: [httpLink({ url: process.env.TASKS_URL ?? 'http://localhost:2022' })]
   });
   cron: CronJob;
 

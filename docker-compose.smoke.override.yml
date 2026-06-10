@@ -1,0 +1,67 @@
+# Smoke-test overrides layered on top of docker-compose.production.yml.
+# Swaps GHCR image references for local builds, speeds up healthchecks,
+# and excludes bot and tasmas (no Discord token / no GPU / no whisper model in CI).
+#
+# Usage:
+#   cp tests/smoke/smoke.env .env
+#   mkdir -p /tmp/smoke-rec
+#   docker compose -f docker-compose.production.yml -f docker-compose.smoke.override.yml up --build --wait
+
+services:
+  db:
+    healthcheck:
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:alpine
+    healthcheck:
+      interval: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: bot
+
+  # bot requires a live Discord token — excluded from smoke tests.
+  bot:
+    profiles: [skip]
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dashboard
+    healthcheck:
+      interval: 5s
+      retries: 24
+      start_period: 20s
+
+  download:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: download
+    healthcheck:
+      interval: 5s
+      retries: 24
+      start_period: 10s
+
+  tasks:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: tasks
+    volumes:
+      # Overlay the gitignored default.js with the smoke stub config.
+      - ./tests/smoke/tasks-config.js:/app/apps/tasks/config/default.js:ro
+    healthcheck:
+      interval: 5s
+      retries: 24
+      start_period: 10s
+
+  # tasmas spawns the TASMAS whisper container which downloads a large model — excluded from smoke tests.
+  tasmas:
+    profiles: [skip]
