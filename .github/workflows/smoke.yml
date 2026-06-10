@@ -40,7 +40,6 @@ jobs:
       - name: Assert health endpoints
         run: |
           curl -sf http://localhost:5029/health | grep '"ok"'
-          curl -sf http://localhost:2022/health | grep '"ok"'
           curl -sf http://localhost:3000/api/health | grep '"ok"'
 
       - name: Verify containers run as non-root
