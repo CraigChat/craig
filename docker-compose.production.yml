@@ -37,7 +37,7 @@ services:
       start_period: 10s
 
   migrate:
-    image: ${CRAIG_BOT_IMAGE:-ghcr.io/mhd-hi/craig/bot:latest}
+    image: ${CRAIG_BOT_IMAGE:-ghcr.io/mhd-hi/craig-ai/bot:latest}
     command: ["npx", "prisma", "migrate", "deploy", "--schema=/app/prisma/schema.prisma"]
     restart: "no"
     env_file:
@@ -47,7 +47,7 @@ services:
         condition: service_healthy
 
   bot:
-    image: ${CRAIG_BOT_IMAGE:-ghcr.io/mhd-hi/craig/bot:latest}
+    image: ${CRAIG_BOT_IMAGE:-ghcr.io/mhd-hi/craig-ai/bot:latest}
     restart: always
     env_file:
       - ./.env
@@ -69,7 +69,7 @@ services:
       - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:/app/rec'
 
   dashboard:
-    image: ${CRAIG_DASHBOARD_IMAGE:-ghcr.io/mhd-hi/craig/dashboard:latest}
+    image: ${CRAIG_DASHBOARD_IMAGE:-ghcr.io/mhd-hi/craig-ai/dashboard:latest}
     restart: always
     env_file:
       - ./.env
@@ -86,7 +86,7 @@ services:
         condition: service_completed_successfully
 
   download:
-    image: ${CRAIG_DOWNLOAD_IMAGE:-ghcr.io/mhd-hi/craig/download:latest}
+    image: ${CRAIG_DOWNLOAD_IMAGE:-ghcr.io/mhd-hi/craig-ai/download:latest}
     restart: always
     env_file:
       - ./.env
@@ -106,7 +106,7 @@ services:
       - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
 
   tasks:
-    image: ${CRAIG_TASKS_IMAGE:-ghcr.io/mhd-hi/craig/tasks:latest}
+    image: ${CRAIG_TASKS_IMAGE:-ghcr.io/mhd-hi/craig-ai/tasks:latest}
     restart: always
     env_file:
       - ./.env
@@ -127,9 +127,7 @@ services:
       - 'download_cache:${DOWNLOADS_PATH:-/app/downloads}'
 
   tasmas:
-    build:
-      context: .
-      dockerfile: tasmas/Dockerfile
+    image: ${CRAIG_TASMAS_IMAGE:-ghcr.io/mhd-hi/craig-ai/tasmas:latest}
     restart: always
     env_file:
       - ./.env
@@ -153,7 +151,6 @@ services:
     volumes:
       - '${CRAIG_RECORDINGS_DIR:?Set CRAIG_RECORDINGS_DIR in .env}:${CRAIG_RECORDINGS_DIR}'
       - './.env:/app/.env:ro'
-      - './tasmas:/app/tasmas:ro'
       - '/var/run/docker.sock:/var/run/docker.sock'
 
 volumes:
