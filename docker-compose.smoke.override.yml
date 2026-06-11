@@ -1,14 +1,16 @@
-# Smoke-test overrides layered on top of docker-compose.production.yml.
+# Smoke-test overrides layered on top of docker-compose.yml.
 # Swaps GHCR image references for local builds, speeds up healthchecks,
 # and excludes bot and tasmas (no Discord token / no GPU / no whisper model in CI).
 #
 # Usage:
-#   cp tests/smoke/smoke.env .env
+#   cp tests/smoke/smoke.env .env.smoke && ln -s .env.smoke .env
 #   mkdir -p /tmp/smoke-rec
-#   docker compose -f docker-compose.production.yml -f docker-compose.smoke.override.yml up --build --wait
+#   docker compose --env-file .env.smoke -f docker-compose.yml -f docker-compose.smoke.override.yml up --build --wait
 
 services:
   db:
+    env_file:
+      - ./.env.smoke
     healthcheck:
       interval: 5s
       retries: 10
@@ -20,6 +22,8 @@ services:
       retries: 10
 
   migrate:
+    env_file:
+      - ./.env.smoke
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,6 +34,8 @@ services:
     profiles: [skip]
 
   dashboard:
+    env_file:
+      - ./.env.smoke
     build:
       context: .
       dockerfile: Dockerfile
@@ -40,6 +46,8 @@ services:
       start_period: 20s
 
   download:
+    env_file:
+      - ./.env.smoke
     build:
       context: .
       dockerfile: Dockerfile
@@ -50,6 +58,8 @@ services:
       start_period: 10s
 
   tasks:
+    env_file:
+      - ./.env.smoke
     build:
       context: .
       dockerfile: Dockerfile
