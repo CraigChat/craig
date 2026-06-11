@@ -29,12 +29,12 @@ jobs:
 
       - name: Prepare smoke environment
         run: |
-          cp tests/smoke/smoke.env .env
+          cp tests/smoke/smoke.env .env.smoke
           mkdir -p /tmp/smoke-rec
 
       - name: Build and start services
         run: |
-          docker compose -f docker-compose.production.yml -f docker-compose.smoke.override.yml up --build --wait --wait-timeout 180
+          docker compose --env-file .env.smoke -f docker-compose.yml -f docker-compose.smoke.override.yml up --build --wait --wait-timeout 180
         timeout-minutes: 25
 
       - name: Assert health endpoints
@@ -45,15 +45,15 @@ jobs:
       - name: Verify containers run as non-root
         run: |
           for svc in download tasks dashboard; do
-            uid=$(docker compose -f docker-compose.production.yml -f docker-compose.smoke.override.yml exec -T "$svc" id -u)
+            uid=$(docker compose --env-file .env.smoke -f docker-compose.yml -f docker-compose.smoke.override.yml exec -T "$svc" id -u)
             [ "$uid" != "0" ] || { echo "$svc is running as root!"; exit 1; }
             echo "$svc UID=$uid (non-root OK)"
           done
 
       - name: Print logs on failure
         if: failure()
-        run: docker compose -f docker-compose.production.yml -f docker-compose.smoke.override.yml logs --no-color
+        run: docker compose --env-file .env.smoke -f docker-compose.yml -f docker-compose.smoke.override.yml logs --no-color
 
       - name: Tear down
         if: always()
-        run: docker compose -f docker-compose.production.yml -f docker-compose.smoke.override.yml down -v
+        run: docker compose --env-file .env.smoke -f docker-compose.yml -f docker-compose.smoke.override.yml down -v

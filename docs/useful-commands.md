@@ -55,11 +55,11 @@ docker compose -f docker-compose.dev.yml logs -f tasmas
 Stream logs per service (production):
 
 ```bash
-docker compose -f docker-compose.production.yml logs -f bot
-docker compose -f docker-compose.production.yml logs -f dashboard
-docker compose -f docker-compose.production.yml logs -f download
-docker compose -f docker-compose.production.yml logs -f tasks
-docker compose -f docker-compose.production.yml logs -f tasmas
+docker compose -f docker-compose.yml logs -f bot
+docker compose -f docker-compose.yml logs -f dashboard
+docker compose -f docker-compose.yml logs -f download
+docker compose -f docker-compose.yml logs -f tasks
+docker compose -f docker-compose.yml logs -f tasmas
 ```
 
 ## Build and Typecheck
@@ -87,7 +87,7 @@ docker exec craig-tasks-1 bash -lc 'cd /app/apps/tasks && yarn tsc --noEmit'
 Verify the public recording URL base (bot container):
 
 ```bash
-docker compose -f docker-compose.production.yml exec bot printenv API_HOMEPAGE
+docker compose -f docker-compose.yml exec bot printenv API_HOMEPAGE
 ```
 
 ## Database
@@ -101,7 +101,7 @@ docker exec -it craig-db-1 psql -U craig -d craig
 Run Prisma migrations manually (bot container):
 
 ```bash
-docker compose -f docker-compose.production.yml exec bot npx prisma migrate deploy --schema=/app/prisma/schema.prisma
+docker compose -f docker-compose.yml exec bot npx prisma migrate deploy --schema=/app/prisma/schema.prisma
 ```
 
 ## TASMAS
