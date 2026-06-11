@@ -3,7 +3,7 @@
 # and excludes bot and tasmas (no Discord token / no GPU / no whisper model in CI).
 #
 # Usage:
-#   cp tests/smoke/smoke.env .env.smoke
+#   cp tests/smoke/smoke.env .env.smoke && ln -s .env.smoke .env
 #   mkdir -p /tmp/smoke-rec
 #   docker compose --env-file .env.smoke -f docker-compose.yml -f docker-compose.smoke.override.yml up --build --wait
 

@@ -7,12 +7,14 @@ on:
       - 'docker-compose*.yml'
       - '**/Dockerfile'
       - '.env.example'
+      - 'tests/smoke/smoke.env'
   pull_request:
     branches: [master]
     paths:
       - 'docker-compose*.yml'
       - '**/Dockerfile'
       - '.env.example'
+      - 'tests/smoke/smoke.env'
   workflow_dispatch:
 
 jobs:
@@ -30,6 +32,7 @@ jobs:
       - name: Prepare smoke environment
         run: |
           cp tests/smoke/smoke.env .env.smoke
+          ln -s .env.smoke .env
           mkdir -p /tmp/smoke-rec
 
       - name: Build and start services

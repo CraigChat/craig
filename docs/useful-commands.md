@@ -1,10 +1,6 @@
 # Useful Commands
 
-Run these from the Craig AI repo root:
-
-```bash
-cd /root/projects/docker/craig-whisperr/craig
-```
+Run these from the repo root (the directory containing `docker-compose.yml`).
 
 > All `docker compose` commands use `.env` for configuration. Copy `.env.example` to `.env` and fill in your values before running.
 
