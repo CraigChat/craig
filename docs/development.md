@@ -20,7 +20,7 @@ cd craig-ai
 cp .env.example .env
 ```
 
-Fill in `DISCORD_BOT_TOKEN`, `DISCORD_APP_ID`, `CLIENT_ID`, and `CLIENT_SECRET` at minimum (see [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md#1-create-a-discord-application) for how to get these).
+Fill in `DISCORD_BOT_TOKEN`, `DISCORD_APP_ID`, `CLIENT_ID`, and `CLIENT_SECRET` at minimum (see [self-hosting.md](self-hosting.md#1-create-a-discord-application) for how to get these).
 
 Set the OAuth2 redirect URI in your Discord app to `http://localhost:3000/api/login`.
 

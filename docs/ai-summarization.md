@@ -21,7 +21,8 @@ All settings live in `.env`. Key variables:
 - `NVIDIA_API_KEY` — API key for the primary provider
 - `NVIDIA_API_URL` — primary endpoint URL (defaults to NVIDIA NIM)
 - `AI_SUMMARY_MODEL` — model to use on the primary provider
-- `SUMMARY_FALLBACK_CHAIN` — additional fallback providers
+- `OPENROUTER_API_KEY` — convenience shorthand; pre-wires OpenRouter as the first fallback
+- `SUMMARY_FALLBACK_CHAIN` — additional fallback providers (semicolon-separated; extends or replaces the OpenRouter shorthand)
 - `SUMMARY_RETRY_DELAY_SECONDS` — wait between provider attempts (default: 120s)
 - `DISCORD_SUMMARY_WEBHOOK_URL` — posts the summary to a Discord channel after each recording
 

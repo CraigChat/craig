@@ -1,49 +1,144 @@
-# Self-hosting Craig AI
+# Self-Hosting Craig — Production
 
-Craig AI runs entirely in Docker. See `.env.example` for the full configuration reference.
-
-See [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md) for the full setup guide.
+Craig runs entirely from pre-built Docker images published to GHCR. No compiler or Node.js needed on the server.
 
 ## Prerequisites
 
 - Linux host
 - Docker and Docker Compose plugin
 
-## Setup
+## Quick setup
 
-**1. Create a Discord bot** at the [Discord Developer Portal](https://discord.com/developers/applications). You need the bot token, application ID, client ID, and client secret. Add `http://localhost:3000/api/login` as an OAuth2 redirect URI.
-
-**2. Configure the environment:**
+Run this on your server to download the compose file and a pre-filled environment template (always read through the script first):
 
 ```sh
-cp ./.env.example ./.env
+curl -fsSL https://raw.githubusercontent.com/mhd-hi/craig-ai/master/setup.sh | bash
+cd craig
 ```
 
-Fill in the Discord credentials and set `DATABASE_URL` to point to the `db` Compose service. See the recommended changes section in `.env.example` for `API_HOST`, `API_HOMEPAGE`, and `RECORDING_RETENTION_DAYS`.
-
-**3. (Optional) Configure AI summarization** — set `NVIDIA_API_KEY` and/or `SUMMARY_FALLBACK_CHAIN` in `.env`. See [ai-summarization.md](ai-summarization.md).
-
-**4. Build and start:**
+Or do it manually:
 
 ```sh
-docker compose build && docker compose up -d
+mkdir craig && cd craig
+curl -fsSL https://raw.githubusercontent.com/mhd-hi/craig-ai/master/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/mhd-hi/craig-ai/master/.env.example -o .env.example
+cp .env.example .env
 ```
 
-**5. Invite the bot** to a Discord server via the OAuth2 URL (replace `CLIENT_ID`):
+## 1. Create a Discord application
+
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and click **New Application**
+2. **Settings → General Information** → copy **APPLICATION ID** → `DISCORD_APP_ID`
+3. **Settings → Bot** → copy **TOKEN** → `DISCORD_BOT_TOKEN`
+4. **Settings → OAuth2 → General** → copy **CLIENT ID** → `CLIENT_ID` and **CLIENT SECRET** → `CLIENT_SECRET`
+5. **Settings → OAuth2 → General** → add your dashboard URL + `/api/login` as an OAuth2 redirect URI (e.g. `https://craigboard.example.com/api/login`)
+
+## 2. Edit .env
+
+Open `.env` and fill in these values:
+
+**Discord**
+```
+DISCORD_BOT_TOKEN=        # from step 1
+DISCORD_APP_ID=           # from step 1
+CLIENT_ID=                # from step 1
+CLIENT_SECRET=            # from step 1
+```
+
+**Secrets — generate a random value for each**
+```
+JWT_SECRET=               # openssl rand -hex 32
+CRAIG_INTERNAL_SECRET=    # openssl rand -hex 32
+NEXTAUTH_SECRET=          # openssl rand -hex 32
+```
+
+**URLs**
+```
+API_HOMEPAGE=             # public URL of your download server, e.g. https://craig.example.com
+APP_URI=                  # public URL of your dashboard,      e.g. https://craigboard.example.com
+```
+
+**Storage**
+```
+CRAIG_RECORDINGS_DIR=     # absolute path on the host, e.g. /data/craig-recordings
+POSTGRES_PASSWORD=        # change from default
+POSTGRESQL_PASSWORD=      # same value as above
+```
+
+**AI Summary — set at least one API key**
+```
+NVIDIA_API_KEY=           # https://build.nvidia.com (free tier available)
+OPENROUTER_API_KEY=       # https://openrouter.ai (used as fallback)
+```
+
+All other variables (`AI_SUMMARY_MODEL`, `TASMAS_IMAGE`, GPU args, model params, etc.) have working defaults.
+
+## 3. Start
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+The `migrate` service runs automatically, applies any pending database migrations, then exits. All other services start after it completes.
+
+## 4. Invite the bot
+
+Replace `CLIENT_ID` with your bot's application ID:
 
 ```
 https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=68176896&scope=bot%20applications.commands
 ```
 
-**6. Start the TASMAS sidecar** (optional, for transcription):
-
-```sh
-docker compose up -d tasmas
-```
-
 ## Access
 
-- Dashboard: `http://localhost:3000/login`
-- Download server: `http://localhost:5029`
+| Service   | Default URL                   |
+|-----------|-------------------------------|
+| Dashboard | http://your-server:3000/login |
+| Download  | http://your-server:5029       |
 
-> When running locally, recording links use `https://` — change to `http://` in your browser since localhost has no signed certificate.
+## Updating
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Compose pulls changed images and restarts only the affected services.
+
+## Logs
+
+```sh
+docker compose logs -f bot
+docker compose logs -f dashboard
+docker compose logs -f download
+docker compose logs -f tasks
+docker compose logs -f tasmas
+```
+
+## TASMAS — Transcription & AI Summaries
+
+TASMAS watches the recordings directory, transcribes each `.flac.zip` with Whisper, and posts an AI summary to Discord. It is optional — set at least one AI API key in step 2 to activate it, or omit both keys to skip summarization entirely.
+
+Pre-download the Whisper model before first use (saves time on the first recording):
+
+```sh
+docker run --rm --gpus all \
+  --entrypoint python \
+  -v "$TASMAS_MODEL_CACHE_DIR:/root/.cache" \
+  kaddaok/tasmas:latest \
+  -c "import whisper_timestamped as whisper; whisper.load_model('small', device='cuda')"
+```
+
+Process one existing recording manually:
+
+```sh
+docker compose run --rm tasmas \
+  python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/RECORDING_ID.flac.zip"
+```
+
+See [tasmas.md](tasmas.md) for full details.
+
+---
+
+For local development (hot reload, build from source), see [development.md](development.md).
