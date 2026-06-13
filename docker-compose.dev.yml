@@ -49,6 +49,8 @@ services:
     environment:
       NODE_ENV: development
       TASKS_URL: http://tasks:2022
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
@@ -77,6 +79,7 @@ services:
       - ./.env
     environment:
       NODE_ENV: development
+      NEXTAUTH_URL: ${APP_URI}
     ports:
       - "3000:3000"
     healthcheck:
@@ -109,6 +112,9 @@ services:
       - ./.env
     environment:
       NODE_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      DOWNLOADS_PATH: /app/downloads
     ports:
       - "5029:5029"
     healthcheck:
@@ -137,6 +143,9 @@ services:
       - ./.env
     environment:
       NODE_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      DOWNLOADS_PATH: /app/downloads
     ports:
       - "2022:2022"
     healthcheck:
@@ -170,6 +179,8 @@ services:
       PYTHONUNBUFFERED: "1"
       CRAIG_INTERNAL_API_URL: http://bot:3001/deliver-summary
       CRAIG_INTERNAL_TRPC_URL: http://tasks:2022
+      TASMAS_OUTPUT_DIR: ${CRAIG_RECORDINGS_DIR}/tasmas
+      TASMAS_MODEL_CACHE_DIR: ${CRAIG_RECORDINGS_DIR}/tasmas-model-cache
     healthcheck:
       test: ["CMD-SHELL", "kill -0 1"]
       interval: 30s

@@ -76,12 +76,9 @@ flowchart TD
 
 ## Documentation
 
+- [Production setup](docs/self-hosting.md)
+- [Development setup](docs/development.md)
 - [Architecture overview](docs/architecture.md)
 - [AI summarization & fallback chain](docs/ai-summarization.md)
 - [Transcription sidecar](docs/tasmas.md)
-- [Self-hosting guide](docs/self-hosting.md)
 - [Useful commands](docs/useful-commands.md)
-
-## Quick start
-
-See [SELFHOST.DOCKER.md](SELFHOST.DOCKER.md) for full setup instructions.

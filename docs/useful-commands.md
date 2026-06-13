@@ -28,7 +28,7 @@ docker compose -f docker-compose.dev.yml up -d --build tasmas
 
 ### Production (pull from GHCR)
 
-See [SELFHOST.DOCKER.md](../SELFHOST.DOCKER.md).
+See [self-hosting.md](self-hosting.md).
 
 Show running containers:
 
@@ -104,8 +104,15 @@ docker compose -f docker-compose.yml exec bot npx prisma migrate deploy --schema
 
 Process one recording manually (skips the watcher):
 
+Dev:
 ```bash
 docker compose -f docker-compose.dev.yml run --rm tasmas \
+  python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/RECORDING_ID.flac.zip"
+```
+
+Production:
+```bash
+docker compose run --rm tasmas \
   python3 /app/tasmas/process_flac_zip.py "$CRAIG_RECORDINGS_DIR/RECORDING_ID.flac.zip"
 ```
 
