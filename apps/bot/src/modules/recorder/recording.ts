@@ -25,6 +25,8 @@ const recIndicator = / *!?\[RECORDING\] */;
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
+const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
+const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
 const BAD_MESSAGE_CODES = [
   404,
   10003, // Unknown channel
@@ -124,6 +126,8 @@ export default class Recording {
   maintenceWarned = false;
   latencyWarned = false;
   zeroPacketWarned = false;
+  encryptionRecoveryAttempts = 0;
+  encryptionStopIssued = false;
 
   constructor(recorder: RecorderModule, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, user: Dysnomia.User, auto = false) {
     this.recorder = recorder;
@@ -422,10 +426,7 @@ export default class Recording {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
       });
-      connection.on('warn', (m: string) => {
-        this.writeToLog(`Warning: ${m}`, 'connection');
-        this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
-      });
+      connection.on('warn', this.onConnectionWarn.bind(this));
       connection.on('debug', (m) => {
         this.writeToLog(`Debug: ${m}`, 'connection');
         this.recorder.logger.debug(`Recording ${this.id}`, m);
@@ -541,6 +542,38 @@ export default class Recording {
       this.latencyWarned = true;
       this.pushToActivity(`⚠️ High voice server latency: ${latency}ms, this may cause issues with the recording.`, true);
     } else await this.updateMessage();
+  }
+
+  async onConnectionWarn(message: string) {
+    this.writeToLog(`Warning: ${message}`, 'connection');
+    this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, message);
+
+    if (!this.active || this.encryptionStopIssued || !message.startsWith('Invalidating transition ')) return;
+
+    this.encryptionRecoveryAttempts++;
+
+    const endpoint = this.connection?.endpoint
+    const context = {
+      consecutiveDecryptionFailures: this.connection?.consecutiveDecryptionFailures,
+      failureTolerance: this.connection?.failureTolerance,
+      lastTransitionID: this.connection?.lastTransitionID,
+      reinitializing: this.connection?.reinitializing,
+      channelID: this.connection?.channelID,
+      endpoint: endpoint?.hostname,
+      daveProtocolVersion: this.connection?.daveProtocolVersion
+    };
+
+    this.writeToLog(`Encryption recovery warning ${this.encryptionRecoveryAttempts}: ${JSON.stringify(context)}`, 'connection');
+    this.recorder.logger.debug(`Encryption recovery warning for recording ${this.id}`, context);
+
+    if (this.encryptionRecoveryAttempts < ENCRYPTION_RECOVERY_STOP_THRESHOLD) return;
+
+    this.encryptionStopIssued = true;
+    const stopWarning =
+      "Due to voice encryption issues, I could not properly hear anyone. Please switch this channel's voice region and restart the recording.";
+    this.stateDescription = `⚠️ ${stopWarning}`;
+    await this.sendWarning(stopWarning, false);
+    await this.stop();
   }
 
   async onConnectionDisconnect(err?: Error) {
@@ -749,6 +782,8 @@ export default class Recording {
         return;
       }
     }
+
+    if (data.length > 0 && !data.equals(opusSilenceFrame)) this.encryptionRecoveryAttempts = 0;
 
     const chunkTime = process.hrtime(this.startTime!);
     const time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
