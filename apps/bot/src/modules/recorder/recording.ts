@@ -28,10 +28,12 @@ const opus = new OpusEncoder(48000, 2);
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const recNanoid = customAlphabet(alphabet, 12);
 const recIndicator = / *!?\[RECORDING\] */;
+const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
+const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
 
 const BAD_MESSAGE_CODES = [
   404,
@@ -130,6 +132,8 @@ export default class Recording {
   maintenceWarned = false;
   latencyWarned = false;
   zeroPacketWarned = false;
+  encryptionRecoveryAttempts = 0;
+  encryptionStopIssued = false;
 
   constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
     this.recorder = recorder;
@@ -432,10 +436,7 @@ export default class Recording {
         this.writeToLog(`Error: ${err}`, 'connection');
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
       });
-      connection.on('warn', (m: string) => {
-        this.writeToLog(`Warning: ${m}`, 'connection');
-        this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, m);
-      });
+      connection.on('warn', this.onConnectionWarn.bind(this));
       connection.on('debug', (m) => {
         this.writeToLog(`Debug: ${m}`, 'connection');
         this.recorder.logger.debug(`Recording ${this.id}`, m);
@@ -572,6 +573,38 @@ export default class Recording {
         this.recorder.logger.debug(`Recording ${this.id} failed to stop after disconnect`, e);
       }
     }
+  }
+
+  async onConnectionWarn(message: string) {
+    this.writeToLog(`Warning: ${message}`, 'connection');
+    this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, message);
+
+    if (!this.active || this.encryptionStopIssued || !message.startsWith('Invalidating transition ')) return;
+
+    this.encryptionRecoveryAttempts++;
+    this.writeToLog(
+      [
+        `DAVE recovery attempt ${this.encryptionRecoveryAttempts}/${ENCRYPTION_RECOVERY_STOP_THRESHOLD}`,
+        `fails=${this.connection?.consecutiveDecryptionFailures}`,
+        `tolerance=${this.connection?.failureTolerance}`,
+        `lastTransition=${this.connection?.lastTransitionID}`,
+        `reinitializing=${this.connection?.reinitializing}`,
+        `channel=${this.connection?.channelID}`,
+        `endpoint=${this.connection?.endpoint?.hostname}`,
+        `dave=${this.connection?.daveProtocolVersion}`
+      ].join(', '),
+      'connection'
+    );
+
+    if (this.encryptionRecoveryAttempts < ENCRYPTION_RECOVERY_STOP_THRESHOLD) return;
+
+    const stopWarning =
+      "Due to voice encryption issues, I could not properly hear anyone. Please switch this channel's voice region and restart the recording.";
+
+    this.encryptionStopIssued = true;
+    this.stateDescription = `⚠️ ${stopWarning}`;
+    await this.sendWarning(stopWarning, false);
+    await this.stop();
   }
 
   async onConnectionUnknown(packet: any) {
@@ -745,6 +778,8 @@ export default class Recording {
         return;
       }
     }
+
+    if (data.length > 0 && !data.equals(opusSilenceFrame)) this.encryptionRecoveryAttempts = 0;
 
     const chunkTime = process.hrtime(this.startTime!);
     const time = chunkTime[0] * 48000 + ~~(chunkTime[1] / 20833.333);
