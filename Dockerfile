@@ -117,8 +117,10 @@ COPY --from=builder /build/apps/bot/config    apps/bot/config
 COPY --from=builder /build/locale             locale
 # Prisma schema — needed by `prisma migrate deploy` in the migrate service
 COPY --from=builder /build/prisma             prisma
+# Cook scripts for post-processing recordings
+COPY --from=builder /build/cook               cook
 
-RUN mkdir -p rec && chown appuser:appgroup rec
+RUN mkdir -p rec && chown appuser:appgroup rec && chmod 775 rec
 
 WORKDIR /app/apps/bot
 USER appuser
