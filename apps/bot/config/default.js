@@ -152,5 +152,5 @@ module.exports = {
       }
     }
   },
-  commandsPath: './textCommands'
+  commandsPath: './commands'
 };

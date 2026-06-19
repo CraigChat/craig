@@ -99,10 +99,10 @@ dexareConfig.erisOptions = Object.assign({}, dexareConfig.erisOptions, {
   gateway: Object.assign({}, dexareConfig.erisOptions?.gateway ?? {}, {
     ...(process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined
       ? {
-          firstShardID: parseInt(process.env.SHARD_ID, 10),
-          lastShardID: parseInt(process.env.SHARD_ID, 10),
-          maxShards: parseInt(process.env.SHARD_COUNT, 10)
-        }
+        firstShardID: parseInt(process.env.SHARD_ID, 10),
+        lastShardID: parseInt(process.env.SHARD_ID, 10),
+        maxShards: parseInt(process.env.SHARD_COUNT, 10)
+      }
       : {}),
     intents: ['guilds', 'guildMessages', 'guildVoiceStates']
   })
@@ -145,14 +145,15 @@ export async function connect() {
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   await i18nInit();
-  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => client.commands.register(await import(file)));
+  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => {
+    client.commands.register(await import(file));
+  });
   await redisClient.connect();
   await client.connect();
   await prisma.$connect();
   influxCron.start();
   client.bot.editStatus('online', client.config.status);
 
-  process.title = `Craig - ${
-    process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
-  }`;
+  process.title = `Craig - ${process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
+    }`;
 }
