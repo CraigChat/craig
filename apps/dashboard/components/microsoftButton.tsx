@@ -1,12 +1,14 @@
 interface ButtonProps {
   onClick?(): any;
+  disabled?: boolean;
 }
 
-export default function MicrosoftButton({ onClick }: ButtonProps) {
+export default function MicrosoftButton({ onClick, disabled }: ButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="shadow flex items-center justify-center font-roboto transition-colors py-2 px-4 gap-4 text-neutral-500 bg-white rounded active:bg-neutral-200 hover:ring-2 focus:outline-none"
+      disabled={disabled}
+      className="shadow flex items-center justify-center font-roboto transition-colors py-2 px-4 gap-4 text-neutral-500 bg-white rounded active:bg-neutral-200 hover:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:ring-0"
     >
       <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 20 20">
         <rect x="1" y="1" width="9" height="9" fill="#f25022" />

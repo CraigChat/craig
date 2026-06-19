@@ -17,12 +17,12 @@ export const config = {
   cookieName: 'token',
   clientId: validateEnv('CLIENT_ID'),
   clientSecret: validateEnv('CLIENT_SECRET'),
-  googleClientId: validateEnv('GOOGLE_CLIENT_ID'),
-  googleClientSecret: validateEnv('GOOGLE_CLIENT_SECRET'),
-  microsoftClientId: validateEnv('MICROSOFT_CLIENT_ID'),
-  microsoftClientSecret: validateEnv('MICROSOFT_CLIENT_SECRET'),
-  dropboxClientId: validateEnv('DROPBOX_CLIENT_ID'),
-  dropboxClientSecret: validateEnv('DROPBOX_CLIENT_SECRET'),
+  googleClientId: validateEnv('GOOGLE_CLIENT_ID', ''),
+  googleClientSecret: validateEnv('GOOGLE_CLIENT_SECRET', ''),
+  microsoftClientId: validateEnv('MICROSOFT_CLIENT_ID', ''),
+  microsoftClientSecret: validateEnv('MICROSOFT_CLIENT_SECRET', ''),
+  dropboxClientId: validateEnv('DROPBOX_CLIENT_ID', ''),
+  dropboxClientSecret: validateEnv('DROPBOX_CLIENT_SECRET', ''),
   appUri: validateEnv('APP_URI', 'http://localhost:3000'),
   jwtSecret: validateEnv('JWT_SECRET', 'this is a development value that should be changed in production!!!!!')
 } as const;

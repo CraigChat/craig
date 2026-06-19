@@ -15,6 +15,7 @@ import DropboxLogo from '../components/svg/dropbox';
 import GoogleDriveLogo from '../components/svg/googleDrive';
 import OneDriveLogo from '../components/svg/oneDrive';
 import Toggle from '../components/toggle';
+import { config } from '../utils/config';
 import prisma from '../lib/prisma';
 import { getAvatarUrl, parseUser } from '../utils';
 import { DiscordUser } from '../utils/types';
@@ -26,6 +27,9 @@ interface Props {
   googleDrive: boolean;
   microsoft: boolean;
   dropbox: boolean;
+  googleDriveConfigured: boolean;
+  microsoftConfigured: boolean;
+  dropboxConfigured: boolean;
 }
 
 interface DriveProps {
@@ -290,54 +294,60 @@ export default function Index(props: Props) {
                 checked={driveEnabled}
                 onToggle={setDriveEnabled}
               />
-              <SelectableRow
-                title="Google Drive"
-                icon={<GoogleDriveLogo className="w-8 h-8" />}
-                selected={drive.service === 'google'}
-                disabled={loading}
-                hidden={!props.googleDrive}
-                onClick={() => setDriveService('google')}
-              >
-                {props.googleDrive ? (
-                  <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/google/disconnect')}>
-                    Disconnect
-                  </Button>
-                ) : (
-                  <GoogleButton onClick={() => (location.href = '/api/google/oauth')} />
-                )}
-              </SelectableRow>
-              <SelectableRow
-                title="Microsoft OneDrive"
-                icon={<OneDriveLogo className="w-8 h-8" />}
-                selected={drive.service === 'onedrive'}
-                disabled={loading}
-                hidden={!props.microsoft}
-                onClick={() => setDriveService('onedrive')}
-              >
-                {props.microsoft ? (
-                  <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/microsoft/disconnect')}>
-                    Disconnect
-                  </Button>
-                ) : (
-                  <MicrosoftButton onClick={() => (location.href = '/api/microsoft/oauth')} />
-                )}
-              </SelectableRow>
-              <SelectableRow
-                title="Dropbox"
-                icon={<DropboxLogo className="w-8 h-8" />}
-                selected={drive.service === 'dropbox'}
-                disabled={loading}
-                hidden={!props.dropbox}
-                onClick={() => setDriveService('dropbox')}
-              >
-                {props.dropbox ? (
-                  <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/dropbox/disconnect')}>
-                    Disconnect
-                  </Button>
-                ) : (
-                  <DropboxButton onClick={() => (location.href = '/api/dropbox/oauth')} />
-                )}
-              </SelectableRow>
+              <div className={clsx(!props.googleDriveConfigured && 'opacity-50')} title={!props.googleDriveConfigured ? 'Configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env to enable Google Drive' : undefined}>
+                <SelectableRow
+                  title="Google Drive"
+                  icon={<GoogleDriveLogo className="w-8 h-8" />}
+                  selected={drive.service === 'google'}
+                  disabled={loading || !props.googleDriveConfigured}
+                  hidden={!props.googleDrive && !props.googleDriveConfigured}
+                  onClick={() => props.googleDriveConfigured && setDriveService('google')}
+                >
+                  {props.googleDrive ? (
+                    <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/google/disconnect')}>
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <GoogleButton onClick={() => (location.href = '/api/google/oauth')} disabled={!props.googleDriveConfigured} />
+                  )}
+                </SelectableRow>
+              </div>
+              <div className={clsx(!props.microsoftConfigured && 'opacity-50')} title={!props.microsoftConfigured ? 'Configure MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET in .env to enable OneDrive' : undefined}>
+                <SelectableRow
+                  title="Microsoft OneDrive"
+                  icon={<OneDriveLogo className="w-8 h-8" />}
+                  selected={drive.service === 'onedrive'}
+                  disabled={loading || !props.microsoftConfigured}
+                  hidden={!props.microsoft && !props.microsoftConfigured}
+                  onClick={() => props.microsoftConfigured && setDriveService('onedrive')}
+                >
+                  {props.microsoft ? (
+                    <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/microsoft/disconnect')}>
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <MicrosoftButton onClick={() => (location.href = '/api/microsoft/oauth')} disabled={!props.microsoftConfigured} />
+                  )}
+                </SelectableRow>
+              </div>
+              <div className={clsx(!props.dropboxConfigured && 'opacity-50')} title={!props.dropboxConfigured ? 'Configure DROPBOX_CLIENT_ID and DROPBOX_CLIENT_SECRET in .env to enable Dropbox' : undefined}>
+                <SelectableRow
+                  title="Dropbox"
+                  icon={<DropboxLogo className="w-8 h-8" />}
+                  selected={drive.service === 'dropbox'}
+                  disabled={loading || !props.dropboxConfigured}
+                  hidden={!props.dropbox && !props.dropboxConfigured}
+                  onClick={() => props.dropboxConfigured && setDriveService('dropbox')}
+                >
+                  {props.dropbox ? (
+                    <Button type="transparent" className="text-red-500" onClick={() => (location.href = '/api/dropbox/disconnect')}>
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <DropboxButton onClick={() => (location.href = '/api/dropbox/oauth')} disabled={!props.dropboxConfigured} />
+                  )}
+                </SelectableRow>
+              </div>
               <div className="w-full flex flex-col gap-2">
                 <span className="font-display">Formats</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -418,7 +428,10 @@ export const getServerSideProps: GetServerSideProps<Props> = async function (ctx
       },
       googleDrive: !!googleDrive,
       microsoft: !!microsoft,
-      dropbox: !!dropbox
+      dropbox: !!dropbox,
+      googleDriveConfigured: !!(config.googleClientId && config.googleClientSecret),
+      microsoftConfigured: !!(config.microsoftClientId && config.microsoftClientSecret),
+      dropboxConfigured: !!(config.dropboxClientId && config.dropboxClientSecret)
     }
   };
 };
