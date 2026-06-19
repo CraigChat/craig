@@ -6,8 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./sharding": "./src/sharding/index.ts",
-    "./commands/*": "./src/commands/*.ts",
-    "./textCommands/*": "./src/textCommands/*.ts"
+    "./commands/*": "./src/commands/*.ts"
   },
   "private": true,
   "author": {

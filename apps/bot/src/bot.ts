@@ -1,8 +1,6 @@
 import config from 'config';
 import { BaseConfig, DexareClient } from 'dexare';
-import { iterateFolder } from 'dexare/lib/util';
 import Eris from 'eris';
-import path from 'node:path';
 import { SlashCreatorOptions } from 'slash-create';
 
 import { init as i18nInit } from './i18n';
@@ -145,9 +143,6 @@ export async function connect() {
   client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
 
   await i18nInit();
-  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => {
-    client.commands.register(await import(file));
-  });
   await redisClient.connect();
   await client.connect();
   await prisma.$connect();
