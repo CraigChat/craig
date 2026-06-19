@@ -85,8 +85,6 @@ export default ({ watch }) => [
         GIT_REVISION: revision,
         VERSION: pkg.version,
         ENNUIZEL_BASE: process.env.ENNUIZEL_BASE,
-        SENTRY_DSN: process.env.SENTRY_DSN,
-        SENTRY_SAMPLE_RATE: process.env.SENTRY_SAMPLE_RATE,
         LOCALES: locales
       }),
       alias({
