@@ -18,7 +18,7 @@ import {
 import type { CraigBotConfig } from '../bot';
 import { onCommandRun } from '../influx';
 import { prisma } from '../prisma';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util';
+import { checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings } from '../util';
 import type RecorderModule from './recorder';
 import { RecordingState } from './recorder/recording';
 
@@ -285,34 +285,6 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
     }
 
     switch (action) {
-      case 'bless': {
-        const [guildID] = args;
-        try {
-          await ctx.editParent({ components: [] });
-          await ctx.send(await blessServer(ctx.user.id, guildID, this.emojis));
-        } catch (e) {
-          this.logger.error(`Error blessing server ${guildID}:`, e);
-          await ctx.send({
-            content: 'An error occurred while blessing the server.',
-            ephemeral: true
-          });
-        }
-        return;
-      }
-      case 'unbless': {
-        const [guildID] = args;
-        try {
-          await ctx.editParent({ components: [] });
-          await ctx.send(await unblessServer(ctx.user.id, guildID));
-        } catch (e) {
-          this.logger.error(`Error unblessing server ${guildID}:`, e);
-          await ctx.send({
-            content: 'An error occurred while removing the blessing from the server.',
-            ephemeral: true
-          });
-        }
-        return;
-      }
       case 'recordings': {
         const [page] = args;
         try {
