@@ -1,7 +1,5 @@
 import { createTRPCClient } from '@trpc/client';
 import { httpLink } from '@trpc/client/links/httpLink';
-import type { Procedure } from '@trpc/server/dist/declarations/src/internals/procedure';
-import type { DefaultErrorShape, Router } from '@trpc/server/dist/declarations/src/router';
 import { CronJob } from 'cron';
 import { DexareClient, DexareModule } from 'dexare';
 import Eris from 'eris';
@@ -20,44 +18,6 @@ import type UploadModule from '../upload';
 import Recording, { RecordingState } from './recording';
 import { VoiceTestState } from './voiceTest';
 
-type TRPCRouter = Router<
-  unknown,
-  unknown,
-  Record<
-    'driveUpload',
-    Procedure<
-      unknown,
-      unknown,
-      { recordingId: string; userId: string },
-      { recordingId: string; userId: string },
-      { error: string | null; notify: boolean; id?: string | undefined; url?: string | undefined }
-    >
-  > &
-    Record<
-      'driveSummaryUpload',
-      Procedure<
-        unknown,
-        unknown,
-        { recordingId: string; userId: string },
-        { recordingId: string; userId: string },
-        { error: string | null; uploaded: boolean; url?: string | undefined }
-      >
-    > &
-    Record<
-      'driveTranscriptUpload',
-      Procedure<
-        unknown,
-        unknown,
-        { recordingId: string; userId: string },
-        { recordingId: string; userId: string },
-        { error: string | null; uploaded: boolean; url?: string | undefined }
-      >
-    >,
-  any,
-  any,
-  DefaultErrorShape
->;
-
 const RECORDING_TTL = 5 * 60 * 1000;
 
 export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
@@ -65,7 +25,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   voiceTests = new Map<string, import('./voiceTest').VoiceTest>();
   recordingPath: string;
   recordingsChecked = false;
-  trpc = createTRPCClient<TRPCRouter>({
+  trpc = createTRPCClient<any>({
     fetch: fetch as any,
     links: [httpLink({ url: process.env.TASKS_URL ?? 'http://localhost:2022' })]
   });

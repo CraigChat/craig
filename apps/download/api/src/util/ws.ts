@@ -7,6 +7,9 @@ export function toBuffer(data: RawData) {
   if (Array.isArray(data)) {
     return Buffer.concat(data);
   }
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data);
+  }
   return Buffer.from(data);
 }
 
