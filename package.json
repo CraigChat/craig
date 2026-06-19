@@ -1,13 +1,8 @@
 {
   "name": "craig",
-  "homepage": "http://craig.chat/",
+  "homepage": "http://craig.home.arpa/",
   "license": "ISC",
   "private": true,
-  "author": {
-    "name": "Snazzah",
-    "email": "me@snazzah.com",
-    "url": "https://snazzah.com/"
-  },
   "workspaces": [
     "apps/bot",
     "apps/dashboard",
@@ -26,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/CraigChat/craig"
+    "url": "https://github.com/mhd-hi/craig-ai"
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",

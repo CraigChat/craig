@@ -74,18 +74,6 @@ export function checkRecordingPermission(member: Member, guildData?: Guild | nul
   return false;
 }
 
-export function checkRecordingPermissionEris(member: Eris.Member, guildData?: Guild | null) {
-  if (!member) {
-    return false;
-  }
-  if (member.permissions.has('manageGuild')) {
-    return true;
-  }
-  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) {
-    return true;
-  }
-  return false;
-}
 
 export interface ParsedRewards {
   tier: number;
@@ -257,85 +245,6 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
   } as EditMessageOptions as any;
 }
 
-export async function blessServer(userID: string, guildID: string, emojis: SlashModule<any>['emojis']): Promise<MessageOptions> {
-  const userData = await prisma.user.findFirst({ where: { id: userID } });
-  const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
-  const blessingUser = blessing ? (blessing.userId === userID ? userData : await prisma.user.findFirst({ where: { id: blessing.userId } })) : null;
-
-  const userTier = userData?.rewardTier || 0;
-  const guildTier = blessingUser?.rewardTier || 0;
-
-  if (blessingUser && blessingUser.id === userID) {
-    return {
-      content: 'You already blessed this server.',
-      ephemeral: true,
-      components: [
-        {
-          type: ComponentType.ACTION_ROW,
-          components: [
-            {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.DESTRUCTIVE,
-              label: 'Remove blessing',
-              custom_id: `user:unbless:${guildID}`,
-              emoji: emojis.getPartial('remove') || undefined
-            }
-          ]
-        }
-      ]
-    };
-  }
-
-  if (userTier === 0) {
-    return {
-      content: "You don't have any perks to bless this server with.",
-      ephemeral: true
-    };
-  }
-
-  if (guildTier === -1 || (guildTier >= userTier && userTier !== -1)) {
-    return {
-      content: 'This server has already been blessed by a similar or greater tier.',
-      ephemeral: true
-    };
-  }
-
-  // Remove other blessings
-  if (userTier !== -1) {
-    await prisma.blessing.deleteMany({ where: { userId: userID } });
-  }
-
-  await prisma.blessing.upsert({
-    where: { guildId: guildID },
-    update: { userId: userID },
-    create: { guildId: guildID, userId: userID }
-  });
-
-  return {
-    content: 'You have blessed this server and gave it your perks. All future recordings will have your features.',
-    ephemeral: true
-  };
-}
-
-export async function unblessServer(userID: string, guildID: string): Promise<MessageOptions> {
-  const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
-
-  if (!blessing || blessing.userId !== userID) {
-    return {
-      content: 'You have not blessed this server.',
-      ephemeral: true
-    };
-  }
-
-  await prisma.blessing.delete({
-    where: { guildId: guildID }
-  });
-
-  return {
-    content: 'Removed your blessing from this server.',
-    ephemeral: true
-  };
-}
 
 export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
   const recordings = await prisma.recording.findMany({
@@ -447,28 +356,6 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
   } as EditMessageOptions;
 }
 
-export async function replyOrSend(ctx: CommandContext, content: Eris.MessageContent): Promise<Eris.Message> {
-  if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory')) {
-    return ctx.replyMention(content);
-  } else {
-    return ctx.reply(content);
-  }
-}
-
-export abstract class TextCommand extends DexareCommand {
-  // @ts-ignore
-  client!: CraigBot;
-
-  get emojis() {
-    return (this.client.modules.get('slash') as SlashModule<any>).emojis;
-  }
-
-  finalize(response: any, ctx: CommandContext) {
-    if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object')) {
-      return replyOrSend(ctx, response);
-    }
-  }
-}
 
 export async function getSelfMember(guild: Eris.Guild, client: Eris.Client) {
   return (await guild.fetchMembers({ userIDs: [client.user.id] }).catch(() => []))[0] ?? null;

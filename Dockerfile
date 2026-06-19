@@ -120,7 +120,7 @@ COPY --from=builder /build/prisma             prisma
 # Cook scripts for post-processing recordings
 COPY --from=builder /build/cook               cook
 
-RUN mkdir -p rec && chown appuser:appgroup rec && chmod 775 rec
+RUN mkdir -p rec && chown appuser:appgroup rec && chmod 755 rec
 
 WORKDIR /app/apps/bot
 USER appuser

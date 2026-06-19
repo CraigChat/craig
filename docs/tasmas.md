@@ -6,7 +6,7 @@ The `tasmas/` folder is a Python sidecar that watches Craig's recordings directo
 
 1. Watches `CRAIG_RECORDINGS_DIR` for new `.flac.zip` files
 2. Extracts the archive and builds a speaker map from Craig's `info.txt`
-3. Runs the [TASMAS](https://github.com/CraigChat/tasmas) Docker image (`whisper_timestamped`) to produce a transcript
+3. Runs the `Tasmas` Docker image (`whisper_timestamped`) to produce a transcript
 4. Passes the transcript to the AI provider chain — see [ai-summarization.md](ai-summarization.md)
 5. Optionally posts the summary to Discord via webhook
 6. Marks the recording as complete so watcher restarts skip it
