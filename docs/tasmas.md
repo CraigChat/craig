@@ -33,7 +33,7 @@ Set `TASMAS_GPU_ARGS=--gpus all` in `.env` to use a GPU; leave it empty for CPU-
 
 ## Configuration
 
-All settings live in `.env`. Key variables: `CRAIG_RECORDINGS_DIR`, `TASMAS_OUTPUT_DIR`, `TASMAS_IMAGE`, `TASMAS_GPU_ARGS`, `TASMAS_MODEL_CACHE_DIR`. See `.env.example` for the full list.
+All settings live in `.env`. Key variables: `CRAIG_RECORDINGS_DIR`, `TASMAS_OUTPUT_DIR`, `CRAIG_TASMAS_IMAGE`, `TASMAS_GPU_ARGS`, `TASMAS_MODEL_CACHE_DIR`. See `.env.example` for the full list.
 
 ## Output
 

@@ -64,7 +64,7 @@ Set these in `.env`:
 
 - `CRAIG_RECORDINGS_DIR`: Craig recording folder. **Required** — set this in `.env`.
 - `TASMAS_OUTPUT_DIR`: staged audio, transcripts, and summaries. Default: `$CRAIG_RECORDINGS_DIR/tasmas`.
-- `TASMAS_IMAGE`: TASMAS Docker image. Default: `kaddaok/tasmas:latest`.
+- `CRAIG_TASMAS_IMAGE`: TASMAS Docker image. Default: `mhd-hi/tasmas:latest`.
 - `TASMAS_GPU_ARGS`: Docker GPU args. Default: `--gpus all`. Set to an empty value for CPU-only.
 - `TASMAS_MODEL_CACHE_DIR`: persistent Whisper/Torch model cache. Default: `$CRAIG_RECORDINGS_DIR/tasmas-model-cache`.
 - `TASMAS_EXTRA_ARGS`: extra TASMAS args before `semiauto`, such as `--showTimestamps`.

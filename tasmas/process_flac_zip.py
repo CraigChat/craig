@@ -22,7 +22,7 @@ from recording_names import recording_output_filename, recording_timestamp
 REPO_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_INSTALL_CONFIG = REPO_DIR / ".env"
 DEFAULT_RECORDINGS_DIR = Path(os.environ.get("CRAIG_RECORDINGS_DIR", "/craig-recordings"))
-DEFAULT_TASMAS_IMAGE = "kaddaok/tasmas:latest"
+DEFAULT_TASMAS_IMAGE = "ghcr.io/mhd-hi/craig-ai/tasmas:latest"
 
 
 def load_install_config() -> None:
@@ -126,7 +126,7 @@ def tasmas_model_cache_args() -> list[str]:
 
 
 def run_tasmas(output_root: Path, recording_id: str) -> None:
-    image = os.environ.get("TASMAS_IMAGE", DEFAULT_TASMAS_IMAGE)
+    image = os.environ.get("CRAIG_TASMAS_IMAGE", DEFAULT_TASMAS_IMAGE)
     container_dir = f"/recordings/{recording_id}"
     command = [
         "docker",

@@ -71,7 +71,7 @@ NVIDIA_API_KEY=           # https://build.nvidia.com (free tier available)
 OPENROUTER_API_KEY=       # https://openrouter.ai (used as fallback)
 ```
 
-All other variables (`AI_SUMMARY_MODEL`, `TASMAS_IMAGE`, GPU args, model params, etc.) have working defaults.
+All other variables (`AI_SUMMARY_MODEL`, `CRAIG_TASMAS_IMAGE`, GPU args, model params, etc.) have working defaults.
 
 ## 3. Start
 
