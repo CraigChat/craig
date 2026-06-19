@@ -21,6 +21,10 @@ import { prisma } from './prisma';
 
 export { version };
 
+export const commitSha = (process.env.COMMIT_SHA || 'unknown').substring(0, 7);
+export const deployedAt = process.env.DEPLOYED_AT ? new Date(process.env.DEPLOYED_AT) : new Date();
+export const githubRepoUrl = 'https://github.com/mhd-hi/craig-ai';
+
 let lastBanUpdate = 0;
 let bans: Ban[] = [];
 

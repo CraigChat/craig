@@ -91,6 +91,12 @@ RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | bash - && 
 # =============================================================
 FROM runtime-base AS bot
 
+ARG COMMIT_SHA=unknown
+ARG DEPLOYED_AT=unknown
+
+ENV COMMIT_SHA=${COMMIT_SHA}
+ENV DEPLOYED_AT=${DEPLOYED_AT}
+
 WORKDIR /app
 
 # Production node_modules (hoisted at /app/node_modules)

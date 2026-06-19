@@ -3,7 +3,7 @@ import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-
 
 import { processCooldown } from '../redis';
 import GeneralCommand from '../slashCommand';
-import { checkBan } from '../util';
+import { checkBan, commitSha, deployedAt, githubRepoUrl } from '../util';
 
 export default class Info extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -36,6 +36,10 @@ export default class Info extends GeneralCommand {
     }
 
     const [guildCount, recordings] = await this.sharding.getCounts();
+    const deploymentTime = Math.floor((Date.now() - deployedAt.getTime()) / 1000);
+    const hours = Math.floor(deploymentTime / 3600);
+    const minutes = Math.floor((deploymentTime % 3600) / 60);
+    const timeAgo = hours > 0 ? `${hours}h ${minutes}m ago` : `${minutes}m ago`;
 
     return {
       content: stripIndents`
@@ -45,6 +49,9 @@ export default class Info extends GeneralCommand {
         This server is on shard ${this.client.shard?.id ?? process.env.SHARD_ID} with ${
         this.client.shard?.latency ?? '<unknown>'
       } milliseconds of latency.
+
+        **Version:** [${commitSha}](${githubRepoUrl}/commit/${process.env.COMMIT_SHA || 'unknown'})
+        **Last deployed:** ${timeAgo}
       `,
       ephemeral: true,
       components: [
@@ -56,6 +63,12 @@ export default class Info extends GeneralCommand {
               style: ButtonStyle.LINK,
               label: 'craig.chat',
               url: this.client.config.craig.homepage
+            },
+            {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: 'GitHub',
+              url: githubRepoUrl
             },
             {
               type: ComponentType.BUTTON,
