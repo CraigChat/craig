@@ -53,7 +53,7 @@
     "@rollup/plugin-alias": "^3.1.9",
     "@rollup/plugin-buble": "^0.21.3",
     "@rollup/plugin-commonjs": "^22.0.0",
-    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^8.3.3",
     "@sentry/react": "^6.17.4",
     "@types/cron": "^2.0.0",
