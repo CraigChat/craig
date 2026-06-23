@@ -16,3 +16,5 @@ overrides:
   "supports-color": "8.1.1"
 patchedDependencies:
   "svelte-awesome-color-picker@4.0.2": "patches/svelte-awesome-color-picker@4.0.2.patch"
+minimumReleaseAgeExclude:
+- "@snazzah/davey*"

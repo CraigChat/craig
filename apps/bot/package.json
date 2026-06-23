@@ -30,7 +30,7 @@
     "@sentry/integrations": "^7.120.4",
     "@sentry/node": "^7.120.4",
     "@sentry/tracing": "^7.120.4",
-    "@snazzah/davey": "^0.1.10",
+    "@snazzah/davey": "^0.1.12",
     "@snazzah/emoji-sync": "^0.1.2",
     "common-tags": "^1.8.2",
     "cron": "^4.3.4",
