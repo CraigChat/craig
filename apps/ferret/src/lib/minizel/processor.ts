@@ -110,8 +110,8 @@ export class MinizelProcessor {
   private queuedBytes = new Map<number, number>();
 
   // Decoders
-  private opusDecoder: OpusDecoderWebWorker<48000> | null = null;
-  private flacDecoder: FLACDecoderWebWorker | null = null;
+  private opusDecoders = new Map<number, OpusDecoderWebWorker<48000>>();
+  private flacDecoders = new Map<number, FLACDecoderWebWorker>();
   private silentAudioBuffer: Float32Array[] | null = null;
   private silentAudioBuffer44k: Float32Array[] | null = null;
 
@@ -226,14 +226,34 @@ export class MinizelProcessor {
         await writer.write({ type: 'write', position: chunk.position, data: chunk.data as BufferSource });
         onWrite?.(chunk.position, chunk.data.byteLength);
       },
-      close() {
-        writer.close();
+      async close() {
+        await writer.close();
       },
       async abort() {
         await writer.abort();
       }
     });
     return new StreamTarget(writable, { chunked: true, chunkSize: CHUNK_SIZE });
+  }
+
+  private async decodeFrame(serial: number, type: CraigAudioType, frame: Uint8Array) {
+    if (type === 'opus') {
+      let decoder = this.opusDecoders.get(serial);
+      if (!decoder) {
+        decoder = new OpusDecoderWebWorker({ forceStereo: true, sampleRate: 48_000 });
+        this.opusDecoders.set(serial, decoder);
+        await decoder.ready;
+      }
+      return decoder.decodeFrame(frame);
+    }
+
+    let decoder = this.flacDecoders.get(serial);
+    if (!decoder) {
+      decoder = new FLACDecoderWebWorker();
+      this.flacDecoders.set(serial, decoder);
+      await decoder.ready;
+    }
+    return decoder.decode(frame);
   }
 
   private writePacket(serial: number, position: bigint, frame?: Uint8Array): void {
@@ -271,7 +291,7 @@ export class MinizelProcessor {
         } else {
           // Decode frame
           const type = this.streamTypes.get(serial)!;
-          const decoded = type === 'opus' ? await this.opusDecoder!.decodeFrame(frameCopy) : await this.flacDecoder!.decode(frameCopy);
+          const decoded = await this.decodeFrame(serial, type, frameCopy);
           channelData = decoded.channelData;
           sampleRate = decoded.sampleRate;
         }
@@ -527,16 +547,17 @@ export class MinizelProcessor {
 
   async start(): Promise<void> {
     if (this.format !== 'ogg') {
-      this.opusDecoder = new OpusDecoderWebWorker({ forceStereo: true, sampleRate: 48_000 });
-      this.flacDecoder = new FLACDecoderWebWorker();
-      await Promise.all([this.opusDecoder.ready, this.flacDecoder.ready]);
+      const silenceOpusDecoder = new OpusDecoderWebWorker({ forceStereo: true, sampleRate: 48_000 });
+      const silenceFlacDecoder = new FLACDecoderWebWorker();
+      await Promise.all([silenceOpusDecoder.ready, silenceFlacDecoder.ready]);
 
       if (!this.silentAudioBuffer) {
-        this.silentAudioBuffer = (await this.opusDecoder.decodeFrame(SILENT_OPUS)).channelData;
+        this.silentAudioBuffer = (await silenceOpusDecoder.decodeFrame(SILENT_OPUS)).channelData;
       }
       if (!this.silentAudioBuffer44k) {
-        this.silentAudioBuffer44k = (await this.flacDecoder.decode(SILENT_FLAC_44K)).channelData;
+        this.silentAudioBuffer44k = (await silenceFlacDecoder.decode(SILENT_FLAC_44K)).channelData;
       }
+      await Promise.all([silenceOpusDecoder.free(), silenceFlacDecoder.free()]);
 
       const canDo = await canEncodeAudio(this.format === 'wav' ? 'pcm-f32' : this.format, {
         numberOfChannels: 2,
@@ -626,10 +647,10 @@ export class MinizelProcessor {
       );
       throw e;
     } finally {
-      await this.opusDecoder?.free();
-      this.opusDecoder = null;
-      await this.flacDecoder?.free();
-      this.flacDecoder = null;
+      await Promise.all([...this.opusDecoders.values()].map((decoder) => decoder.free()));
+      this.opusDecoders.clear();
+      await Promise.all([...this.flacDecoders.values()].map((decoder) => decoder.free()));
+      this.flacDecoders.clear();
     }
   }
 }
