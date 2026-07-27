@@ -9,6 +9,7 @@ import {
   JOB_EXPIRATION,
   KITCHEN_CLEAN_FILES,
   KITCHEN_CRON_TIME,
+  KITCHEN_SAVE_CRON_TIME,
   OUTPUT_DIRECTORY,
   QUEUE_SIZE,
   REC_DIRECTORY,
@@ -25,6 +26,7 @@ import { Job } from './job.js';
 
 export default class JobManager {
   cron = new CronJob(KITCHEN_CRON_TIME, this.cleanCron.bind(this), null, false);
+  saveCron = SAVE_JOBS ? new CronJob(KITCHEN_SAVE_CRON_TIME, this.saveCronTick.bind(this), null, false) : undefined;
   jobs = new Map<string, Job>();
   allowNewJobs = false;
   queueInterval?: NodeJS.Timeout;
@@ -69,7 +71,7 @@ export default class JobManager {
     if (!savedJobs) return void logger.info('No saved jobs found to resume.');
     await deleteSavedJobs();
     logger.info(
-      `Loading saved jobs (${savedJobs.timestamp}), ${savedJobs.savedIds.length.toString()} saved, ${savedJobs.resumeIds.length.toString()} resumable`
+      `Loading saved jobs (${savedJobs.timestamp}, reason: ${savedJobs.reason ?? 'unknown'}), ${savedJobs.savedIds.length.toString()} saved, ${savedJobs.resumeIds.length.toString()} resumable`
     );
 
     if (savedJobs.resumeIds.length > 0) {
@@ -133,6 +135,7 @@ export default class JobManager {
     await this.loadSavedJobs();
     this.allowNewJobs = true;
     this.cron.start();
+    this.saveCron?.start();
     if (QUEUE_SIZE) this.queueInterval = setInterval(() => this.queueIntervalTick(), 1_000);
 
     logger.info('Job manager ready.');
@@ -140,27 +143,44 @@ export default class JobManager {
 
   async onShutdown() {
     this.allowNewJobs = false;
-    const allJobs = Array.from(this.jobs.values());
     const jobsToResume = this.cancelAllJobs('SERVICE_RESTARTING');
     const jobsToSave = Array.from(this.jobs.values()).filter((job) => job.status === 'complete' || job.status === 'queued');
     this.cron.stop();
+    this.saveCron?.stop();
 
     if (!SAVE_JOBS) return;
 
+    if (jobsToResume.length === 0 && jobsToSave.length === 0) logger.info('No jobs needed to save.');
+    if (jobsToResume.length !== 0) logger.info(`Saving jobs to resume: ${jobsToResume.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
+    if (jobsToSave.length !== 0) logger.info(`Saving completed/queued jobs: ${jobsToSave.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
+    await this.saveJobs(jobsToResume, jobsToSave, 'shutdown');
+    logger.info('Saved jobs.');
+
+    await wait(1000);
+  }
+
+  async saveCronTick() {
+    const jobsToResume = Array.from(this.jobs.values()).filter((job) => job.status === 'running');
+    const jobsToSave = Array.from(this.jobs.values()).filter((job) => job.status === 'complete' || job.status === 'queued');
+
+    try {
+      await this.saveJobs(jobsToResume, jobsToSave, 'autosave');
+      logger.debug(`Auto-saved ${String(jobsToResume.length + jobsToSave.length)} jobs.`);
+    } catch (error) {
+      logger.error('Failed to auto-save jobs.', error);
+    }
+  }
+
+  async saveJobs(jobsToResume: Job[], jobsToSave: Job[], reason: SavedJobsJSON['reason']) {
     const payload: SavedJobsJSON = {
-      jobs: allJobs.map((j) => j.toJSON()),
+      jobs: Array.from(this.jobs.values()).map((job) => job.toJSON()),
+      reason,
       resumeIds: jobsToResume.map((job) => job.id),
       savedIds: jobsToSave.map((job) => job.id),
       timestamp: new Date().toISOString()
     };
 
-    if (jobsToResume.length === 0 && jobsToSave.length === 0) return void logger.info('No jobs needed to save.');
-    if (jobsToResume.length !== 0) logger.info(`Saving jobs to resume: ${jobsToResume.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
-    if (jobsToSave.length !== 0) logger.info(`Saving completed/queued jobs: ${jobsToSave.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
     await writeSavedJobs(payload);
-    logger.info('Saved jobs.');
-
-    await wait(1000);
   }
 
   async clearTmpDirectory() {

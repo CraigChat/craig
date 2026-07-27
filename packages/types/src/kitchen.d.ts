@@ -105,6 +105,7 @@ export interface JobJSON {
 
 export interface SavedJobsJSON {
   jobs: JobJSON[];
+  reason: 'autosave' | 'shutdown';
   resumeIds: string[];
   savedIds: string[];
   timestamp: string;

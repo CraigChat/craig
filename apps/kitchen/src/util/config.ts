@@ -14,6 +14,7 @@ export const JOB_EXPIRATION = ms((process.env.JOB_EXPIRATION as ms.StringValue) 
 export const TMP_EXPIRATION = ms((process.env.TMP_EXPIRATION as ms.StringValue) || '6h');
 
 export const SAVE_JOBS = process.env.SAVE_JOBS === 'true';
+export const KITCHEN_SAVE_CRON_TIME = process.env.KITCHEN_SAVE_CRON_TIME || '*/30 * * * * *';
 export const KITCHEN_CRON_TIME = process.env.KITCHEN_CRON_TIME || '0 * * * *';
 export const KITCHEN_CLEAN_FILES = process.env.KITCHEN_CLEAN_FILES !== 'false';
 export const QUEUE_SIZE = process.env.QUEUE_SIZE ? parseInt(process.env.QUEUE_SIZE, 10) : null;
