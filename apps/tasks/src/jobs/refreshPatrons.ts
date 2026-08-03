@@ -95,7 +95,7 @@ export default class RefreshPatrons extends TaskJob {
         id: userId,
         entitlementId: member.id,
         name: member.attributes.full_name,
-        email: member.attributes.email,
+        email: member.attributes.email || '',
         cents: member.attributes.currently_entitled_amount_cents,
         status: member.attributes.patron_status,
         discordId,
