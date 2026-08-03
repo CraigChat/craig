@@ -3473,9 +3473,9 @@ fast-text-encoding@^1.0.0:
   integrity sha512-dtm4QZH9nZtcDt8qJiOH9fcQd1NAgi+K1O2DbE6GG1PPCK/BWfOH3idCTRQ4ImXRUOyopDEgDEnVEE7Y/2Wrig==
 
 fast-uri@^2.0.0, fast-uri@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/fast-uri/-/fast-uri-2.1.0.tgz#9279432d6b53675c90116b947ed2bbba582d6fb5"
-  integrity sha512-qKRta6N7BWEFVlyonVY/V+BMLgFqktCUV0QjT259ekAIlbVrMaFnFLxJ4s/JPl4tou56S1BzPufI60bLe29fHA==
+  version "2.4.4"
+  resolved "https://registry.yarnpkg.com/fast-uri/-/fast-uri-2.4.4.tgz#40930a0ce6d188d2224d0ca1488aa6fe344d77c9"
+  integrity sha512-GntYZbd2KSiFfoZI3Y02rXKihfsPwdWfiHrwKVLuU1i810D0SYw7fCarLxaRO2VvneTrbzCxSz3GnvEfUiApug==
 
 fastify-plugin@^3.0.0, fastify-plugin@^3.0.1:
   version "3.0.1"
