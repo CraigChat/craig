@@ -117,71 +117,75 @@ export default class UploadModule extends BotModule {
     if (this.running) return;
     this.running = true;
 
-    const pendingJobs = await redis.smembers(this.KEY);
+    try {
+      const pendingJobs = await redis.smembers(this.KEY);
 
-    for (const jobId of pendingJobs) {
-      try {
-        const response = await fetch(`${this.client.config.kitchenURL}/jobs/${jobId}`);
-        if (response.ok) {
-          const job = await response.json().catch(() => null);
-          if (!job) {
-            this.logger.error(`Failed to parse job info for job ${jobId}`);
-            continue;
-          }
+      for (const jobId of pendingJobs) {
+        try {
+          const response = await fetch(`${this.client.config.kitchenURL}/jobs/${jobId}`);
+          if (response.ok) {
+            const job = await response.json().catch(() => null);
+            if (!job) {
+              this.logger.error(`Failed to parse job info for job ${jobId}`);
+              continue;
+            }
 
-          // Check if the job is done
-          if (job.status !== 'idle' && job.status !== 'queued' && job.status !== 'running') {
-            const recordingId = job.recordingId;
-            const userId = job.postTaskOptions.userId;
-            const driveService = job.outputData.uploadService;
-            const service = SERVICES[driveService] ?? driveService;
+            // Check if the job is done
+            if (job.status !== 'idle' && job.status !== 'queued' && job.status !== 'running') {
+              const recordingId = job.recordingId;
+              const userId = job.postTaskOptions.userId;
+              const driveService = job.outputData.uploadService;
+              const service = SERVICES[driveService] ?? driveService;
 
-            if (job.status === 'error')
-              await this.dm(userId, {
-                title: `Failed to upload to ${service}`,
-                description: `${
-                  job.outputData.uploadError ? 'An error occurred while uploading.' : 'An error occurred while creating the download.'
-                } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-                color: ERROR_COLOR
-              });
-            else if (job.status === 'cancelled')
-              await this.dm(userId, {
-                title: `Failed to upload to ${service}`,
-                description: `The download was cancelled, possibly due to server maintenance. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
-                color: ERROR_COLOR
-              });
-            else if (job.status === 'complete')
-              await this.dm(
-                userId,
-                {
-                  title: `Uploaded to ${service}`,
-                  description: `Recording \`${recordingId}\` was uploaded to ${service}.`,
-                  color: SUCCESS_COLOR
-                },
-                {
-                  label: `Open in ${service}`,
-                  url: job.outputData.uploadFileURL
-                }
-              );
+              if (job.status === 'error')
+                await this.dm(userId, {
+                  title: `Failed to upload to ${service}`,
+                  description: `${
+                    job.outputData.uploadError ? 'An error occurred while uploading.' : 'An error occurred while creating the download.'
+                  } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+                  color: ERROR_COLOR
+                });
+              else if (job.status === 'cancelled')
+                await this.dm(userId, {
+                  title: `Failed to upload to ${service}`,
+                  description: `The download was cancelled, possibly due to server maintenance. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+                  color: ERROR_COLOR
+                });
+              else if (job.status === 'complete')
+                await this.dm(
+                  userId,
+                  {
+                    title: `Uploaded to ${service}`,
+                    description: `Recording \`${recordingId}\` was uploaded to ${service}.`,
+                    color: SUCCESS_COLOR
+                  },
+                  {
+                    label: `Open in ${service}`,
+                    url: job.outputData.uploadFileURL
+                  }
+                );
 
+              await redis.srem(this.KEY, jobId);
+            }
+          } else {
+            this.logger.warn(`Failed to find pending job ${jobId}`);
             await redis.srem(this.KEY, jobId);
           }
-        } else {
-          this.logger.warn(`Failed to find pending job ${jobId}`);
-          await redis.srem(this.KEY, jobId);
+        } catch (e) {
+          this.logger.error(`Failed to request kitchen for job info for job ${jobId}`, e);
+          break;
         }
-      } catch (e) {
-        this.logger.error(`Failed to request kitchen for job info for job ${jobId}`, e);
-        break;
       }
+    } catch (e) {
+      this.logger.error('Failed to poll pending upload jobs', e);
+    } finally {
+      this.running = false;
     }
-
-    this.running = false;
   }
 
   onReady() {
     clearInterval(this.interval);
-    this.interval = setInterval(this.onTick.bind(this), 1000);
+    this.interval = setInterval(() => void this.onTick(), 1000);
     this.logger.info('Started interval');
   }
 

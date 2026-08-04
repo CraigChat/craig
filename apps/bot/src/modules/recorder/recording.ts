@@ -552,7 +552,7 @@ export default class Recording {
 
     this.encryptionRecoveryAttempts++;
 
-    const endpoint = this.connection?.endpoint
+    const endpoint = this.connection?.endpoint;
     const context = {
       consecutiveDecryptionFailures: this.connection?.consecutiveDecryptionFailures,
       failureTolerance: this.connection?.failureTolerance,

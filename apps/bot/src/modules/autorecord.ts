@@ -65,23 +65,25 @@ export default class AutorecordModule extends BotModule {
   async fetchAll() {
     if (this.fetching) return;
     this.fetching = true;
-    const autorecords = (
-      await prisma.autoRecord.findMany({
-        where: {
-          clientId: this.client.bot.user.id
-        }
-      })
-    ).filter((autorecord) => this.client.bot.guilds.has(autorecord.guildId));
+    try {
+      const autorecords = (
+        await prisma.autoRecord.findMany({
+          where: {
+            clientId: this.client.bot.user.id
+          }
+        })
+      ).filter((autorecord) => this.client.bot.guilds.has(autorecord.guildId));
 
-    this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
+      this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
 
-    Array.from(this.autorecords.keys()).forEach((channelId) => {
-      if (!autorecords.find((autorecord) => autorecord.channelId === channelId)) this.autorecords.delete(channelId);
-    });
-    autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
-    this.lastRefresh = Date.now();
-
-    this.fetching = false;
+      Array.from(this.autorecords.keys()).forEach((channelId) => {
+        if (!autorecords.find((autorecord) => autorecord.channelId === channelId)) this.autorecords.delete(channelId);
+      });
+      autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
+      this.lastRefresh = Date.now();
+    } finally {
+      this.fetching = false;
+    }
   }
 
   async upsert(data: AutoRecordUpsert) {
@@ -214,8 +216,8 @@ export default class AutorecordModule extends BotModule {
         const postChannel = guild.channels.get(autoRecording.postChannelId);
         if (
           postChannel &&
-          channel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
-          channel.permissionsOf(this.client.bot.user.id).has('embedLinks')
+          postChannel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
+          postChannel.permissionsOf(this.client.bot.user.id).has('embedLinks')
         ) {
           const message = await this.client.bot.createMessage(postChannel.id, recording.messageContent() as any).catch(() => null);
           if (message) {
