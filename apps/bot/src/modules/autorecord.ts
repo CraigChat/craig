@@ -6,7 +6,7 @@ import { ButtonStyle, ComponentType } from 'slash-create';
 import { checkMaintenance, processCooldown } from '../redis.js';
 import { BotModule } from '../runtime.js';
 import { reportAutorecordingError } from '../sentry.js';
-import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util.js';
+import { cutoffText, getSelfMember, isChannelNotFull, makeDownloadMessage, parseRewards } from '../util.js';
 import Recording, { RecordingState } from './recorder/recording.js';
 
 const TTL = 1000 * 60 * 60; // 1 hour
@@ -185,6 +185,8 @@ export default class AutorecordModule extends BotModule {
       // Check permissions
       if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
         return void this.logger.debug(`Could not connect to ${channelId}: Missing voice connect permissions`);
+      if (!isChannelNotFull(channel, this.client.bot.user.id))
+        return void this.logger.debug(`Could not connect to ${channelId}: Channel is full and Move Members permission is missing`);
       if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname'))
         return void this.logger.debug(`Could not connect to ${channelId}: Missing nickname permissions`);
 

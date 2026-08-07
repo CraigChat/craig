@@ -3,7 +3,7 @@ import { ButtonStyle, CommandContext, ComponentType } from 'slash-create';
 import VoiceTest from '../modules/recorder/voiceTest.js';
 import { processCooldown } from '../redis.js';
 import GeneralCommand from '../slashCommand.js';
-import { checkBan, checkRecordingPermission, mainBotCommandOnly } from '../util.js';
+import { checkBan, checkRecordingPermission, isChannelNotFull, mainBotCommandOnly } from '../util.js';
 
 export default class VoiceTestCommand extends GeneralCommand {
   constructor(creator: any) {
@@ -107,6 +107,11 @@ export default class VoiceTestCommand extends GeneralCommand {
     if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
       return {
         content: `I do not have permission to connect to <#${channel!.id}>.`,
+        ephemeral: true
+      };
+    if (!isChannelNotFull(channel, this.client.bot.user.id))
+      return {
+        content: `That voice channel is full, and I do not have the \`Move Members\` permission needed to join it.`,
         ephemeral: true
       };
 

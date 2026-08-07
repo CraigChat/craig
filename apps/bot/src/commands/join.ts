@@ -5,7 +5,16 @@ import Recording, { RecordingState } from '../modules/recorder/recording.js';
 import { checkMaintenance, processCooldown } from '../redis.js';
 import { reportRecordingError } from '../sentry.js';
 import GeneralCommand from '../slashCommand.js';
-import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util.js';
+import {
+  checkBan,
+  checkRecordingPermission,
+  cutoffText,
+  getSelfMember,
+  isChannelNotFull,
+  makeDownloadMessage,
+  parseRewards,
+  stripIndentsAndLines
+} from '../util.js';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -194,6 +203,11 @@ export default class Join extends GeneralCommand {
     if (!channel!.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
       return {
         content: `I do not have permission to connect to <#${channel!.id}>.`,
+        ephemeral: true
+      };
+    if (!isChannelNotFull(channel!, this.client.bot.user.id))
+      return {
+        content: `That voice channel is full, and I do not have the \`Move Members\` permission needed to join it.`,
         ephemeral: true
       };
 

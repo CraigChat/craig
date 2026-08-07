@@ -73,6 +73,10 @@ export function checkRecordingPermissionEris(member: Dysnomia.Member, guildData?
   return false;
 }
 
+export function isChannelNotFull(channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, botUserId: string) {
+  return !channel.userLimit || channel.voiceMembers.size < channel.userLimit || channel.permissionsOf(botUserId).has('voiceMoveMembers');
+}
+
 export interface ParsedRewards {
   tier: number;
   rewards: RewardTier;
