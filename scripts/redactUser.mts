@@ -384,7 +384,12 @@ function matchingTrackNumbers(result: RedactedUsers): number[] {
   return [...new Set([...result.targetTracks, ...result.alreadyRedactedTracks])].sort((a, b) => a - b);
 }
 
-export async function createRedactionPlan(options: { userId: UserId; recDirectory: string; database: RecordingDatabase }): Promise<RedactionPlan> {
+export async function createRedactionPlan(options: {
+  userId: UserId;
+  recDirectory: string;
+  database: RecordingDatabase;
+  onProgress?: (scannedFiles: number, totalFiles: number) => void;
+}): Promise<RedactionPlan> {
   const redactedId = hashUserId(options.userId);
   const files = await readdir(options.recDirectory);
   const filesByRecording = new Map<string, Set<string>>();
@@ -398,6 +403,14 @@ export async function createRedactionPlan(options: { userId: UserId; recDirector
     filesByRecording.set(id, extensions);
   }
 
+  const totalFiles = [...filesByRecording.values()].reduce(
+    (total, extensions) => total + Number(extensions.has('users')) + Number(extensions.has('info')),
+    0
+  );
+  let scannedFiles = 0;
+  const reportFileScanned = () => options.onProgress?.(++scannedFiles, totalFiles);
+  options.onProgress?.(0, totalFiles);
+
   const requesterRows = await options.database.findByRequesterIds([options.userId, redactedId]);
   const rowsById = new Map(requesterRows.map((row) => [row.id, row]));
   const candidates = new Set(requesterRows.map((row) => row.id));
@@ -405,14 +418,24 @@ export async function createRedactionPlan(options: { userId: UserId; recDirector
   for (const [id, extensions] of filesByRecording) {
     const base = recordingBase(options.recDirectory, id);
     try {
-      if (extensions.has('users')) {
-        const users = redactRecordingUsers(await readFile(`${base}.users`, 'utf8'), options.userId, redactedId);
-        if (users.targetTracks.size > 0 || users.alreadyRedactedTracks.size > 0) candidates.add(id);
-      }
-      if (extensions.has('info')) {
-        const info = redactRecordingInfo(await readFile(`${base}.info`, 'utf8'), options.userId, redactedId);
-        if (info.changed || info.alreadyRedacted) candidates.add(id);
-      }
+      await Promise.all([
+        extensions.has('users')
+          ? readFile(`${base}.users`, 'utf8')
+              .then((text) => redactRecordingUsers(text, options.userId, redactedId))
+              .then((users) => {
+                if (users.targetTracks.size > 0 || users.alreadyRedactedTracks.size > 0) candidates.add(id);
+              })
+              .finally(reportFileScanned)
+          : undefined,
+        extensions.has('info')
+          ? readFile(`${base}.info`, 'utf8')
+              .then((text) => redactRecordingInfo(text, options.userId, redactedId))
+              .then((info) => {
+                if (info.changed || info.alreadyRedacted) candidates.add(id);
+              })
+              .finally(reportFileScanned)
+          : undefined
+      ]);
     } catch {
       if (rowsById.has(id)) candidates.add(id);
     }
@@ -627,7 +650,23 @@ async function main(): Promise<number> {
   };
 
   try {
-    const plan = await createRedactionPlan({ userId, recDirectory, database });
+    const scanProgress = spinner();
+    scanProgress.start('Scanning files');
+    let plan: RedactionPlan;
+    try {
+      plan = await createRedactionPlan({
+        userId,
+        recDirectory,
+        database,
+        onProgress(scannedFiles, totalFiles) {
+          scanProgress.message(`Scanning files ${scannedFiles} / ${totalFiles}`);
+        }
+      });
+    } catch (error) {
+      scanProgress.stop('File scan failed');
+      throw error;
+    }
+    scanProgress.stop('Finished scanning files');
     note(formatPlan(plan), `Affected recordings for ${plan.redactedId}`);
     if (plan.recordings.length === 0) {
       outro('Nothing to redact.');
