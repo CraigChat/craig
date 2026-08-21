@@ -23,7 +23,13 @@
       const info: StatusIncident[] = await response.json();
       if (!info || !info.length) return;
 
-      activeMaintenance = info.filter((maintenance) => maintenance.status === 'maintenance' && !$dismissedMaintenance.includes(maintenance.id));
+      const maintenanceCutoff = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      activeMaintenance = info.filter(
+        (maintenance) =>
+          maintenance.status === 'maintenance' &&
+          !$dismissedMaintenance.includes(maintenance.id) &&
+          Date.parse(maintenance.startedAt) <= maintenanceCutoff
+      );
       show = activeMaintenance.length > 0;
     } catch {}
   });
