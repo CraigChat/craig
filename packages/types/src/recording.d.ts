@@ -21,12 +21,14 @@ export interface RecordingInfoV1 {
   requester: string;
   requesterExtra: {
     username: string;
+    globalName?: string;
     discriminator: string;
-    avatar: string;
+    avatar?: string;
   };
   requesterId: string;
   startTime: string;
   expiresAfter: number;
+  redacted?: true;
   features: {
     mix?: true;
     auto?: true;

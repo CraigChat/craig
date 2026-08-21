@@ -91,6 +91,7 @@ export async function getRecordingInfo(recordingId: string) {
   const extraFeatures = await getExtraFeatures(info.requesterId, info.guildExtra.id);
   const cleanInfo: MinimalRecordingInfo = {
     id: recordingId,
+    redacted: info.redacted === true,
     autorecorded: info.autorecorded,
     startTime: info.startTime,
     expiresAfter: info.expiresAfter,

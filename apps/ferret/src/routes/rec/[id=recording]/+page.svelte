@@ -1,6 +1,9 @@
 <script lang="ts">
+  import Icon from '@iconify/svelte';
+  import alertIcon from '@iconify-icons/mdi/alert-circle';
   import Emittery from 'emittery';
   import { onMount } from 'svelte';
+  import { t } from 'svelte-i18n';
 
   import MaintenanceBanner from '$components/MaintenanceBanner.svelte';
   import SiteFooter from '$components/SiteFooter.svelte';
@@ -36,6 +39,15 @@
   <SiteHeader />
   <SurveyBanner />
   <MaintenanceBanner />
+  {#if data.recording.redacted}
+    <div class="z-[1] flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
+      <Icon icon={alertIcon} class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+      <div class="flex flex-col gap-1">
+        <span class="text-sm font-semibold text-amber-300 sm:text-base">{$t('recording.redacted_warning.title')}</span>
+        <span class="text-sm text-amber-200/90">{$t('recording.redacted_warning.description')}</span>
+      </div>
+    </div>
+  {/if}
   <RecordingHeader />
   <JobSections {emitter} />
   <DownloadSection {emitter} features={data.recording.features} noUsers={data.users.length === 0} live={data.live} />

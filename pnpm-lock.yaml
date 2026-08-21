@@ -50,6 +50,9 @@ importers:
         specifier: 2.8.11
         version: 2.8.11
     devDependencies:
+      '@craig/types':
+        specifier: workspace:*
+        version: link:packages/types
       '@types/node':
         specifier: ^22.15.21
         version: 22.15.21

@@ -30,6 +30,7 @@
     "prisma": "dotenv -c -- pnpm -F db run prisma",
     "run-task": "pnpm -F tasks run-task",
     "entitlement": "dotenv -c -- tsx scripts/manageEntitlements.mts",
+    "redact-user": "dotenv -c -- tsx scripts/redactUser.mts",
     "ctl": "pnpm -F botctl cli",
     "bot-instance": "pnpm -F bot instance"
   },
@@ -51,6 +52,7 @@
     "turbo": "2.8.11"
   },
   "devDependencies": {
+    "@craig/types": "workspace:*",
     "@types/node": "^22.15.21"
   }
 }

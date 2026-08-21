@@ -33,6 +33,7 @@ export enum APIErrorCode {
 
 export interface MinimalRecordingInfo {
   id: string;
+  redacted: boolean;
   autorecorded: boolean;
   startTime: string;
   expiresAfter: number;

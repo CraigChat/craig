@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Recording } from '@craig/types';
   import Icon from '@iconify/svelte';
+  import accountOffIcon from '@iconify-icons/mdi/account-off';
   import webIcon from '@iconify-icons/mdi/microphone-message';
   import { t } from 'svelte-i18n';
 
@@ -16,7 +17,11 @@
 </script>
 
 <div class="inline-flex items-center justify-center gap-2">
-  {#if user.discriminator === 'web'}
+  {#if user.id.startsWith('redacted:')}
+    <div class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/20">
+      <Icon icon={accountOffIcon} class="text-amber-400" />
+    </div>
+  {:else if user.discriminator === 'web'}
     <div class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/20">
       <Icon icon={webIcon} class="text-teal-500" />
     </div>
