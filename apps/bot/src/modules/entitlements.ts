@@ -1,26 +1,32 @@
-import { DexareModule } from 'dexare';
-import Dysnomia from 'eris';
+import { prisma } from '@craig/db';
+import Dysnomia from '@projectdysnomia/dysnomia';
 import { CommandContext, ComponentContext } from 'slash-create';
 
-import type { CraigBot } from '../bot';
-import { prisma } from '../prisma';
+import type { CraigBot } from '../bot.js';
+import { BotModule } from '../runtime.js';
 
-// @ts-ignore
-export default class EntitlementsModule extends DexareModule<CraigBot> {
-  constructor(client: any) {
+export default class EntitlementsModule extends BotModule {
+  private readonly handleEntitlementCreate = this.onEntitlementCreate.bind(this);
+  private readonly handleEntitlementUpdate = this.onEntitlementUpdate.bind(this);
+  private readonly handleEntitlementDelete = this.onEntitlementDelete.bind(this);
+
+  constructor(client: CraigBot) {
     super(client, {
       name: 'entitlements',
       description: 'Entitlement management and propogation'
     });
-
-    this.filePath = __filename;
   }
 
   async getCurrentUser(ctx: ComponentContext | CommandContext) {
     const userId = ctx.user.id;
 
-    const dbEntitlement = await prisma.entitlement.findFirst({
-      where: { userId, source: 'discord' }
+    const dbEntitlement = await prisma.entitlement.findUnique({
+      where: {
+        userId_source: {
+          userId,
+          source: 'discord'
+        }
+      }
     });
 
     if (ctx.entitlements.length > 0) {
@@ -110,7 +116,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
     return tier;
   }
 
-  async onEntitlementCreate(_: any, entitlement: Dysnomia.Entitlement) {
+  async onEntitlementCreate(entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
     const testEntitlement = !entitlement.startsAt;
@@ -158,7 +164,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
       ).catch(() => {});
   }
 
-  async onEntitlementUpdate(_: any, entitlement: Dysnomia.Entitlement) {
+  async onEntitlementUpdate(entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
     const testEntitlement = !entitlement.startsAt;
@@ -198,7 +204,7 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
       ).catch(() => {});
   }
 
-  async onEntitlementDelete(_: any, entitlement: Dysnomia.Entitlement) {
+  async onEntitlementDelete(entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
     await prisma.entitlement.delete({
@@ -232,13 +238,15 @@ export default class EntitlementsModule extends DexareModule<CraigBot> {
   }
 
   load() {
-    this.registerEvent('entitlementCreate', this.onEntitlementCreate.bind(this));
-    this.registerEvent('entitlementUpdate', this.onEntitlementUpdate.bind(this));
-    this.registerEvent('entitlementDelete', this.onEntitlementDelete.bind(this));
+    this.client.bot.on('entitlementCreate', this.handleEntitlementCreate);
+    this.client.bot.on('entitlementUpdate', this.handleEntitlementUpdate);
+    this.client.bot.on('entitlementDelete', this.handleEntitlementDelete);
     this.logger.info('Loaded');
   }
 
   unload() {
-    this.unregisterAllEvents();
+    this.client.bot.removeListener('entitlementCreate', this.handleEntitlementCreate);
+    this.client.bot.removeListener('entitlementUpdate', this.handleEntitlementUpdate);
+    this.client.bot.removeListener('entitlementDelete', this.handleEntitlementDelete);
   }
 }

@@ -1,10 +1,11 @@
 import http from 'node:http';
-import { Counter, Gauge, register } from 'prom-client';
 
-import * as logger from '../logger';
-import type ShardManager from '../manager';
-import ShardManagerModule from '../module';
-import Shard from '../shard';
+import { Counter, Gauge, register } from '@craig/metrics';
+
+import * as logger from '../logger.js';
+import type ShardManager from '../manager.js';
+import ShardManagerModule from '../module.js';
+import Shard from '../shard.js';
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,7 +16,7 @@ function setPropPerShard(script: string, gauge: Gauge, manager: ShardManager) {
     Promise.all(
       Array.from(manager.shards.values()).map(async (shard) => {
         if (shard.status === 'ready' || shard.status === 'resuming') {
-          const result: number = await shard.eval(script);
+          const result = Number(await shard.eval(script));
           gauge.set({ shard: shard.id.toString() }, result);
         }
       })
@@ -28,7 +29,7 @@ function collectFromShards(stat: string, counter: Counter, manager: ShardManager
     Promise.all(
       Array.from(manager.shards.values()).map(async (shard) => {
         if (shard.status === 'ready' || shard.status === 'resuming') {
-          const result: number = await shard.eval(`this.modules.get("metrics").collect("${stat}")`);
+          const result = Number(await shard.eval(`this.metrics.collect("${stat}")`));
           counter.inc({ shard: shard.id.toString() }, result);
         }
       })
@@ -36,7 +37,7 @@ function collectFromShards(stat: string, counter: Counter, manager: ShardManager
   );
 }
 
-function timeout(p: Promise<any>, ms = 500) {
+function timeout<T>(p: Promise<T>, ms = 500) {
   return Promise.race([p, wait(ms)]);
 }
 
@@ -60,7 +61,6 @@ export default class MetricsModule extends ShardManagerModule {
       res.end();
     });
     this.server.on('error', (e) => logger.error('Metrics server error:', e));
-    this.filePath = __filename;
   }
 
   load() {
@@ -111,7 +111,7 @@ export default class MetricsModule extends ShardManagerModule {
       labelNames: ['shard'],
       async collect() {
         try {
-          await setPropPerShard('this.modules.get("recorder").recordings.size', this, manager);
+          await setPropPerShard('this.recorder.recordings.size', this, manager);
         } catch {}
       }
     });
@@ -170,7 +170,7 @@ export default class MetricsModule extends ShardManagerModule {
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (shard.status === 'ready' || shard.status === 'resuming') {
-                  const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("commands")');
+                  const result = (await shard.eval('this.metrics.collect("commands")')) as Record<string, number>;
                   for (const command in result) this.inc({ command }, result[command]);
                 }
               })
@@ -206,7 +206,7 @@ export default class MetricsModule extends ShardManagerModule {
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (shard.status === 'ready' || shard.status === 'resuming') {
-                  const result: Record<string, number> = await shard.eval('this.modules.get("metrics").collect("voiceServersConnected")');
+                  const result = (await shard.eval('this.metrics.collect("voiceServersConnected")')) as Record<string, number>;
                   for (const region in result) this.inc({ region }, result[region]);
                 }
               })
@@ -259,12 +259,12 @@ export default class MetricsModule extends ShardManagerModule {
             Promise.all(
               Array.from(manager.shards.values()).map(async (shard) => {
                 if (!shard.process) return void this.set({ shard: shard.id.toString() }, 0);
-                const result: boolean =
+                const result =
                   (await timeout(
                     shard.eval('true').catch(() => false),
                     100
                   )) ?? false;
-                this.set({ shard: shard.id.toString() }, result ? 1 : 0);
+                this.set({ shard: shard.id.toString() }, result === true ? 1 : 0);
               })
             )
           );

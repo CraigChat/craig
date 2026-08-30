@@ -1,4 +1,4 @@
-import ShardManager, { CommandHandler } from './manager';
+import ShardManager, { CommandHandler } from './manager.js';
 
 export interface ModuleOptions {
   name: string;

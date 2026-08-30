@@ -1,18 +1,19 @@
-import { EmojiManager } from '@snazzah/emoji-sync';
-import config from 'config';
-import EventEmitter from 'eventemitter3';
-import groupBy from 'just-group-by';
-import range from 'just-range';
-import path from 'path';
+import { EventEmitter } from 'node:events';
+import path from 'node:path';
 
-import { wait } from '../util';
-import * as logger from './logger';
-import ManagerModule from './module';
-import Shard from './shard';
-import { ManagerRequestMessage } from './types';
+import { EmojiManager } from '@snazzah/emoji-sync';
+
+import { wait } from '../util.js';
+import * as logger from './logger.js';
+import ManagerModule from './module.js';
+import Shard from './shard.js';
+import { ManagerRequestMessage } from './types.js';
 
 export interface ManagerOptions {
   file: string;
+  emojiFolder: string;
+  token: string;
+  applicationID: string;
   shardCount: number;
   concurrency?: number;
   readyTimeout?: number;
@@ -20,9 +21,21 @@ export interface ManagerOptions {
   args?: string[];
   execArgv?: string[];
   metricsPort?: number;
+  control?: {
+    host: string;
+    port?: number;
+    token?: string;
+    allowEval: boolean;
+    allowedCIDRs: string[];
+    trustHeader?: string;
+  };
 }
 
-export type CommandHandler = (shard: Shard, msg: any, respond: (data: any) => Promise<void>) => void | Promise<void>;
+export type CommandHandler<T = Record<string, any>> = (
+  shard: Shard,
+  msg: ManagerRequestMessage<T>,
+  respond: (data: unknown) => Promise<void>
+) => void | Promise<void>;
 
 export default class ShardManager extends EventEmitter {
   readonly options: ManagerOptions;
@@ -46,22 +59,23 @@ export default class ShardManager extends EventEmitter {
       options
     );
     this.on('message', this._processCommand.bind(this));
-    this.commands.set('managerEval', (shard, msg, respond) => {
-      try {
-        const r = eval(msg.d.script);
-        respond({ result: r });
-      } catch (e) {
-        respond({ result: null, error: e });
-      }
-    });
+    if (this.options.control?.allowEval)
+      this.commands.set('managerEval', (shard, msg, respond) => {
+        try {
+          const r = Function('script', 'return eval(script)')(msg.d.script);
+          respond({ result: r });
+        } catch (e) {
+          respond({ result: null, error: e });
+        }
+      });
   }
 
   async syncEmojis() {
     this.#emojis ??= new EmojiManager({
-      token: config.get('dexare.token'),
-      applicationId: config.get('dexare.applicationID')
+      token: this.options.token,
+      applicationId: this.options.applicationID
     });
-    await this.#emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
+    await this.#emojis.loadFromFolder(path.resolve(this.options.emojiFolder));
     await this.#emojis.sync();
     this.emojiSyncData = Array.from(this.#emojis.emojis.values());
   }
@@ -71,7 +85,7 @@ export default class ShardManager extends EventEmitter {
     if (!msg.t || !msg.n) return;
     if (!this.commands.has(msg.t)) return;
     const cmd = this.commands.get(msg.t)!;
-    const respond = (data: any) => shard.send({ r: msg.n, d: data });
+    const respond = (data: unknown) => shard.send({ r: msg.n, d: data });
     try {
       if (cmd) await cmd(shard, msg, respond);
     } catch (e) {
@@ -95,7 +109,7 @@ export default class ShardManager extends EventEmitter {
     }
   }
 
-  async spawnAllWithConcurrency(concurrency = this.options.concurrency || 1, delay = 500) {
+  async spawnAllWithConcurrency(concurrency = this.options.concurrency || 1, delay = 5000) {
     const spawnShard = async (id: number) => {
       let retries = 0;
       while (retries < 5) {
@@ -114,16 +128,13 @@ export default class ShardManager extends EventEmitter {
       }
     };
 
-    const spawnBucket = async (ids: number[]) => {
-      for (const id of ids) {
-        await spawnShard(id);
-        await wait(5_000);
-      }
-      logger.info(`Concurrency bucket #${ids[0] % concurrency} finished`);
-    };
-
-    const buckets = Object.values(groupBy(range(this.options.shardCount), (n) => n % concurrency));
-    await Promise.all(buckets.map(spawnBucket));
+    const ids = Array.from({ length: this.options.shardCount }, (_, id) => id);
+    for (let offset = 0; offset < ids.length; offset += concurrency) {
+      const wave = ids.slice(offset, offset + concurrency);
+      logger.info(`Spawning identify wave ${Math.floor(offset / concurrency) + 1}: ${wave.join(', ')}`);
+      await Promise.all(wave.map(spawnShard));
+      if (offset + concurrency < ids.length) await wait(delay);
+    }
   }
 
   async spawnAll(delay = 500) {

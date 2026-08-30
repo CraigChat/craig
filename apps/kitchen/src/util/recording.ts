@@ -1,0 +1,62 @@
+import fs from 'node:fs/promises';
+
+import { convertToTimemark } from '@craig/common';
+import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
+
+export async function getRecordingInfo(recFileBase: string, includeAvatars = true) {
+  const [info, users] = await Promise.all([
+    (async () => {
+      const data = await fs.readFile(`${recFileBase}.info`, { encoding: 'utf8' });
+      return JSON.parse(data) as RecordingInfo;
+    })(),
+    getRecordingUsers(recFileBase, includeAvatars)
+  ]);
+
+  return { info, users };
+}
+
+export async function getRecordingUsers(recFileBase: string, includeAvatars = true) {
+  const data = await fs.readFile(`${recFileBase}.users`, { encoding: 'utf8' });
+  const userRecord = JSON.parse(`{${data}}`) as Record<number, RecordingUser>;
+  return Object.entries(userRecord)
+    .map(([i, user]) => ({ ...user, track: parseInt(i) }))
+    .filter((u) => u.track !== 0)
+    .map((u) => (includeAvatars ? u : { ...u, avatar: undefined }));
+}
+
+export async function getInfoText(id: string, info: RecordingInfo, users: RecordingUser[], notes?: RecordingNote[]) {
+  let txt =
+    'Recording ' +
+    id +
+    '\r\n' +
+    '\r\n' +
+    'Guild:\t\t' +
+    (info.guildExtra ? `${info.guildExtra.name} (${info.guildExtra.id})` : info.guild) +
+    '\r\n' +
+    'Channel:\t' +
+    (info.channelExtra ? `${info.channelExtra.name} (${info.channelExtra.id})` : info.channel) +
+    '\r\n' +
+    'Requester:\t' +
+    (info.requesterExtra ? `${info.requesterExtra.username}#${info.requesterExtra.discriminator} (${info.requesterId})` : info.requester) +
+    '\r\n' +
+    'Start time:\t' +
+    info.startTime +
+    '\r\n' +
+    '\r\n' +
+    'Tracks:\r\n';
+
+  for (let i = 0; i < users.length; i++) {
+    const user = users[i];
+    txt += `\t${user.username}#${user.discriminator} (${user.id})\r\n`;
+  }
+
+  if (notes && notes.length) {
+    txt += '\r\nNotes:\r\n';
+    for (let i = 0; i < notes.length; i++) {
+      const note = notes[i];
+      txt += `\t${convertToTimemark(parseFloat(note.time), { includeHours: true, secondsDecimalPlaces: 2 })}: ${note.note}\r\n`;
+    }
+  }
+
+  return txt;
+}

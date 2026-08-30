@@ -1,14 +1,9 @@
-import { DexareClient } from 'dexare';
+import { prisma } from '@craig/db';
 import { SlashCommand, SlashCommandOptions, SlashCreator } from 'slash-create';
 
-import type { CraigBot, CraigBotConfig } from './bot';
-import AutorecordModule from './modules/autorecord';
-import EntitlementsModule from './modules/entitlements';
-import type RecorderModule from './modules/recorder';
-import type ShardingModule from './modules/sharding';
-import type SlashModule from './modules/slash';
-import { prisma } from './prisma';
-import { client as redisClient } from './redis';
+import type { CraigBot } from './bot.js';
+import type RecorderModule from './modules/recorder/index.js';
+import { client as redisClient } from './redis.js';
 
 export default abstract class GeneralCommand extends SlashCommand {
   constructor(creator: SlashCreator, opts: SlashCommandOptions) {
@@ -19,24 +14,24 @@ export default abstract class GeneralCommand extends SlashCommand {
     return this.creator.client as CraigBot;
   }
 
-  get autoRecord(): AutorecordModule {
-    return this.client.modules.get('autorecord') as unknown as AutorecordModule;
+  get autoRecord() {
+    return this.client.autorecord;
   }
 
-  get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {
-    return this.client.modules.get('recorder') as RecorderModule<any>;
+  get recorder(): RecorderModule {
+    return this.client.recorder;
   }
 
-  get entitlements(): EntitlementsModule {
-    return this.client.modules.get('entitlements') as EntitlementsModule;
+  get entitlements() {
+    return this.client.entitlements;
   }
 
-  get sharding(): ShardingModule {
-    return this.client.modules.get('sharding') as ShardingModule;
+  get sharding() {
+    return this.client.sharding;
   }
 
   get emojis() {
-    return (this.client.modules.get('slash') as SlashModule<any>).emojis;
+    return this.client.slash.emojis;
   }
 
   get prisma() {

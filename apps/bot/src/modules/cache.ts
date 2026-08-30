@@ -1,18 +1,17 @@
 import { CronJob } from 'cron';
-import { DexareClient, DexareModule } from 'dexare';
 
-import type { CraigBotConfig } from '../bot';
+import type { CraigBot } from '../bot.js';
+import { BotModule } from '../runtime.js';
 
-export default class CacheModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
+export default class CacheModule extends BotModule {
   cron: CronJob;
 
-  constructor(client: T) {
+  constructor(client: CraigBot) {
     super(client, {
       name: 'cache',
       description: 'Cache management'
     });
 
-    this.filePath = __filename;
     this.cron = new CronJob('0 * * * *', this.onCron.bind(this), null, false, 'America/New_York');
   }
 

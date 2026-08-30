@@ -1,8 +1,7 @@
-import { Ban, Guild } from '@prisma/client';
-import axios from 'axios';
+import type { Ban, Guild } from '@craig/db';
+import { prisma } from '@craig/db';
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
-import { CommandContext, DexareCommand } from 'dexare';
-import Eris from 'eris';
 import {
   AnyComponent,
   ButtonStyle,
@@ -14,13 +13,13 @@ import {
   SeparatorSpacingSize
 } from 'slash-create';
 
-import type { CraigBot, CraigBotConfig, RewardTier } from './bot';
-import type Recording from './modules/recorder/recording';
-import type SlashModule from './modules/slash';
-import { prisma } from './prisma';
+import packageJson from '../package.json';
+import type { CraigBot } from './bot.js';
+import type { CraigBotConfig, RewardTier } from './config.js';
+import type Recording from './modules/recorder/recording.js';
+import type SlashModule from './modules/slash.js';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-export const version = require('../package.json').version;
+export const version = packageJson.version;
 
 export const userAgent = `CraigBot (https://craig.chat ${version}) Node.js/${process.version}`;
 
@@ -67,11 +66,15 @@ export function checkRecordingPermission(member: Member, guildData?: Guild | nul
   return false;
 }
 
-export function checkRecordingPermissionEris(member: Eris.Member, guildData?: Guild | null) {
+export function checkRecordingPermissionEris(member: Dysnomia.Member, guildData?: Guild | null) {
   if (!member) return false;
   if (member.permissions.has('manageGuild')) return true;
   if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) return true;
   return false;
+}
+
+export function isChannelNotFull(channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, botUserId: string) {
+  return !channel.userLimit || channel.voiceMembers.size < channel.userLimit || channel.permissionsOf(botUserId).has('voiceMoveMembers');
 }
 
 export interface ParsedRewards {
@@ -117,10 +120,12 @@ export function disableComponents(components: AnyComponent[]) {
 
 export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | 'major' | 'minor' | 'maintenence'> {
   try {
-    const response = await axios.get('https://discordstatus.com/api/v2/status.json', {
+    const response = await fetch('https://discordstatus.com/api/v2/status.json', {
       headers: { 'User-Agent': userAgent }
     });
-    return response.data?.status?.indicator;
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data?.status?.indicator;
   } catch (e) {
     return null;
   }
@@ -137,7 +142,7 @@ export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'
   }
 });
 
-export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule<any>['emojis']) {
+export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule['emojis']) {
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
   const headerInfo = `Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
@@ -246,10 +251,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
   } as EditMessageOptions as any;
 }
 
-export async function blessServer(userID: string, guildID: string, emojis: SlashModule<any>['emojis']): Promise<MessageOptions> {
-  const userData = await prisma.user.findFirst({ where: { id: userID } });
-  const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
-  const blessingUser = blessing ? (blessing.userId === userID ? userData : await prisma.user.findFirst({ where: { id: blessing.userId } })) : null;
+export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis']): Promise<MessageOptions> {
+  const userData = await prisma.user.findUnique({ where: { id: userID }, select: { id: true, rewardTier: true } });
+  const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
+  const blessingUser = blessing
+    ? blessing.userId === userID
+      ? userData
+      : await prisma.user.findUnique({ where: { id: blessing.userId }, select: { id: true, rewardTier: true } })
+    : null;
 
   const userTier = userData?.rewardTier || 0;
   const guildTier = blessingUser?.rewardTier || 0;
@@ -302,7 +311,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 }
 
 export async function unblessServer(userID: string, guildID: string): Promise<MessageOptions> {
-  const blessing = await prisma.blessing.findFirst({ where: { guildId: guildID } });
+  const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
 
   if (!blessing || blessing.userId !== userID)
     return {
@@ -321,16 +330,33 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
 }
 
 export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
-  const recordings = await prisma.recording.findMany({
-    where: {
-      userId: userID,
-      clientId: client.bot.user.id,
-      expiresAt: { gt: new Date() }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
+  const MAX_PAGE_AMOUNT = 5;
+  const requested = Number.isFinite(requestedPage) ? Math.max(1, Math.trunc(requestedPage)) : 1;
+  const where = {
+    userId: userID,
+    clientId: client.bot.user.id,
+    expiresAt: { gt: new Date() }
+  };
+  const [recordings, recordingCount] = await prisma.$transaction([
+    prisma.recording.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (requested - 1) * MAX_PAGE_AMOUNT,
+      take: MAX_PAGE_AMOUNT,
+      select: {
+        id: true,
+        accessKey: true,
+        deleteKey: true,
+        channelId: true,
+        autorecorded: true,
+        createdAt: true,
+        expiresAt: true
+      }
+    }),
+    prisma.recording.count({ where })
+  ]);
 
-  if (recordings.length === 0)
+  if (recordingCount === 0)
     return {
       flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
       components: [
@@ -343,11 +369,27 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
 
   const downloadDomain = client.config.craig.downloadDomain;
   const baseUrl = `${client.config.craig.downloadProtocol ?? 'https'}://${downloadDomain}`;
-  const emojis = (client.modules.get('slash') as SlashModule<any>).emojis;
-  const MAX_PAGE_AMOUNT = 5;
-  const pages = Math.ceil(recordings.length / MAX_PAGE_AMOUNT);
-  const page = Math.min(pages, Math.max(1, requestedPage));
-  const pagedRecordings = recordings.slice((page - 1) * MAX_PAGE_AMOUNT, page * MAX_PAGE_AMOUNT);
+  const emojis = client.slash.emojis;
+  const pages = Math.ceil(recordingCount / MAX_PAGE_AMOUNT);
+  const page = Math.min(pages, requested);
+  const pagedRecordings =
+    page === requested
+      ? recordings
+      : await prisma.recording.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * MAX_PAGE_AMOUNT,
+          take: MAX_PAGE_AMOUNT,
+          select: {
+            id: true,
+            accessKey: true,
+            deleteKey: true,
+            channelId: true,
+            autorecorded: true,
+            createdAt: true,
+            expiresAt: true
+          }
+        });
 
   return {
     flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
@@ -362,9 +404,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: `## Previous recordings on ${
-              client.bot.user.mention
-            }\n-# ${recordings.length.toLocaleString()} recording(s), Page ${page}/${pages}`
+            content: `## Previous recordings on ${client.bot.user.mention}\n-# ${recordingCount.toLocaleString()} recording(s), Page ${page}/${pages}`
           },
           {
             type: ComponentType.SEPARATOR,
@@ -379,8 +419,8 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
                 content: stripIndentsAndLines`
                   ### 🎙️ Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
                   ${r.autorecorded ? '*`Autorecorded`*' : ''} <#${r.channelId}> • Expires <t:${Math.floor(
-                  r.expiresAt.valueOf() / 1000
-                )}:R> • Delete Key: ||\`${r.deleteKey}\`||
+                    r.expiresAt.valueOf() / 1000
+                  )}:R> • Delete Key: ||\`${r.deleteKey}\`||
                 `
               }
             ],
@@ -429,27 +469,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
   } as EditMessageOptions;
 }
 
-export async function replyOrSend(ctx: CommandContext, content: Eris.MessageContent): Promise<Eris.Message> {
-  if ('permissionsOf' in ctx.channel && !ctx.channel.permissionsOf(ctx.client.bot.user.id).has('readMessageHistory'))
-    return ctx.replyMention(content);
-  else return ctx.reply(content);
-}
-
-export default abstract class TextCommand extends DexareCommand {
-  // @ts-ignore
-  client!: CraigBot;
-
-  get emojis() {
-    return (this.client.modules.get('slash') as SlashModule<any>).emojis;
-  }
-
-  finalize(response: any, ctx: CommandContext) {
-    if (typeof response === 'string' || (response && response.constructor && response.constructor.name === 'Object'))
-      return replyOrSend(ctx, response);
-  }
-}
-
-export async function getSelfMember(guild: Eris.Guild, client: Eris.Client) {
+export async function getSelfMember(guild: Dysnomia.Guild, client: Dysnomia.Client) {
   return (await guild.fetchMembers({ userIDs: [client.user.id] }).catch(() => []))[0] ?? null;
 }
 

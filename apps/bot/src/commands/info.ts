@@ -1,9 +1,9 @@
 import { stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
 
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan } from '../util';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan } from '../util.js';
 
 export default class Info extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -12,8 +12,6 @@ export default class Info extends GeneralCommand {
       description: 'Get information and statistics about this bot.',
       deferEphemeral: true
     });
-
-    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {
@@ -42,8 +40,8 @@ export default class Info extends GeneralCommand {
         I am in **${guildCount.toLocaleString()}** guilds and currently recording **${recordings.toLocaleString()}** conversations.
 
         This server is on shard ${this.client.shard?.id ?? process.env.SHARD_ID} with ${
-        this.client.shard?.latency ?? '<unknown>'
-      } milliseconds of latency.
+          this.client.shard?.latency ?? '<unknown>'
+        } milliseconds of latency.
       `,
       ephemeral: true,
       components: [

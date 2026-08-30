@@ -1,9 +1,9 @@
 import { stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan } from '../util';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan } from '../util.js';
 
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
@@ -84,8 +84,6 @@ export default class ServerSettings extends GeneralCommand {
         }
       ]
     });
-
-    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {
@@ -128,7 +126,7 @@ export default class ServerSettings extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
+    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
     if (!ctx.member!.permissions.has('MANAGE_GUILD'))
       return {
         content: 'You need the `Manage Server` permission to change server settings.',
@@ -216,8 +214,10 @@ export default class ServerSettings extends GeneralCommand {
               };
 
             const userData = await this.entitlements.getCurrentUser(ctx);
-            const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-            const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+            const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
+            const blessingUser = blessing
+              ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } })
+              : null;
             const tier = userData?.rewardTier ?? blessingUser?.rewardTier ?? 0;
             if (tier === 0)
               return {

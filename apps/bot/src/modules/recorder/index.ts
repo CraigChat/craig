@@ -1,93 +1,63 @@
-import { createTRPCClient } from '@trpc/client';
-import { httpLink } from '@trpc/client/links/httpLink';
-import type { Procedure } from '@trpc/server/dist/declarations/src/internals/procedure';
-import type { DefaultErrorShape, Router } from '@trpc/server/dist/declarations/src/router';
+import { prisma } from '@craig/db';
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
-import { DexareClient, DexareModule } from 'dexare';
-import Eris from 'eris';
 import { access, mkdir } from 'fs/promises';
 import fetch from 'node-fetch';
 import path from 'path';
 import semver from 'semver';
 import { ComponentType, MessageFlags } from 'slash-create';
 
-import type { CraigBotConfig } from '../../bot';
-import { onRecordingEnd } from '../../influx';
-import { prisma } from '../../prisma';
-import { checkMaintenance } from '../../redis';
-import MetricsModule from '../metrics';
-import type UploadModule from '../upload';
-import Recording, { RecordingState } from './recording';
-import { VoiceTestState } from './voiceTest';
-
-type TRPCRouter = Router<
-  unknown,
-  unknown,
-  Record<
-    'driveUpload',
-    Procedure<
-      unknown,
-      unknown,
-      {
-        recordingId: string;
-        userId: string;
-      },
-      {
-        recordingId: string;
-        userId: string;
-      },
-      {
-        error: string | null;
-        notify: boolean;
-        id?: string | undefined;
-        url?: string | undefined;
-      }
-    >
-  >,
-  any,
-  any,
-  DefaultErrorShape
->;
+import type { CraigBot } from '../../bot.js';
+import { checkMaintenance } from '../../redis.js';
+import { BotModule } from '../../runtime.js';
+import Recording, { RecordingState } from './recording.js';
+import { VoiceTestState } from './voiceTest.js';
 
 const RECORDING_TTL = 5 * 60 * 1000;
+const VOICE_OBSERVATORY_URL = 'https://vo-api.snaz.in';
+const VOICE_OBSERVATORY_TIMEOUT = 1500;
 
-export default class RecorderModule<T extends DexareClient<CraigBotConfig>> extends DexareModule<T> {
+interface VoiceTraceOptions {
+  connection: Dysnomia.VoiceConnection | null;
+  voiceVersion?: string;
+  rtcWorkerVersion?: string;
+  code?: number;
+}
+
+export default class RecorderModule extends BotModule {
   recordings = new Map<string, Recording>();
-  voiceTests = new Map<string, import('./voiceTest').default>();
+  voiceTests = new Map<string, import('./voiceTest.js').default>();
   recordingPath: string;
   recordingsChecked = false;
-  trpc = createTRPCClient<TRPCRouter>({
-    fetch: fetch as any,
-    links: [httpLink({ url: 'http://localhost:2022' })]
-  });
   cron: CronJob;
+  private readonly handleReady = this.onReady.bind(this);
+  private readonly handleVoiceStateUpdate = this.onVoiceStateUpdate.bind(this);
+  private readonly handleGuildLeave = this.onGuildLeave.bind(this);
+  private readonly handleGuildUnavailable = this.onGuildUnavailable.bind(this);
 
-  constructor(client: T) {
+  constructor(client: CraigBot) {
     super(client, {
       name: 'recorder',
       description: 'Recording handler'
     });
 
-    this.recordingPath = path.resolve(__dirname, '../../..', this.client.config.craig.recordingFolder);
-    this.filePath = __filename;
+    this.recordingPath = path.resolve(this.client.config.craig.recordingFolder);
     this.cron = new CronJob('* * * * *', this.onCron.bind(this), null, false, 'America/New_York');
   }
 
   get uploader() {
-    // @ts-ignore
-    return this.client.modules.get('upload') as UploadModule;
+    return this.client.upload;
   }
 
   get metrics() {
-    // @ts-ignore
-    return this.client.modules.get('metrics') as MetricsModule;
+    return this.client.metrics;
   }
 
   async load() {
-    this.registerEvent('ready', this.onReady.bind(this));
-    this.registerEvent('voiceStateUpdate', this.onVoiceStateUpdate.bind(this));
-    this.registerEvent('guildDelete', this.onGuildLeave.bind(this));
-    this.registerEvent('guildUnavailable', this.onGuildUnavailable.bind(this));
+    this.client.bot.on('ready', this.handleReady);
+    this.client.bot.on('voiceStateUpdate', this.handleVoiceStateUpdate);
+    this.client.bot.on('guildDelete', this.handleGuildLeave);
+    this.client.bot.on('guildUnavailable', this.handleGuildUnavailable);
     this.cron.start();
 
     try {
@@ -104,7 +74,10 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
   }
 
   unload() {
-    this.unregisterAllEvents();
+    this.client.bot.removeListener('ready', this.handleReady);
+    this.client.bot.removeListener('voiceStateUpdate', this.handleVoiceStateUpdate);
+    this.client.bot.removeListener('guildDelete', this.handleGuildLeave);
+    this.client.bot.removeListener('guildUnavailable', this.handleGuildUnavailable);
     this.cron.stop();
   }
 
@@ -142,6 +115,57 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     }
   }
 
+  traceVoiceConnection({ connection, voiceVersion, rtcWorkerVersion }: VoiceTraceOptions) {
+    const endpoint = connection?.endpoint?.host;
+    if (!endpoint || !voiceVersion || !rtcWorkerVersion) return;
+    this.postVoiceObservatory('/v1/traces/voice', {
+      endpoint,
+      dave_version: connection?.daveProtocolVersion ?? 0,
+      voice_version: voiceVersion,
+      rtc_worker_version: rtcWorkerVersion
+    });
+  }
+
+  traceVoiceError({ connection, voiceVersion, rtcWorkerVersion, code }: VoiceTraceOptions) {
+    if (code === undefined || (code > 0 && code <= 1000)) return;
+    this.postVoiceObservatory('/v1/traces/error', {
+      endpoint: connection?.endpoint?.host,
+      code,
+      dave_version: connection?.daveProtocolVersion ?? 0,
+      voice_version: voiceVersion,
+      rtc_worker_version: rtcWorkerVersion
+    });
+  }
+
+  traceVoiceTimeout(connection: Dysnomia.VoiceConnection | null) {
+    this.postVoiceObservatory('/v1/traces/error', {
+      endpoint: connection?.endpoint?.host,
+      code: 0
+    });
+  }
+
+  parseVoiceDisconnectCode(err: Error) {
+    const match = err.message.match(/\b(\d{4})\b/);
+    return match ? Number(match[1]) : undefined;
+  }
+
+  private postVoiceObservatory(path: string, body: Record<string, string | number | undefined>) {
+    const token = process.env.VOICE_OBSERVATORY_TOKEN;
+    if (!token) return;
+
+    void globalThis
+      .fetch(`${VOICE_OBSERVATORY_URL}${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(Object.fromEntries(Object.entries(body).filter(([, value]) => value !== undefined))),
+        signal: AbortSignal.timeout(VOICE_OBSERVATORY_TIMEOUT)
+      })
+      .catch(() => {});
+  }
+
   async pushVoiceVersions(voiceEndpoint: string, voiceVersion: string, rtcWorkerVersion: string) {
     const regionId = voiceEndpoint.startsWith('c-')
       ? voiceEndpoint.replace(/\d+?-[\da-f]+\.discord\.media$/, '')
@@ -158,7 +182,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     });
 
     // Detect and track versions
-    const voiceVersionSeen = await prisma.voiceVersion.findFirst({
+    const voiceVersionSeen = await prisma.voiceVersion.findUnique({
       where: { version: voiceVersion }
     });
 
@@ -167,7 +191,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
         data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
       });
 
-    const rtcWorkerVersionSeen = await prisma.rtcVersion.findFirst({
+    const rtcWorkerVersionSeen = await prisma.rtcVersion.findUnique({
       where: { version: rtcWorkerVersion }
     });
 
@@ -293,7 +317,9 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
       const guild = this.client.bot.guilds.get(guildId);
       if (!guild) continue;
 
-      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as Eris.StageChannel | Eris.VoiceChannel;
+      const channel = guild.channels.get(badRecordings.find((r) => r.guildId === guildId)!.channelId) as
+        | Dysnomia.StageChannel
+        | Dysnomia.VoiceChannel;
       if (!channel) continue;
 
       await channel.join().catch(() => null);
@@ -322,15 +348,6 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     // Delete errored recordings
     for (const recording of badRecordings) {
       await prisma.recording.delete({ where: { id: recording.id } }).catch(() => {});
-      await onRecordingEnd(
-        recording.userId,
-        recording.guildId,
-        recording.createdAt,
-        Date.now() - recording.createdAt.valueOf(),
-        recording.autorecorded,
-        false,
-        true
-      ).catch(() => {});
     }
   }
 
@@ -349,14 +366,14 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     }
   }
 
-  onVoiceStateUpdate(_: any, member: Eris.Member, oldState: Eris.OldVoiceState) {
+  onVoiceStateUpdate(member: Dysnomia.Member, oldState: Dysnomia.OldVoiceState) {
     const recording = this.recordings.get(member.guild.id);
     if (!recording) return;
 
     recording.onVoiceStateUpdate(member, oldState);
   }
 
-  async onGuildLeave(_: any, guild: Eris.PossiblyUncachedGuild) {
+  async onGuildLeave(guild: Dysnomia.PossiblyUncachedGuild) {
     if (this.recordings.has(guild.id)) {
       const recording = this.recordings.get(guild.id)!;
       this.logger.warn(`Left guild ${guild.id} during a recording... (${recording.id})`);
@@ -375,7 +392,7 @@ export default class RecorderModule<T extends DexareClient<CraigBotConfig>> exte
     }
   }
 
-  async onGuildUnavailable(_: any, guild: Eris.UnavailableGuild) {
+  async onGuildUnavailable(guild: Dysnomia.UnavailableGuild) {
     this.logger.warn(`Guild ${guild.id} is now unavailable...`);
     if (this.recordings.has(guild.id)) {
       const recording = this.recordings.get(guild.id)!;

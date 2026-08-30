@@ -1,15 +1,13 @@
-import { OpusEncoder } from '@discordjs/opus';
-import { stripIndents } from 'common-tags';
-import { DexareClient } from 'dexare';
-import Eris from 'eris';
-import { access } from 'fs/promises';
-import path from 'path';
-import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
-import { Readable } from 'stream';
+import { access } from 'node:fs/promises';
+import path from 'node:path';
+import { Readable } from 'node:stream';
 
-import type { CraigBotConfig } from '../../bot';
-import SlashModule from '../slash';
-import type RecorderModule from '.';
+import DiscordJsOpus from '@discordjs/opus';
+import type Dysnomia from '@projectdysnomia/dysnomia';
+import { stripIndents } from 'common-tags';
+import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
+
+import type RecorderModule from './index.js';
 
 const PACKET_TIME = 960; // 20ms
 const GAP_CLOSE_THRESHOLD = PACKET_TIME * 10; // 200ms
@@ -34,33 +32,30 @@ export interface Chunk {
 }
 
 export default class VoiceTest {
-  recorder: RecorderModule<DexareClient<CraigBotConfig>>;
+  recorder: RecorderModule;
   guildId: string;
-  channel: Eris.StageChannel | Eris.VoiceChannel;
-  user: Eris.User;
+  channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel;
+  user: Dysnomia.User;
   createdAt = new Date();
   active = false;
   state: VoiceTestState = VoiceTestState.IDLE;
   stateDescription?: string;
 
-  connection: Eris.VoiceConnection | null = null;
-  receiver: Eris.VoiceDataStream | null = null;
+  connection: Dysnomia.VoiceConnection | null = null;
+  receiver: Dysnomia.VoiceDataStream | null = null;
 
   messageChannelID: string | null = null;
   messageID: string | null = null;
   startTime: [number, number] | null = null;
   recordingEndTime: number | null = null;
   recordingTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  voiceVersion?: string;
+  rtcWorkerVersion?: string;
 
   // Audio storage - userID -> packets
   userPackets: Map<string, Chunk[]> = new Map();
 
-  constructor(
-    recorder: RecorderModule<DexareClient<CraigBotConfig>>,
-    guildId: string,
-    channel: Eris.StageChannel | Eris.VoiceChannel,
-    user: Eris.User
-  ) {
+  constructor(recorder: RecorderModule, guildId: string, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, user: Dysnomia.User) {
     this.recorder = recorder;
     this.guildId = guildId;
     this.channel = channel;
@@ -77,6 +72,7 @@ export default class VoiceTest {
     try {
       await this.connect();
     } catch (e) {
+      this.recorder.traceVoiceTimeout(this.connection);
       this.recorder.logger.error(`Failed to connect for voice test in ${this.guildId}`, e);
       this.state = VoiceTestState.ERROR;
       this.stateDescription = 'Failed to connect to your channel, try again later.';
@@ -145,7 +141,7 @@ export default class VoiceTest {
   }
 
   async playSound(filename: string): Promise<void> {
-    const filePath = path.join(__dirname, '../../../data', filename);
+    const filePath = path.resolve(this.recorder.client.config.assets.voiceTestFolder, filename);
 
     try {
       await access(filePath);
@@ -234,9 +230,8 @@ export default class VoiceTest {
       const pcm = new Int16Array(totalSamples * 2);
 
       // Create separate decoder for each user to avoid state corruption
-      const decoders = new Map<string, OpusEncoder>();
-      for (const userID of this.userPackets.keys())
-        decoders.set(userID, new OpusEncoder(48000, 2));
+      const decoders = new Map<string, DiscordJsOpus.OpusEncoder>();
+      for (const userID of this.userPackets.keys()) decoders.set(userID, new DiscordJsOpus.OpusEncoder(48000, 2));
 
       // Mix audio into PCM buffer
       for (const chunk of allChunks) {
@@ -257,7 +252,7 @@ export default class VoiceTest {
       }
 
       // Encode to Opus packets, using silence for gaps
-      const encoder = new OpusEncoder(48000, 2);
+      const encoder = new DiscordJsOpus.OpusEncoder(48000, 2);
       const silencePacket = Buffer.from([0xf8, 0xff, 0xfe]);
       for (let frame = 0; frame < Math.ceil(pcm.length / (PACKET_TIME * 2)); frame++) {
         const frameStart = frame * (PACKET_TIME * 2);
@@ -309,6 +304,12 @@ export default class VoiceTest {
   async onConnectionDisconnect(err?: Error) {
     if (!this.active) return;
     this.recorder.logger.debug(`Voice test ${this.guildId} disconnected`, err);
+    this.recorder.traceVoiceError({
+      connection: this.connection,
+      code: err ? this.recorder.parseVoiceDisconnectCode(err) : undefined,
+      voiceVersion: this.voiceVersion,
+      rtcWorkerVersion: this.rtcWorkerVersion
+    });
 
     this.state = VoiceTestState.CANCELLED;
     this.stateDescription = 'I was disconnected from the voice channel.';
@@ -320,8 +321,6 @@ export default class VoiceTest {
   }
 
   async onConnectionUnknown(packet: any) {
-    if (!this.recorder.client.config.craig.systemNotificationURL) return;
-
     if (
       typeof packet === 'object' &&
       'op' in packet &&
@@ -331,18 +330,27 @@ export default class VoiceTest {
       typeof packet.d.rtc_worker === 'string'
     ) {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
-      const voiceEndpoint = this.connection?.endpoint?.hostname;
+      this.voiceVersion = voiceVersion;
+      this.rtcWorkerVersion = rtcWorkerVersion;
+      const voiceEndpoint = this.connection?.endpoint?.host;
+      this.recorder.traceVoiceConnection({
+        connection: this.connection,
+        voiceVersion: this.voiceVersion,
+        rtcWorkerVersion: this.rtcWorkerVersion
+      });
+
       if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
 
-      await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
+      if (this.recorder.client.config.craig.systemNotificationURL)
+        await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
   }
 
   get emojis() {
-    return (this.recorder.client.modules.get('slash') as SlashModule<any>).emojis;
+    return this.recorder.client.slash.emojis;
   }
 
   messageContent() {

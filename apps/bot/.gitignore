@@ -1,0 +1,2 @@
+audio/*.opus
+!audio/voicetest_*.opus

@@ -1,70 +1,77 @@
-import config from 'config';
 import { readdir, readFile, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
-import { TaskJob } from '../types';
+import { REC_DIRECTORY, RECORDING_CLEAN_CRON, RECORDING_FALLBACK_EXPIRATION, RECORDING_SKIP_ALL, RECORDING_SKIP_IDS } from '../util/config.js';
+import { TaskJob } from './job.js';
 
-const recordingConfig = config.get('recording') as {
-  fallbackExpiration: number;
-  path: string;
-  skipIds: string[];
-  skipAll?: boolean;
-};
+interface RecordingInfo {
+  expiresAfter?: number;
+  startTime?: string;
+}
 
-export default class CleanRecordings extends TaskJob {
+export class CleanRecordingsJob extends TaskJob {
   constructor() {
-    super('cleanRecordings', '*/30 * * * *');
+    super('cleanRecordings', RECORDING_CLEAN_CRON);
   }
 
   async run() {
-    this.logger.log('Cleaning recordings...');
-    if (recordingConfig.skipAll) return;
-    const recPath = path.join(__dirname, '..', '..', recordingConfig.path);
-    const files = await readdir(recPath);
-    const recordingExts: { [file: string]: string[] } = {};
+    if (RECORDING_SKIP_ALL) {
+      this.logger.info('Skipping recording cleanup because RECORDING_SKIP_ALL is enabled.');
+      return;
+    }
+
+    const files = await readdir(REC_DIRECTORY);
+    const recordingFiles = new Map<string, Set<string>>();
 
     for (const file of files) {
-      const [id, ext, type] = file.split('.');
-      if (ext !== 'ogg') continue;
-      if (recordingConfig.skipIds.includes(id)) continue;
+      const match = /^(.+)\.ogg\.([^.]+)$/.exec(file);
+      if (!match) continue;
 
-      if (!recordingExts[id]) recordingExts[id] = [];
-      recordingExts[id].push(type);
+      const [, id, type] = match;
+      if (RECORDING_SKIP_IDS.has(id)) continue;
+
+      const types = recordingFiles.get(id) ?? new Set<string>();
+      types.add(type);
+      recordingFiles.set(id, types);
     }
 
-    this.logger.info(`Found ${Object.keys(recordingExts).length} recordings.`);
+    this.logger.info(`Found ${recordingFiles.size.toLocaleString()} recordings to inspect.`);
 
-    for (const id of Object.keys(recordingExts)) {
-      const types = recordingExts[id];
-
-      if (!types.includes('info')) {
-        this.logger.error(`Missing info file for ${id}.`, types);
+    for (const [id, types] of recordingFiles) {
+      if (!types.has('info')) {
+        this.logger.warn(`Skipping ${id}; missing info file.`);
         continue;
       }
 
-      const s = await stat(path.join(recPath, `${id}.ogg.info`)).catch(() => null);
-      if (!s) {
-        this.logger.error(`Failed to get info stat for ${id}.`, types);
+      const infoPath = path.join(REC_DIRECTORY, `${id}.ogg.info`);
+      const infoStat = await stat(infoPath).catch(() => null);
+      if (!infoStat) {
+        this.logger.warn(`Skipping ${id}; failed to stat info file.`);
         continue;
       }
 
+      let info: RecordingInfo;
       try {
-        const info = JSON.parse(await readFile(path.join(recPath, `${id}.ogg.info`), 'utf8'));
-        const shouldExpire =
-          info.expiresAfter !== undefined
-            ? Date.parse(info.startTime) + info.expiresAfter * 60 * 60 * 1000 < Date.now()
-            : s.mtime.getTime() + recordingConfig.fallbackExpiration < Date.now();
-
-        if (shouldExpire) {
-          this.logger.log(`Deleting ${id}.`);
-          await Promise.all(types.map((type) => unlink(path.join(recPath, `${id}.ogg.${type}`))));
-        }
+        info = JSON.parse(await readFile(infoPath, 'utf8')) as RecordingInfo;
       } catch (e) {
-        this.logger.error(`Failed to read info file for ${id}.`, types);
+        this.logger.warn(`Skipping ${id}; failed to parse info file:`, e);
         continue;
       }
-    }
 
-    this.logger.info('OK.');
+      const expiresAt =
+        info.expiresAfter !== undefined && info.startTime
+          ? Date.parse(info.startTime) + info.expiresAfter * 60 * 60 * 1000
+          : infoStat.mtime.getTime() + RECORDING_FALLBACK_EXPIRATION;
+
+      if (!Number.isFinite(expiresAt) || expiresAt >= Date.now()) continue;
+
+      this.logger.info(`Deleting expired recording ${id}.`);
+      await Promise.all(
+        [...types].map(async (type) => {
+          const file = path.join(REC_DIRECTORY, `${id}.ogg.${type}`);
+          await unlink(file);
+        })
+      );
+    }
   }
 }

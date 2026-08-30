@@ -1,9 +1,7 @@
-import { DexareModule } from 'dexare';
+import type { CraigBot } from '../bot.js';
+import { BotModule } from '../runtime.js';
 
-import type { CraigBot } from '../bot';
-
-// @ts-ignore
-export default class MetricsModule extends DexareModule<CraigBot> {
+export default class MetricsModule extends BotModule {
   stats = {
     recordingsStarted: 0,
     autorecordingsStarted: 0,
@@ -12,13 +10,15 @@ export default class MetricsModule extends DexareModule<CraigBot> {
     commands: {} as Record<string, number>,
     voiceServersConnected: {} as Record<string, number>
   };
-  constructor(client: any) {
+  private readonly handleRawWS = () => {
+    this.stats.gatewayEventsReceived++;
+  };
+
+  constructor(client: CraigBot) {
     super(client, {
       name: 'metrics',
       description: 'Metrics collection'
     });
-
-    this.filePath = __filename;
   }
 
   onCommandRan(commandName: string) {
@@ -55,12 +55,10 @@ export default class MetricsModule extends DexareModule<CraigBot> {
   }
 
   load() {
-    this.registerEvent('rawWS', () => {
-      this.stats.gatewayEventsReceived++;
-    });
+    this.client.bot.on('rawWS', this.handleRawWS);
   }
 
   unload() {
-    this.unregisterAllEvents();
+    this.client.bot.removeListener('rawWS', this.handleRawWS);
   }
 }

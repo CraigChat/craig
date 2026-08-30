@@ -1,0 +1,37 @@
+import { env } from '$env/dynamic/public';
+
+const publicBaseURL = () => env.PUBLIC_BASE_URL || '';
+
+export const toRedirectUri = (service: string) => `${publicBaseURL()}/api/connections/${service}/callback`;
+
+export const PATREON_REDIRECT_URI = `${publicBaseURL()}/api/connections/patreon/callback`;
+export const PATREON_OAUTH_URL = `https://www.patreon.com/oauth2/authorize?${new URLSearchParams({
+  client_id: env.PUBLIC_PATREON_CLIENT_ID!,
+  redirect_uri: toRedirectUri('patreon'),
+  response_type: 'code'
+}).toString()}`;
+
+export const microsoftScopes = ['Files.ReadWrite.AppFolder', 'offline_access', 'openid', 'profile', 'User.Read'];
+export const MICROSOFT_OAUTH_URL = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${new URLSearchParams({
+  client_id: env.PUBLIC_MICROSOFT_CLIENT_ID!,
+  scope: microsoftScopes.join(' '),
+  redirect_uri: toRedirectUri('microsoft'),
+  response_type: 'code'
+})}`;
+
+export const googleScopes = ['https://www.googleapis.com/auth/drive.file'];
+export const GOOGLE_OAUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+  access_type: 'offline',
+  scope: googleScopes.join(' '),
+  response_type: 'code',
+  client_id: env.PUBLIC_GOOGLE_CLIENT_ID!,
+  redirect_uri: toRedirectUri('google')
+})}`;
+
+export const boxScopes = ['root_readwrite'];
+export const BOX_OAUTH_URL = `https://account.box.com/api/oauth2/authorize?${new URLSearchParams({
+  client_id: env.PUBLIC_BOX_CLIENT_ID!,
+  redirect_uri: toRedirectUri('box'),
+  response_type: 'code',
+  scope: boxScopes.join(' ')
+})}`;

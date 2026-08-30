@@ -1,8 +1,5 @@
-import dotenv from 'dotenv';
+import './env.js';
 
-dotenv.config();
-
-// eslint-disable-next-line import/first
-import { connect } from './bot';
+import { connect } from './bot.js';
 
 connect();

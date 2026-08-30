@@ -1,28 +1,29 @@
+import { prisma } from '@craig/db';
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
 import { Integrations } from '@sentry/tracing';
-import config from 'config';
-import Eris from 'eris';
 import { CommandContext } from 'slash-create';
 
-import Recording from './modules/recorder/recording';
-import { prisma } from './prisma';
+import packageJson from '../package.json';
+import { getSentryOptions } from './config.js';
+import Recording from './modules/recorder/recording.js';
 
-const sentryOpts: any = config.has('sentry') ? config.get('sentry') : null;
+const sentryOpts = getSentryOptions();
 if (sentryOpts)
   Sentry.init({
     dsn: sentryOpts.dsn,
     integrations: [
       new Sentry.Integrations.Http({ tracing: true }),
       new RewriteFrames({
-        root: __dirname
+        root: process.cwd()
       }),
       new Integrations.Prisma({ client: prisma })
     ],
 
     environment: sentryOpts.env || process.env.NODE_ENV || 'development',
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    release: `craig-bot@${require('../package.json').version}`,
+
+    release: `craig-bot@${packageJson.version}`,
     tracesSampleRate: sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1.0
   });
 
@@ -63,7 +64,7 @@ export function reportRecordingError(ctx: CommandContext, error: any, recording?
   });
 }
 
-export function reportAutorecordingError(member: Eris.Member, guildId: string, channelId: string, error: any, recording?: Recording) {
+export function reportAutorecordingError(member: Dysnomia.Member, guildId: string, channelId: string, error: any, recording?: Recording) {
   if (!sentryOpts) return;
   Sentry.withScope((scope) => {
     scope.setTag('type', 'autorecord');

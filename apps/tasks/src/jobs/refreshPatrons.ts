@@ -1,106 +1,199 @@
-import { PrismaPromise } from '@prisma/client';
-import axios from 'axios';
-import config from 'config';
-import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
-import { prisma } from '../prisma';
-import { TaskJob } from '../types';
+import { type Prisma, prisma } from '@craig/db';
+
+import {
+  PATREON_CAMPAIGN_ID,
+  PATREON_CLIENT_ID,
+  PATREON_CLIENT_SECRET,
+  PATREON_CREDENTIALS_FILE,
+  PATREON_REFRESH_CRON,
+  PATREON_TIER_MAP
+} from '../util/config.js';
+import { TaskJob } from './job.js';
 
 interface Credentials {
   accessToken: string;
   refreshToken: string;
 }
 
-const patreonConfig = config.get('patreon') as {
-  campaignId: string;
-  clientId: string;
-  clientSecret: string;
-  tiers: { [tier: string]: number };
-  skipUsers: string[];
-};
+type PatronStatus = 'declined_patron' | 'active_patron' | 'former_patron' | null;
 
-export default class RefreshPatrons extends TaskJob {
+interface Patron {
+  id: string;
+  entitlementId: string;
+  name: string;
+  email: string;
+  cents: number;
+  status: PatronStatus;
+  discordId?: string;
+  tiers: string[];
+}
+
+interface PatreonMember {
+  attributes: {
+    currently_entitled_amount_cents: number;
+    email?: string;
+    full_name: string;
+    patron_status: PatronStatus;
+  };
+  id: string;
+  relationships: {
+    currently_entitled_tiers?: {
+      data: {
+        id: string;
+        type: 'tier';
+      }[];
+    };
+    user: {
+      data: {
+        id: string;
+        type: 'user';
+      };
+    };
+  };
+  type: 'member';
+}
+
+interface PatreonUser {
+  attributes: {
+    email?: string;
+    social_connections?: {
+      discord: null | {
+        url: null;
+        user_id: string;
+      };
+    };
+  };
+  id: string;
+  type: 'user';
+}
+
+interface PatreonCampaignMembersResponse {
+  data: PatreonMember[];
+  included?: PatreonUser[];
+  meta: {
+    pagination: {
+      cursors?: {
+        next?: string;
+      };
+      total: number;
+    };
+  };
+}
+
+export class RefreshPatronsJob extends TaskJob {
+  readonly userAgent = 'CraigTasks/1.0';
+
   constructor() {
-    super('refreshPatrons', '0 * * * *');
+    super('refreshPatrons', PATREON_REFRESH_CRON);
   }
 
-  async getCredentials() {
-    const credentials = JSON.parse(await readFile(join(__dirname, '../../config/.patreon-credentials.json'), 'utf-8')) as Credentials;
+  assertConfigured() {
+    const missing = [
+      ['PATREON_CAMPAIGN_ID', PATREON_CAMPAIGN_ID],
+      ['PATREON_CLIENT_ID', PATREON_CLIENT_ID],
+      ['PATREON_CLIENT_SECRET', PATREON_CLIENT_SECRET]
+    ]
+      .filter(([, value]) => !value)
+      .map(([name]) => name);
 
-    // Test if access token is valid
-    const { status } = await axios.get('https://www.patreon.com/api/oauth2/v2/identity', {
-      headers: {
-        Authorization: `Bearer ${credentials.accessToken}`
-      },
-      validateStatus: () => true
-    });
+    if (missing.length) throw new Error(`Missing required Patreon config: ${missing.join(', ')}`);
+  }
 
-    if (status !== 200) {
-      const { data } = await axios.post(
-        'https://www.patreon.com/api/oauth2/token?' +
-          new URLSearchParams({
-            grant_type: 'refresh_token',
-            refresh_token: credentials.refreshToken,
-            client_id: patreonConfig.clientId,
-            client_secret: patreonConfig.clientSecret
-          }).toString()
-      );
-
-      this.logger.info('Refreshing Patreon access token');
-
-      credentials.accessToken = data.access_token;
-      credentials.refreshToken = data.refresh_token;
-
-      await writeFile(
-        join(__dirname, '../../config/.patreon-credentials.json'),
-        JSON.stringify({ accessToken: data.access_token, refreshToken: data.refresh_token })
-      );
-    }
-
+  async readCredentials() {
+    const credentials = JSON.parse(await readFile(PATREON_CREDENTIALS_FILE, 'utf-8')) as Credentials;
+    if (!credentials.accessToken || !credentials.refreshToken) throw new Error(`${PATREON_CREDENTIALS_FILE} is missing Patreon tokens.`);
     return credentials;
   }
 
-  async getPatrons(credentials: Credentials, cursor?: string, retries = 0): Promise<{ patrons: Patron[]; next: string | undefined; total: number }> {
-    const query = new URLSearchParams({
-      include: 'currently_entitled_tiers,user',
-      'fields[member]': 'full_name,currently_entitled_amount_cents,patron_status,email',
-      'fields[user]': 'social_connections',
-      'page[count]': '500',
-      ...(cursor ? { 'page[cursor]': cursor } : {})
-    });
-    const response = await axios.get(`https://www.patreon.com/api/oauth2/v2/campaigns/${patreonConfig.campaignId}/members?${query}`, {
+  async writeCredentials(credentials: Credentials) {
+    await mkdir(path.dirname(PATREON_CREDENTIALS_FILE), { recursive: true });
+    await writeFile(PATREON_CREDENTIALS_FILE, `${JSON.stringify(credentials, null, 2)}\n`);
+  }
+
+  async getCredentials() {
+    const credentials = await this.readCredentials();
+
+    const identity = await fetch('https://www.patreon.com/api/oauth2/v2/identity', {
       headers: {
         Authorization: `Bearer ${credentials.accessToken}`,
         'User-Agent': this.userAgent
+      }
+    });
+
+    if (identity.status === 200) return credentials;
+
+    this.logger.info('Refreshing Patreon access token.');
+    const response = await fetch('https://www.patreon.com/api/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': this.userAgent
       },
-      validateStatus: () => true
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: credentials.refreshToken,
+        client_id: PATREON_CLIENT_ID,
+        client_secret: PATREON_CLIENT_SECRET
+      })
+    });
+
+    if (!response.ok) throw new Error(`Failed to refresh Patreon credentials: HTTP ${response.status}`);
+
+    const data = (await response.json()) as { access_token?: string; refresh_token?: string };
+    if (!data.access_token || !data.refresh_token) throw new Error('Patreon token refresh response did not include tokens.');
+
+    const refreshed = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token
+    };
+    await this.writeCredentials(refreshed);
+    return refreshed;
+  }
+
+  async getPatrons(credentials: Credentials, cursor?: string, retries = 0): Promise<{ patrons: Patron[]; next?: string; total: number }> {
+    const query = new URLSearchParams({
+      include: 'currently_entitled_tiers,user',
+      'fields[member]': 'full_name,currently_entitled_amount_cents,patron_status,email',
+      'fields[user]': 'social_connections,email',
+      'page[count]': '500',
+      ...(cursor ? { 'page[cursor]': cursor } : {})
+    });
+
+    const response = await fetch(`https://www.patreon.com/api/oauth2/v2/campaigns/${PATREON_CAMPAIGN_ID}/members?${query}`, {
+      headers: {
+        Authorization: `Bearer ${credentials.accessToken}`,
+        'User-Agent': this.userAgent
+      }
     });
 
     if (response.status === 429) {
-      const waitFor = Math.pow(5, retries + 1);
-      if (retries >= 3) throw new Error('Too many rate limit retries when fetching patrons');
-      this.logger.log(`Hit a 429, waiting ${waitFor} seconds to retry...`);
-      await new Promise((r) => setTimeout(r, waitFor * 1000));
+      if (retries >= 3) throw new Error('Too many rate limit retries when fetching Patreon members.');
+      const waitFor = 5 ** (retries + 1);
+      this.logger.warn(`Hit Patreon rate limit, waiting ${waitFor}s before retrying.`);
+      await new Promise((resolve) => setTimeout(resolve, waitFor * 1000));
       return this.getPatrons(credentials, cursor, retries + 1);
-    } else if (response.status !== 200) throw new Error(`Failed to fetch patrons: HTTP ${response.status}`);
+    }
+    if (!response.ok) throw new Error(`Failed to fetch Patreon members: HTTP ${response.status}`);
 
-    const data = response.data as PatronCampaignMembersResponse;
+    const data = (await response.json()) as PatreonCampaignMembersResponse;
+    const included = data.included ?? [];
     const patrons = data.data.map((member) => {
       const userId = member.relationships.user.data.id;
-      const user = data.included.find((i) => i.type === 'user' && i.id === userId);
-      const discordId = user?.attributes.social_connections?.discord?.user_id;
+      const user = included.find((item) => item.type === 'user' && item.id === userId);
 
       return {
         id: userId,
         entitlementId: member.id,
         name: member.attributes.full_name,
-        email: member.attributes.email || '',
+        email: member.attributes.email || user?.attributes.email || '',
         cents: member.attributes.currently_entitled_amount_cents,
         status: member.attributes.patron_status,
-        discordId,
-        tiers: member.relationships.currently_entitled_tiers.data.map((tier) => tier.id)
-      } as Patron;
+        discordId: user?.attributes.social_connections?.discord?.user_id,
+        tiers: member.relationships.currently_entitled_tiers?.data.map((tier) => tier.id) ?? []
+      };
     });
 
     return {
@@ -111,54 +204,45 @@ export default class RefreshPatrons extends TaskJob {
   }
 
   determineRewardTier(patron: Patron) {
-    return patron.tiers.map((t) => patreonConfig.tiers[t] || 0).sort((a, b) => b - a)[0] || 0;
+    return patron.tiers.map((tier) => PATREON_TIER_MAP[tier] || 0).sort((a, b) => b - a)[0] || 0;
   }
 
   async collectPatrons() {
-    this.logger.log('Collecting patrons...');
-
+    this.logger.info('Collecting Patreon members.');
     const credentials = await this.getCredentials();
     const initialData = await this.getPatrons(credentials);
 
     if (initialData.total === 0) return [];
 
-    this.logger.info(`Fetching ${initialData.total.toLocaleString()} patrons...`);
-    const start = Date.now();
-
     const patrons = initialData.patrons;
     let nextCursor = initialData.next;
-    if (initialData.next)
-      while (patrons.length < initialData.total) {
-        const nextData = await this.getPatrons(credentials, nextCursor);
-        let newPatrons = 0;
-        for (const patron of nextData.patrons) {
-          if (!patrons.find((p) => p.id === patron.id)) {
-            patrons.push(patron);
-            newPatrons++;
-          }
-        }
-        this.logger.log(
-          `Got ${newPatrons} more patrons (${patrons.length}/${initialData.total}, ${((patrons.length / initialData.total) * 100).toFixed(2)}%), ${
-            nextData.next ? `fetching next page from cursor ${nextData.next}...` : 'no cursor found.'
-          }`
-        );
-        if (!nextData.next) break;
-        nextCursor = nextData.next;
+    this.logger.info(`Fetching ${initialData.total.toLocaleString()} Patreon members.`);
+
+    while (nextCursor && patrons.length < initialData.total) {
+      const nextData = await this.getPatrons(credentials, nextCursor);
+      let newPatrons = 0;
+
+      for (const patron of nextData.patrons) {
+        if (patrons.some((existing) => existing.id === patron.id)) continue;
+        patrons.push(patron);
+        newPatrons++;
       }
 
+      this.logger.info(`Fetched ${newPatrons.toLocaleString()} more Patreon members (${patrons.length}/${initialData.total}).`);
+      nextCursor = nextData.next;
+    }
+
     this.logger.info(
-      `Collected ${patrons.length} patrons in ${(Date.now() - start) / 1000}s. (${patrons
-        .filter((p) => p.status === 'active_patron')
-        .length.toLocaleString()} active, ${patrons.filter((p) => !!p.discordId).length.toLocaleString()} with discord, ${patrons
-        .filter((p) => !!p.discordId && p.status === 'active_patron')
-        .length.toLocaleString()} active with discord)`
+      `Collected ${patrons.length.toLocaleString()} Patreon members: ${patrons.filter((patron) => patron.status === 'active_patron').length.toLocaleString()} active, ${patrons.filter((patron) => !!patron.discordId).length.toLocaleString()} with Discord.`
     );
 
     return patrons;
   }
 
   resolveUserEntitlement(entitlements: { tier: number }[], userId: string) {
-    const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
+    const maxTier = entitlements.some((entitlement) => entitlement.tier === -1)
+      ? -1
+      : entitlements.reduce((max, entitlement) => Math.max(max, entitlement.tier), 0);
 
     return prisma.user.update({
       where: { id: userId },
@@ -170,21 +254,42 @@ export default class RefreshPatrons extends TaskJob {
   }
 
   async run() {
+    this.assertConfigured();
+
     const patrons = await this.collectPatrons();
-    if (patrons.length === 0) return void this.logger.info('No patrons found.');
+    if (patrons.length === 0) {
+      this.logger.info('No Patreon members found.');
+      return;
+    }
 
-    const operations: PrismaPromise<any>[] = [];
+    const operations: Prisma.PrismaPromise<unknown>[] = [];
     const now = new Date();
-
     const activePatronIds = new Set<string>();
     const affectedUserIds = new Set<string>();
+    const activePatrons = patrons.filter((item) => item.status === 'active_patron');
+    const linkedUsers = await prisma.user.findMany({
+      where: {
+        patronId: {
+          in: activePatrons.map((patron) => patron.id)
+        }
+      },
+      select: {
+        id: true,
+        patronId: true
+      }
+    });
+    const linkedUsersByPatronId = new Map<string, (typeof linkedUsers)[number][]>();
+    for (const user of linkedUsers) {
+      if (!user.patronId) continue;
+      const users = linkedUsersByPatronId.get(user.patronId) ?? [];
+      users.push(user);
+      linkedUsersByPatronId.set(user.patronId, users);
+    }
 
-    for (const patron of patrons.filter((p) => p.status === 'active_patron')) {
+    for (const patron of activePatrons) {
       const { id: patreonId, name, email, cents, tiers, discordId } = patron;
-
       activePatronIds.add(patreonId);
 
-      // Upsert into Patreon table
       operations.push(
         prisma.patreon.upsert({
           where: { id: patreonId },
@@ -194,26 +299,15 @@ export default class RefreshPatrons extends TaskJob {
       );
 
       let resolvedDiscordId = discordId;
-
       if (!resolvedDiscordId) {
-        const user = await prisma.user.findFirst({
-          where: { patronId: patreonId }
-        });
+        const user = linkedUsersByPatronId.get(patreonId)?.[0];
         if (user) resolvedDiscordId = user.id;
       }
-
       if (!resolvedDiscordId) continue;
 
       affectedUserIds.add(resolvedDiscordId);
 
-      // Unlink any users who have this patronId but are not the resolved user
-      const unlinked = await prisma.user.findMany({
-        where: {
-          patronId: patreonId,
-          id: { not: resolvedDiscordId }
-        },
-        select: { id: true }
-      });
+      const unlinked = linkedUsersByPatronId.get(patreonId)?.filter((user) => user.id !== resolvedDiscordId) ?? [];
 
       if (unlinked.length > 0) {
         operations.push(
@@ -229,7 +323,6 @@ export default class RefreshPatrons extends TaskJob {
         for (const user of unlinked) affectedUserIds.add(user.id);
       }
 
-      // Upsert the resolved user
       operations.push(
         prisma.user.upsert({
           where: { id: resolvedDiscordId },
@@ -238,8 +331,6 @@ export default class RefreshPatrons extends TaskJob {
         })
       );
 
-      // Set their entitlement
-      const tier = this.determineRewardTier(patron);
       operations.push(
         prisma.entitlement.upsert({
           where: {
@@ -249,40 +340,47 @@ export default class RefreshPatrons extends TaskJob {
             }
           },
           update: {
-            tier,
+            tier: this.determineRewardTier(patron),
             expiresAt: null,
             sourceEntitlementId: patron.entitlementId
           },
           create: {
             userId: resolvedDiscordId,
             source: 'patreon',
-            tier,
+            tier: this.determineRewardTier(patron),
             sourceEntitlementId: patron.entitlementId
           }
         })
       );
     }
 
-    this.logger.info(`Committing ${operations.length.toLocaleString()} pateron/entitlement/user changes...`);
-    await prisma.$transaction(operations);
+    this.logger.info(`Committing ${operations.length.toLocaleString()} Patreon changes.`);
+    if (operations.length > 0) await prisma.$transaction(operations);
 
-    // Remove old Patreon entitlements
-    this.logger.info('Checking for stale entitlements...');
+    this.logger.info('Checking for stale Patreon entitlements.');
+    const staleEntitlementWhere: Prisma.EntitlementWhereInput = { source: 'patreon' };
+    if (activePatronIds.size > 0)
+      staleEntitlementWhere.user = {
+        OR: [{ patronId: null }, { patronId: { notIn: [...activePatronIds] } }]
+      };
+
     const staleEntitlements = await prisma.entitlement.findMany({
-      where: { source: 'patreon' },
-      select: { userId: true, user: { select: { patronId: true } } }
+      where: staleEntitlementWhere,
+      select: { userId: true }
     });
 
-    for (const { userId, user } of staleEntitlements) {
-      if (!user?.patronId || !activePatronIds.has(user.patronId)) {
-        await prisma.entitlement.deleteMany({
-          where: { userId, source: 'patreon' }
-        });
-        affectedUserIds.add(userId);
-      }
+    if (staleEntitlements.length > 0) {
+      const staleUserIds = staleEntitlements.map(({ userId }) => userId);
+      await prisma.entitlement.deleteMany({
+        where: {
+          source: 'patreon',
+          userId: { in: staleUserIds }
+        }
+      });
+      for (const userId of staleUserIds) affectedUserIds.add(userId);
     }
 
-    this.logger.info(`Re-evaluating ${affectedUserIds.size.toLocaleString()} users...`);
+    this.logger.info(`Re-evaluating ${affectedUserIds.size.toLocaleString()} users.`);
     const entitlements = await prisma.entitlement.findMany({
       where: {
         userId: { in: [...affectedUserIds] },
@@ -290,90 +388,18 @@ export default class RefreshPatrons extends TaskJob {
       },
       select: {
         userId: true,
-        tier: true,
-        source: true
+        tier: true
       }
     });
-    await prisma.$transaction(
-      Array.from(affectedUserIds).map((userId) =>
-        this.resolveUserEntitlement(
-          entitlements.filter((e) => e.userId === userId),
-          userId
-        )
-      )
-    );
-    this.logger.info('OK.');
+    const entitlementsByUserId = new Map<string, { tier: number }[]>();
+    for (const entitlement of entitlements) {
+      const userEntitlements = entitlementsByUserId.get(entitlement.userId) ?? [];
+      userEntitlements.push(entitlement);
+      entitlementsByUserId.set(entitlement.userId, userEntitlements);
+    }
+
+    if (affectedUserIds.size > 0) {
+      await prisma.$transaction([...affectedUserIds].map((userId) => this.resolveUserEntitlement(entitlementsByUserId.get(userId) ?? [], userId)));
+    }
   }
-}
-
-type PatronStatus = 'declined_patron' | 'active_patron' | 'former_patron';
-
-interface Patron {
-  id: string;
-  entitlementId: string;
-  name: string;
-  email: string;
-  cents: number;
-  status: PatronStatus;
-  discordId?: string;
-  tiers: string[];
-}
-
-interface PatronMember {
-  attributes: {
-    currently_entitled_amount_cents: number;
-    email: string;
-    full_name: string;
-    patron_status: PatronStatus;
-  };
-  id: string;
-  relationships: {
-    currently_entitled_tiers: {
-      data: [
-        {
-          id: string;
-          type: 'tier';
-        }
-      ];
-    };
-    user: {
-      data: {
-        id: string;
-        type: 'user';
-      };
-      links: {
-        related: string;
-      };
-    };
-  };
-  type: string;
-}
-
-interface PatronUserAttributes {
-  attributes: {
-    social_connections?: {
-      discord: null | {
-        url: null;
-        user_id: string;
-      };
-    };
-  };
-  id: string;
-  type: 'user';
-}
-
-interface PatronCampaignMembersResponse {
-  data: PatronMember[];
-  included: PatronUserAttributes[];
-  links?: {
-    next?: string;
-  };
-  meta: {
-    pagination: {
-      cursors?: {
-        next?: string;
-      };
-      total: number;
-    };
-  };
 }

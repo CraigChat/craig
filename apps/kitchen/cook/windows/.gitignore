@@ -1,0 +1,5 @@
+*.o
+sfx.h
+powersfx.h
+sfx.cxx
+powersfx.cxx

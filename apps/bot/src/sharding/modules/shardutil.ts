@@ -1,20 +1,19 @@
 import { CronJob } from 'cron';
 
-import { wait } from '../../util';
-import * as logger from '../logger';
-import ShardManagerModule from '../module';
+import { wait } from '../../util.js';
+import * as logger from '../logger.js';
+import type ShardManager from '../manager.js';
+import ShardManagerModule from '../module.js';
 
 export default class ShardUtilModule extends ShardManagerModule {
   cron: CronJob;
   checkingRWA = false;
 
-  constructor(client: any) {
-    super(client, {
+  constructor(manager: ShardManager) {
+    super(manager, {
       name: 'shardutil',
       description: 'Shard utility'
     });
-
-    this.filePath = __filename;
     this.cron = new CronJob('*/10 * * * *', this.onCron.bind(this), null, false, 'America/New_York');
   }
 
@@ -49,14 +48,14 @@ export default class ShardUtilModule extends ShardManagerModule {
     });
     this.registerCommand('checkMaintenance', async (shard) => {
       logger.info(`Shard ${shard.id}: Told shards to check maintenance`);
-      await this.manager.broadcastEval('this.modules.get("recorder").checkForMaintenance()');
+      await this.manager.broadcastEval('this.recorder.checkForMaintenance()');
     });
     this.registerCommand('getCounts', async (shard, msg, respond) => {
       logger.debug(`Shard ${shard.id}: Getting counts`);
       const guildResponses = await this.manager.fetchClientValues('bot.guilds.size');
-      const guilds = guildResponses.reduce((acc, val) => acc + (val ?? 0), 0);
-      const recResponses = await this.manager.fetchClientValues('modules.get("recorder").recordings.size');
-      const recordings = recResponses.reduce((acc, val) => acc + (val ?? 0), 0);
+      const guilds = guildResponses.reduce<number>((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
+      const recResponses = await this.manager.fetchClientValues('recorder.recordings.size');
+      const recordings = recResponses.reduce<number>((acc, val) => acc + (typeof val === 'number' ? val : 0), 0);
       return respond({ guilds, recordings });
     });
     this.registerCommand('getShardInfo', async (shard, msg, respond) => {
@@ -73,7 +72,7 @@ export default class ShardUtilModule extends ShardManagerModule {
                   guilds: this.bot.guilds.size,
                   latency: Number.isFinite(this.shard.latency) ? this.shard.latency : -1,
                   uptime: process.uptime(),
-                  recordings: this.modules.get("recorder").recordings.size
+                  recordings: this.recorder.recordings.size
                 };
                 res
               `
@@ -128,7 +127,7 @@ export default class ShardUtilModule extends ShardManagerModule {
     try {
       for (const shard of this.manager.shards.values()) {
         if (shard.respawnWhenAvailable) {
-          const recordings = await shard.eval('this.modules.get("recorder").recordings.size').catch(() => null);
+          const recordings = await shard.eval('this.recorder.recordings.size').catch(() => null);
           if (recordings === 0) {
             logger.info(`Shard ${shard.id}: Respawning since RWA is set`);
             shard.respawnWhenAvailable = false;

@@ -1,0 +1,30 @@
+<script lang="ts">
+  import Icon from '@iconify/svelte';
+  import errorIcon from '@iconify-icons/mdi/close-octagon';
+  import { t } from 'svelte-i18n';
+
+  import { page } from '$app/state';
+  import SiteHeader from '$components/SiteHeader.svelte';
+</script>
+
+<section class="mx-auto flex w-full max-w-4xl flex-col gap-4 p-2 sm:gap-8 sm:p-6">
+  <SiteHeader />
+  <div class="z-[1] mt-20 flex flex-col items-center text-center">
+    <Icon icon={errorIcon} class="mb-4 h-16 w-16 sm:h-20 sm:w-20" />
+    <h1 class="font-display text-6xl text-white sm:text-7xl">{page.status}</h1>
+    <h4 class="text-xl sm:text-2xl">
+      {#if page.error?.code}
+        {#if page.error.code === 'recording_deleted' && page.error.deletedAt}
+          {$t(`errors.${page.error.code}`, {
+            default: page.error.error ?? page.error.message,
+            values: { deletedAt: new Date(page.error.deletedAt) }
+          })}
+        {:else}
+          {$t(`errors.${page.error.code}`, { default: page.error.error ?? page.error.message })}
+        {/if}
+      {:else}
+        {page.error?.message}
+      {/if}
+    </h4>
+  </div>
+</section>

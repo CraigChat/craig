@@ -1,87 +1,81 @@
-import config from 'config';
-import { BaseConfig, DexareClient } from 'dexare';
-import { iterateFolder } from 'dexare/lib/util';
-import Eris from 'eris';
-import path from 'node:path';
-import { SlashCreatorOptions } from 'slash-create';
+import { prisma } from '@craig/db';
+import { Logger } from '@craig/logger';
+import type Dysnomia from '@projectdysnomia/dysnomia';
+import { Client } from '@projectdysnomia/dysnomia';
 
-import { init as i18nInit } from './i18n';
-import { cron as influxCron } from './influx';
-import AutorecordModule from './modules/autorecord';
-import CacheModule from './modules/cache';
-import EntitlementsModule from './modules/entitlements';
-import LoggerModule from './modules/logger';
-import MetricsModule from './modules/metrics';
-import RecorderModule from './modules/recorder';
-import ShardingModule from './modules/sharding';
-import SlashModule from './modules/slash';
-import UploadModule from './modules/upload';
-import { prisma } from './prisma';
-import { client as redisClient } from './redis';
-import { close as closeSentry } from './sentry';
-import { version } from './util';
+import packageJson from '../package.json';
+import { type CraigBotConfig, getBotConfig } from './config.js';
+import { init as i18nInit } from './i18n.js';
+import AutorecordModule from './modules/autorecord.js';
+import CacheModule from './modules/cache.js';
+import EntitlementsModule from './modules/entitlements.js';
+import MetricsModule from './modules/metrics.js';
+import RecorderModule from './modules/recorder/index.js';
+import ShardingModule from './modules/sharding.js';
+import SlashModule from './modules/slash.js';
+import UploadModule from './modules/upload.js';
+import { client as redisClient } from './redis.js';
+import type { LoggerExtra } from './runtime.js';
+import { close as closeSentry } from './sentry.js';
+
+export const version = packageJson.version;
 
 export const PRODUCTION = process.env.NODE_ENV === 'production';
 
-export interface CraigBotConfig extends BaseConfig {
-  applicationID: string;
-  prefix: string | string[];
-  mentionPrefix: boolean;
-  status: Eris.ActivityPartial<Eris.ActivityType>;
-  kitchenURL?: string;
-
-  craig: {
-    emoji: string;
-    downloadProtocol: string;
-    downloadDomain: string;
-    dashboardURL: string;
-    systemNotificationURL?: string;
-    nowRecordingOpus?: string;
-    homepage: string;
-    recordingFolder: string;
-    removeNickname: boolean;
-    alistair?: boolean;
-    sizeLimit: number;
-    sizeLimitWeb: number;
-    sizeLimitWebOpus: number;
-    inviteID?: string;
-    webapp: {
-      on: boolean;
-      url: string;
-      token: string;
-      connectUrl: string;
-    };
-    rewardTiers: { [tier: string]: RewardTier };
-    entitlementWebhookURLs?: { url: string; key: string }[];
+export class CraigBot {
+  readonly config: CraigBotConfig;
+  readonly bot: Dysnomia.Client;
+  readonly cache: CacheModule;
+  readonly entitlements: EntitlementsModule;
+  readonly metrics: MetricsModule;
+  readonly recorder: RecorderModule;
+  readonly autorecord: AutorecordModule;
+  readonly sharding: ShardingModule;
+  readonly slash: SlashModule;
+  readonly upload: UploadModule;
+  readonly commands = {
+    logger: {
+      debug: (...args: any[]) => this.log('debug', 'commands', args),
+      log: (...args: any[]) => this.log('debug', 'commands', args),
+      info: (...args: any[]) => this.log('info', 'commands', args),
+      warn: (...args: any[]) => this.log('warn', 'commands', args),
+      error: (...args: any[]) => this.log('error', 'commands', args)
+    }
   };
 
-  logger: {
-    level: string;
-    inspectOptions?: any;
-  };
-
-  slash: {
-    creator?: SlashCreatorOptions;
-  };
-}
-
-export interface RewardTier {
-  recordHours: number;
-  downloadExpiryHours: number;
-  features: string[];
-  sizeLimitMult?: number;
-  discordSkuId?: string;
-}
-
-export class CraigBot extends DexareClient<CraigBotConfig> {
-  _shard?: Eris.Shard;
+  _shard?: Dysnomia.Shard;
+  private readonly loggers = new Map<string, Logger>();
 
   constructor(config: CraigBotConfig) {
-    super(config);
+    this.config = config;
+    this.bot = new Client(config.token, {
+      requestTimeout: 15000,
+      allowedMentions: {
+        everyone: false,
+        roles: false,
+        users: true
+      },
+      caching: {
+        disableMaps: true
+      },
+      defaultImageFormat: 'png',
+      defaultImageSize: 256,
+      messageLimit: 0,
+      gateway: config.gateway
+    });
+    this.cache = new CacheModule(this);
+    this.entitlements = new EntitlementsModule(this);
+    this.metrics = new MetricsModule(this);
+    this.recorder = new RecorderModule(this);
+    this.autorecord = new AutorecordModule(this);
+    this.sharding = new ShardingModule(this);
+    this.slash = new SlashModule(this);
+    this.upload = new UploadModule(this);
+    this.logDysnomiaEvents();
   }
 
   get shard() {
-    if (!this._shard) this._shard = this.bot.shards.values().next().value as Eris.Shard;
+    if (!this._shard) this._shard = this.bot.shards.values().next().value as Dysnomia.Shard;
     return this._shard;
   }
 
@@ -92,64 +86,94 @@ export class CraigBot extends DexareClient<CraigBotConfig> {
   get version() {
     return version;
   }
+
+  async connect() {
+    this.bot.connect();
+  }
+
+  async disconnect() {
+    this.bot.disconnect({ reconnect: false });
+  }
+
+  async loadModules() {
+    await Promise.all(
+      [this.metrics, this.upload, this.entitlements, this.slash, this.sharding, this.cache, this.recorder, this.autorecord].map((mod) => mod._load())
+    );
+  }
+
+  logDysnomiaEvents() {
+    this.bot.on('error', (error) => this.log('error', 'dysnomia', [error]));
+    this.bot.removeAllListeners('warn').on('warn', (message) => {
+      if (
+        !((message as unknown) instanceof Error && (message as unknown as Error).message.startsWith('Unknown guild text channel type:')) &&
+        !(typeof message === 'string' && message.startsWith('Unhandled MESSAGE_CREATE type'))
+      )
+        this.log('warn', 'dysnomia', [message]);
+    });
+    this.bot.on('debug', (message) => this.log('debug', 'dysnomia', [message]));
+  }
+
+  log(level: string, moduleName: string, args: any[], extra?: LoggerExtra) {
+    const logger = this.getLogger(moduleName);
+    const logArgs = extra && Object.keys(extra).length > 0 ? [...args, extra] : args;
+    switch (level) {
+      case 'error':
+        logger.error(...logArgs);
+        break;
+      case 'warn':
+        logger.warn(...logArgs);
+        break;
+      case 'info':
+        logger.info(...logArgs);
+        break;
+      default:
+        logger.debug(...logArgs);
+        break;
+    }
+  }
+
+  private getLogger(moduleName: string) {
+    const existing = this.loggers.get(moduleName);
+    if (existing) return existing;
+
+    const logger = new Logger(moduleName, {
+      level: this.config.logger.level || (PRODUCTION ? 'info' : 'debug'),
+      prefix: (chalk) => (process.env.SHARD_ID ? chalk.white.bgBlue(` shard ${process.env.SHARD_ID} `) : '')
+    });
+    this.loggers.set(moduleName, logger);
+    return logger;
+  }
 }
 
-const dexareConfig = Object.assign({}, config.get('dexare')) as CraigBotConfig;
-dexareConfig.erisOptions = Object.assign({}, dexareConfig.erisOptions, {
-  gateway: Object.assign({}, dexareConfig.erisOptions?.gateway ?? {}, {
-    ...(process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined
-      ? {
-          firstShardID: parseInt(process.env.SHARD_ID, 10),
-          lastShardID: parseInt(process.env.SHARD_ID, 10),
-          maxShards: parseInt(process.env.SHARD_COUNT, 10)
-        }
-      : {}),
-    intents: ['guilds', 'guildMessages', 'guildVoiceStates']
-  })
-});
-export const client = new CraigBot(dexareConfig);
+export const client = new CraigBot(getBotConfig());
 
 process.once('SIGINT', async () => {
-  client.emit('logger', 'warn', 'sys', ['Caught SIGINT']);
-  await client.disconnect();
+  client.log('warn', 'sys', ['Caught SIGINT']);
+  await disconnect();
   process.exit(0);
 });
 
-process.once('beforeExit', async () => {
-  client.emit('logger', 'warn', 'sys', ['Exiting....']);
-  await client.disconnect();
+process.once('SIGTERM', async () => {
+  client.log('warn', 'sys', ['Caught SIGTERM']);
+  await disconnect();
   process.exit(0);
 });
 
 process.on('unhandledRejection', (r) => {
-  client.emit('logger', 'error', 'sys', ['Unhandled rejection:', r]);
+  client.log('error', 'sys', ['Unhandled rejection:', r]);
 });
 
 process.on('uncaughtException', (e) => {
-  client.emit('logger', 'error', 'sys', ['Uncaught exception:', e, ...('errors' in e ? ((e as any).errors as Error[]) : [])]);
+  client.log('error', 'sys', ['Uncaught exception:', e, ...('errors' in e ? ((e as any).errors as Error[]) : [])]);
 });
 
 export async function connect() {
-  client.loadModules(
-    LoggerModule,
-    SlashModule,
-    ShardingModule,
-    RecorderModule,
-    AutorecordModule,
-    MetricsModule,
-    UploadModule,
-    EntitlementsModule,
-    CacheModule
-  );
-  client.commands.registerDefaults(['eval', 'ping', 'kill', 'exec', 'load', 'unload', 'reload']);
+  await client.loadModules();
 
-  await i18nInit();
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  await iterateFolder(path.join(__dirname, config.get('commandsPath' as string)), async (file) => client.commands.register(require(file)));
+  await i18nInit(client.config.assets.localeFolder);
   await redisClient.connect();
   await client.connect();
   await prisma.$connect();
-  influxCron.start();
   client.bot.editStatus('online', client.config.status);
 
   let botName = 'Craig';

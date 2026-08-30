@@ -1,8 +1,8 @@
 import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
 
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan, mainBotCommandOnly } from '../util';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan, mainBotCommandOnly } from '../util.js';
 
 export default class Webapp extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -24,8 +24,6 @@ export default class Webapp extends GeneralCommand {
         }
       ]
     });
-
-    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {

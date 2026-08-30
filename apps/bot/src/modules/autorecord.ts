@@ -1,18 +1,13 @@
-import { AutoRecord } from '@prisma/client';
+import { type AutoRecord, prisma } from '@craig/db';
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndents } from 'common-tags';
-import { DexareClient, DexareModule } from 'dexare';
-import Eris from 'eris';
 import { ButtonStyle, ComponentType } from 'slash-create';
 
-import type { CraigBotConfig } from '../bot';
-import { prisma } from '../prisma';
-import { checkMaintenance, processCooldown } from '../redis';
-import { reportAutorecordingError } from '../sentry';
-import { cutoffText, getSelfMember, makeDownloadMessage, parseRewards } from '../util';
-import EntitlementsModule from './entitlements';
-import type RecorderModule from './recorder';
-import Recording, { RecordingState } from './recorder/recording';
-import type SlashModule from './slash';
+import { checkMaintenance, processCooldown } from '../redis.js';
+import { BotModule } from '../runtime.js';
+import { reportAutorecordingError } from '../sentry.js';
+import { cutoffText, getSelfMember, isChannelNotFull, makeDownloadMessage, parseRewards } from '../util.js';
+import Recording, { RecordingState } from './recorder/recording.js';
 
 const TTL = 1000 * 60 * 60; // 1 hour
 
@@ -26,101 +21,101 @@ interface AutoRecordUpsert {
   triggerRoles: string[];
 }
 
-// @ts-ignore
-export default class AutorecordModule extends DexareModule<DexareClient<CraigBotConfig>> {
+export default class AutorecordModule extends BotModule {
   debounceTimeouts = new Map<string, any>();
   autorecords = new Map<string, AutoRecord>();
   fetching = false;
   lastRefresh = 0;
+  private readonly handleVoiceChannelJoin = this.onVoiceChannelJoin.bind(this);
+  private readonly handleVoiceChannelLeave = this.onVoiceChannelLeave.bind(this);
+  private readonly handleVoiceChannelSwitch = this.onVoiceChannelSwitch.bind(this);
 
   constructor(client: any) {
     super(client, {
       name: 'autorecord',
-      requires: ['recorder'],
       description: 'Module for handle auto recording.'
     });
-
-    this.filePath = __filename;
   }
 
   load() {
     this.logger.info('Loaded');
-    this.registerEvent('voiceChannelJoin', this.onVoiceChannelJoin.bind(this));
-    this.registerEvent('voiceChannelLeave', this.onVoiceChannelLeave.bind(this));
-    this.registerEvent('voiceChannelSwitch', this.onVoiceChannelSwitch.bind(this));
+    this.client.bot.on('voiceChannelJoin', this.handleVoiceChannelJoin);
+    this.client.bot.on('voiceChannelLeave', this.handleVoiceChannelLeave);
+    this.client.bot.on('voiceChannelSwitch', this.handleVoiceChannelSwitch);
   }
 
   unload() {
-    this.unregisterAllEvents();
+    this.client.bot.removeListener('voiceChannelJoin', this.handleVoiceChannelJoin);
+    this.client.bot.removeListener('voiceChannelLeave', this.handleVoiceChannelLeave);
+    this.client.bot.removeListener('voiceChannelSwitch', this.handleVoiceChannelSwitch);
   }
 
   get recorder() {
-    // @ts-ignore
-    return this.client.modules.get('recorder') as RecorderModule<DexareClient<CraigBotConfig>>;
+    return this.client.recorder;
   }
 
   get entitlements() {
-    // @ts-ignore
-    return this.client.modules.get('entitlements') as EntitlementsModule;
+    return this.client.entitlements;
   }
 
   get emojis() {
-    return (this.recorder.client.modules.get('slash') as SlashModule<any>).emojis;
+    return this.client.slash.emojis;
   }
 
   async fetchAll() {
     if (this.fetching) return;
     this.fetching = true;
-    const autorecords = (
-      await prisma.autoRecord.findMany({
-        where: {
-          clientId: this.client.bot.user.id
-        }
-      })
-    ).filter((autorecord) => this.client.bot.guilds.has(autorecord.guildId));
+    try {
+      const autorecords = (
+        await prisma.autoRecord.findMany({
+          where: {
+            clientId: this.client.bot.user.id
+          }
+        })
+      ).filter((autorecord) => this.client.bot.guilds.has(autorecord.guildId));
 
-    this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
+      this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
 
-    Array.from(this.autorecords.keys()).forEach((channelId) => {
-      if (!autorecords.find((autorecord) => autorecord.channelId === channelId)) this.autorecords.delete(channelId);
-    });
-    autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
-    this.lastRefresh = Date.now();
-    this.fetching = false;
+      Array.from(this.autorecords.keys()).forEach((channelId) => {
+        if (!autorecords.find((autorecord) => autorecord.channelId === channelId)) this.autorecords.delete(channelId);
+      });
+      autorecords.forEach((autorecord) => this.autorecords.set(autorecord.channelId, autorecord));
+      this.lastRefresh = Date.now();
+    } finally {
+      this.fetching = false;
+    }
   }
 
   async upsert(data: AutoRecordUpsert) {
-    const autoRecording = await prisma.autoRecord.findFirst({
-      where: { guildId: data.guildId, clientId: this.client.bot.user.id, channelId: data.channelId }
-    });
-    let newAutoRecording: AutoRecord | null = null;
-
-    if (autoRecording)
-      newAutoRecording = await prisma.autoRecord.update({
-        where: { id: autoRecording.id },
-        data: {
-          userId: data.userId,
-          minimum: data.minimum,
-          triggerUsers: data.triggerUsers,
-          triggerRoles: data.triggerRoles,
-          postChannelId: data.postChannelId || null
-        }
-      });
-    else
-      newAutoRecording = await prisma.autoRecord.create({
-        data: {
-          clientId: this.client.bot.user.id,
+    const clientId = this.client.bot.user.id;
+    const newAutoRecording: AutoRecord = await prisma.autoRecord.upsert({
+      where: {
+        clientId_guildId_channelId: {
+          clientId,
           guildId: data.guildId,
-          channelId: data.channelId,
-          userId: data.userId,
-          postChannelId: data.postChannelId || null,
-          minimum: data.minimum,
-          triggerUsers: data.triggerUsers,
-          triggerRoles: data.triggerRoles
+          channelId: data.channelId
         }
-      });
+      },
+      update: {
+        userId: data.userId,
+        minimum: data.minimum,
+        triggerUsers: data.triggerUsers,
+        triggerRoles: data.triggerRoles,
+        postChannelId: data.postChannelId || null
+      },
+      create: {
+        clientId,
+        guildId: data.guildId,
+        channelId: data.channelId,
+        userId: data.userId,
+        postChannelId: data.postChannelId || null,
+        minimum: data.minimum,
+        triggerUsers: data.triggerUsers,
+        triggerRoles: data.triggerRoles
+      }
+    });
 
-    if (newAutoRecording) this.autorecords.set(newAutoRecording.channelId, newAutoRecording);
+    this.autorecords.set(newAutoRecording.channelId, newAutoRecording);
   }
 
   async delete(autoRecording: AutoRecord) {
@@ -147,7 +142,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     // Determine min and trigger users
     const guild = this.client.bot.guilds.get(guildId);
     if (!guild) return;
-    const channel = guild.channels.get(channelId) as Eris.StageChannel | Eris.VoiceChannel;
+    const channel = guild.channels.get(channelId) as Dysnomia.StageChannel | Dysnomia.VoiceChannel;
     if (!channel) return;
 
     const memberCount = channel.voiceMembers.filter((m) => !m.bot).length;
@@ -174,9 +169,9 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
     if (shouldRecord && !recording) {
       // Get rewards
-      const userData = await prisma.user.findFirst({ where: { id: autoRecording.userId } });
-      const blessing = await prisma.blessing.findFirst({ where: { guildId: guildId } });
-      const blessingUser = blessing ? await prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+      const userData = await prisma.user.findUnique({ where: { id: autoRecording.userId }, select: { rewardTier: true, webapp: true } });
+      const blessing = await prisma.blessing.findUnique({ where: { guildId: guildId }, select: { userId: true } });
+      const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
       const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
       // Remove auto-recording if they lost the ability to autorecord
@@ -190,6 +185,8 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
       // Check permissions
       if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
         return void this.logger.debug(`Could not connect to ${channelId}: Missing voice connect permissions`);
+      if (!isChannelNotFull(channel, this.client.bot.user.id))
+        return void this.logger.debug(`Could not connect to ${channelId}: Channel is full and Move Members permission is missing`);
       if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname'))
         return void this.logger.debug(`Could not connect to ${channelId}: Missing nickname permissions`);
 
@@ -206,7 +203,7 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
 
       // Nickname the bot
       const selfUser = await getSelfMember(guild, this.client.bot);
-      const recNick = cutoffText(`![RECORDING] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
+      const recNick = cutoffText(`![RECORDING] ${selfUser ? (selfUser.nick ?? selfUser.username) : this.client.bot.user.username}`, 32);
       if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
         try {
           await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
@@ -221,8 +218,8 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
         const postChannel = guild.channels.get(autoRecording.postChannelId);
         if (
           postChannel &&
-          channel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
-          channel.permissionsOf(this.client.bot.user.id).has('embedLinks')
+          postChannel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
+          postChannel.permissionsOf(this.client.bot.user.id).has('embedLinks')
         ) {
           const message = await this.client.bot.createMessage(postChannel.id, recording.messageContent() as any).catch(() => null);
           if (message) {
@@ -303,21 +300,20 @@ export default class AutorecordModule extends DexareModule<DexareClient<CraigBot
     );
   }
 
-  onVoiceChannelJoin(_: any, member: Eris.Member, newChannel: Eris.StageChannel | Eris.VoiceChannel) {
+  onVoiceChannelJoin(member: Dysnomia.Member, newChannel: Dysnomia.StageChannel | Dysnomia.VoiceChannel) {
     if (member.bot) return;
     this.debounceCheck(newChannel.id, member.guild.id);
   }
 
-  onVoiceChannelLeave(_: any, member: Eris.Member, oldChannel: Eris.StageChannel | Eris.VoiceChannel) {
+  onVoiceChannelLeave(member: Dysnomia.Member, oldChannel: Dysnomia.StageChannel | Dysnomia.VoiceChannel) {
     if (member.bot) return;
     this.debounceCheck(oldChannel.id, member.guild.id);
   }
 
   onVoiceChannelSwitch(
-    _: any,
-    member: Eris.Member,
-    newChannel: Eris.StageChannel | Eris.VoiceChannel,
-    oldChannel: Eris.StageChannel | Eris.VoiceChannel
+    member: Dysnomia.Member,
+    newChannel: Dysnomia.StageChannel | Dysnomia.VoiceChannel,
+    oldChannel: Dysnomia.StageChannel | Dysnomia.VoiceChannel
   ) {
     if (member.bot) return;
     this.debounceCheck(newChannel.id, member.guild.id);

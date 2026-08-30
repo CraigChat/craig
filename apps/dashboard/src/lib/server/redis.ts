@@ -1,0 +1,109 @@
+import { randomBytes } from 'node:crypto';
+
+import { getSemaphore } from '@henrygd/semaphore';
+import { json, type RequestEvent } from '@sveltejs/kit';
+import Redis from 'ioredis';
+import jwt from 'jsonwebtoken';
+
+import { env } from '$env/dynamic/private';
+
+import { REDIS_OPTIONS } from './config';
+import { requiredEnv } from './env';
+
+export const redis = new Redis(REDIS_OPTIONS);
+
+export async function cacheData<T>(
+  { key, ttl, allowThrows = false }: { key: string; ttl: number; allowThrows?: boolean },
+  cacher: () => Promise<T>
+): Promise<T | null> {
+  const sem = getSemaphore(`redis/${key}`);
+  await sem.acquire();
+  try {
+    const cached = await redis.get(key);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as T;
+      } catch {}
+    }
+    try {
+      const data = await cacher();
+      if (data !== undefined && data !== null) {
+        await redis.set(key, JSON.stringify(data), 'EX', ttl);
+        return data;
+      }
+    } catch (e) {
+      if (allowThrows) throw e;
+      return null;
+    }
+    return null;
+  } finally {
+    sem.release();
+  }
+}
+
+export type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  reset: number;
+};
+
+export async function rateLimit(key: string, limit: number, ttlSeconds: number): Promise<RateLimitResult> {
+  try {
+    const luaScript = `
+local current = redis.call('INCR', KEYS[1])
+if current == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+elseif redis.call('TTL', KEYS[1]) == -1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+local ttl = redis.call('TTL', KEYS[1])
+return {current, ttl}
+`;
+
+    const [current, ttl] = (await redis.eval(luaScript, 1, key, ttlSeconds)) as [number, number];
+    const allowed = current <= limit;
+
+    return {
+      allowed,
+      remaining: Math.max(0, limit - current),
+      reset: ttl > 0 ? ttl : ttlSeconds
+    };
+  } catch (e) {
+    return {
+      allowed: true,
+      remaining: Number.POSITIVE_INFINITY,
+      reset: 0
+    };
+  }
+}
+
+export async function rateLimitRequest(
+  event: Pick<RequestEvent, 'cookies' | 'getClientAddress'>,
+  { prefix, limit, window }: { prefix: string; limit: number; window: number }
+) {
+  let id = `ip:${event.getClientAddress()}`;
+  try {
+    const session = event.cookies.get('session');
+    if (session) {
+      const decoded: any = jwt.verify(session, requiredEnv('JWT_SECRET', env.JWT_SECRET));
+      if (decoded?.id) id = `user:${decoded.id}`;
+    }
+  } catch {}
+
+  const key = `rl:${id}:${prefix}`;
+  const rl = await rateLimit(key, limit, window);
+  if (!rl.allowed) return json({ error: 'Rate limited' }, { status: 429 });
+}
+
+export async function generateOAuthState(userId: string): Promise<string> {
+  const state = randomBytes(32).toString('hex');
+  await redis.set(`oauth_connect_state:${state}`, userId, 'EX', 300);
+  return state;
+}
+
+export async function validateOAuthState(state: string, userId: string): Promise<boolean> {
+  const stored = await redis.get(`oauth_connect_state:${state}`);
+  if (!stored || stored !== userId) return false;
+  await redis.del(`oauth_connect_state:${state}`);
+  return true;
+}

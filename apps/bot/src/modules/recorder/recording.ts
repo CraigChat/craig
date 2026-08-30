@@ -1,40 +1,32 @@
-import { OpusEncoder } from '@discordjs/opus';
+import { convertToTimemark } from '@craig/common';
+import { prisma } from '@craig/db';
+import DiscordJsOpus from '@discordjs/opus';
+import type Dysnomia from '@projectdysnomia/dysnomia';
+import { DiscordRESTError } from '@projectdysnomia/dysnomia';
 import type { DAVESession } from '@snazzah/davey';
-import axios from 'axios';
 import { stripIndents } from 'common-tags';
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
-import { DexareClient } from 'dexare';
-import Eris from 'eris';
 import { access, writeFile } from 'fs/promises';
 import { customAlphabet, nanoid } from 'nanoid';
-import fetch from 'node-fetch';
 import path from 'path';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
-import type { CraigBot, CraigBotConfig } from '../../bot';
-import { onRecordingEnd, onRecordingStart } from '../../influx';
-import { prisma } from '../../prisma';
-import { getSelfMember, ParsedRewards, wait } from '../../util';
-import type SlashModule from '../slash';
-import type RecorderModule from '.';
-import { UserExtraType, WebappOpCloseReason } from './protocol';
-import { WebappClient } from './webapp';
-import RecordingWriter from './writer';
+import type { CraigBot } from '../../bot.js';
+import { getSelfMember, ParsedRewards, wait } from '../../util.js';
+import type RecorderModule from './index.js';
+import { UserExtraType, WebappOpCloseReason } from './protocol.js';
+import { WebappClient } from './webapp.js';
+import RecordingWriter from './writer.js';
 
-dayjs.extend(duration);
-
-const opus = new OpusEncoder(48000, 2);
+const opus = new DiscordJsOpus.OpusEncoder(48000, 2);
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const recNanoid = customAlphabet(alphabet, 12);
 const recIndicator = / *!?\[RECORDING\] */;
-const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
 const MAX_LATENCY_WARNING = 500;
+const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
-
 const BAD_MESSAGE_CODES = [
   404,
   10003, // Unknown channel
@@ -85,13 +77,13 @@ export interface Chunk {
 }
 
 export default class Recording {
-  recorder: RecorderModule<DexareClient<CraigBotConfig>>;
+  recorder: RecorderModule;
   id = recNanoid();
   accessKey = nanoid(6);
   deleteKey = nanoid(6);
   ennuiKey = nanoid(6);
-  channel: Eris.StageChannel | Eris.VoiceChannel;
-  user: Eris.User;
+  channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel;
+  user: Dysnomia.User;
   active = false;
   started = false;
   closing = false;
@@ -99,8 +91,8 @@ export default class Recording {
   state: RecordingState = RecordingState.IDLE;
   warningState: WarningState | null = null;
   stateDescription?: string;
-  connection: Eris.VoiceConnection | null = null;
-  receiver: Eris.VoiceDataStream | null = null;
+  connection: Dysnomia.VoiceConnection | null = null;
+  receiver: Dysnomia.VoiceDataStream | null = null;
   webapp?: WebappClient;
 
   messageChannelID: string | null = null;
@@ -111,6 +103,8 @@ export default class Recording {
   logs: string[] = [];
   lastMessageError: Error | null = null;
   rewards: ParsedRewards | null = null;
+  voiceVersion?: string;
+  rtcWorkerVersion?: string;
 
   users: { [key: string]: RecordingUser } = {};
   userPackets: { [key: string]: Chunk[] } = {};
@@ -135,7 +129,7 @@ export default class Recording {
   encryptionRecoveryAttempts = 0;
   encryptionStopIssued = false;
 
-  constructor(recorder: RecorderModule<DexareClient<CraigBotConfig>>, channel: Eris.StageChannel | Eris.VoiceChannel, user: Eris.User, auto = false) {
+  constructor(recorder: RecorderModule, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, user: Dysnomia.User, auto = false) {
     this.recorder = recorder;
     this.channel = channel;
     this.user = user;
@@ -187,6 +181,7 @@ export default class Recording {
     try {
       await this.connect();
     } catch (e) {
+      this.recorder.traceVoiceTimeout(this.connection);
       this.recorder.logger.error(
         `Failed to connect to ${this.channel.name} (${this.channel.id}) in ${this.channel.guild.name} (${this.channel.guild.id}) by ${this.user.username}#${this.user.discriminator} (${this.user.id})`,
         e
@@ -246,13 +241,16 @@ export default class Recording {
     this.writer = new RecordingWriter(this, fileBase);
     this.writeToLog(`Connected to channel ${this.connection?.channelID} at ${this.connection?.endpoint}`);
 
-    this.timeout = setTimeout(async () => {
-      if (this.state !== RecordingState.RECORDING) return;
-      this.writeToLog('Timeout reached, stopping recording');
-      this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
-      this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
-      await this.stop();
-    }, rewards.recordHours * 60 * 60 * 1000);
+    this.timeout = setTimeout(
+      async () => {
+        if (this.state !== RecordingState.RECORDING) return;
+        this.writeToLog('Timeout reached, stopping recording');
+        this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
+        this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
+        await this.stop();
+      },
+      rewards.recordHours * 60 * 60 * 1000
+    );
 
     this.usageInterval = setInterval(async () => {
       if (this.state !== RecordingState.RECORDING) return;
@@ -303,7 +301,7 @@ export default class Recording {
 
     if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
 
-    onRecordingStart(this.user.id, this.channel.guild.id, this.autorecorded);
+    this.recorder.metrics.onRecordingStart(this.autorecorded);
   }
 
   async stop(internal = false, userID?: string) {
@@ -358,27 +356,19 @@ export default class Recording {
           })
           .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
 
-      if (this.startedAt && this.startTime) {
-        const timestamp = process.hrtime(this.startTime!);
-        const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-        await onRecordingEnd(this.user.id, this.channel.guild.id, this.startedAt, time, this.autorecorded, !!this.webapp, false).catch(() => {});
-      }
-
       // Reset nickname
-      if (this.recorder.client.config.craig.removeNickname) {
-        const selfUser = await getSelfMember(this.channel.guild, this.recorder.client.bot);
-        if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick))
-          try {
-            await this.recorder.client.bot.editGuildMember(
-              this.channel.guild.id,
-              '@me',
-              { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
-              'Removing recording status'
-            );
-          } catch (e) {
-            this.recorder.logger.error('Failed to change nickname', e);
-          }
-      }
+      const selfUser = await getSelfMember(this.channel.guild, this.recorder.client.bot);
+      if (selfUser && selfUser.nick && recIndicator.test(selfUser.nick))
+        try {
+          await this.recorder.client.bot.editGuildMember(
+            this.channel.guild.id,
+            '@me',
+            { nick: selfUser.nick.replace(recIndicator, '').trim() || null },
+            'Removing recording status'
+          );
+        } catch (e) {
+          this.recorder.logger.error('Failed to change nickname', e);
+        }
 
       if (this.started)
         await this.uploadToDrive().catch((e) => this.recorder.logger.error(`Failed to upload recording ${this.id} to ${this.user.id}`, e));
@@ -485,8 +475,7 @@ export default class Recording {
   }
 
   async playNowRecording() {
-    const fileName = this.recorder.client.config.craig.alistair ? 'nowrecording_alistair.opus' : 'nowrecording.opus';
-    const filePath = this.recorder.client.config.craig.nowRecordingOpus || path.join(__dirname, '../../../data', fileName);
+    const filePath = this.recorder.client.config.assets.nowRecordingOpus;
 
     try {
       await access(filePath);
@@ -496,7 +485,7 @@ export default class Recording {
 
   // Event handlers //
 
-  async onVoiceStateUpdate(member: Eris.Member, oldState: Eris.OldVoiceState) {
+  async onVoiceStateUpdate(member: Dysnomia.Member, oldState: Dysnomia.OldVoiceState) {
     if (member.id === this.recorder.client.bot.user.id) {
       if (member.voiceState.deaf && !oldState.deaf) {
         this.warningState = WarningState.DEAFENED;
@@ -555,10 +544,48 @@ export default class Recording {
     } else await this.updateMessage();
   }
 
+  async onConnectionWarn(message: string) {
+    this.writeToLog(`Warning: ${message}`, 'connection');
+    this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, message);
+
+    if (!this.active || this.encryptionStopIssued || !message.startsWith('Invalidating transition ')) return;
+
+    this.encryptionRecoveryAttempts++;
+
+    const endpoint = this.connection?.endpoint;
+    const context = {
+      consecutiveDecryptionFailures: this.connection?.consecutiveDecryptionFailures,
+      failureTolerance: this.connection?.failureTolerance,
+      lastTransitionID: this.connection?.lastTransitionID,
+      reinitializing: this.connection?.reinitializing,
+      channelID: this.connection?.channelID,
+      endpoint: endpoint?.hostname,
+      daveProtocolVersion: this.connection?.daveProtocolVersion
+    };
+
+    this.writeToLog(`Encryption recovery warning ${this.encryptionRecoveryAttempts}: ${JSON.stringify(context)}`, 'connection');
+    this.recorder.logger.debug(`Encryption recovery warning for recording ${this.id}`, context);
+
+    if (this.encryptionRecoveryAttempts < ENCRYPTION_RECOVERY_STOP_THRESHOLD) return;
+
+    this.encryptionStopIssued = true;
+    const stopWarning =
+      "Due to voice encryption issues, I could not properly hear anyone. Please switch this channel's voice region and restart the recording.";
+    this.stateDescription = `⚠️ ${stopWarning}`;
+    await this.sendWarning(stopWarning, false);
+    await this.stop();
+  }
+
   async onConnectionDisconnect(err?: Error) {
     if (!this.active) return;
     this.writeToLog(`Got disconnected, ${err}`);
     this.recorder.logger.debug(`Recording ${this.id} disconnected`, err);
+    this.recorder.traceVoiceError({
+      connection: this.connection,
+      code: err ? this.recorder.parseVoiceDisconnectCode(err) : undefined,
+      voiceVersion: this.voiceVersion,
+      rtcWorkerVersion: this.rtcWorkerVersion
+    });
     if (err) {
       this.state = RecordingState.RECONNECTING;
       if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
@@ -575,41 +602,7 @@ export default class Recording {
     }
   }
 
-  async onConnectionWarn(message: string) {
-    this.writeToLog(`Warning: ${message}`, 'connection');
-    this.recorder.logger.debug(`Warning in connection for recording ${this.id}`, message);
-
-    if (!this.active || this.encryptionStopIssued || !message.startsWith('Invalidating transition ')) return;
-
-    this.encryptionRecoveryAttempts++;
-    this.writeToLog(
-      [
-        `DAVE recovery attempt ${this.encryptionRecoveryAttempts}/${ENCRYPTION_RECOVERY_STOP_THRESHOLD}`,
-        `fails=${this.connection?.consecutiveDecryptionFailures}`,
-        `tolerance=${this.connection?.failureTolerance}`,
-        `lastTransition=${this.connection?.lastTransitionID}`,
-        `reinitializing=${this.connection?.reinitializing}`,
-        `channel=${this.connection?.channelID}`,
-        `endpoint=${this.connection?.endpoint?.hostname}`,
-        `dave=${this.connection?.daveProtocolVersion}`
-      ].join(', '),
-      'connection'
-    );
-
-    if (this.encryptionRecoveryAttempts < ENCRYPTION_RECOVERY_STOP_THRESHOLD) return;
-
-    const stopWarning =
-      "Due to voice encryption issues, I could not properly hear anyone. Please switch this channel's voice region and restart the recording.";
-
-    this.encryptionStopIssued = true;
-    this.stateDescription = `⚠️ ${stopWarning}`;
-    await this.sendWarning(stopWarning, false);
-    await this.stop();
-  }
-
   async onConnectionUnknown(packet: any) {
-    if (!this.recorder.client.config.craig.systemNotificationURL) return;
-
     if (
       typeof packet === 'object' &&
       'op' in packet &&
@@ -619,14 +612,23 @@ export default class Recording {
       typeof packet.d.rtc_worker === 'string'
     ) {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
-      const voiceEndpoint = this.connection?.endpoint?.hostname;
+      this.voiceVersion = voiceVersion;
+      this.rtcWorkerVersion = rtcWorkerVersion;
+      const voiceEndpoint = this.connection?.endpoint?.host;
       this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
+      this.recorder.traceVoiceConnection({
+        connection: this.connection,
+        voiceVersion: this.voiceVersion,
+        rtcWorkerVersion: this.rtcWorkerVersion
+      });
+
       if (!voiceEndpoint || !voiceEndpoint.endsWith('.discord.media'))
         return this.recorder.logger.warn(
           `Encountered an unknown voice region endpoint: ${voiceEndpoint} (voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`
         );
 
-      await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
+      if (this.recorder.client.config.craig.systemNotificationURL)
+        await this.recorder.pushVoiceVersions(voiceEndpoint, voiceVersion, rtcWorkerVersion);
     }
   }
 
@@ -741,8 +743,10 @@ export default class Recording {
 
     if (user) {
       try {
-        const { data } = await axios.get(user.dynamicAvatarURL('png', 2048), { responseType: 'arraybuffer' });
-        recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data, 'binary').toString('base64');
+        const response = await fetch(user.dynamicAvatarURL('png', 2048));
+        if (!response.ok) throw new Error(`Failed to fetch avatar: ${response.status} ${response.statusText}`);
+        const data = await response.arrayBuffer();
+        recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data).toString('base64');
       } catch (e) {
         this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
         this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
@@ -817,7 +821,7 @@ export default class Recording {
     if (this.startTime) {
       const timestamp = process.hrtime(this.startTime);
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
-      this.logs.push(`\`${dayjs.duration(time).format('HH:mm:ss')}\`: ${log}`);
+      this.logs.push(`\`${convertToTimemark(Math.floor(time / 1000), { includeHours: true })}\`: ${log}`);
     } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
     this.logWrite(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
     if (update) return this.updateMessage();
@@ -828,7 +832,7 @@ export default class Recording {
   }
 
   get emojis() {
-    return (this.recorder.client.modules.get('slash') as SlashModule<any>).emojis;
+    return this.recorder.client.slash.emojis;
   }
 
   messageContent() {
@@ -988,7 +992,7 @@ export default class Recording {
       this.recorder.logger.error(`Failed to update message ${this.messageID} for recording ${this.id}`, e);
       this.writeToLog(`Failed to update message ${this.messageID} for recording ${this.id}`, 'message');
       this.lastMessageError = e as Error;
-      if (e instanceof Eris.DiscordRESTError && BAD_MESSAGE_CODES.includes(e.code)) {
+      if (e instanceof DiscordRESTError && BAD_MESSAGE_CODES.includes(e.code)) {
         this.messageChannelID = null;
         this.messageID = null;
       }

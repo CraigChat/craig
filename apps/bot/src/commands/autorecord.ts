@@ -1,9 +1,9 @@
 import { stripIndents } from 'common-tags';
 import { ButtonStyle, ChannelType, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, parseRewards } from '../util';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan, checkRecordingPermission, parseRewards } from '../util.js';
 
 export default class AutoRecord extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -22,7 +22,7 @@ export default class AutoRecord extends GeneralCommand {
               type: CommandOptionType.CHANNEL,
               name: 'channel',
               description: 'The channel to view.',
-              channel_types: [ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE],
+              channel_types: [ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE]
             }
           ]
         },
@@ -54,7 +54,13 @@ export default class AutoRecord extends GeneralCommand {
               type: CommandOptionType.CHANNEL,
               name: 'post-channel',
               description: 'The channel to post recording panels to when an auto-recording starts.',
-              channel_types: [ChannelType.GUILD_TEXT, ChannelType.GUILD_PUBLIC_THREAD, ChannelType.GUILD_PRIVATE_THREAD, ChannelType.GUILD_VOICE, ChannelType.GUILD_STAGE_VOICE]
+              channel_types: [
+                ChannelType.GUILD_TEXT,
+                ChannelType.GUILD_PUBLIC_THREAD,
+                ChannelType.GUILD_PRIVATE_THREAD,
+                ChannelType.GUILD_VOICE,
+                ChannelType.GUILD_STAGE_VOICE
+              ]
             }
           ]
         },
@@ -79,8 +85,6 @@ export default class AutoRecord extends GeneralCommand {
         }
       ]
     });
-
-    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {
@@ -123,7 +127,7 @@ export default class AutoRecord extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
+    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
@@ -147,8 +151,14 @@ export default class AutoRecord extends GeneralCommand {
     switch (ctx.subcommands[0]) {
       case 'view': {
         if (ctx.options.view.channel) {
-          const autoRecording = await this.prisma.autoRecord.findFirst({
-            where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: ctx.options.view.channel }
+          const autoRecording = await this.prisma.autoRecord.findUnique({
+            where: {
+              clientId_guildId_channelId: {
+                clientId: this.client.bot.user.id,
+                guildId: ctx.guildID,
+                channelId: ctx.options.view.channel
+              }
+            }
           });
 
           if (!autoRecording)
@@ -208,8 +218,8 @@ export default class AutoRecord extends GeneralCommand {
       case 'on': {
         // Get rewards
         const userData = await this.entitlements.getCurrentUser(ctx);
-        const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-        const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+        const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
+        const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
         const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
         // Check if user can manage auto-recordings
         if (!parsedRewards.rewards.features.includes('auto'))
@@ -283,8 +293,14 @@ export default class AutoRecord extends GeneralCommand {
       case 'off': {
         const channel = ctx.options.off.channel as string;
 
-        const autoRecording = await this.prisma.autoRecord.findFirst({
-          where: { guildId: ctx.guildID, clientId: this.client.bot.user.id, channelId: channel }
+        const autoRecording = await this.prisma.autoRecord.findUnique({
+          where: {
+            clientId_guildId_channelId: {
+              clientId: this.client.bot.user.id,
+              guildId: ctx.guildID,
+              channelId: channel
+            }
+          }
         });
 
         if (autoRecording) await this.autoRecord.delete(autoRecording);

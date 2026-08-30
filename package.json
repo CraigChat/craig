@@ -1,5 +1,6 @@
 {
   "name": "craig",
+  "version": "0.0.0",
   "homepage": "http://craig.chat/",
   "license": "ISC",
   "private": true,
@@ -8,25 +9,30 @@
     "email": "me@snazzah.com",
     "url": "https://snazzah.com/"
   },
-  "workspaces": [
-    "apps/bot",
-    "apps/dashboard",
-    "apps/download",
-    "apps/tasks"
-  ],
+  "engines": {
+    "node": ">=22.15.0",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@10.33.4",
   "scripts": {
-    "build": "yarn workspaces run build",
-    "test": "yarn workspaces run test",
-    "lint": "yarn workspaces run lint",
-    "lint:fix": "yarn workspaces run lint:fix",
-    "lint:monorepo": "yarn manypkg check",
-    "sync": "yarn manypkg run bot sync",
-    "sync:dev": "yarn manypkg run bot sync:dev",
-    "run-job": "yarn manypkg run tasks run-job",
-    "prisma:generate": "prisma generate && yarn manypkg run bot prisma:generate && yarn manypkg run dashboard prisma:generate && yarn manypkg run tasks prisma:generate",
-    "prisma:deploy": "prisma migrate deploy",
-    "prisma:dev": "prisma migrate dev",
-    "entitlement": "tsx scripts/manageEntitlements.ts"
+    "dev": "turbo dev --no-daemon",
+    "dev:no-bot": "turbo dev --no-daemon -F '!@craig/bot'",
+    "inspect": "turbo inspect",
+    "build": "git submodule update --init && turbo build",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "build-cook": "pnpm -F kitchen -F ennuizel-streamer run build-cook",
+    "sync": "pnpm -F bot run sync",
+    "sync:dev": "pnpm -F bot run sync:dev",
+    "db:deploy": "dotenv -c -- pnpm -F db run db:migrate:deploy",
+    "db:push": "dotenv -c -- pnpm -F db run db:push",
+    "db:migrate:dev": "dotenv -c -- pnpm -F db run db:migrate:dev",
+    "prisma": "dotenv -c -- pnpm -F db run prisma",
+    "run-task": "pnpm -F tasks run-task",
+    "entitlement": "dotenv -c -- tsx scripts/manageEntitlements.mts",
+    "redact-user": "dotenv -c -- tsx scripts/redactUser.mts",
+    "ctl": "pnpm -F botctl cli",
+    "bot-instance": "pnpm -F bot instance"
   },
   "repository": {
     "type": "git",
@@ -34,13 +40,19 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "@manypkg/cli": "^0.19.2",
-    "dotenv-cli": "^7.4.1",
-    "eslint": "^8.20.0",
-    "eslint-config-snazzah": "^1.1.0",
-    "prisma": "^5.12.1",
-    "rimraf": "^3.0.2",
-    "tsx": "^4.19.4"
+    "@craig/db": "workspace:*",
+    "dotenv-cli": "8.0.0",
+    "eslint": "10.0.2",
+    "eslint-config-craig": "workspace:*",
+    "prettier-plugin-svelte": "^3.5.0",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "rimraf": "5.0.10",
+    "tsdown": "0.21.10",
+    "tsx": "^4.21.0",
+    "turbo": "2.8.11"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "devDependencies": {
+    "@craig/types": "workspace:*",
+    "@types/node": "^22.15.21"
+  }
 }

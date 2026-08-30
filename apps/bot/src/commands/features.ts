@@ -1,10 +1,10 @@
 import { stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
 
-import type { RewardTier } from '../bot';
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan } from '../util';
+import type { RewardTier } from '../config.js';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan } from '../util.js';
 
 export default class Features extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -13,8 +13,6 @@ export default class Features extends GeneralCommand {
       description: 'List your active perks and active server perks.',
       deferEphemeral: true
     });
-
-    this.filePath = __filename;
   }
 
   formatRewards(rewards: RewardTier, tier: number, by?: string) {
@@ -66,8 +64,10 @@ export default class Features extends GeneralCommand {
     }
 
     const userData = await this.entitlements.getCurrentUser(ctx);
-    const blessing = ctx.guildID ? await this.prisma.blessing.findFirst({ where: { guildId: ctx.guildID } }) : null;
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+    const blessing = ctx.guildID ? await this.prisma.blessing.findUnique({ where: { guildId: ctx.guildID }, select: { userId: true } }) : null;
+    const blessingUser = blessing
+      ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { id: true, rewardTier: true } })
+      : null;
 
     const userTier = userData?.rewardTier || 0;
     const guildTier = blessingUser?.rewardTier || 0;

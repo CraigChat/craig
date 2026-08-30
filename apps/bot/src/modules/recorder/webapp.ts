@@ -1,7 +1,8 @@
 import { WebSocket } from 'ws';
 
-import type { CraigBot, CraigBotConfig } from '../../bot';
-import type { ParsedRewards } from '../../util';
+import type { CraigBot } from '../../bot.js';
+import type { CraigBotConfig } from '../../config.js';
+import type { ParsedRewards } from '../../util.js';
 import {
   ConnectionType,
   ConnectionTypeMask,
@@ -14,9 +15,9 @@ import {
   UserExtraType,
   WebappOp,
   WebappOpCloseReason
-} from './protocol';
-import Recording from './recording';
-import { toBuffer } from './util';
+} from './protocol.js';
+import Recording from './recording.js';
+import { toBuffer } from './util.js';
 
 export interface WebUser {
   connected: boolean;
@@ -313,30 +314,24 @@ export class WebappClient {
       case EnnuicastrId.DATA: {
         if (message.length < EnnuicastrParts.data.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
 
-        let granulePos = message.readUIntLE(EnnuicastrParts.data.granulePos, 6);
+        const granulePos = message.readUIntLE(EnnuicastrParts.data.granulePos, 6);
 
         // Calculate our "correct" time to make sure it's not unacceptably far off
         const arrivalHrTime = process.hrtime(this.recording.startTime!);
         const arrivalTime = arrivalHrTime[0] * 48000 + ~~(arrivalHrTime[1] / 20833.333);
 
-        if (granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000) granulePos = arrivalTime;
+        const adjustedGranulePos = granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000 ? arrivalTime : granulePos;
 
         // Accept the data
         const data = message.slice(EnnuicastrParts.data.length);
-        this.recording.writer?.writeData(granulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
+        this.recording.writer?.writeData(adjustedGranulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
 
         // And inform the monitor
         const user = this.findWebUserFromClientId(clientId);
         if (!user) return;
         // Determine silence
-        let silence = false;
-        if (user.continuous && data.length) {
-          silence = !data.readUInt8(0);
-        } else if (user.dataType === DataTypeFlag.FLAC) {
-          silence = data.length < 16;
-        } else {
-          silence = data.length < 8;
-        }
+        const silence =
+          user.continuous && data.length ? !data.readUInt8(0) : user.dataType === DataTypeFlag.FLAC ? data.length < 16 : data.length < 8;
         this.monitorSetSpeaking(userTrackNo, !silence);
         break;
       }

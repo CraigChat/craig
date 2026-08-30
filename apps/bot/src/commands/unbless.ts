@@ -1,8 +1,8 @@
 import { CommandContext, SlashCreator } from 'slash-create';
 
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan, unblessServer } from '../util';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan, unblessServer } from '../util.js';
 
 export default class Bless extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -12,8 +12,6 @@ export default class Bless extends GeneralCommand {
       deferEphemeral: true,
       dmPermission: false
     });
-
-    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {

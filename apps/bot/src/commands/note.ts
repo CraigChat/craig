@@ -1,8 +1,8 @@
 import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
 
-import { processCooldown } from '../redis';
-import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText } from '../util';
+import { processCooldown } from '../redis.js';
+import GeneralCommand from '../slashCommand.js';
+import { checkBan, checkRecordingPermission, cutoffText } from '../util.js';
 
 export default class Note extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -19,8 +19,6 @@ export default class Note extends GeneralCommand {
         }
       ]
     });
-
-    this.filePath = __filename;
   }
 
   async run(ctx: CommandContext) {
@@ -43,7 +41,7 @@ export default class Note extends GeneralCommand {
       };
     }
 
-    const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findFirst({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return {
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',

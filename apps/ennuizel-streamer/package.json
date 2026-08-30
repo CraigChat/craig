@@ -1,0 +1,36 @@
+{
+  "name": "@craig/ennuizel-streamer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./dist/index.mjs",
+  "license": "MIT",
+  "scripts": {
+    "start": "dotenv -e ../../.env -e .env -c -- node dist/index.js",
+    "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7003 dist/index.js",
+    "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
+    "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 reload ecosystem.config.cjs --update-env",
+    "build": "rimraf dist && tsdown src/index.ts",
+    "build-cook": "./scripts/build_cook.sh",
+    "dev": "dotenv -e ../../.env -e .env -c -- tsx src/index",
+    "lint": "eslint src",
+    "format": "eslint src --fix"
+  },
+  "dependencies": {
+    "@craig/common": "workspace:*",
+    "@craig/logger": "workspace:*",
+    "@craig/metrics": "workspace:*",
+    "destr": "^2.0.5",
+    "dotenv": "^16.5.0",
+    "execa": "^9.5.3",
+    "nanoid": "^5.1.5",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.51.0"
+  },
+  "devDependencies": {
+    "@craig/types": "workspace:*",
+    "@types/node": "^22.15.21",
+    "tsdown": "0.21.10",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}

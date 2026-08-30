@@ -1,11 +1,13 @@
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import i18next, { TFunction } from 'i18next';
 import Backend from 'i18next-fs-backend';
-import path from 'path';
 import { CommandContext } from 'slash-create';
 
-export const init = async () => {
+export const init = async (localePath: string) => {
   await i18next.use(Backend).init({
+    showSupportNotice: false,
     fallbackLng: 'en',
     ns: ['commands'],
     defaultNS: 'commands',
@@ -13,12 +15,12 @@ export const init = async () => {
       escapeValue: false
     },
     backend: {
-      loadPath: path.join(__dirname, '../../../locale/{{lng}}/{{ns}}.json')
+      loadPath: path.join(localePath, '{{lng}}/{{ns}}.json')
     }
   });
 
-  const lngs = await fs.readdir(path.join(__dirname, '../../../locale'));
-  await i18next.loadLanguages(lngs.filter((lng) => !lng.includes('.')));
+  const lngs = await fs.readdir(localePath);
+  await i18next.loadLanguages(lngs.filter((lng) => !lng.includes('.'))).catch(() => undefined);
 };
 
 export function createT(lang: string) {

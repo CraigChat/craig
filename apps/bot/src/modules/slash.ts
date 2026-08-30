@@ -1,7 +1,6 @@
+import { prisma } from '@craig/db';
 import type { DAVESession } from '@snazzah/davey';
 import { EmojiManager } from '@snazzah/emoji-sync';
-import { BaseConfig, DexareClient, DexareModule } from 'dexare';
-import path from 'node:path';
 import {
   AnyComponent,
   ButtonStyle,
@@ -15,30 +14,52 @@ import {
   TextInputStyle
 } from 'slash-create';
 
-import type { CraigBotConfig } from '../bot';
-import { onCommandRun } from '../influx';
-import { prisma } from '../prisma';
-import { reportErrorFromCommand } from '../sentry';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util';
-import type RecorderModule from './recorder';
-import { RecordingState } from './recorder/recording';
-
-export interface SlashConfig extends BaseConfig {
-  applicationID: string;
-  slash?: SlashModuleOptions;
-}
+import type { CraigBot } from '../bot.js';
+import AutorecordCommand from '../commands/autorecord.js';
+import BlessCommand from '../commands/bless.js';
+import FeaturesCommand from '../commands/features.js';
+import InfoCommand from '../commands/info.js';
+import JoinCommand from '../commands/join.js';
+import NoteCommand from '../commands/note.js';
+import RecordingsCommand from '../commands/recordings.js';
+import ServerSettingsCommand from '../commands/serversettings.js';
+import StopCommand from '../commands/stop.js';
+import UnblessCommand from '../commands/unbless.js';
+import VoiceTestCommand from '../commands/voice-test.js';
+import WebappCommand from '../commands/webapp.js';
+import { BotModule } from '../runtime.js';
+import { reportErrorFromCommand } from '../sentry.js';
+import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util.js';
+import type RecorderModule from './recorder/index.js';
+import { RecordingState } from './recorder/recording.js';
 
 export interface SlashModuleOptions {
-  creator?: SlashCreatorOptions;
+  creator?: Partial<SlashCreatorOptions>;
 }
 
-export default class SlashModule<T extends DexareClient<SlashConfig>> extends DexareModule<T> {
+const commandConstructors = [
+  AutorecordCommand,
+  BlessCommand,
+  FeaturesCommand,
+  InfoCommand,
+  JoinCommand,
+  NoteCommand,
+  RecordingsCommand,
+  ServerSettingsCommand,
+  StopCommand,
+  UnblessCommand,
+  VoiceTestCommand,
+  WebappCommand
+];
+
+export default class SlashModule extends BotModule {
   creator: SlashCreator;
   emojis: EmojiManager<
     'addnote' | 'check' | 'craig' | 'delete' | 'download' | 'e2ee' | 'jump' | 'next' | 'playingaudio' | 'prev' | 'remove' | 'stop'
   >;
+  private interactionHandler?: (event: any) => void;
 
-  constructor(client: T) {
+  constructor(client: CraigBot) {
     super(client, {
       name: 'slash',
       description: 'Slash command handler'
@@ -54,25 +75,24 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       token: this.client.config.token,
       applicationId: this.client.config.applicationID
     });
-    this.filePath = __filename;
   }
 
   async load() {
-    await this.creator
-      .withServer(
-        new GatewayServer((handler) =>
-          this.registerEvent('rawWS', (_, event) => {
-            if (event.t === 'INTERACTION_CREATE') handler(event.d as any);
-          })
-        )
-      )
-      .registerCommandsIn(path.join(__dirname, '../commands'));
+    this.creator.withServer(
+      new GatewayServer((handler) => {
+        this.interactionHandler = (event: any) => {
+          if (event.t === 'INTERACTION_CREATE') handler(event.d as any);
+        };
+        this.client.bot.on('rawWS', this.interactionHandler);
+      })
+    );
+    for (const Command of commandConstructors) this.creator.registerCommand(new Command(this.creator));
 
     this.creator.on('warn', (message) => this.logger.warn(message));
     this.creator.on('error', (error) => this.logger.error(error.stack || error.toString()));
     this.creator.on('commandRun', (command, _, ctx) => {
-      onCommandRun(ctx.user.id, command.commandName, ctx.guildID);
-      this.logger.info(`${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) ran command ${command.commandName}`);
+      this.client.metrics.onCommandRan(command.commandName);
+      this.logger.info(`${ctx.user.username} (${ctx.user.id}) ran command /${command.commandName} ${ctx.subcommands.join(' ')}`);
     });
     this.creator.on('commandError', (command, error, ctx) => {
       reportErrorFromCommand(ctx, error, command.commandName, 'command');
@@ -88,19 +108,19 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
       this.logger.info('Loaded emojis from shard manager');
     } else {
-      await this.emojis.loadFromFolder(path.join(__dirname, '../../emojis'));
+      await this.emojis.loadFromFolder(this.client.config.assets.emojiFolder);
       await this.emojis.sync();
     }
     this.emojis.on('warn', (message) => this.logger.warn('[emoji] ' + message));
     this.emojis.on('error', (error) => this.logger.error('[emoji] ' + (error.stack || error.toString())));
   }
 
-  get recorder(): RecorderModule<DexareClient<CraigBotConfig>> {
-    return this.client.modules.get('recorder') as RecorderModule<any>;
+  get recorder(): RecorderModule {
+    return this.client.recorder;
   }
 
   unload() {
-    this.unregisterAllEvents();
+    if (this.interactionHandler) this.client.bot.removeListener('rawWS', this.interactionHandler);
   }
 
   get config() {
@@ -118,7 +138,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       });
     }
     if (recording.channel.guild.id !== ctx.guildID) return;
-    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode')
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
@@ -250,7 +270,7 @@ export default class SlashModule<T extends DexareClient<SlashConfig>> extends De
       });
     }
 
-    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findFirst({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return ctx.send({
         content: 'You need the `Manage Server` permission or have an access role to manage voice tests.',

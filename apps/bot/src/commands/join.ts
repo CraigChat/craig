@@ -1,11 +1,20 @@
 import { oneLine, stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMessageOptions, SlashCreator } from 'slash-create';
 
-import Recording, { RecordingState } from '../modules/recorder/recording';
-import { checkMaintenance, processCooldown } from '../redis';
-import { reportRecordingError } from '../sentry';
-import GeneralCommand from '../slashCommand';
-import { checkBan, checkRecordingPermission, cutoffText, getSelfMember, makeDownloadMessage, parseRewards, stripIndentsAndLines } from '../util';
+import Recording, { RecordingState } from '../modules/recorder/recording.js';
+import { checkMaintenance, processCooldown } from '../redis.js';
+import { reportRecordingError } from '../sentry.js';
+import GeneralCommand from '../slashCommand.js';
+import {
+  checkBan,
+  checkRecordingPermission,
+  cutoffText,
+  getSelfMember,
+  isChannelNotFull,
+  makeDownloadMessage,
+  parseRewards,
+  stripIndentsAndLines
+} from '../util.js';
 
 export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -22,8 +31,6 @@ export default class Join extends GeneralCommand {
         }
       ]
     });
-
-    this.filePath = __filename;
   }
 
   async reportError(ctx: CommandContext, error: Error, recording: Recording) {
@@ -111,7 +118,7 @@ export default class Join extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findFirst({ where: { id: ctx.guildID } });
+    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
@@ -198,6 +205,11 @@ export default class Join extends GeneralCommand {
         content: `I do not have permission to connect to <#${channel!.id}>.`,
         ephemeral: true
       };
+    if (!isChannelNotFull(channel!, this.client.bot.user.id))
+      return {
+        content: `That voice channel is full, and I do not have the \`Move Members\` permission needed to join it.`,
+        ephemeral: true
+      };
 
     const nicknamePermission = ctx.appPermissions
       ? ctx.appPermissions.has('CHANGE_NICKNAME')
@@ -262,8 +274,8 @@ export default class Join extends GeneralCommand {
 
     // Get rewards
     const userData = await this.entitlements.getCurrentUser(ctx);
-    const blessing = await this.prisma.blessing.findFirst({ where: { guildId: guild.id } });
-    const blessingUser = blessing ? await this.prisma.user.findFirst({ where: { id: blessing.userId } }) : null;
+    const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
+    const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
     const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
 
     // Check if user can record
@@ -307,7 +319,7 @@ export default class Join extends GeneralCommand {
 
     // Nickname the bot
     const selfUser = await getSelfMember(guild, this.client.bot);
-    const recNick = cutoffText(`![RECORDING] ${selfUser ? selfUser.nick ?? selfUser.username : this.client.bot.user.username}`, 32);
+    const recNick = cutoffText(`![RECORDING] ${selfUser ? (selfUser.nick ?? selfUser.username) : this.client.bot.user.username}`, 32);
     await ctx.defer();
     let nickChanged = false;
     if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))

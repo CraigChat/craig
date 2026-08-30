@@ -1,0 +1,27 @@
+{
+  "name": "@craig/metrics",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "types": "./src/index.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "tsdown": "0.21.10"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3"
+  }
+}

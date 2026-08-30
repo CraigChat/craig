@@ -1,0 +1,27 @@
+{
+  "name": "@craig/logger",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "exports": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist/**"
+  ],
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts"
+  },
+  "dependencies": {
+    "chalk": "4.1.2",
+    "dayjs": "1.11.13",
+    "winston": "3.17.0"
+  },
+  "devDependencies": {
+    "tsdown": "0.21.10"
+  }
+}

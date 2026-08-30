@@ -2,8 +2,8 @@ import type { queueAsPromised } from 'fastq';
 import * as fastq from 'fastq';
 import { createWriteStream, WriteStream } from 'fs';
 
-import OggEncoder, { BOS } from './ogg';
-import Recording, { Chunk, NOTE_TRACK_NUMBER, RecordingUser } from './recording';
+import OggEncoder, { BOS } from './ogg.js';
+import Recording, { Chunk, NOTE_TRACK_NUMBER, RecordingUser } from './recording.js';
 import {
   EMPTY_BUFFER,
   FLAC_HEADER_44k,
@@ -14,8 +14,8 @@ import {
   OPUS_HEADERS,
   OPUS_HEADERS_MONO,
   OPUS_MONO_HEADER_VAD
-} from './util';
-import type { WebUser } from './webapp';
+} from './util.js';
+import type { WebUser } from './webapp.js';
 
 export type WriteTask =
   | {
@@ -302,8 +302,8 @@ export default class RecordingWriter {
                 ? FLAC_HEADER_44k_VAD
                 : FLAC_HEADER_44k
               : user.continuous
-              ? FLAC_HEADER_48k_VAD
-              : FLAC_HEADER_48k,
+                ? FLAC_HEADER_48k_VAD
+                : FLAC_HEADER_48k,
             BOS
           );
           this.headerEncoder2.write(0, trackNo, 1, FLAC_TAGS);
