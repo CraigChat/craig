@@ -24,7 +24,7 @@
     "dotenv": "^16.5.0",
     "execa": "^9.5.3",
     "nanoid": "^5.1.5",
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.51.0"
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.69.0"
   },
   "devDependencies": {
     "@craig/types": "workspace:*",

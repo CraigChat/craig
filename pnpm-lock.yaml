@@ -381,8 +381,8 @@ importers:
         specifier: ^5.1.5
         version: 5.1.5
       uWebSockets.js:
-        specifier: github:uNetworking/uWebSockets.js#v20.51.0
-        version: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df
+        specifier: github:uNetworking/uWebSockets.js#v20.69.0
+        version: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/dddd8ffd1b2c28a66022160923ca92f064cdacb4
     devDependencies:
       '@craig/types':
         specifier: workspace:*
@@ -444,6 +444,9 @@ importers:
       opus-decoder:
         specifier: ^0.7.10
         version: 0.7.11
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
       zod:
         specifier: ^4.3.5
         version: 4.3.5
@@ -553,9 +556,6 @@ importers:
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.21.0)(yaml@2.8.2)
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -5480,9 +5480,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  uWebSockets.js@https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df:
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df}
-    version: 20.51.0
+  uWebSockets.js@https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/dddd8ffd1b2c28a66022160923ca92f064cdacb4:
+    resolution: {gitHosted: true, integrity: sha512-To1EyniJj9Eo4QzExs9IX7b6GnbUTd+3CmY+9viayBhIniTxxzbltIGB9Xz8t6DWb3QIs1RMylWtV77IeG65bA==, tarball: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/dddd8ffd1b2c28a66022160923ca92f064cdacb4}
+    version: 20.69.0
 
   unconfig-core@7.5.0:
     resolution: {integrity: sha512-Su3FauozOGP44ZmKdHy2oE6LPjk51M/TRRjHv2HNCWiDvfvCoxC2lno6jevMA91MYAdCdwP05QnWdWpSbncX/w==}
@@ -10032,7 +10032,7 @@ snapshots:
 
   typescript@6.0.3: {}
 
-  uWebSockets.js@https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/6609a88ffa9a16ac5158046761356ce03250a0df: {}
+  uWebSockets.js@https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/dddd8ffd1b2c28a66022160923ca92f064cdacb4: {}
 
   unconfig-core@7.5.0:
     dependencies:
