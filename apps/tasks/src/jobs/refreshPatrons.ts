@@ -35,7 +35,7 @@ interface PatreonMember {
   attributes: {
     currently_entitled_amount_cents: number;
     email?: string;
-    full_name: string;
+    full_name?: string | null;
     patron_status: PatronStatus;
   };
   id: string;
@@ -187,7 +187,7 @@ export class RefreshPatronsJob extends TaskJob {
       return {
         id: userId,
         entitlementId: member.id,
-        name: member.attributes.full_name,
+        name: member.attributes.full_name || '',
         email: member.attributes.email || user?.attributes.email || '',
         cents: member.attributes.currently_entitled_amount_cents,
         status: member.attributes.patron_status,

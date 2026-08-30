@@ -614,7 +614,7 @@ export default class Recording {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
       this.voiceVersion = voiceVersion;
       this.rtcWorkerVersion = rtcWorkerVersion;
-      const voiceEndpoint = this.connection?.endpoint?.host;
+      const voiceEndpoint = this.connection?.endpoint?.hostname;
       this.writeToLog(`Voice version ${voiceVersion} / RTC worker version ${rtcWorkerVersion}`, 'connection');
       this.recorder.traceVoiceConnection({
         connection: this.connection,

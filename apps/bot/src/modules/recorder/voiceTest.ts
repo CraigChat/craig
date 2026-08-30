@@ -332,7 +332,7 @@ export default class VoiceTest {
       const { voice: voiceVersion, rtc_worker: rtcWorkerVersion } = packet.d;
       this.voiceVersion = voiceVersion;
       this.rtcWorkerVersion = rtcWorkerVersion;
-      const voiceEndpoint = this.connection?.endpoint?.host;
+      const voiceEndpoint = this.connection?.endpoint?.hostname;
       this.recorder.traceVoiceConnection({
         connection: this.connection,
         voiceVersion: this.voiceVersion,
