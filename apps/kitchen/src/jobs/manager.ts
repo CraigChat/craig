@@ -90,7 +90,8 @@ export default class JobManager {
             tags: jobData.tags,
             options: jobData.options,
             jobType: jobData.type,
-            postTask: jobData.postTask
+            postTask: jobData.postTask,
+            postTaskOptions: jobData.postTaskOptions
           },
           true
         );
