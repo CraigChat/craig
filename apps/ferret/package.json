@@ -51,7 +51,7 @@
     "@iconify/svelte": "^5.2.1",
     "@sveltejs/adapter-node": "^5.5.1",
     "@sveltejs/enhanced-img": "^0.10.4",
-    "@sveltejs/kit": "^2.61.1",
+    "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@types/wicg-file-system-access": "^2023.10.6",
     "autoprefixer": "^10.4.23",
