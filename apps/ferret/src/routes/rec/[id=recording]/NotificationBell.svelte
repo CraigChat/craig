@@ -33,7 +33,7 @@
       tag: `recording-${recording.id}-${status}`,
       body: $t('notification.body', { values: { guild: recording.guild.name } }),
       icon: '/craig.png',
-      badge: '/favicon-16x16.png',
+      badge: '/favicon.png',
       requireInteraction: true
     });
     notifications.set(id, notif);
