@@ -1,3 +1,3 @@
-import dotenv from 'dotenv';
+import { loadEnvFile } from 'node:process';
 
-dotenv.config();
+loadEnvFile();

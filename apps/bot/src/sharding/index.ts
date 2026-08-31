@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 import { getShardManagerEnvOptions } from '../config.js';
 import { wait } from '../util.js';
 import * as logger from './logger.js';

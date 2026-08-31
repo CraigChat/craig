@@ -25,10 +25,10 @@
     "@henrygd/queue": "^1.0.7",
     "@libav.js/variant-webcodecs": "^6.8.8",
     "@wasm-audio-decoders/flac": "^0.2.8",
-    "destr": "^2.0.5",
+    "destr": "catalog:",
     "emittery": "^1.2.0",
     "eventemitter3": "^5.0.1",
-    "ioredis": "^5.9.2",
+    "ioredis": "catalog:",
     "just-clone": "^6.2.0",
     "mediabunny": "^1.45.3",
     "nanoid": "^5.1.6",
@@ -72,7 +72,7 @@
     "svelte-persisted-store": "^0.12.0",
     "svelte-portal": "^2.2.1",
     "tailwindcss": "^3.4.19",
-    "typescript": "^6.0.3",
+    "typescript": "catalog:",
     "vite": "^7.3.1",
     "vite-plugin-devtools-json": "^1.0.0"
   }

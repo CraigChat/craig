@@ -20,16 +20,15 @@
     "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
     "@craig/metrics": "workspace:*",
-    "common-tags": "^1.8.2",
-    "cron": "^4.3.0",
-    "dotenv": "^16.5.0",
+    "common-tags": "catalog:",
+    "cron": "catalog:",
     "dropbox": "^10.34.0",
     "eventemitter3": "^5.0.1",
     "execa": "^9.5.3",
     "fastify": "^4.29.0",
-    "googleapis": "^149.0.0",
+    "googleapis": "^176.0.0",
     "he": "^1.2.0",
-    "ioredis": "^5.6.1",
+    "ioredis": "catalog:",
     "just-range": "^4.2.0",
     "just-throttle": "^4.2.0",
     "just-zip-it": "^3.2.0",
@@ -38,11 +37,11 @@
   },
   "devDependencies": {
     "@craig/types": "workspace:*",
-    "@types/common-tags": "^1.8.4",
+    "@types/common-tags": "catalog:",
     "@types/he": "^1.2.3",
     "@types/ms": "^2.1.0",
-    "@types/node": "^22.15.21",
-    "tsx": "^4.19.4",
-    "typescript": "^6.0.3"
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
   }
 }

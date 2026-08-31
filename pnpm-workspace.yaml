@@ -1,6 +1,16 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+catalog:
+  '@types/common-tags': ^1.8.4
+  '@types/node': ^22.18.0
+  common-tags: ^1.8.2
+  cron: ^4.3.4
+  destr: ^2.0.5
+  ioredis: ^6.0.0
+  tsdown: 0.22.14
+  tsx: ^4.23.13
+  typescript: ^7.0.2
 allowBuilds:
   '@discordjs/opus': true
   '@parcel/watcher': true
@@ -8,6 +18,7 @@ allowBuilds:
   '@prisma/engines': true
   es5-ext: true
   esbuild: true
+  pnpm: true
   prisma: true
   sharp: true
 blockExoticSubdeps: true

@@ -1,5 +1,4 @@
 import Dysnomia from '@projectdysnomia/dysnomia';
-import fetch from 'node-fetch';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags } from 'slash-create';
 
 import type { CraigBot } from '../bot.js';

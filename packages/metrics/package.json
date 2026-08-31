@@ -18,8 +18,8 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@types/node": "^22.10.7",
-    "tsdown": "0.21.10"
+    "@types/node": "catalog:",
+    "tsdown": "catalog:"
   },
   "dependencies": {
     "prom-client": "^15.1.3"

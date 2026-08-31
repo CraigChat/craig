@@ -2,7 +2,6 @@ import { prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
 import { access, mkdir } from 'fs/promises';
-import fetch from 'node-fetch';
 import path from 'path';
 import semver from 'semver';
 import { ComponentType, MessageFlags } from 'slash-create';

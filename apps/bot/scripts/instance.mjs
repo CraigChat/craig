@@ -2,8 +2,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-
-import dotenv from 'dotenv';
+import { parseEnv } from 'node:util';
 
 const [, , command, instanceName, ...extraArgs] = process.argv;
 if (!['start', 'reload', 'sync'].includes(command) || !instanceName) {
@@ -23,7 +22,7 @@ if (!fs.existsSync(instancePath)) {
 
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
-  return dotenv.parse(fs.readFileSync(filePath));
+  return parseEnv(fs.readFileSync(filePath, 'utf8'));
 }
 
 const mergedEnv = {
