@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-bookworm-slim AS build
+FROM node:24-trixie-slim AS build
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -56,7 +56,7 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
   && cp -a packages/db/prisma /opt/craig/prisma \
   && cp -a locale /opt/craig/locale
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-trixie-slim AS runtime
 
 WORKDIR /opt/craig
 
