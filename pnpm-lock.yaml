@@ -140,7 +140,7 @@ overrides:
   supports-color: 8.1.1
 
 patchedDependencies:
-  svelte-awesome-color-picker@4.1.3: d1854aa6e95814a0678544c93da5ca03b40e6406c89a388ec89e7e1f03baad70
+  svelte-awesome-color-picker: 1392ba36dbad1d4e3dc59c0c595e70f0a4f0458188d7ce34ed5d33cd9b19a619
 
 importers:
 
@@ -655,7 +655,7 @@ importers:
         version: 5.57.0(@typescript-eslint/types@8.60.0)
       svelte-awesome-color-picker:
         specifier: 4.1.3
-        version: 4.1.3(patch_hash=d1854aa6e95814a0678544c93da5ca03b40e6406c89a388ec89e7e1f03baad70)(svelte@5.57.0(@typescript-eslint/types@8.60.0))
+        version: 4.1.3(patch_hash=1392ba36dbad1d4e3dc59c0c595e70f0a4f0458188d7ce34ed5d33cd9b19a619)(svelte@5.57.0(@typescript-eslint/types@8.60.0))
       svelte-check:
         specifier: ^4.7.6
         version: 4.7.6(picomatch@4.0.4)(svelte@5.57.0(@typescript-eslint/types@8.60.0))(typescript@6.0.3)
@@ -10294,7 +10294,7 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  svelte-awesome-color-picker@4.1.3(patch_hash=d1854aa6e95814a0678544c93da5ca03b40e6406c89a388ec89e7e1f03baad70)(svelte@5.57.0(@typescript-eslint/types@8.60.0)):
+  svelte-awesome-color-picker@4.1.3(patch_hash=1392ba36dbad1d4e3dc59c0c595e70f0a4f0458188d7ce34ed5d33cd9b19a619)(svelte@5.57.0(@typescript-eslint/types@8.60.0)):
     dependencies:
       colord: 2.9.3
       svelte: 5.57.0(@typescript-eslint/types@8.60.0)

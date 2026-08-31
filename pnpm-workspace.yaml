@@ -26,7 +26,7 @@ minimumReleaseAge: 1440
 overrides:
   "sharp": "0.34.5"
   "supports-color": "8.1.1"
-patchedDependencies:
-  "svelte-awesome-color-picker@4.1.3": "patches/svelte-awesome-color-picker@4.1.3.patch"
 minimumReleaseAgeExclude:
 - "@snazzah/davey*"
+patchedDependencies:
+  svelte-awesome-color-picker: patches/svelte-awesome-color-picker.patch
