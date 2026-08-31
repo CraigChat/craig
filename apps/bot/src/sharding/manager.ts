@@ -62,7 +62,7 @@ export default class ShardManager extends EventEmitter {
     if (this.options.control?.allowEval)
       this.commands.set('managerEval', (shard, msg, respond) => {
         try {
-          const r = Function('script', 'return eval(script)')(msg.d.script);
+          const r = Function('script', 'return eval(script)').call(this, msg.d.script);
           respond({ result: r });
         } catch (e) {
           respond({ result: null, error: e });
