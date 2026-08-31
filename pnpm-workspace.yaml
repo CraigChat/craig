@@ -30,3 +30,4 @@ minimumReleaseAgeExclude:
 - "@snazzah/davey*"
 patchedDependencies:
   svelte-awesome-color-picker: patches/svelte-awesome-color-picker.patch
+allowUnusedPatches: true
