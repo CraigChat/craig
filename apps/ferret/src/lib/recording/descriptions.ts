@@ -59,7 +59,7 @@ export const descriptions: Record<string, Description> = {
     description: { t: 'download.modal.description.executable' }
   },
   'recording/powersfxm:-': {
-    file: '.powersfxm.zip',
+    file: '.zip',
     zipContents: [
       {
         name: '{user}.flac'
@@ -84,7 +84,7 @@ export const descriptions: Record<string, Description> = {
     description: { t: 'download.modal.description.script' }
   },
   'recording/powersfxu:-': {
-    file: '.powersfxu.zip',
+    file: '.zip',
     zipContents: [
       {
         name: '{user}.flac'

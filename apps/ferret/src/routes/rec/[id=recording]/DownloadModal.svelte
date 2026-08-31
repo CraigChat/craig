@@ -36,7 +36,8 @@
   }
 
   const FormatToExt: Record<string, string> = {
-    heaac: 'aac',
+    aac: 'm4a',
+    heaac: 'm4a',
     vorbis: 'ogg',
     oggflac: 'oga',
     adpcm: 'wav',
@@ -44,12 +45,11 @@
   };
 
   let { emitter, button, onclose }: Props = $props();
-  let extension = $derived(FormatToExt[button.options?.format ?? ''] ?? button.options?.format);
+  let format = $derived(button.options?.format);
+  let extension = $derived(FormatToExt[format ?? ''] ?? format);
   let buttonText = $derived(convertT(button.text, $t));
   let sectionText = $derived(convertT(button.section, $t));
-  let descriptionKey = $derived(
-    button.url ?? `${button.jobType ?? 'recording'}/${button.options?.format ?? '-'}:${button.options?.container ?? '-'}`
-  );
+  let descriptionKey = $derived(button.url ?? `${button.jobType ?? 'recording'}/${format ?? '-'}:${button.options?.container ?? '-'}`);
   let desc = $derived(
     descriptions[descriptionKey] ??
       (button.options?.container === 'mix'
@@ -58,7 +58,7 @@
             description: { t: 'download.modal.description.mix', values: { file: buttonText } }
           } as Description)
         : ({
-            file: `.${extension}.zip`,
+            file: `.${format}.zip`,
             zipContents: [
               {
                 name: `{user}.${extension}`

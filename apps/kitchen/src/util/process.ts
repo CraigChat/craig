@@ -169,11 +169,19 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
     `${pOpts} ${encodeCommand}`
   ];
 
-  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
+  const directOutput = encodeCommand.includes('$OUTPUT');
+  const childProcess = execaCommand(commands.join(' | '), {
+    cancelSignal,
+    buffer: false,
+    shell: true,
+    timeout: DEF_TIMEOUT,
+    cwd: ROOT_DIR,
+    env: directOutput ? { OUTPUT: audioWritePath } : undefined
+  });
   const childPids = await getChildPids(childProcess.pid!, cancelSignal);
 
   const durationNum = parseFloat(duration);
-  const outputStream = createWriteStream(audioWritePath);
+  const outputStream = directOutput ? undefined : createWriteStream(audioWritePath);
   let abortListener: ((event: Event) => void) | undefined;
 
   try {
@@ -199,7 +207,7 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
     };
     cancelSignal.addEventListener('abort', abortListener);
 
-    childProcess.stdout!.pipe(outputStream);
+    if (outputStream) childProcess.stdout!.pipe(outputStream);
 
     const success = await childProcess
       .then(() => true)
@@ -212,7 +220,7 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
     // Clean up event listeners and streams
     if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
     childProcess.stderr.removeAllListeners();
-    outputStream.end();
+    outputStream?.end();
   }
 }
 
@@ -392,9 +400,17 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
     `${pOpts} ${encodeCommand}`
   ];
 
-  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
+  const directOutput = encodeCommand.includes('$OUTPUT');
+  const childProcess = execaCommand(commands.join(' | '), {
+    cancelSignal,
+    buffer: false,
+    shell: true,
+    timeout: DEF_TIMEOUT,
+    cwd: ROOT_DIR,
+    env: directOutput ? { OUTPUT: audioWritePath } : undefined
+  });
   const childPids = await getChildPids(childProcess.pid!, cancelSignal);
-  const outputStream = createWriteStream(audioWritePath);
+  const outputStream = directOutput ? undefined : createWriteStream(audioWritePath);
   let abortListener: ((event: Event) => void) | undefined;
 
   try {
@@ -417,13 +433,13 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
     };
     cancelSignal.addEventListener('abort', abortListener);
 
-    childProcess.stdout!.pipe(outputStream);
+    if (outputStream) childProcess.stdout!.pipe(outputStream);
 
     await childProcess.catch(() => {});
   } finally {
     // Clean up event listeners and streams
     if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
-    outputStream.end();
+    outputStream?.end();
   }
 }
 
