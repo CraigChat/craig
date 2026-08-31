@@ -20,7 +20,7 @@
     "@craig/types": "workspace:*",
     "@floating-ui/core": "^1.7.3",
     "@floating-ui/dom": "^1.7.4",
-    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/inter": "^5.3.0",
     "@iconify-icons/file-icons": "^1.2.3",
     "@iconify-icons/logos": "^1.2.36",
     "@iconify-icons/material-symbols": "^1.2.58",
