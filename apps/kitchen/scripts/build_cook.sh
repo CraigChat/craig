@@ -35,6 +35,8 @@ if [ $BUILDINSTEAD -eq 0 ]; then
   wget https://snazzah.link/craig/cook-bins -O cook-bins.zip
   unzip -o cook-bins.zip
   rm cook-bins.zip
+
+  wget https://github.com/CraigChat/otterpack/releases/latest/download/otterpack.exe -O powersfx.exe
 else
   # Build Windows FFmpeg binaries
   printf "Building for Windows..."
