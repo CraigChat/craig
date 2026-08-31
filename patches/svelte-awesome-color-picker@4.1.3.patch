@@ -1,8 +1,8 @@
 diff --git a/dist/components/variant/default/TextInput.svelte b/dist/components/variant/default/TextInput.svelte
-index c71e036a5ef9fc1af3beec1890956577c841a229..764c5b382954f33069dedc52677c3dbdee0dab13 100644
+index 371843460b3c6c76b0a7a7011b493bad17d6153e..55c71b4d3ef886d218715611d7c3551fed318d94 100644
 --- a/dist/components/variant/default/TextInput.svelte
 +++ b/dist/components/variant/default/TextInput.svelte
-@@ -94,7 +94,7 @@
+@@ -96,7 +96,7 @@
  	{#if textInputModes.length > 1}
  		<button type="button" onclick={() => (mode = nextMode)}>
  			<span class="disappear" aria-hidden="true">{texts.color[mode]}</span>
