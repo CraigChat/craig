@@ -26,7 +26,7 @@
 </button>
 
 <style>
-  @reference "../app.css";
+  @reference "#app.css";
 
   button {
     min-width: 4em;

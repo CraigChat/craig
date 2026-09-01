@@ -93,7 +93,9 @@
   </button>
 {/if}
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   button {
     @apply transition-all;
 

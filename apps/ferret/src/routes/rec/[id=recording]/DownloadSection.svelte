@@ -62,7 +62,7 @@
 </script>
 
 {#if noUsers}
-  <div class="z-[1] inline-flex flex-col justify-start rounded-2xl bg-zinc-900 shadow">
+  <div class="z-1 inline-flex flex-col justify-start rounded-2xl bg-zinc-900 shadow-sm">
     <div class="self-stretch p-6">
       <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">{$t('download.no_users')}</h2>
       <span class="text-sm sm:text-base">
@@ -81,7 +81,7 @@
     </div>
     {#if live}
       <div class="mx-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-amber-200">
-        <Icon icon={alertIcon} class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+        <Icon icon={alertIcon} class="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
         <div class="flex flex-col gap-1">
           <span class="text-sm font-semibold text-amber-300 sm:text-base">{$t('recording.live_warning.title')}</span>
           <span class="text-sm text-amber-200/90">{$t('recording.live_warning.description')}</span>
@@ -176,7 +176,7 @@
     </div>
   </div>
 {:else}
-  <div class="z-[1] inline-flex flex-col justify-start rounded-2xl bg-zinc-900 shadow">
+  <div class="z-1 inline-flex flex-col justify-start rounded-2xl bg-zinc-900 shadow-sm">
     <div class="self-stretch p-6">
       <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">{$t('download.sections.downloads')}</h2>
       <span class="text-sm sm:text-base">
@@ -191,13 +191,13 @@
   <Portal target="body">
     <div
       transition:fade={{ duration: 100 }}
-      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-sm md:items-center md:px-8"
+      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-xs md:items-center md:px-8"
       aria-hidden="true"
       onclick={onModalClick}
     >
       <div
         transition:fly={{ duration: 250, y: 32 }}
-        class="relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-black/50 md:rounded-b-lg"
+        class="relative inline-flex max-h-[calc(100svh-6rem)] w-5xl flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-black/50 md:rounded-b-lg"
       >
         <WhichDoIUse onclose={() => (showWDIU = false)} />
       </div>
@@ -209,16 +209,16 @@
   <Portal target="body">
     <div
       transition:fade={{ duration: 100 }}
-      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-sm md:items-center md:px-8"
+      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-xs md:items-center md:px-8"
       aria-hidden="true"
       onclick={onModalClick}
     >
       <div
         transition:fly={{ duration: 250, y: 32 }}
-        class={`relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ${!focusedButton.ennuizel ? 'ring-black/50' : 'ring-red-950/25'} md:rounded-b-lg`}
+        class={`relative inline-flex max-h-[calc(100svh-6rem)] w-5xl flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ${!focusedButton.ennuizel ? 'ring-black/50' : 'ring-red-950/25'} md:rounded-b-lg`}
       >
         {#if !!focusedButton.ennuizel}
-          <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-gradient-to-b from-red-600 to-transparent opacity-25"></div>
+          <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-linear-to-b from-red-600 to-transparent opacity-25"></div>
         {/if}
         <DownloadModal {emitter} button={focusedButton} onclose={() => (focusedButton = null)} />
       </div>
@@ -230,15 +230,15 @@
   <Portal target="body">
     <div
       transition:fade={{ duration: 100 }}
-      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-sm md:items-center md:px-8"
+      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-xs md:items-center md:px-8"
       aria-hidden="true"
       onclick={onModalClick}
     >
       <div
         transition:fly={{ duration: 250, y: 32 }}
-        class="relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-purple-950/25 md:rounded-b-lg"
+        class="relative inline-flex max-h-[calc(100svh-6rem)] w-5xl flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-purple-950/25 md:rounded-b-lg"
       >
-        <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-gradient-to-b from-purple-600 to-transparent opacity-25"></div>
+        <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-linear-to-b from-purple-600 to-transparent opacity-25"></div>
         <MinizelModal
           format={minizelModal.format}
           mix={minizelModal.mix}

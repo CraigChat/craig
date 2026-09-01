@@ -1,7 +1,7 @@
 <script lang="ts">
   import '@fontsource-variable/inter';
   import '@fontsource-variable/roboto-mono';
-  import '../app.postcss';
+  import '../app.css';
   import '$lib/tooltip/styles.scss';
 
   import Icon from '@iconify/svelte';
@@ -44,7 +44,7 @@
   {#if updated.current}
     <div class="fixed bottom-0 z-50 flex w-full flex-col gap-4 p-2 sm:gap-8 sm:p-6" transition:fly={{ y: 10 }}>
       <button
-        class="mx-auto flex w-full max-w-3xl items-center justify-center gap-1 rounded border border-blue-500 bg-blue-500/25 px-2 py-1 text-sm text-white shadow shadow-blue-600 backdrop-blur-md transition-colors hover:bg-blue-500/50 sm:text-base"
+        class="mx-auto flex w-full max-w-3xl items-center justify-center gap-1 rounded border border-blue-500 bg-blue-500/25 px-2 py-1 text-sm text-white shadow-sm shadow-blue-600 backdrop-blur-md transition-colors hover:bg-blue-500/50 sm:text-base"
         onclick={() => location.reload()}
       >
         <Icon icon={reloadIcon} class="h-8 w-8" />

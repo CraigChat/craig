@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "imports": {
+    "#app.css": "./src/app.css"
+  },
   "scripts": {
     "dev": "dotenv -e ../../.env -- vite dev --host --clearScreen false",
     "build": "dotenv -e ../../.env -e .env -c -- vite build",

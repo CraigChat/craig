@@ -25,7 +25,7 @@
 </script>
 
 <button
-  class="group relative flex min-h-[6rem] flex-col justify-center gap-1 overflow-hidden rounded-md bg-zinc-700 px-6 py-4 text-left shadow transition-all hover:bg-zinc-600 active:opacity-75"
+  class="group relative flex min-h-24 flex-col justify-center gap-1 overflow-hidden rounded-md bg-zinc-700 px-6 py-4 text-left shadow-sm transition-all hover:bg-zinc-600 active:opacity-75"
   onclick={() => (modalOpen = true)}
 >
   <div class="z-10 flex flex-col justify-center gap-1 sm:w-max">
@@ -67,7 +67,7 @@
   </div>
 
   <div
-    class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-700/90 to-transparent transition-all group-hover:h-8 group-hover:from-zinc-600/90"
+    class="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-zinc-700/90 to-transparent transition-all group-hover:h-8 group-hover:from-zinc-600/90"
   ></div>
 </button>
 
@@ -75,13 +75,13 @@
   <Portal target="body">
     <div
       transition:fade={{ duration: 100 }}
-      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-sm md:items-center md:px-8"
+      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-xs md:items-center md:px-8"
       aria-hidden="true"
       onclick={onModalClick}
     >
       <div
         transition:fly={{ duration: 250, y: 32 }}
-        class="relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-black/50 md:rounded-b-lg"
+        class="relative inline-flex max-h-[calc(100svh-6rem)] w-5xl flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-black/50 md:rounded-b-lg"
       >
         <AvatarOverlaysModal {emitter} onclose={() => (modalOpen = false)} />
       </div>
@@ -89,7 +89,9 @@
   </Portal>
 {/if}
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   .text-bg {
     @apply rounded-lg bg-zinc-700/50 ring-4 ring-zinc-700/50 backdrop-blur-md transition-all;
 

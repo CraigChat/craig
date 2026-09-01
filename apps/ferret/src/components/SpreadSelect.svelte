@@ -17,7 +17,9 @@
   {/each}
 </div>
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   div {
     @apply flex w-full gap-0.5 overflow-hidden rounded text-sm;
   }

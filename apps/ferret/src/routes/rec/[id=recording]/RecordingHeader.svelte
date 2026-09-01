@@ -208,15 +208,15 @@
   <Portal target="body">
     <div
       transition:fade={{ duration: 100 }}
-      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-sm md:items-center md:px-8"
+      class="fixed bottom-0 left-0 right-0 top-0 z-30 flex select-none items-end justify-center bg-black/40 backdrop-blur-xs md:items-center md:px-8"
       aria-hidden="true"
       onclick={onModalClick}
     >
       <div
         transition:fly={{ duration: 250, y: 32 }}
-        class="relative inline-flex max-h-[calc(100svh-6rem)] w-[1024px] flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-red-950/25 md:rounded-b-lg"
+        class="relative inline-flex max-h-[calc(100svh-6rem)] w-5xl flex-col items-start justify-start overflow-hidden rounded-t-lg bg-zinc-900 text-neutral-300 shadow-lg ring-2 ring-red-950/25 md:rounded-b-lg"
       >
-        <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-gradient-to-b from-red-600 to-transparent opacity-25"></div>
+        <div class="absolute left-0 right-0 top-0 z-0 h-40 max-h-[75%] bg-linear-to-b from-red-600 to-transparent opacity-25"></div>
         <DeleteModal onsetclosable={(v) => (allowModalClosing = v)} onclose={() => (showDeleteModal = false)} bind:deletekey={deleteKey} />
       </div>
     </div>

@@ -78,7 +78,7 @@
 </script>
 
 <button
-  class="group relative flex min-h-[6rem] items-center justify-between overflow-hidden rounded-md bg-zinc-700 px-6 py-4 text-left shadow transition-all hover:bg-zinc-600 active:opacity-75"
+  class="group relative flex min-h-[6rem] items-center justify-between overflow-hidden rounded-md bg-zinc-700 px-6 py-4 text-left shadow-sm transition-all hover:bg-zinc-600 active:opacity-75"
   onclick={onClick}
 >
   <div class="z-10 flex flex-col justify-center gap-1">
@@ -100,26 +100,28 @@
     <FallbackImage
       {...displayUsers[2] ? { src: getAvatar(displayUsers[2]), fallbackSrc: AVATAR_PLACEHOLDER } : { src: AVATAR_PLACEHOLDER }}
       alt={$t('common.avatar')}
-      class="-mb-12 -mr-12 h-20 w-20 rounded bg-zinc-800/50 shadow backdrop-blur transition-all group-hover:-mr-8"
+      class="-mb-12 -mr-12 h-20 w-20 rounded bg-zinc-800/50 shadow-sm backdrop-blur transition-all group-hover:-mr-8"
     />
     <FallbackImage
       {...displayUsers[1] ? { src: getAvatar(displayUsers[1]), fallbackSrc: AVATAR_PLACEHOLDER } : { src: AVATAR_PLACEHOLDER }}
       alt={$t('common.avatar')}
-      class="-mb-4 -mr-8 h-20 w-20 rounded bg-zinc-800/50 shadow backdrop-blur transition-all group-hover:-mr-4"
+      class="-mb-4 -mr-8 h-20 w-20 rounded bg-zinc-800/50 shadow-sm backdrop-blur transition-all group-hover:-mr-4"
     />
     <FallbackImage
       {...displayUsers[0] ? { src: getAvatar(displayUsers[0]), fallbackSrc: AVATAR_PLACEHOLDER } : { src: AVATAR_PLACEHOLDER }}
       alt={$t('common.avatar')}
-      class="h-20 w-20 rounded bg-zinc-800/50 shadow backdrop-blur"
+      class="h-20 w-20 rounded bg-zinc-800/50 shadow-sm backdrop-blur"
     />
   </div>
 
   <div
-    class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-zinc-700/90 to-transparent transition-all group-hover:h-8 group-hover:from-zinc-600/90"
+    class="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-zinc-700/90 to-transparent transition-all group-hover:h-8 group-hover:from-zinc-600/90"
   ></div>
 </button>
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   .loading {
     filter: drop-shadow(2px 2px 2px #000);
     @apply z-10 text-white;

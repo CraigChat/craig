@@ -55,7 +55,7 @@
 {#if show}
   {#each activeMaintenance as maintenance}
     <div
-      class="z-[1] inline-flex flex-col items-center gap-2 rounded-2xl bg-gradient-to-t from-zinc-900 to-blue-950 px-4 py-2 shadow-section ring-2 ring-blue-600 sm:flex-row sm:justify-between"
+      class="z-[1] inline-flex flex-col items-center gap-2 rounded-2xl bg-linear-to-t from-zinc-900 to-blue-950 px-4 py-2 shadow-section ring-2 ring-blue-600 sm:flex-row sm:justify-between"
     >
       <div class="text-center text-sm text-neutral-200 sm:text-left sm:text-base">
         <div class="font-semibold text-neutral-200">{maintenance.title} — {formatRelativeTime(maintenance.startedAt)}</div>

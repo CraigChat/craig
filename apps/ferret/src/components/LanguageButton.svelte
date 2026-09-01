@@ -89,7 +89,7 @@
     <div
       bind:this={wrapper}
       use:floatingContent
-      class="small-scrollbar z-50 flex max-h-40 flex-col gap-1 overflow-auto rounded-md bg-zinc-700 py-1 pl-1 text-zinc-300 shadow shadow-black"
+      class="small-scrollbar z-50 flex max-h-40 flex-col gap-1 overflow-auto rounded-md bg-zinc-700 py-1 pl-1 text-zinc-300 shadow-sm shadow-black"
       class:pr-1={$locales.length < 5}
       transition:fade={{ duration: 100 }}
     >

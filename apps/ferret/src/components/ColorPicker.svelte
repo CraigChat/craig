@@ -32,7 +32,7 @@
 
 <button
   {id}
-  class="flex w-full items-center gap-2 rounded bg-zinc-700 px-4 py-2 shadow transition-all active:opacity-75 hover:enabled:bg-zinc-600 disabled:opacity-50"
+  class="flex w-full items-center gap-2 rounded bg-zinc-700 px-4 py-2 shadow-sm transition-all active:opacity-75 hover:enabled:bg-zinc-600 disabled:opacity-50"
   use:floatingRef
   onclick={() => (popupOpen = true)}
   {disabled}
@@ -73,7 +73,9 @@
   </Portal>
 {/if}
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   .color-picker-dialog {
     --cp-bg-color: #18181b;
     --cp-border-color: #a1a1aa;
@@ -82,7 +84,7 @@
     --cp-button-hover-color: #71717a;
 
     :global(.wrapper) {
-      @apply shadow-md shadow-black;
+      @apply shadow-sm shadow-black;
     }
   }
 </style>

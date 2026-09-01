@@ -26,18 +26,20 @@
   </div>
 </button>
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   button {
     min-width: 4em;
-    @apply flex items-center justify-center gap-2;
+    @apply flex cursor-pointer items-center justify-center gap-2;
     @apply rounded border border-teal-500 px-3 py-1;
-    @apply bg-teal-500 bg-opacity-25 text-base font-medium text-teal-400 transition-all;
+    @apply bg-teal-500/25 text-base font-medium text-teal-400 transition-all;
 
     & > div {
       @apply flex items-center justify-center gap-1;
 
       & > small {
-        @apply whitespace-nowrap text-sm font-normal;
+        @apply text-sm font-normal whitespace-nowrap;
       }
     }
 
@@ -46,15 +48,23 @@
     }
 
     &.ennuizel {
-      @apply border-red-500 bg-red-500 bg-opacity-25 text-red-400;
+      @apply border-red-500 bg-red-500/25 text-red-400;
     }
 
     &.minizel {
-      @apply border-purple-500 bg-purple-500 bg-opacity-25 text-purple-400;
+      @apply border-purple-500 bg-purple-500/25 text-purple-400;
     }
 
     &:hover {
-      @apply bg-opacity-50 text-white;
+      @apply bg-teal-500/50 text-white;
+    }
+
+    &.ennuizel:hover {
+      @apply bg-red-500/50;
+    }
+
+    &.minizel:hover {
+      @apply bg-purple-500/50;
     }
 
     &:active {

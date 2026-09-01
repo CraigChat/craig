@@ -12,11 +12,13 @@
 
 <input {id} type="checkbox" class="h-6 w-6 flex-none cursor-pointer" bind:checked {disabled} {...rest} />
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   input[type='checkbox'] {
     --chkbg: #14b8a6;
     --chkfg: #000;
-    @apply appearance-none rounded bg-zinc-700 shadow-sm transition-all;
+    @apply appearance-none rounded bg-zinc-700 shadow-xs transition-all;
 
     &:checked {
       background-image:

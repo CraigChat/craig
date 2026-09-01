@@ -17,7 +17,7 @@
 </button>
 
 <style>
-  @reference "../app.css";
+  @reference "#app.css";
 
   button {
     @apply flex cursor-pointer items-center justify-start gap-2;

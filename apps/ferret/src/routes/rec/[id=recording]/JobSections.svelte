@@ -274,7 +274,7 @@
 {/if}
 
 {#if !streamed && status === 'complete'}
-  <div class="z-[1] inline-flex flex-col items-start justify-start gap-3 rounded-2xl border border-neutral-600 bg-zinc-900 p-6 shadow-section">
+  <div class="z-1 inline-flex flex-col items-start justify-start gap-3 rounded-2xl border border-neutral-600 bg-zinc-900 p-6 shadow-section">
     <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">{$t('job.previous_download')}</h2>
     <div class="flex flex-col items-start justify-start">
       <div class="text-sm font-semibold text-neutral-400 sm:text-base">{jobName}</div>
@@ -289,7 +289,7 @@
         </div>
       {/if}
       {#if userTracks.some((t) => t.ignored)}
-        <span class="rounded-full bg-white/10 bg-zinc-700 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
+        <span class="rounded-full bg-white/10 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
           {$t('download.exclude_user.count', { values: { count: userTracks.filter((t) => t.ignored).length } })}
         </span>
       {/if}
@@ -309,7 +309,7 @@
   </div>
 {:else if (streamed || startedHere) && jobState}
   <div
-    class="relative z-[1] inline-flex flex-col items-start justify-start overflow-hidden rounded-2xl border bg-zinc-900 shadow"
+    class="relative z-1 inline-flex flex-col items-start justify-start overflow-hidden rounded-2xl border bg-zinc-900 shadow-sm"
     class:border-blue-600={status === 'running'}
     class:border-neutral-600={status === 'cancelled'}
     class:border-green-600={status === 'complete'}
@@ -323,13 +323,13 @@
     <div class="absolute -top-7" bind:this={scrollElem}></div>
 
     <div
-      class="flex flex-col items-start justify-start gap-3 self-stretch p-6"
-      class:bg-blue-600={status === 'running'}
-      class:bg-neutral-600={status === 'cancelled'}
-      class:bg-green-600={status === 'complete'}
-      class:bg-red-600={status === 'error'}
-      class:bg-opacity-10={status !== 'running'}
-      class:bg-opacity-25={status === 'running'}
+      class={[
+        'flex flex-col items-start justify-start gap-3 self-stretch p-6',
+        status === 'running' && 'bg-blue-600/25',
+        status === 'cancelled' && 'bg-neutral-600/10',
+        status === 'complete' && 'bg-green-600/10',
+        status === 'error' && 'bg-red-600/10'
+      ]}
     >
       <div class="flex items-center justify-between self-stretch">
         <h2 class="font-display text-xl font-bold text-neutral-100 sm:text-2xl">
@@ -367,7 +367,7 @@
           </div>
         {/if}
         {#if userTracks.some((t) => t.ignored)}
-          <span class="rounded-full bg-white/10 bg-zinc-700 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
+          <span class="rounded-full bg-white/10 px-2 text-xs text-white/75 transition-colors group-hover:bg-white/25">
             {$t('download.exclude_user.count', { values: { count: userTracks.filter((t) => t.ignored).length } })}
           </span>
         {/if}
@@ -441,10 +441,10 @@
                 <RecordingUserChip user={users[track.i]} />
               </div>
               <div
-                class="relative inline-flex h-2 items-center justify-start self-stretch overflow-hidden rounded-lg bg-black"
-                class:animate-pulse={!track.state}
-                class:bg-opacity-75={!track.state}
-                class:bg-opacity-25={track.state}
+                class={[
+                  'relative inline-flex h-2 items-center justify-start self-stretch overflow-hidden rounded-lg',
+                  track.state ? 'bg-black/25' : 'animate-pulse bg-black/75'
+                ]}
               >
                 {#if track.state}
                   <div

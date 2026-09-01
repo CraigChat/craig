@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { enhancedImages } from '@sveltejs/enhanced-img';
 import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
 import { lookup } from 'mrmime';
 import { defineConfig, type PluginOption } from 'vite';
 import devtoolsJson from 'vite-plugin-devtools-json';
@@ -58,7 +59,7 @@ const exposeLibAV: PluginOption = (() => {
 })();
 
 export default defineConfig({
-  plugins: [enhancedImages(), sveltekit(), devtoolsJson(), exposeLibAV],
+  plugins: [tailwindcss(), enhancedImages(), sveltekit(), devtoolsJson(), exposeLibAV],
   server: {
     fs: { allow: ['../../locale'] },
     allowedHosts: ['.trycloudflare.com'],

@@ -20,9 +20,11 @@
   {/if}
 </button>
 
-<style lang="scss">
+<style>
+  @reference "#app.css";
+
   button {
-    @apply flex items-center justify-start gap-2;
+    @apply flex cursor-pointer items-center justify-start gap-2;
     @apply rounded border border-neutral-200/25 px-3 py-1;
     @apply text-base font-medium text-neutral-400 transition-all;
 
