@@ -143,7 +143,6 @@
     <div class="flex flex-col items-stretch justify-start gap-3 p-6">
       <div class="inline-flex items-center gap-1 self-stretch">
         <h3 class="font-display text-xl font-semibold text-neutral-100">{$t('download.sections.transcription')}</h3>
-        <span class="rounded-full bg-amber-400 px-2 py-1 text-xs font-bold uppercase text-black">{$t('common.new')}</span>
       </div>
       {#if features.includes('transcription')}
         <div class="inline-flex flex-wrap items-start justify-start gap-3 self-stretch">
