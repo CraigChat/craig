@@ -28,7 +28,7 @@
   } from '$lib/minizel';
 
   const recording = page.data.recording!;
-  const users: Recording.RecordingUser[] = page.data.users!;
+  const users: Recording.RecordingUser[] = page.data.users!.filter((user) => !user.id.startsWith('redacted:'));
   const key = page.data.key!;
 
   interface Props {
