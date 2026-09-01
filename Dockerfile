@@ -59,6 +59,10 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
   && cp packages/db/prisma.config.ts /opt/craig/migrate/prisma.config.ts \
   && cp -a locale /opt/craig/locale
 
+RUN for service in bot kitchen ferret dashboard tasks; do \
+    (cd "/opt/craig/$service" && node --input-type=module -e "await import('@craig/db')") || exit 1; \
+  done
+
 FROM node:24-trixie-slim AS runtime
 
 WORKDIR /opt/craig
