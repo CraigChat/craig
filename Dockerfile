@@ -36,6 +36,7 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
   && pnpm deploy --filter @craig/ennuizel-streamer --prod --legacy /opt/craig/ennuizel-streamer \
   && pnpm deploy --filter @craig/dashboard --prod --legacy /opt/craig/dashboard \
   && pnpm deploy --filter @craig/tasks --prod --legacy /opt/craig/tasks \
+  && pnpm deploy --filter @craig/db --prod --legacy /opt/craig/migrate \
   && rm -rf \
     /opt/craig/bot/dist \
     /opt/craig/kitchen/dist \
@@ -53,7 +54,9 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
   && cp -a apps/ennuizel-streamer/cook /opt/craig/ennuizel-streamer/cook \
   && cp -a apps/dashboard/build /opt/craig/dashboard/build \
   && cp -a apps/tasks/dist /opt/craig/tasks/dist \
-  && cp -a packages/db/prisma /opt/craig/prisma \
+  && rm -rf /opt/craig/migrate/prisma \
+  && cp -a packages/db/prisma /opt/craig/migrate/prisma \
+  && cp packages/db/prisma.config.ts /opt/craig/migrate/prisma.config.ts \
   && cp -a locale /opt/craig/locale
 
 FROM node:24-trixie-slim AS runtime

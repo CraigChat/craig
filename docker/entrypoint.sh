@@ -52,17 +52,19 @@ fi
 
 wait_for_tcp redis "${REDIS_HOST:-redis}" "${REDIS_PORT:-6379}" "${CRAIG_STARTUP_TIMEOUT:-90}"
 
-PRISMA_CLI="${PRISMA_CLI:-/opt/craig/bot/node_modules/.pnpm/node_modules/.bin/prisma}"
-if [ ! -x "$PRISMA_CLI" ] && [ -x /opt/craig/bot/node_modules/.bin/prisma ]; then
-  PRISMA_CLI=/opt/craig/bot/node_modules/.bin/prisma
-fi
+PRISMA_CLI="${PRISMA_CLI:-/opt/craig/migrate/node_modules/.bin/prisma}"
+PRISMA_CONFIG="${PRISMA_CONFIG:-/opt/craig/migrate/prisma.config.ts}"
 
 if [ "${CRAIG_SKIP_MIGRATIONS:-false}" != "true" ]; then
   if [ ! -x "$PRISMA_CLI" ]; then
     echo "Prisma CLI is missing from the Craig runtime image." >&2
     exit 1
   fi
-  "$PRISMA_CLI" migrate deploy --schema /opt/craig/prisma/schema.prisma
+  if [ ! -f "$PRISMA_CONFIG" ]; then
+    echo "Prisma config is missing from the Craig runtime image." >&2
+    exit 1
+  fi
+  "$PRISMA_CLI" migrate deploy --config "$PRISMA_CONFIG"
 fi
 
 exec pm2-runtime /opt/craig/ecosystem.config.cjs

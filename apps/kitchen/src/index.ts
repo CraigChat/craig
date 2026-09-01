@@ -29,7 +29,9 @@ import { getRecordingUsers } from './util/recording.js';
 const debug = process.env.NODE_ENV !== 'production';
 const app = fastify({
   logger: debug,
-  ignoreTrailingSlash: true
+  routerOptions: {
+    ignoreTrailingSlash: true
+  }
 });
 const jobManager = new JobManager();
 
@@ -276,24 +278,25 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
   }
 });
 
-app.listen(
-  {
-    port: process.env.PORT ? parseInt(process.env.PORT) : 9000,
-    host: process.env.HOST || 'localhost'
-  },
-  async (err, address) => {
-    if (err) {
-      logger.error(err);
-      process.exit(1);
-    }
+const start = async () => {
+  try {
+    const address = await app.listen({
+      port: process.env.PORT ? parseInt(process.env.PORT) : 9000,
+      host: process.env.HOST || 'localhost'
+    });
 
     logger.info(`Serving at ${address} (${process.env.NODE_ENV})`);
     await jobManager.init();
     registerWithManager(jobManager);
     startMetricsServer(logger);
     if (process.send && process.env.pm_id !== undefined) process.send('ready');
+  } catch (err) {
+    logger.error(err);
+    process.exit(1);
   }
-);
+};
+
+void start();
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT recieved, shutting down...');
