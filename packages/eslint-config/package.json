@@ -27,7 +27,7 @@
     "globals": "^17.3.0",
     "prettier": "^3.8.1",
     "prettier-plugin-svelte": "^4.1.1",
-    "prettier-plugin-tailwindcss": "^0.7.2",
+    "prettier-plugin-tailwindcss": "^0.7.4",
     "svelte-eslint-parser": "^1.8.1",
     "typescript-eslint": "^8.60.0"
   }

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { enhancedImages } from '@sveltejs/enhanced-img';
 import { sveltekit } from '@sveltejs/kit/vite';
-import mime from 'mime';
+import { lookup } from 'mrmime';
 import { defineConfig, type PluginOption } from 'vite';
 import devtoolsJson from 'vite-plugin-devtools-json';
 
@@ -34,7 +34,7 @@ const exposeLibAV: PluginOption = (() => {
         const fileExists = await pathExists(join(MODULE_DIR, filename));
         if (!fileExists) return next();
 
-        const fileType = mime.getType(filename);
+        const fileType = lookup(filename);
         if (!fileType) return next();
 
         res.setHeader('Content-Type', fileType);
