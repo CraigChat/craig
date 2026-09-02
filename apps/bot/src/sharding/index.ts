@@ -6,10 +6,6 @@ import ControlModule from './modules/control.js';
 import MetricsModule from './modules/metrics.js';
 import ShardUtilModule from './modules/shardutil.js';
 
-const LOW_SESSION_START_REMAINING_RATIO = 0.1;
-const LOW_RESET_AFTER_MS = 60 * 1000;
-const RESET_WAIT_BUFFER_MS = 1000;
-
 interface GatewayBotResponse {
   url: string;
   shards: number;
@@ -36,28 +32,18 @@ function formatDuration(ms: number) {
 }
 
 async function waitForSessionStartLimit(token: string, requiredSessions: number, gatewayBot: GatewayBotResponse) {
-  while (true) {
+  while (gatewayBot.session_start_limit.remaining < requiredSessions) {
     const {
       session_start_limit: { total, remaining, reset_after }
     } = gatewayBot;
-    const lowRemainingThreshold = Math.ceil(total * LOW_SESSION_START_REMAINING_RATIO);
-    const hasLowRemaining = remaining < requiredSessions || (remaining < total && remaining <= lowRemainingThreshold);
-    const hasLowResetAfter = reset_after > 0 && reset_after <= LOW_RESET_AFTER_MS;
+    logger.warn(
+      `Discord session start limit is insufficient (${remaining}/${total} remaining; need ${requiredSessions}). Waiting ${formatDuration(
+        reset_after
+      )} for the limit to reset before spawning shards.`
+    );
 
-    if (!hasLowRemaining && !hasLowResetAfter) return;
-
-    if (hasLowRemaining) {
-      logger.warn(
-        `Discord session start limit is low (${remaining}/${total} remaining; need ${requiredSessions}). Waiting ${formatDuration(
-          reset_after
-        )} for the limit to reset before spawning shards.`
-      );
-    }
-    if (hasLowResetAfter) {
-      logger.warn(`Discord session start limit resets soon (${formatDuration(reset_after)}). Waiting for reset before spawning shards.`);
-    }
-
-    await wait(reset_after + RESET_WAIT_BUFFER_MS);
+    const jitter = Math.random() * 100;
+    await wait(reset_after + jitter);
     gatewayBot = await fetchGatewayBot(token);
   }
 }
