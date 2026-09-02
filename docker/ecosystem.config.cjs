@@ -36,7 +36,7 @@ module.exports = {
         ...sharedEnv,
         HOST: '0.0.0.0',
         PORT: '9000',
-        TMP_DIRECTORY: process.env.TMP_DIRECTORY || '/data/tmp'
+        TMP_DIRECTORY: process.env.TMP_DIRECTORY || '/tmp/craig'
       }
     },
     {

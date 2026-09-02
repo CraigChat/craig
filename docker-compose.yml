@@ -1,10 +1,7 @@
 name: craig
 
 x-shared-storage: &shared-storage
-  - ./rec:/data/rec
-  - ./downloads:/data/downloads
-  - ./output:/data/output
-  - ./tmp:/data/tmp
+  - ./craig-data:/data
 
 x-runtime-environment: &runtime-environment
   NODE_ENV: production
@@ -16,7 +13,6 @@ x-runtime-environment: &runtime-environment
   REC_DIRECTORY: /data/rec
   DOWNLOADS_DIRECTORY: /data/downloads
   OUTPUT_DIRECTORY: /data/output
-  TMP_DIRECTORY: /data/tmp
   BOT_LOCALE_FOLDER: /opt/craig/locale
   KITCHEN_URL: http://127.0.0.1:9000
   WEBAPP_URL: ws://127.0.0.1:9001/shard

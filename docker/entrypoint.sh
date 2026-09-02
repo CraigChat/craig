@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-mkdir -p "${REC_DIRECTORY:-/data/rec}" "${DOWNLOADS_DIRECTORY:-/data/downloads}" "${OUTPUT_DIRECTORY:-/data/output}" "${TMP_DIRECTORY:-/data/tmp}"
+mkdir -p "${REC_DIRECTORY:-/data/rec}" "${DOWNLOADS_DIRECTORY:-/data/downloads}" "${OUTPUT_DIRECTORY:-/data/output}" "${TMP_DIRECTORY:-/tmp/craig}"
 
 wait_for_tcp() {
   name="$1"

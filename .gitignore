@@ -17,6 +17,7 @@ node_modules/
 
 # production
 data/
+/craig-data/
 /downloads/
 /rec/
 /rec_cache/
