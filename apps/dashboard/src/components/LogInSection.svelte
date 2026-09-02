@@ -27,6 +27,6 @@
     <a href="https://craig.chat/privacy" class="font-medium text-neutral-200 transition-colors hover:text-white">{$t('footer.privacy')}</a>
     •
     <a href="https://craig.chat/terms" class="font-medium text-neutral-200 transition-colors hover:text-white">{$t('footer.tos')}</a>
-    • © 2025 TechBS LLC.
+    • © 2026 TechBS LLC.
   </div>
 </section>
