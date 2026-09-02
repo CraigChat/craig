@@ -54,6 +54,10 @@ export default class ShardingModule extends BotModule {
       }
 
       switch (message.t) {
+        case 'connect': {
+          await this.client.connect();
+          return;
+        }
         case 'fetchProp': {
           try {
             const result = this.evaluate(`this.${message.d.prop}`);
@@ -114,6 +118,9 @@ export default class ShardingModule extends BotModule {
     ) {
       this.client.log('info', 'dysnomia', [message]);
       this.send('reconnecting', { msg: message });
+    } else if (message.startsWith('{"op":2,"d":{')) {
+      this.client.log('info', 'dysnomia', ['Sent identify packet']);
+      this.send('identified');
     }
   }
 

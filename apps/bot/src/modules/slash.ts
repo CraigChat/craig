@@ -106,7 +106,7 @@ export default class SlashModule extends BotModule {
 
     if (process.env.EMOJI_SYNC_DATA) {
       this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
-      this.logger.info('Loaded emojis from shard manager');
+      this.logger.debug('Loaded emojis from shard manager');
     } else {
       await this.emojis.loadFromFolder(this.client.config.assets.emojiFolder);
       await this.emojis.sync();

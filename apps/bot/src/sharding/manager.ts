@@ -1,6 +1,7 @@
-import { EventEmitter } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import path from 'node:path';
 
+import { getSemaphore } from '@henrygd/semaphore';
 import { EmojiManager } from '@snazzah/emoji-sync';
 
 import { wait } from '../util.js';
@@ -37,13 +38,17 @@ export type CommandHandler<T = Record<string, any>> = (
   respond: (data: unknown) => Promise<void>
 ) => void | Promise<void>;
 
+const IDENTIFY_RATE_LIMIT_MS = 5000;
+
 export default class ShardManager extends EventEmitter {
   readonly options: ManagerOptions;
   readonly modules = new Map<string, ManagerModule>();
   commands = new Map<string, CommandHandler>();
   shards = new Map<number, Shard>();
+  identifyRateLimits = new Map<number, number>();
   emojiSyncData: any[] | null = null;
   #emojis?: EmojiManager;
+  #spawnPromises = new Map<number, Promise<Shard>>();
 
   constructor(options: ManagerOptions) {
     super();
@@ -93,11 +98,99 @@ export default class ShardManager extends EventEmitter {
     }
   }
 
-  spawn(id: number) {
-    const shard = new Shard(this, id);
-    this.shards.set(id, shard);
-    this.emit('launch', shard);
-    return shard.spawn();
+  spawn(id: number, retryDelay = 500, respawnDelay = 0) {
+    const existing = this.#spawnPromises.get(id);
+    if (existing) return existing;
+
+    const spawning = this.spawnWithRetry(id, retryDelay, respawnDelay);
+    this.#spawnPromises.set(id, spawning);
+    const cleanup = () => {
+      if (this.#spawnPromises.get(id) === spawning) this.#spawnPromises.delete(id);
+    };
+    spawning.then(cleanup, cleanup);
+    return spawning;
+  }
+
+  private async spawnWithRetry(id: number, retryDelay: number, respawnDelay: number) {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      logger.info(`Spawning shard ${id}... (attempt ${attempt})`);
+      try {
+        await this.spawnOnce(id, respawnDelay);
+        return this.shards.get(id)!;
+      } catch (error) {
+        lastError = error;
+        logger.error(`Failed to spawn shard ${id}`, error);
+      }
+      if (attempt < 5) await wait(retryDelay);
+    }
+
+    throw lastError;
+  }
+
+  shardIdentified(id: number) {
+    this.identifyRateLimits.set(this.#getRateLimitKey(id), Date.now());
+    this.emit('shardIdentified');
+  }
+
+  private async spawnOnce(id: number, respawnDelay: number) {
+    let shard = this.shards.get(id);
+    if (!shard) {
+      shard = new Shard(this, id);
+      this.shards.set(id, shard);
+      this.emit('launch', shard);
+    }
+
+    const ready = shard.process ? shard.respawn(respawnDelay) : shard.spawn();
+    void ready.catch(() => undefined);
+    await shard.waitForPreload();
+    await this.identify(shard);
+    await ready;
+  }
+
+  private async identify(shard: Shard) {
+    const key = this.#getRateLimitKey(shard.id);
+    const semaphore = getSemaphore(`shard-identify/${key}`);
+
+    await semaphore.acquire();
+    try {
+      while (true) {
+        if (this.hasShardAwaitingIdentification(key, shard.id)) {
+          await once(this, 'shardIdentified');
+          continue;
+        }
+
+        const lastIdentifyAt = this.identifyRateLimits.get(key) ?? 0;
+        const remaining = IDENTIFY_RATE_LIMIT_MS - (Date.now() - lastIdentifyAt);
+        if (remaining <= 0) break;
+        await wait(remaining);
+      }
+
+      const identified = shard.waitForIdentify();
+      shard.status = 'identifying';
+      try {
+        await shard.send({ t: 'connect' });
+        await identified;
+      } catch (error) {
+        void identified.catch(() => undefined);
+        throw error;
+      }
+    } finally {
+      if (!shard.identified) shard.status = 'idle';
+      this.emit('shardIdentified');
+      semaphore.release();
+    }
+  }
+
+  #getRateLimitKey(id: number) {
+    return id % (this.options.concurrency || 1);
+  }
+
+  private hasShardAwaitingIdentification(key: number, id: number) {
+    return Array.from(this.shards.values()).some(
+      (shard) => shard.id !== id && !shard.identified && shard.status === 'identifying' && this.#getRateLimitKey(shard.id) === key
+    );
   }
 
   async findGuild(guildID: string) {
@@ -109,53 +202,15 @@ export default class ShardManager extends EventEmitter {
     }
   }
 
-  async spawnAllWithConcurrency(concurrency = this.options.concurrency || 1, delay = 5000) {
-    const spawnShard = async (id: number) => {
-      let retries = 0;
-      while (retries < 5) {
-        logger.info(`Spawning shard ${id}... (attempt ${retries + 1})`);
-        try {
-          retries++;
-          if (this.shards.has(id)) {
-            const shard = this.shards.get(id)!;
-            await shard.respawn(0);
-          } else await this.spawn(id);
-          break;
-        } catch (e) {
-          logger.error(`Failed to spawn shard ${id}`, e);
-        }
-        await wait(delay);
-      }
-    };
+  async spawnAll() {
+    if (this.options.shardCount <= 0) return;
 
-    const ids = Array.from({ length: this.options.shardCount }, (_, id) => id);
-    for (let offset = 0; offset < ids.length; offset += concurrency) {
-      const wave = ids.slice(offset, offset + concurrency);
-      logger.info(`Spawning identify wave ${Math.floor(offset / concurrency) + 1}: ${wave.join(', ')}`);
-      await Promise.all(wave.map(spawnShard));
-      if (offset + concurrency < ids.length) await wait(delay);
-    }
-  }
+    const start = performance.now();
+    await this.spawn(0);
+    logger.info(`Spawned first shard in ${performance.now() - start}ms, spawning ${this.options.shardCount - 1} others...`);
 
-  async spawnAll(delay = 500) {
-    while (this.shards.size < this.options.shardCount) {
-      const currentId = this.shards.size;
-      let retries = 0;
-      while (retries < 5) {
-        logger.info(`Spawning shard ${currentId}... (attempt ${retries + 1})`);
-        try {
-          retries++;
-          if (this.shards.has(currentId)) {
-            const shard = this.shards.get(currentId)!;
-            await shard.respawn(0);
-          } else await this.spawn(currentId);
-          break;
-        } catch (e) {
-          logger.error(`Failed to spawn shard ${currentId}`, e);
-        }
-        await wait(delay);
-      }
-    }
+    const ids = Array.from({ length: this.options.shardCount - 1 }, (_, index) => index + 1);
+    await Promise.all(ids.map((id) => this.spawn(id)));
   }
 
   broadcast(message: any, excludedShard = null) {
@@ -182,18 +237,7 @@ export default class ShardManager extends EventEmitter {
 
   async respawnAll(delay = 500, respawnDelay = 5000) {
     for (const shard of this.shards.values()) {
-      let retries = 0;
-      while (retries < 5) {
-        logger.info(`Respawning shard ${shard.id}... (attempt ${retries + 1})`);
-        try {
-          retries++;
-          await shard.respawn(respawnDelay);
-          break;
-        } catch (e) {
-          logger.error(`Failed to respawn shard ${shard.id}`, e);
-        }
-        await wait(delay);
-      }
+      await this.spawn(shard.id, delay, respawnDelay);
     }
   }
 

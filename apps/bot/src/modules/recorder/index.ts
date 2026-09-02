@@ -294,7 +294,7 @@ export default class RecorderModule extends BotModule {
       await prisma.recording.findMany({
         where: {
           clientId: this.client.bot.user.id,
-          shardId: this.client.bot.shards.keys().next().value as number,
+          shardId: this.client.shard.id,
           errored: false,
           endedAt: null
         }

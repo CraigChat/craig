@@ -190,7 +190,7 @@ export default class UploadModule extends BotModule {
 
   load() {
     const sharded = process.env.SHARD_ID !== undefined && process.env.SHARD_COUNT !== undefined;
-    if (sharded && process.env.SHARD_ID !== '0') return void this.logger.info('Skipping...');
+    if (sharded && process.env.SHARD_ID !== '0') return;
     if (!this.client.config.kitchenURL) return void this.logger.info('No kitchen URL specified, Skipping polling...');
     this.client.bot.on('ready', this.handleReady);
     this.logger.info('Loaded');

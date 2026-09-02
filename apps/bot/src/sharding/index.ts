@@ -85,10 +85,12 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
   logger.info('Starting to spawn...');
   // PM2 graceful start/shutdown
   if (process.send) process.send('ready');
-  await manager.spawnAllWithConcurrency();
+
+  const start = performance.now();
+  await manager.spawnAll();
   logger.info(
     `Spawned ${manager.shards.size} shards in ${Array.from(manager.shards.values())
       .map((shard) => shard.guildCount)
-      .reduce((acc, val) => acc + val, 0)} guilds.`
+      .reduce((acc, val) => acc + val, 0)} guilds in ${performance.now() - start}ms.`
   );
 })();

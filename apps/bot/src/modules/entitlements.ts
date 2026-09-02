@@ -241,7 +241,6 @@ export default class EntitlementsModule extends BotModule {
     this.client.bot.on('entitlementCreate', this.handleEntitlementCreate);
     this.client.bot.on('entitlementUpdate', this.handleEntitlementUpdate);
     this.client.bot.on('entitlementDelete', this.handleEntitlementDelete);
-    this.logger.info('Loaded');
   }
 
   unload() {

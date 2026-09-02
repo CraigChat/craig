@@ -207,6 +207,9 @@ importers:
       '@discordjs/opus':
         specifier: ^0.10.0
         version: 0.10.0(supports-color@8.1.1)
+      '@henrygd/semaphore':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@projectdysnomia/dysnomia':
         specifier: github:projectdysnomia/dysnomia#de437ad5b6230b62a9594bafc951fff3a1f6d6c8
         version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))

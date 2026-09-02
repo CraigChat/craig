@@ -88,7 +88,11 @@ export class CraigBot {
   }
 
   async connect() {
-    this.bot.connect();
+    const start = performance.now();
+    client.bot.editStatus('online', client.config.status);
+    await this.bot.connect();
+    this.#setProcessTitle();
+    client.log('info', 'bot', [`Connected in ${performance.now() - start}ms`]);
   }
 
   async disconnect() {
@@ -143,6 +147,27 @@ export class CraigBot {
     this.loggers.set(moduleName, logger);
     return logger;
   }
+
+  #setProcessTitle() {
+    let botName = 'Craig';
+    if (process.env.pm_pid_path && process.env.pm_id) {
+      try {
+        const pm2Name = process.env.pm_pid_path
+          .split('\\')
+          .reverse()[0]
+          .split('/')
+          .reverse()[0]
+          .slice(0, -`-${process.env.pm_id}.pid`.length)
+          .split('-')
+          .join(' ');
+        botName = `${pm2Name} [${process.env.pm_id}]`;
+      } catch (e) {}
+    }
+
+    process.title = `${botName} - ${
+      process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
+    }`;
+  }
 }
 
 export const client = new CraigBot(getBotConfig());
@@ -168,32 +193,14 @@ process.on('uncaughtException', (e) => {
 });
 
 export async function connect() {
-  await client.loadModules();
+  const start = performance.now();
 
-  await i18nInit(client.config.assets.localeFolder);
-  await redisClient.connect();
-  await client.connect();
-  await prisma.$connect();
-  client.bot.editStatus('online', client.config.status);
+  await Promise.all([client.loadModules(), i18nInit(client.config.assets.localeFolder), redisClient.connect(), prisma.$connect()]);
 
-  let botName = 'Craig';
-  if (process.env.pm_pid_path && process.env.pm_id) {
-    try {
-      const pm2Name = process.env.pm_pid_path
-        .split('\\')
-        .reverse()[0]
-        .split('/')
-        .reverse()[0]
-        .slice(0, -`-${process.env.pm_id}.pid`.length)
-        .split('-')
-        .join(' ');
-      botName = `${pm2Name} [${process.env.pm_id}]`;
-    } catch (e) {}
-  }
+  client.sharding.send('preloaded');
+  client.log('info', 'bot', [`Preloaded in ${performance.now() - start}ms`]);
 
-  process.title = `${botName} - ${
-    process.env.SHARD_ID ? `Shard #${process.env.SHARD_ID} (of ${process.env.SHARD_COUNT})` : `${client.bot.shards.size} shard(s)`
-  }`;
+  if (process.env.DELAYED_START !== 'true') await client.connect();
 }
 
 export async function disconnect() {

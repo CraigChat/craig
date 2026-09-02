@@ -20,6 +20,8 @@ export default class Shard extends EventEmitter {
   manager: ShardManager;
   env: NodeJS.ProcessEnv;
   ready = false;
+  preloaded = false;
+  identified = false;
   guildCount = 0;
   status = 'idle';
   lastActivity = 0;
@@ -38,12 +40,14 @@ export default class Shard extends EventEmitter {
   }
 
   spawn(args = this.manager.options.args, execArgv = this.manager.options.execArgv) {
+    this.status = 'spawned';
     this.process = childProcess
       .fork(path.resolve(process.cwd(), this.manager.options.file), args, {
         env: {
           ...this.env,
           SHARD_ID: String(this.id),
           SHARD_COUNT: String(this.manager.options.shardCount),
+          DELAYED_START: 'true',
           ...(this.manager.emojiSyncData ? { EMOJI_SYNC_DATA: JSON.stringify(this.manager.emojiSyncData) } : {})
         },
         execArgv
@@ -59,14 +63,12 @@ export default class Shard extends EventEmitter {
     this.manager.emit('shardSpawn', this);
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error(`Shard ${this.id}'s Client took too long to become ready.`));
-      }, this.manager.options.readyTimeout);
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       const cleanup = () => {
-        clearTimeout(timeout);
+        if (timeout) clearTimeout(timeout);
         this.removeListener('ready', onReady);
         this.removeListener('death', onDeath);
+        this.removeListener('identified', onIdentified);
       };
       const onReady = () => {
         cleanup();
@@ -76,9 +78,16 @@ export default class Shard extends EventEmitter {
         cleanup();
         reject(new Error(`Shard ${this.id}'s process exited before its Client became ready.`));
       };
+      const onIdentified = () => {
+        timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error(`Shard ${this.id}'s Client took too long to become ready.`));
+        }, this.manager.options.readyTimeout);
+      };
 
       this.once('ready', onReady);
       this.once('death', onDeath);
+      this.once('identified', onIdentified);
     }).then(() => this.process);
   }
 
@@ -89,24 +98,42 @@ export default class Shard extends EventEmitter {
   }
 
   async respawnWithRetry(delay = 500, respawnDelay = 1000) {
-    let retries = 0;
-    let ok = false;
-    let lastError: unknown;
-    while (retries < 5) {
-      logger.info(`Respawning shard ${this.id}... (attempt ${retries + 1})`);
-      try {
-        retries++;
-        await this.respawn(respawnDelay);
-        ok = true;
-        break;
-      } catch (e) {
-        logger.error(`Failed to respawn shard ${this.id}`, e);
-        lastError = e;
-      }
-      await wait(delay);
-    }
+    await this.manager.spawn(this.id, delay, respawnDelay);
+  }
 
-    if (!ok) throw lastError;
+  waitForPreload(): Promise<void> {
+    return this.waitForState('preloaded', () => this.preloaded);
+  }
+
+  waitForIdentify(): Promise<void> {
+    return this.waitForState('identified', () => this.identified);
+  }
+
+  private waitForState(event: 'preloaded' | 'identified', isComplete: () => boolean): Promise<void> {
+    if (isComplete()) return Promise.resolve();
+
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Shard ${this.id} took too long while waiting for ${event}.`));
+      }, this.manager.options.readyTimeout);
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.removeListener(event, onComplete);
+        this.removeListener('death', onDeath);
+      };
+      const onComplete = () => {
+        cleanup();
+        resolve();
+      };
+      const onDeath = () => {
+        cleanup();
+        reject(new Error(`Shard ${this.id}'s process exited while waiting for ${event}.`));
+      };
+
+      this.once(event, onComplete);
+      this.once('death', onDeath);
+    });
   }
 
   kill() {
@@ -184,6 +211,17 @@ export default class Shard extends EventEmitter {
             this.emit('shardError', data?.error);
             this.manager.emit('shardError', this, data?.error);
             return;
+          case 'preloaded':
+            this.preloaded = true;
+            this.status = 'preloaded';
+            this.emit('preloaded');
+            return;
+          case 'identified':
+            this.identified = true;
+            this.status = 'identified';
+            this.manager.shardIdentified(this.id);
+            this.emit('identified');
+            return;
           case 'fetchProp':
             this.manager.fetchClientValues(String(data?.prop)).then(
               (results) => this.send({ r: ipcMessage.n, d: { result: results } }),
@@ -222,13 +260,17 @@ export default class Shard extends EventEmitter {
     this.emit('death', this.process);
 
     this.process = null;
+    this.ready = false;
+    this.preloaded = false;
+    this.identified = false;
+    this.status = 'idle';
     for (const awaited of this._awaitedPromises.values()) {
       clearTimeout(awaited.timeout);
       awaited.reject(new Error(`Shard ${this.id}'s process exited before responding.`));
     }
     this._awaitedPromises.clear();
 
-    if (respawn) this.manager.spawn(this.id);
+    if (respawn) this.manager.spawn(this.id).catch((error) => logger.error(`Failed to respawn shard ${this.id}`, error));
   }
 
   sendAndRecieve<T = unknown>(type: string, data: unknown, timeoutMs = 5000): Promise<ManagerResponseMessage<T>> {

@@ -38,7 +38,6 @@ export default class AutorecordModule extends BotModule {
   }
 
   load() {
-    this.logger.info('Loaded');
     this.client.bot.on('voiceChannelJoin', this.handleVoiceChannelJoin);
     this.client.bot.on('voiceChannelLeave', this.handleVoiceChannelLeave);
     this.client.bot.on('voiceChannelSwitch', this.handleVoiceChannelSwitch);
