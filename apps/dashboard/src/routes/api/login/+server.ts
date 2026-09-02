@@ -2,11 +2,11 @@ import { prisma } from '@craig/db';
 import { json, redirect } from '@sveltejs/kit';
 import { randomBytes } from 'crypto';
 import type { APIUser } from 'discord-api-types/v10';
-import jwt from 'jsonwebtoken';
 
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { requiredEnv } from '$lib/server/env';
+import { signSession } from '$lib/server/jwt';
 import { rateLimitRequest, redis } from '$lib/server/redis';
 import { INVITE_PERMISSIONS_BITFIELD } from '$lib/util';
 
@@ -123,7 +123,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     }
   });
 
-  const token = jwt.sign({ id: user.id, username: user.username }, jwtSecret, { expiresIn: '7d' });
+  const token = await signSession({ id: user.id, username: user.username }, jwtSecret);
   cookies.set('session', token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
 
   redirect(307, redirectTo);

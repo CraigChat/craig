@@ -1,6 +1,6 @@
 import { prisma } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
-import jwt from 'jsonwebtoken';
+import { decodeJwt } from 'jose';
 
 import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
@@ -46,10 +46,10 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     let serviceUserId = 'unknown';
     if (tokens.id_token) {
-      const decoded = jwt.decode(tokens.id_token);
-      if (decoded && typeof decoded === 'object' && 'sub' in decoded && typeof decoded.sub === 'string') {
-        serviceUserId = decoded.sub;
-      }
+      try {
+        const decoded = decodeJwt(tokens.id_token);
+        if (typeof decoded.sub === 'string') serviceUserId = decoded.sub;
+      } catch {}
     }
 
     if (serviceUserId === 'unknown') {

@@ -1,12 +1,12 @@
 import { prisma, type UserToken } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
-import jwt from 'jsonwebtoken';
 
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 
 import { requiredEnv } from './env';
+import { verifySession } from './jwt';
 import { cacheData } from './redis';
 
 export async function checkAndRefreshTokens(userTokens: UserToken) {
@@ -51,12 +51,14 @@ export async function validateAuth(token: string | null) {
   if (!token) return null;
 
   const jwtSecret = requiredEnv('JWT_SECRET', env.JWT_SECRET);
-  let payload: any;
+  let payload;
   try {
-    payload = jwt.verify(token, jwtSecret);
+    payload = await verifySession(token, jwtSecret);
   } catch {
     return null;
   }
+
+  if (typeof payload.id !== 'string') return null;
 
   const sem = getSemaphore(`validateAuth/${payload.id}`);
   await sem.acquire();
@@ -67,7 +69,7 @@ export async function validateAuth(token: string | null) {
     const accessToken = await checkAndRefreshTokens(userToken);
     if (!accessToken) return null;
 
-    return { id: payload.id as string, accessToken };
+    return { id: payload.id, accessToken };
   } finally {
     sem.release();
   }
