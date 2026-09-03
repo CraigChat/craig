@@ -58,7 +58,7 @@ export default class OggEncoder {
     chunk = header;
 
     // Now that it's together we can figure out the checksum
-    chunk.writeInt32LE(crc32(chunk), 22);
+    chunk.writeUInt32LE(crc32(chunk), 22);
 
     // And write it out
     try {
