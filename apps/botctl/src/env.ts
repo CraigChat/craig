@@ -1,3 +1,7 @@
 import { loadEnvFile } from 'node:process';
 
-loadEnvFile();
+try {
+  loadEnvFile();
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+}
