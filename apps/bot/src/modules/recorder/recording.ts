@@ -24,6 +24,7 @@ const recIndicator = / *!?\[RECORDING\] */;
 
 export const NOTE_TRACK_NUMBER = 65536;
 const USER_HARD_LIMIT = 10000;
+const MAX_ACTIVITY_LOGS = 10;
 const MAX_LATENCY_WARNING = 500;
 const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
@@ -756,7 +757,11 @@ export default class Recording {
       if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
     }
 
-    this.writer?.writeUser(recordingUser);
+    if (this.writer) {
+      this.writer.writeUser(recordingUser);
+      delete recordingUser.avatar;
+    }
+
     this.writeToLog(
       `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
       'recording'
@@ -823,6 +828,7 @@ export default class Recording {
       const time = timestamp[0] * 1000 + timestamp[1] / 1000000;
       this.logs.push(`\`${convertToTimemark(Math.floor(time / 1000), { includeHours: true })}\`: ${log}`);
     } else this.logs.push(`<t:${Math.floor(Date.now() / 1000)}:R>: ${log}`);
+    if (this.logs.length > MAX_ACTIVITY_LOGS) this.logs.splice(0, this.logs.length - MAX_ACTIVITY_LOGS);
     this.logWrite(`<[Activity] ${new Date().toISOString()}>: ${log}\n`);
     if (update) return this.updateMessage();
   }

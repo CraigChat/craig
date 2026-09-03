@@ -240,11 +240,44 @@ export default class MetricsModule extends ShardManagerModule {
 
     new Gauge({
       name: 'craig_bot_shard_process_memory_bytes',
-      help: 'Memory usage of the shard process in bytes',
+      help: 'V8 heap memory used by the shard process in bytes',
       labelNames: ['shard'],
       async collect() {
         try {
           await setPropPerShard('process.memoryUsage().heapUsed', this, manager);
+        } catch {}
+      }
+    });
+
+    new Gauge({
+      name: 'craig_bot_shard_process_resident_memory_bytes',
+      help: 'Resident Set Size of the shard process in bytes',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await setPropPerShard('process.memoryUsage.rss()', this, manager);
+        } catch {}
+      }
+    });
+
+    new Gauge({
+      name: 'craig_bot_shard_process_external_memory_bytes',
+      help: 'Memory used by C++ objects bound to JavaScript objects in the shard process in bytes',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await setPropPerShard('process.memoryUsage().external', this, manager);
+        } catch {}
+      }
+    });
+
+    new Gauge({
+      name: 'craig_bot_shard_process_array_buffer_memory_bytes',
+      help: 'Memory allocated for buffers in the shard process in bytes',
+      labelNames: ['shard'],
+      async collect() {
+        try {
+          await setPropPerShard('process.memoryUsage().arrayBuffers', this, manager);
         } catch {}
       }
     });
