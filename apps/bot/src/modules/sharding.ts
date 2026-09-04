@@ -92,6 +92,13 @@ export default class ShardingModule extends BotModule {
           if (message.n) this.respond(message.n, { ok: true });
           return;
         }
+        case 'syncEmojis': {
+          if (!Array.isArray(message.d)) return;
+          this.client.slash.emojis.emojis.clear();
+          this.client.slash.emojis.loadFromDiscord(message.d);
+          this.logger.debug('Reloaded emojis from shard manager');
+          return;
+        }
       }
     }
   }

@@ -83,6 +83,7 @@ export default class ShardManager extends EventEmitter {
     await this.#emojis.loadFromFolder(path.resolve(this.options.emojiFolder));
     await this.#emojis.sync();
     this.emojiSyncData = Array.from(this.#emojis.emojis.values());
+    await this.broadcast({ t: 'syncEmojis', d: this.emojiSyncData });
   }
 
   async _processCommand(shard: Shard, msg: ManagerRequestMessage) {
