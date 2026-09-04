@@ -211,8 +211,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:projectdysnomia/dysnomia#86e6f71651d4dc09626ba035c55501ed75197200
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       '@sentry/integrations':
         specifier: ^7.120.4
         version: 7.120.4
@@ -302,8 +302,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:projectdysnomia/dysnomia#86e6f71651d4dc09626ba035c55501ed75197200
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       common-tags:
         specifier: 'catalog:'
         version: 1.8.2
@@ -1918,8 +1918,8 @@ packages:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e':
-    resolution: {gitHosted: true, integrity: sha512-CWKUcddkfYgyk3Zi2vu5I97smjAFi3kjBOTBBoCTvsOb65W++s/lUrFAZ7Yx62XV8h2cmwxMcr5XFOUaJb2etw==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e}
+  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200':
+    resolution: {gitHosted: true, integrity: sha512-JaxCdmMhiYj67W8HvMNQT0BO8z6XAJSGHY0PAfcsIWJTSc4v3zJQRlovv7KXGjr8ihKZS9B4d3OkQkHN0q8z2w==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200}
     version: 0.3.0-dev
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -6994,7 +6994,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react-dom'
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
+  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
     dependencies:
       ws: 8.21.3
     optionalDependencies:

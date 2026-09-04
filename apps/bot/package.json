@@ -27,7 +27,7 @@
     "@craig/metrics": "workspace:*",
     "@discordjs/opus": "^0.10.0",
     "@henrygd/semaphore": "^0.1.0",
-    "@projectdysnomia/dysnomia": "github:projectdysnomia/dysnomia#a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e",
+    "@projectdysnomia/dysnomia": "github:projectdysnomia/dysnomia#86e6f71651d4dc09626ba035c55501ed75197200",
     "@sentry/integrations": "^7.120.4",
     "@sentry/node": "^7.120.4",
     "@sentry/tracing": "^7.120.4",
