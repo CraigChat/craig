@@ -34,7 +34,7 @@ class SSEManager {
       if (group.clients.size === 0) group.destroy();
       else {
         const job = await getJob(group.id);
-        if (job && ['running', 'idle', 'queued'].includes(job.status)) return;
+        if (job && ['running', 'idle', 'queued'].includes(job.status)) continue;
         if (job) group.send({ event: 'update', data: { job: minimizeJobInfo(job) } });
         group.destroy();
       }

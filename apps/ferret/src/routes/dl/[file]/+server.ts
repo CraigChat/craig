@@ -1,8 +1,9 @@
+import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+import { Readable } from 'node:stream';
 
 import { error } from '@sveltejs/kit';
-import { createReadStream } from 'fs';
 
 import { DOWNLOADS_DIRECTORY } from '$lib/server/config';
 
@@ -37,35 +38,13 @@ export const GET: RequestHandler = async ({ params }) => {
 
   if (!stat) error(404, 'Not Found');
 
-  let streamEnded = false;
   const readStream = createReadStream(filePath);
-  const stream = new ReadableStream<Uint8Array>({
-    start: (controller) => {
-      readStream.on('data', (data) => controller.enqueue(data as Buffer));
-      readStream.once('error', (err) => {
-        streamEnded = true;
-        controller.error(err);
-        readStream.destroy();
-      });
-      readStream.once('end', () => {
-        streamEnded = true;
-        controller.close();
-      });
-      readStream.once('close', () => {
-        if (!streamEnded) {
-          streamEnded = true;
-          controller.close();
-        }
-      });
-    },
-    cancel: () => {
-      streamEnded = true;
-      readStream.destroy();
-    }
-  });
+  const stream = Readable.toWeb(readStream) as ReadableStream<Uint8Array>;
+  const extension = extname(file).slice(1).toLowerCase();
+
   return new Response(stream, {
     headers: {
-      'Content-Type': ExtToMime[extname(file)] || 'application/octet-stream',
+      'Content-Type': ExtToMime[extension] || 'application/octet-stream',
       'Cache-Control': 'max-age=604800',
       'Content-Disposition': 'attachment',
       'Content-Length': String(stat!.size)
