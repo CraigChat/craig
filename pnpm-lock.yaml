@@ -211,8 +211,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#de437ad5b6230b62a9594bafc951fff3a1f6d6c8
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:projectdysnomia/dysnomia#a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       '@sentry/integrations':
         specifier: ^7.120.4
         version: 7.120.4
@@ -234,6 +234,9 @@ importers:
       cron:
         specifier: 'catalog:'
         version: 4.4.0
+      erlpack:
+        specifier: ^0.1.4
+        version: 0.1.4
       fastify:
         specifier: ^5.12.1
         version: 5.12.1
@@ -299,8 +302,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#de437ad5b6230b62a9594bafc951fff3a1f6d6c8
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:projectdysnomia/dysnomia#a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       common-tags:
         specifier: 'catalog:'
         version: 1.8.2
@@ -1915,8 +1918,8 @@ packages:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8':
-    resolution: {gitHosted: true, integrity: sha512-UyT+sb16XpnXYrEfYWPLfGFVNy5xVBQ9gByT+S/6CxiMQbzZputExJbRWudi5YNv/r3vLfPDJi8z+xuTfxyYWQ==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8}
+  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e':
+    resolution: {gitHosted: true, integrity: sha512-CWKUcddkfYgyk3Zi2vu5I97smjAFi3kjBOTBBoCTvsOb65W++s/lUrFAZ7Yx62XV8h2cmwxMcr5XFOUaJb2etw==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e}
     version: 0.3.0-dev
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -3524,6 +3527,9 @@ packages:
   bignumber.js@9.1.2:
     resolution: {integrity: sha512-2/mKyZH9K85bzOEfhXDBFZTGd1CTs+5IHpeFQo9luiBG7hghdC851Pj2WAhb6E3R6b9tZj/XKhbg4fum+Kepug==}
 
+  bindings@1.5.0:
+    resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
+
   bintrees@1.0.2:
     resolution: {integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==}
 
@@ -3896,6 +3902,9 @@ packages:
     resolution: {integrity: sha512-dtJUTepzMW3Lm/NPxRf3wP4642UWhjL2sQxc+ym2YMj1m/H2zDNQOlezafzkHwn6sMstjHTwG6iQQsctDW/b1A==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
+  erlpack@0.1.4:
+    resolution: {integrity: sha512-CJYbkEvsB5FqCCu2tLxF1eYKi28PvemC12oqzJ9oO6mDFrFO9G9G7nNJUHhiAyyL9zfXTOJx/tOcrQk+ncD65w==}
+
   es-define-property@1.0.1:
     resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
     engines: {node: '>= 0.4'}
@@ -4185,6 +4194,9 @@ packages:
   file-entry-cache@8.0.0:
     resolution: {integrity: sha512-XXTUwCvisa5oacNGRP9SfNtYBNAMi+RPwBFmblZEF7N7swHYQS6/Zfk7SRwx4D5j3CH211YNRco1DEMNVfZCnQ==}
     engines: {node: '>=16.0.0'}
+
+  file-uri-to-path@1.0.0:
+    resolution: {integrity: sha512-0Zt+s3L7Vf1biwWZ29aARiVYLx7iMGnEUl9x33fbB/j3jR81u/O2LbqK+Bm1CDSNDKVtJ/YjwY7TUd5SkeLQLw==}
 
   find-my-way@8.2.2:
     resolution: {integrity: sha512-Dobi7gcTEq8yszimcfp/R7+owiT4WncAJ7VTTgFH1jYJ5GaG1FbhjwDG820hptN0QDFvzVY3RfCzdInvGPGzjA==}
@@ -4942,6 +4954,9 @@ packages:
   named-placeholders@1.1.6:
     resolution: {integrity: sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w==}
     engines: {node: '>=8.0.0'}
+
+  nan@2.28.0:
+    resolution: {integrity: sha512-fTsDz99OTq2sVePhGdp4qQhggZFtKr64ZNVyVajRKtMOkJxYekplBh577PiJB12v/D3s2E5cGtOI45LWp6rnLQ==}
 
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
@@ -6095,6 +6110,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
@@ -6967,13 +6994,14 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react-dom'
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/de437ad5b6230b62a9594bafc951fff3a1f6d6c8(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
+  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/a2fa1c96bc95cf859fe4ea6f6d6013ea93d11b0e(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
     dependencies:
-      ws: 8.20.1
+      ws: 8.21.3
     optionalDependencies:
       '@discordjs/opus': 0.10.0(supports-color@8.1.1)
       '@snazzah/davey': 0.1.12(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       '@stablelib/xchacha20poly1305': 1.0.1
+      erlpack: 0.1.4
       eventemitter3: 5.0.1
       opusscript: 0.1.1
       sodium-native: 5.1.0(bare-events@2.8.3)
@@ -8279,6 +8307,10 @@ snapshots:
 
   bignumber.js@9.1.2: {}
 
+  bindings@1.5.0:
+    dependencies:
+      file-uri-to-path: 1.0.0
+
   bintrees@1.0.2: {}
 
   bits-ui@2.19.0(@internationalized/date@3.11.0)(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.57.0(@typescript-eslint/types@8.60.0))(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.6.1)(sass@1.97.3)(tsx@4.23.13)(yaml@2.8.2)))(svelte@5.57.0(@typescript-eslint/types@8.60.0))(typescript@6.0.3)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.6.1)(sass@1.97.3)(tsx@4.23.13)(yaml@2.8.2)))(svelte@5.57.0(@typescript-eslint/types@8.60.0)):
@@ -8610,6 +8642,11 @@ snapshots:
       strip-ansi: 6.0.1
 
   env-paths@3.0.0: {}
+
+  erlpack@0.1.4:
+    dependencies:
+      bindings: 1.5.0
+      nan: 2.28.0
 
   es-define-property@1.0.1: {}
 
@@ -9080,6 +9117,8 @@ snapshots:
   file-entry-cache@8.0.0:
     dependencies:
       flat-cache: 4.0.1
+
+  file-uri-to-path@1.0.0: {}
 
   find-my-way@8.2.2:
     dependencies:
@@ -9854,6 +9893,8 @@ snapshots:
   named-placeholders@1.1.6:
     dependencies:
       lru.min: 1.1.4
+
+  nan@2.28.0: {}
 
   nanoid@3.3.11: {}
 
@@ -11140,6 +11181,8 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.20.1: {}
+
+  ws@8.21.3: {}
 
   xtend@4.0.2: {}
 

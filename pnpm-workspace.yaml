@@ -16,6 +16,7 @@ allowBuilds:
   '@parcel/watcher': true
   '@prisma/client': true
   '@prisma/engines': true
+  erlpack: true
   es5-ext: true
   esbuild: true
   pnpm: true
