@@ -40,6 +40,7 @@
     "fastq": "^1.19.1",
     "i18next": "^25.7.2",
     "i18next-fs-backend": "^2.6.1",
+    "intl-messageformat": "^10.7.18",
     "ioredis": "catalog:",
     "nanoid": "catalog:",
     "semver": "^7.7.3",

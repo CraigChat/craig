@@ -20,13 +20,13 @@ export default class Join extends GeneralCommand {
   constructor(creator: SlashCreator) {
     super(creator, {
       name: 'join',
-      description: 'Start recording in a channel.',
+      description: 'Start recording in a voice channel.',
       dmPermission: false,
       options: [
         {
           type: CommandOptionType.CHANNEL,
           name: 'channel',
-          description: 'The channel to record in.',
+          description: 'The voice channel to record in.',
           channel_types: [2, 13]
         }
       ]
