@@ -18,6 +18,7 @@ import type { CraigBot } from './bot.js';
 import type { CraigBotConfig, RewardTier } from './config.js';
 import type Recording from './modules/recorder/recording.js';
 import type SlashModule from './modules/slash.js';
+import type { TFunction } from './i18n.js';
 
 export const version = packageJson.version;
 
@@ -251,7 +252,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
   } as EditMessageOptions as any;
 }
 
-export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis']): Promise<MessageOptions> {
+export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis'], t: TFunction): Promise<MessageOptions> {
   const userData = await prisma.user.findUnique({ where: { id: userID }, select: { id: true, rewardTier: true } });
   const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
   const blessingUser = blessing
@@ -265,7 +266,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 
   if (blessingUser && blessingUser.id === userID)
     return {
-      content: 'You already blessed this server.',
+      content: t('blessing.already_blessed'),
       ephemeral: true,
       components: [
         {
@@ -274,7 +275,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
             {
               type: ComponentType.BUTTON,
               style: ButtonStyle.DESTRUCTIVE,
-              label: 'Remove blessing',
+              label: t('blessing.remove'),
               custom_id: `user:unbless:${guildID}`,
               emoji: emojis.getPartial('remove') || undefined
             }
@@ -285,13 +286,13 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 
   if (userTier === 0)
     return {
-      content: "You don't have any perks to bless this server with.",
+      content: t('blessing.no_perks'),
       ephemeral: true
     };
 
   if (guildTier === -1 || (guildTier >= userTier && userTier !== -1))
     return {
-      content: 'This server has already been blessed by a similar or greater tier.',
+      content: t('blessing.server_already_blessed'),
       ephemeral: true
     };
 
@@ -305,17 +306,17 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
   });
 
   return {
-    content: 'You have blessed this server and gave it your perks. All future recordings will have your features.',
+    content: t('blessing.blessed'),
     ephemeral: true
   };
 }
 
-export async function unblessServer(userID: string, guildID: string): Promise<MessageOptions> {
+export async function unblessServer(userID: string, guildID: string, t: TFunction): Promise<MessageOptions> {
   const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
 
   if (!blessing || blessing.userId !== userID)
     return {
-      content: 'You have not blessed this server.',
+      content: t('blessing.not_blessed'),
       ephemeral: true
     };
 
@@ -324,7 +325,7 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
   });
 
   return {
-    content: 'Removed your blessing from this server.',
+    content: t('blessing.removed'),
     ephemeral: true
   };
 }

@@ -16,12 +16,13 @@ export default class VoiceTestCommand extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return { content: 'This command can only be used in a guild.', ephemeral: true };
+    const [t] = this.createT(ctx);
+    if (!ctx.guildID) return { content: t('responses.guild_only'), ephemeral: true };
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
     if (!guild)
       return {
-        content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
+        content: t('responses.guild_unavailable', { server_invite: 'https://discord.gg/craig' }),
         ephemeral: true,
         components: [
           {
@@ -30,7 +31,7 @@ export default class VoiceTestCommand extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Join Support Server',
+                label: t('common.support_server'),
                 url: 'https://discord.gg/craig'
               }
             ]
@@ -40,7 +41,7 @@ export default class VoiceTestCommand extends GeneralCommand {
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -49,16 +50,13 @@ export default class VoiceTestCommand extends GeneralCommand {
       this.client.commands.logger.warn(
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was ratelimited.`
       );
-      return {
-        content: 'You are running commands too often! Try again in a few seconds.',
-        ephemeral: true
-      };
+      return { content: t('responses.ratelimited'), ephemeral: true };
     }
 
     const vtCooldown = await this.redis.get(`cooldown:voice-test:${ctx.user.id}`);
     if (vtCooldown) {
       return {
-        content: 'You are doing voice tests too often! Try again in a few seconds.',
+        content: t('voicetest.ratelimited'),
         ephemeral: true
       };
     }
@@ -67,7 +65,7 @@ export default class VoiceTestCommand extends GeneralCommand {
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
-        content: 'You need the `Manage Server` permission or have an access role to do a voice test.',
+        content: t('voicetest.need_perms'),
         components: [
           {
             type: ComponentType.ACTION_ROW,
@@ -75,8 +73,8 @@ export default class VoiceTestCommand extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'How do I fix this?',
-                url: 'https://craig.chat/docs/#setting-up-access-roles'
+                label: t('voicetest.how_fix'),
+                url: 'https://docs.craig.chat/features/access-roles/'
               }
             ]
           }
@@ -87,7 +85,7 @@ export default class VoiceTestCommand extends GeneralCommand {
     // Check for existing recording or voice test
     if (this.recorder.recordings.has(ctx.guildID) || this.recorder.voiceTests.has(ctx.guildID)) {
       return {
-        content: 'A recording or voice test is already in progress in this server.',
+        content: t('responses.recording_in_progress'),
         ephemeral: true
       };
     }
@@ -99,31 +97,31 @@ export default class VoiceTestCommand extends GeneralCommand {
     const channel = member.voiceState.channelID ? guild.channels.get(member.voiceState.channelID) : null;
     if (!channel || (channel.type !== 2 && channel.type !== 13))
       return {
-        content: 'You need to be in a voice channel to do a voice test.',
+        content: t('voicetest.not_in_channel'),
         ephemeral: true
       };
 
     // Check permissions
     if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
       return {
-        content: `I do not have permission to connect to <#${channel!.id}>.`,
+        content: t('recording.cant_connect', { channel: `<#${channel!.id}>` }),
         ephemeral: true
       };
     if (!isChannelNotFull(channel, this.client.bot.user.id))
       return {
-        content: `That voice channel is full, and I do not have the \`Move Members\` permission needed to join it.`,
+        content: t('recording.channel_full', { channel: `<#${channel!.id}>` }),
         ephemeral: true
       };
 
     if (ctx.appPermissions && !ctx.appPermissions.has('EMBED_LINKS'))
       return {
-        content: `I need the \`Embed Links\` permission to be able to display the voice test.`,
+        content: t('recording.need_embed', { channel: `<#${ctx.channelID}>` }),
         ephemeral: true
       };
 
     if (ctx.appPermissions && !ctx.appPermissions.has('VIEW_CHANNEL'))
       return {
-        content: `I need the \`View Channel\` permission in <#${ctx.channelID}> to be able to display my voice test panel.`,
+        content: t('recording.need_view_channel', { channel: `<#${ctx.channelID}>` }),
         ephemeral: true
       };
 
@@ -133,7 +131,7 @@ export default class VoiceTestCommand extends GeneralCommand {
     await ctx.defer();
 
     // Create voice test
-    const voiceTest = new VoiceTest(this.recorder, ctx.guildID, channel as any, member.user);
+    const voiceTest = new VoiceTest(this.recorder, ctx.guildID, channel as any, member.user, t);
     this.recorder.voiceTests.set(ctx.guildID, voiceTest);
 
     const { messageID, err } = await ctx
@@ -147,12 +145,12 @@ export default class VoiceTestCommand extends GeneralCommand {
         err
       );
       this.recorder.voiceTests.delete(ctx.guildID);
-      return { content: 'An error occurred while starting the voice test, try again later.', ephemeral: true };
+      return { content: t('recording.error'), ephemeral: true };
     }
 
     if (!messageID) {
       this.recorder.voiceTests.delete(ctx.guildID);
-      return { content: 'Failed to create voice test message.', ephemeral: true };
+      return { content: t('common.could_not_message'), ephemeral: true };
     }
 
     voiceTest.messageID = messageID;
@@ -174,7 +172,7 @@ export default class VoiceTestCommand extends GeneralCommand {
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: 'An error occurred while starting the voice test. Please try again later.'
+            content: t('recording.error')
           }
         ]
       });

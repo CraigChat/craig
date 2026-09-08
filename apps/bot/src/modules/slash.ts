@@ -33,6 +33,7 @@ import { reportErrorFromCommand } from '../sentry.js';
 import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util.js';
 import type RecorderModule from './recorder/index.js';
 import { RecordingState } from './recorder/recording.js';
+import { createCtxT } from '../i18n.js';
 
 export interface SlashModuleOptions {
   creator?: Partial<SlashCreatorOptions>;
@@ -130,12 +131,13 @@ export default class SlashModule extends BotModule {
   }
 
   async handleRecordingInteraction(ctx: ComponentContext) {
+    const [t] = createCtxT(ctx);
     const [, recordingID, action] = ctx.customID.split(':');
     const recording = this.recorder.find(recordingID);
     if (!recording) {
       await ctx.editParent({ components: disableComponents(ctx.message.components as ComponentActionRow[]) });
       return ctx.send({
-        content: 'That recording was not found or may have already ended.',
+        content: t('recording.not_found'),
         ephemeral: true
       });
     }
@@ -143,7 +145,7 @@ export default class SlashModule extends BotModule {
     const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode')
       return ctx.send({
-        content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
+        content: t('recording.need_perms'),
         ephemeral: true
       });
 
@@ -153,17 +155,17 @@ export default class SlashModule extends BotModule {
     } else if (action === 'note') {
       await ctx.sendModal(
         {
-          title: 'Add a note to this recording',
+          title: t('recording.note_modal.title'),
           components: [
             {
               type: ComponentType.ACTION_ROW,
               components: [
                 {
                   type: ComponentType.TEXT_INPUT,
-                  label: 'Note',
+                  label: t('common.note'),
                   style: TextInputStyle.PARAGRAPH,
                   custom_id: 'note',
-                  placeholder: 'Chapter 1, Part 1, etc.'
+                  placeholder: t('recording.note_modal.placeholder')
                 }
               ]
             }
@@ -172,24 +174,24 @@ export default class SlashModule extends BotModule {
         (modalCtx) => {
           if (recording.state === RecordingState.ENDED || recording.state === RecordingState.ERROR)
             return modalCtx.send({
-              content: 'That recording was not found or may have already ended.',
+              content: t('recording.not_found'),
               ephemeral: true
             });
           try {
             recording.note((modalCtx.values.note as string) || '');
             recording.pushToActivity(
-              `${ctx.user.mention} added a note.${
+              `${t('recording.panel.added_note', { user: ctx.user.mention })}${
                 modalCtx.values.note ? ` - ${cutoffText((modalCtx.values.note as string).replace(/\n/g, ' '), 100)}` : ''
               }`
             );
             return modalCtx.send({
-              content: 'Added the note to the recording!',
+              content: t('recording.added_note'),
               ephemeral: true
             });
           } catch (e) {
             recording.recorder.logger.error(`Error adding note to recording ${recordingID}:`, e);
             return modalCtx.send({
-              content: 'An error occurred while adding the note.',
+              content: t('recording.note_error'),
               ephemeral: true
             });
           }
@@ -203,9 +205,7 @@ export default class SlashModule extends BotModule {
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: `This voice call is ${this.emojis.getMarkdown(
-              'e2ee'
-            )} **end-to-end encrypted**, [Learn more here](https://support.discord.com/hc/en-us/articles/25968222946071-End-to-End-Encryption-for-Audio-and-Video).`
+            content: t('e2ee.header', { emoji: this.emojis.getMarkdown('e2ee') })
           },
           {
             type: ComponentType.SEPARATOR
@@ -214,9 +214,9 @@ export default class SlashModule extends BotModule {
             ? [
                 {
                   type: ComponentType.TEXT_DISPLAY,
-                  content: `### Voice Privacy Code\nSince <t:${Math.floor(Date.now() / 1000)}:R>\n${
-                    vpc ? formatVoiceCode(vpc) : 'Unknown (might be transitioning the call, try again later)'
-                  }\n-# A new code is generated when people join or leave this call.\n`
+                  content: `### ${t('e2ee.privacy_code')}\n${t('e2ee.code_since_time', {
+                    time: `<t:${Math.floor(Date.now() / 1000)}:R>`
+                  })}\n${vpc ? formatVoiceCode(vpc) : t('e2ee.unknown_code')}\n-# ${t('e2ee.footer')}\n`
                 },
                 {
                   type: ComponentType.ACTION_ROW,
@@ -224,7 +224,7 @@ export default class SlashModule extends BotModule {
                     {
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.SECONDARY,
-                      label: 'View Verification Code',
+                      label: t('e2ee.view_verification_code'),
                       custom_id: `rec:${recording.id}:verificationcode`
                     }
                   ]
@@ -233,7 +233,7 @@ export default class SlashModule extends BotModule {
             : [
                 {
                   type: ComponentType.TEXT_DISPLAY,
-                  content: "-# You aren't in this voice channel right now to be able to view the privacy code."
+                  content: `-# ${t('e2ee.cant_view_code')}`
                 }
               ]) as AnyComponent[])
         ]
@@ -241,19 +241,21 @@ export default class SlashModule extends BotModule {
     } else if (action === 'verificationcode') {
       if (!recording.channel.voiceMembers.has(ctx.user.id))
         await ctx.send({
-          content: "You aren't in this channel.",
+          content: t('e2ee.not_in_channel'),
           ephemeral: true
         });
       else {
         try {
           const verificationCode = await (recording.connection?.daveSession as DAVESession)?.getVerificationCode(ctx.user.id);
           await ctx.send({
-            content: `### Verification Code\nSince <t:${Math.floor(Date.now() / 1000)}:R>\n${formatVoiceCode(verificationCode, 3)}`,
+            content: `### ${t('e2ee.verification_code')}\n${t('e2ee.code_since_time', {
+              time: `<t:${Math.floor(Date.now() / 1000)}:R>`
+            })}\n${formatVoiceCode(verificationCode, 3)}`,
             ephemeral: true
           });
         } catch {
           await ctx.send({
-            content: 'An error occurred when trying to get the verification code, try again later.',
+            content: t('e2ee.verification_code_error'),
             ephemeral: true
           });
         }
@@ -262,12 +264,13 @@ export default class SlashModule extends BotModule {
   }
 
   async handleVoiceTestInteraction(ctx: ComponentContext) {
+    const [t] = createCtxT(ctx);
     const [, action] = ctx.customID.split(':');
     const voiceTest = this.recorder.voiceTests.get(ctx.guildID!);
     if (!voiceTest) {
       await ctx.editParent({ components: disableComponents(ctx.message.components as ComponentActionRow[]) });
       return ctx.send({
-        content: 'That voice test was not found or may have already ended.',
+        content: t('voicetest.not_found'),
         ephemeral: true
       });
     }
@@ -275,7 +278,7 @@ export default class SlashModule extends BotModule {
     const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return ctx.send({
-        content: 'You need the `Manage Server` permission or have an access role to manage voice tests.',
+        content: t('voicetest.need_perms'),
         ephemeral: true
       });
 
@@ -289,10 +292,11 @@ export default class SlashModule extends BotModule {
   }
 
   async handleUserInteraction(ctx: ComponentContext) {
+    const [t] = createCtxT(ctx);
     const [, action, ...args] = ctx.customID.split(':');
     if (ctx.message.interaction!.user.id !== ctx.user.id)
       return ctx.send({
-        content: 'Only the person who executed this command can use this button.',
+        content: t('responses.not_your_button'),
         ephemeral: true
       });
 
@@ -301,11 +305,11 @@ export default class SlashModule extends BotModule {
         const [guildID] = args;
         try {
           await ctx.editParent({ components: [] });
-          await ctx.send(await blessServer(ctx.user.id, guildID, this.emojis));
+          await ctx.send(await blessServer(ctx.user.id, guildID, this.emojis, t));
         } catch (e) {
           this.logger.error(`Error blessing server ${guildID}:`, e);
           await ctx.send({
-            content: 'An error occurred while blessing the server.',
+            content: t('blessing.bless_error'),
             ephemeral: true
           });
         }
@@ -315,11 +319,11 @@ export default class SlashModule extends BotModule {
         const [guildID] = args;
         try {
           await ctx.editParent({ components: [] });
-          await ctx.send(await unblessServer(ctx.user.id, guildID));
+          await ctx.send(await unblessServer(ctx.user.id, guildID, t));
         } catch (e) {
           this.logger.error(`Error unblessing server ${guildID}:`, e);
           await ctx.send({
-            content: 'An error occurred while removing the blessing from the server.',
+            content: t('blessing.unbless_error'),
             ephemeral: true
           });
         }
@@ -332,7 +336,7 @@ export default class SlashModule extends BotModule {
         } catch (e) {
           this.logger.error(`Error paginating recordings for user ${ctx.user.id}:`, e);
           await ctx.send({
-            content: 'An error occurred while using this interaction.',
+            content: t('responses.interaction_error'),
             ephemeral: true
           });
         }

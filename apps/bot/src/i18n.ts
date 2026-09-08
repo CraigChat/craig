@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
 import { IntlMessageFormat, PrimitiveType } from 'intl-messageformat';
-import { CommandContext } from 'slash-create';
+import { CommandContext, ComponentContext, ModalInteractionContext } from 'slash-create';
+
+export type TFunction = ReturnType<typeof createT>;
 
 const defaultLocalePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../locale');
 const discordLocales = [
@@ -97,10 +99,11 @@ export function createT(lang: string) {
   };
 }
 
-export function createCtxT(ctx: CommandContext): [ReturnType<typeof createT>, string] {
+export function createCtxT(ctx: CommandContext | ComponentContext | ModalInteractionContext): [ReturnType<typeof createT>, string] {
   const langMap: { [key: string]: string } = {
     'en-US': 'en',
-    'en-GB': 'en'
+    'en-GB': 'en',
+    'es-ES': 'es'
   };
 
   if (ctx.locale) {

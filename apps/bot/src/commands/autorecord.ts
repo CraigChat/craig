@@ -238,8 +238,8 @@ export default class AutoRecord extends GeneralCommand {
                   {
                     type: ComponentType.BUTTON,
                     style: ButtonStyle.LINK,
-                    label: 'Patreon',
-                    url: 'https://patreon.com/CraigRec'
+                    label: 'Become a Supporter',
+                    url: 'https://craig.chat/supporter'
                   }
                 ]
               }
