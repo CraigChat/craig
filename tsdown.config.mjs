@@ -1,7 +1,9 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig({
-  skipNodeModulesBundle: true,
+  deps: {
+    neverBundle: true
+  },
   dts: true,
   format: {
     esm: {

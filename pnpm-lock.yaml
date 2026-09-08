@@ -226,8 +226,8 @@ importers:
         specifier: 'catalog:'
         version: 0.1.0
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#86e6f71651d4dc09626ba035c55501ed75197200
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:projectdysnomia/dysnomia#00d8982d81d365c2cdb2ef5dac59af07977a65d7
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       '@sentry/integrations':
         specifier: ^7.120.4
         version: 7.120.4
@@ -320,8 +320,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#86e6f71651d4dc09626ba035c55501ed75197200
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:projectdysnomia/dysnomia#00d8982d81d365c2cdb2ef5dac59af07977a65d7
+        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       common-tags:
         specifier: 'catalog:'
         version: 1.8.2
@@ -553,9 +553,9 @@ importers:
       '@henrygd/queue':
         specifier: ^1.0.7
         version: 1.2.0
-      '@libav.js/variant-webcodecs':
-        specifier: ^6.8.8
-        version: 6.8.8
+      '@mediabunny/flac-encoder':
+        specifier: ^1.56.0
+        version: 1.56.0(mediabunny@1.56.0)
       '@wasm-audio-decoders/flac':
         specifier: ^0.2.8
         version: 0.2.10
@@ -575,8 +575,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0
       mediabunny:
-        specifier: ^1.45.3
-        version: 1.45.3
+        specifier: ^1.56.0
+        version: 1.56.0
       nanoid:
         specifier: 'catalog:'
         version: 6.0.1
@@ -659,9 +659,6 @@ importers:
       just-range:
         specifier: ^4.2.0
         version: 4.2.0
-      mrmime:
-        specifier: ^2.0.1
-        version: 2.0.1
       sass:
         specifier: ^1.97.2
         version: 1.97.3
@@ -1738,8 +1735,10 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@libav.js/variant-webcodecs@6.8.8':
-    resolution: {integrity: sha512-nu2c7GaYc+KIJcopRrGUMbK4whyf4xDOoiJx7avOpDir06uDwYl42hjx0P8QcDsmFFS5l0wLg6d767ezMRfU0A==}
+  '@mediabunny/flac-encoder@1.56.0':
+    resolution: {integrity: sha512-KY9g85K/xOnuZ5ENU1HjZ5p+gRzqgTv1Egr2/yTbHDityn5Hz9gOmZ4NJYT57YI8vWnpzxiIG2caxUtrv5UX5w==}
+    peerDependencies:
+      mediabunny: ^1.0.0
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -1936,8 +1935,8 @@ packages:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200':
-    resolution: {gitHosted: true, integrity: sha512-JaxCdmMhiYj67W8HvMNQT0BO8z6XAJSGHY0PAfcsIWJTSc4v3zJQRlovv7KXGjr8ihKZS9B4d3OkQkHN0q8z2w==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200}
+  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7':
+    resolution: {gitHosted: true, integrity: sha512-16ShjoS6DJyiwfsD/XAl4SGoj6D6cTvLl56vrq69KXdvsT9m9qSbTnuVqjL9jCpJ912lM6teFkw3Hy31EN06Bg==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7}
     version: 0.3.0-dev
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -4900,8 +4899,8 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
-  mediabunny@1.45.3:
-    resolution: {integrity: sha512-GUCPYjR+5olLM7DRmupCXCmZkkSrKHVl1gyW2RztpObqLfrix19kWGf/9WgWzDW0g49DvfGXpl+zfArCx5HDMQ==}
+  mediabunny@1.56.0:
+    resolution: {integrity: sha512-VLVYEVXI4fA2PabQoZs3XOmxDsio4gpG1Npz0iVICRNCQ+XYI3fBOngnwHljafaEjHUbYzrIDoctZbxcVfQpgQ==}
 
   memoizee@0.4.17:
     resolution: {integrity: sha512-DGqD7Hjpi/1or4F/aYAspXKNm5Yili0QDAFAY4QYvpqpgiY6+1jOfqpmByzjxbWd/T9mChbCArXAbDAsTm5oXA==}
@@ -6807,7 +6806,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@libav.js/variant-webcodecs@6.8.8': {}
+  '@mediabunny/flac-encoder@1.56.0(mediabunny@1.56.0)':
+    dependencies:
+      mediabunny: 1.56.0
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
@@ -7007,7 +7008,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react-dom'
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/86e6f71651d4dc09626ba035c55501ed75197200(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
+  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
     dependencies:
       ws: 8.21.3
     optionalDependencies:
@@ -9832,7 +9833,7 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mediabunny@1.45.3:
+  mediabunny@1.56.0:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.11
       '@types/dom-webcodecs': 0.1.13
