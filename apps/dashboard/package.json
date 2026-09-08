@@ -38,10 +38,10 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "bits-ui": "^2.19.0",
-    "clsx": "^2.1.1",
+    "clsx": "catalog:",
     "cookie-es": "3.1.1",
     "discord-api-types": "^0.38.37",
-    "nanoid": "^5.1.6",
+    "nanoid": "catalog:",
     "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
     "svelte-floating-ui": "^1.6.2",
@@ -61,7 +61,7 @@
     "@craig/common": "workspace:*",
     "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
-    "@henrygd/semaphore": "^0.1.0",
+    "@henrygd/semaphore": "catalog:",
     "@sveltejs/adapter-node": "^5.5.7",
     "destr": "catalog:",
     "dropbox": "^10.34.0",
@@ -70,6 +70,6 @@
     "jose": "^6.2.10",
     "just-split": "^3.2.0",
     "tweetnacl": "^1.0.3",
-    "zod": "^4.3.5"
+    "zod": "catalog:"
   }
 }
