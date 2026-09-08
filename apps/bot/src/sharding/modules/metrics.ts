@@ -183,6 +183,7 @@ export default class MetricsModule extends ShardManagerModule {
     for (const command of [
       'autorecord',
       'bless',
+      'bot-profile',
       'features',
       'info',
       'join',
