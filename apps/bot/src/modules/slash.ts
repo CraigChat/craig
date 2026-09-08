@@ -17,6 +17,7 @@ import {
 import type { CraigBot } from '../bot.js';
 import AutorecordCommand from '../commands/autorecord.js';
 import BlessCommand from '../commands/bless.js';
+import BotProfileCommand from '../commands/botprofile.js';
 import FeaturesCommand from '../commands/features.js';
 import InfoCommand from '../commands/info.js';
 import JoinCommand from '../commands/join.js';
@@ -40,6 +41,7 @@ export interface SlashModuleOptions {
 const commandConstructors = [
   AutorecordCommand,
   BlessCommand,
+  BotProfileCommand,
   FeaturesCommand,
   InfoCommand,
   JoinCommand,

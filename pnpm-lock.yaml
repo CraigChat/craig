@@ -107,12 +107,18 @@ settings:
 
 catalogs:
   default:
+    '@henrygd/semaphore':
+      specifier: ^0.1.0
+      version: 0.1.0
     '@types/common-tags':
       specifier: ^1.8.4
       version: 1.8.4
     '@types/node':
       specifier: ^22.18.0
       version: 22.20.1
+    clsx:
+      specifier: ^2.1.1
+      version: 2.1.1
     common-tags:
       specifier: ^1.8.2
       version: 1.8.2
@@ -122,9 +128,15 @@ catalogs:
     destr:
       specifier: ^2.0.5
       version: 2.0.5
+    execa:
+      specifier: ^9.5.3
+      version: 9.5.3
     ioredis:
       specifier: ^6.0.0
       version: 6.0.0
+    nanoid:
+      specifier: ^6.0.1
+      version: 6.0.1
     tsdown:
       specifier: 0.22.14
       version: 0.22.14
@@ -134,6 +146,9 @@ catalogs:
     typescript:
       specifier: ^7.0.2
       version: 7.0.2
+    zod:
+      specifier: ^4.3.5
+      version: 4.3.5
 
 overrides:
   sharp: 0.34.5
@@ -208,7 +223,7 @@ importers:
         specifier: ^0.10.0
         version: 0.10.0(supports-color@8.1.1)
       '@henrygd/semaphore':
-        specifier: ^0.1.0
+        specifier: 'catalog:'
         version: 0.1.0
       '@projectdysnomia/dysnomia':
         specifier: github:projectdysnomia/dysnomia#86e6f71651d4dc09626ba035c55501ed75197200
@@ -256,8 +271,8 @@ importers:
         specifier: 'catalog:'
         version: 6.0.0(supports-color@8.1.1)
       nanoid:
-        specifier: ^3.3.11
-        version: 3.3.18
+        specifier: 'catalog:'
+        version: 6.0.1
       semver:
         specifier: ^7.7.3
         version: 7.8.1
@@ -345,7 +360,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
       '@henrygd/semaphore':
-        specifier: ^0.1.0
+        specifier: 'catalog:'
         version: 0.1.0
       '@sveltejs/adapter-node':
         specifier: ^5.5.7
@@ -372,7 +387,7 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       zod:
-        specifier: ^4.3.5
+        specifier: 'catalog:'
         version: 4.3.5
     devDependencies:
       '@craig/types':
@@ -430,7 +445,7 @@ importers:
         specifier: ^2.19.0
         version: 2.19.0(@internationalized/date@3.11.0)(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.57.0(@typescript-eslint/types@8.60.0))(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.6.1)(sass@1.97.3)(tsx@4.23.13)(yaml@2.8.2)))(svelte@5.57.0(@typescript-eslint/types@8.60.0))(typescript@6.0.3)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.6.1)(sass@1.97.3)(tsx@4.23.13)(yaml@2.8.2)))(svelte@5.57.0(@typescript-eslint/types@8.60.0))
       clsx:
-        specifier: ^2.1.1
+        specifier: 'catalog:'
         version: 2.1.1
       cookie-es:
         specifier: 3.1.1
@@ -439,8 +454,8 @@ importers:
         specifier: ^0.38.37
         version: 0.38.37
       nanoid:
-        specifier: ^5.1.6
-        version: 5.1.6
+        specifier: 'catalog:'
+        version: 6.0.1
       svelte:
         specifier: ^5.57.0
         version: 5.57.0(@typescript-eslint/types@8.60.0)
@@ -499,11 +514,11 @@ importers:
         specifier: 'catalog:'
         version: 2.0.5
       execa:
-        specifier: ^9.5.3
+        specifier: 'catalog:'
         version: 9.5.3
       nanoid:
-        specifier: ^5.1.5
-        version: 5.1.6
+        specifier: 'catalog:'
+        version: 6.0.1
       uWebSockets.js:
         specifier: github:uNetworking/uWebSockets.js#v20.69.0
         version: https://codeload.github.com/uNetworking/uWebSockets.js/tar.gz/dddd8ffd1b2c28a66022160923ca92f064cdacb4
@@ -563,8 +578,8 @@ importers:
         specifier: ^1.45.3
         version: 1.45.3
       nanoid:
-        specifier: ^5.1.6
-        version: 5.1.6
+        specifier: 'catalog:'
+        version: 6.0.1
       opus-decoder:
         specifier: ^0.7.10
         version: 0.7.11
@@ -572,7 +587,7 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       zod:
-        specifier: ^4.3.5
+        specifier: 'catalog:'
         version: 4.3.5
     devDependencies:
       '@craig/types':
@@ -630,7 +645,7 @@ importers:
         specifier: ^2023.10.6
         version: 2023.10.7
       clsx:
-        specifier: ^2.1.1
+        specifier: 'catalog:'
         version: 2.1.1
       cookie-es:
         specifier: ^3.1.1
@@ -711,7 +726,7 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
       execa:
-        specifier: ^9.5.3
+        specifier: 'catalog:'
         version: 9.5.3
       fastify:
         specifier: ^5.12.1
@@ -738,7 +753,7 @@ importers:
         specifier: ^2.1.3
         version: 2.1.3
       nanoid:
-        specifier: ^6.0.1
+        specifier: 'catalog:'
         version: 6.0.1
     devDependencies:
       '@craig/types':
@@ -4969,11 +4984,6 @@ packages:
   nanoid@3.3.18:
     resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@5.1.6:
-    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==}
-    engines: {node: ^18 || >=20}
     hasBin: true
 
   nanoid@6.0.1:
@@ -9902,8 +9912,6 @@ snapshots:
   nanoid@3.3.11: {}
 
   nanoid@3.3.18: {}
-
-  nanoid@5.1.6: {}
 
   nanoid@6.0.1: {}
 

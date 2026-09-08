@@ -4,13 +4,18 @@ packages:
 catalog:
   '@types/common-tags': ^1.8.4
   '@types/node': ^22.18.0
+  '@henrygd/semaphore': ^0.1.0
+  clsx: ^2.1.1
   common-tags: ^1.8.2
   cron: ^4.3.4
   destr: ^2.0.5
+  execa: ^9.5.3
   ioredis: ^6.0.0
+  nanoid: ^6.0.1
   tsdown: 0.22.14
   tsx: ^4.23.13
   typescript: ^7.0.2
+  zod: ^4.3.5
 allowBuilds:
   '@discordjs/opus': true
   '@parcel/watcher': true

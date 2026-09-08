@@ -3,9 +3,7 @@ import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCre
 
 import { processCooldown } from '../redis.js';
 import GeneralCommand from '../slashCommand.js';
-import { checkBan } from '../util.js';
-
-const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+import { checkBan, mainBotCommandOnly } from '../util.js';
 
 export default class ServerSettings extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -14,6 +12,7 @@ export default class ServerSettings extends GeneralCommand {
       description: 'Manage server settings.',
       deferEphemeral: true,
       dmPermission: false,
+      guildIDs: mainBotCommandOnly,
       options: [
         {
           type: CommandOptionType.SUB_COMMAND,
@@ -50,35 +49,6 @@ export default class ServerSettings extends GeneralCommand {
                   required: true
                 }
               ]
-            }
-          ]
-        },
-        {
-          type: CommandOptionType.SUB_COMMAND_GROUP,
-          name: 'bot-profile',
-          description: "Manage the bot's server profile.",
-          options: [
-            {
-              type: CommandOptionType.SUB_COMMAND,
-              name: 'edit',
-              description: "Edit the bot's server profile.",
-              options: [
-                {
-                  type: CommandOptionType.ATTACHMENT,
-                  name: 'avatar',
-                  description: 'The avatar to set.'
-                },
-                {
-                  type: CommandOptionType.ATTACHMENT,
-                  name: 'banner',
-                  description: 'The banner to set.'
-                }
-              ]
-            },
-            {
-              type: CommandOptionType.SUB_COMMAND,
-              name: 'reset',
-              description: "Reset the bot's server profile."
             }
           ]
         }
@@ -186,105 +156,6 @@ export default class ServerSettings extends GeneralCommand {
           }
         }
         break;
-      }
-      case 'bot-profile': {
-        switch (ctx.subcommands[1]) {
-          case 'edit': {
-            const avatarAttachmentID = ctx.options['bot-profile'].edit.avatar;
-            const bannerAttachmentID = ctx.options['bot-profile'].edit.banner;
-            if (!avatarAttachmentID && !bannerAttachmentID)
-              return {
-                content: "You didn't edit anything.",
-                ephemeral: true
-              };
-
-            const avatar = ctx.attachments.get(avatarAttachmentID);
-            const banner = ctx.attachments.get(bannerAttachmentID);
-
-            if (avatar && (!avatar.content_type || !ALLOWED_IMAGE_TYPES.includes(avatar.content_type)))
-              return {
-                content: `The avatar trying to be set has an invalid content type.${avatar.content_type ? ` (${avatar.content_type})` : ''}`,
-                ephemeral: true
-              };
-
-            if (banner && (!banner.content_type || !ALLOWED_IMAGE_TYPES.includes(banner.content_type)))
-              return {
-                content: `The banner trying to be set has an invalid content type.${banner.content_type ? ` (${banner.content_type})` : ''}`,
-                ephemeral: true
-              };
-
-            const userData = await this.entitlements.getCurrentUser(ctx);
-            const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
-            const blessingUser = blessing
-              ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } })
-              : null;
-            const tier = userData?.rewardTier ?? blessingUser?.rewardTier ?? 0;
-            if (tier === 0)
-              return {
-                content: stripIndents`
-                  Sorry, but this feature is only for Tier 1 supporters ($1 patrons).
-                  If you have recently became a supporter, login to the [dashboard](https://my.craig.chat/).
-                  Your benefits may take up to an hour to become active.
-                `,
-                components: [
-                  {
-                    type: ComponentType.ACTION_ROW,
-                    components: [
-                      {
-                        type: ComponentType.BUTTON,
-                        style: ButtonStyle.LINK,
-                        label: 'Patreon',
-                        url: 'https://patreon.com/CraigRec'
-                      }
-                    ]
-                  }
-                ],
-                ephemeral: true
-              };
-
-            try {
-              const [avatarData, bannerData] = await Promise.all([
-                avatar
-                  ? `data:${avatar.content_type};base64,${await fetch(avatar.url)
-                      .then((r) => r.arrayBuffer())
-                      .then((b) => Buffer.from(b as any, 'binary').toString('base64'))}`
-                  : undefined,
-                banner
-                  ? `data:${banner.content_type};base64,${await fetch(banner.url)
-                      .then((r) => r.arrayBuffer())
-                      .then((b) => Buffer.from(b as any, 'binary').toString('base64'))}`
-                  : undefined
-              ]);
-
-              await this.client.bot.editGuildMember(ctx.guildID!, '@me', { avatar: avatarData, banner: bannerData });
-
-              return {
-                content: 'Updated my server profile.',
-                ephemeral: true
-              };
-            } catch (e) {
-              return {
-                content: 'Could not update server my profile, you may have updated it too frequently.',
-                ephemeral: true
-              };
-            }
-          }
-          case 'reset': {
-            try {
-              await this.client.bot.editGuildMember(ctx.guildID!, '@me', { avatar: null, banner: null });
-
-              return {
-                content: 'Reset my server profile.',
-                ephemeral: true
-              };
-            } catch (e) {
-              return {
-                content: 'Could not update server my profile, you may have updated it too frequently.',
-                ephemeral: true
-              };
-            }
-          }
-        }
       }
     }
 

@@ -21,8 +21,8 @@
     "@craig/logger": "workspace:*",
     "@craig/metrics": "workspace:*",
     "destr": "catalog:",
-    "execa": "^9.5.3",
-    "nanoid": "^5.1.5",
+    "execa": "catalog:",
+    "nanoid": "catalog:",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.69.0"
   },
   "devDependencies": {

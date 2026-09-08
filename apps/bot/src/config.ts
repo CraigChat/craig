@@ -196,7 +196,7 @@ export function getBotConfig(): CraigBotConfig {
   };
 
   return {
-    token: process.env.BOT_TOKEN,
+    token: process.env.BOT_TOKEN.startsWith('Bot ') ? process.env.BOT_TOKEN : `Bot ${process.env.BOT_TOKEN}`,
     applicationID: process.env.BOT_APPLICATION_ID,
     elevated: listFromEnv('ELEVATED_USERS'),
     gateway,
