@@ -550,9 +550,9 @@ importers:
       '@henrygd/queue':
         specifier: ^1.0.7
         version: 1.2.0
-      '@libav.js/variant-webcodecs':
-        specifier: ^6.8.8
-        version: 6.8.8
+      '@mediabunny/flac-encoder':
+        specifier: ^1.56.0
+        version: 1.56.0(mediabunny@1.56.0)
       '@wasm-audio-decoders/flac':
         specifier: ^0.2.8
         version: 0.2.10
@@ -572,8 +572,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0
       mediabunny:
-        specifier: ^1.45.3
-        version: 1.45.3
+        specifier: ^1.56.0
+        version: 1.56.0
       nanoid:
         specifier: 'catalog:'
         version: 6.0.1
@@ -656,9 +656,6 @@ importers:
       just-range:
         specifier: ^4.2.0
         version: 4.2.0
-      mrmime:
-        specifier: ^2.0.1
-        version: 2.0.1
       sass:
         specifier: ^1.97.2
         version: 1.97.3
@@ -1735,8 +1732,10 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@libav.js/variant-webcodecs@6.8.8':
-    resolution: {integrity: sha512-nu2c7GaYc+KIJcopRrGUMbK4whyf4xDOoiJx7avOpDir06uDwYl42hjx0P8QcDsmFFS5l0wLg6d767ezMRfU0A==}
+  '@mediabunny/flac-encoder@1.56.0':
+    resolution: {integrity: sha512-KY9g85K/xOnuZ5ENU1HjZ5p+gRzqgTv1Egr2/yTbHDityn5Hz9gOmZ4NJYT57YI8vWnpzxiIG2caxUtrv5UX5w==}
+    peerDependencies:
+      mediabunny: ^1.0.0
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -4897,8 +4896,8 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
-  mediabunny@1.45.3:
-    resolution: {integrity: sha512-GUCPYjR+5olLM7DRmupCXCmZkkSrKHVl1gyW2RztpObqLfrix19kWGf/9WgWzDW0g49DvfGXpl+zfArCx5HDMQ==}
+  mediabunny@1.56.0:
+    resolution: {integrity: sha512-VLVYEVXI4fA2PabQoZs3XOmxDsio4gpG1Npz0iVICRNCQ+XYI3fBOngnwHljafaEjHUbYzrIDoctZbxcVfQpgQ==}
 
   memoizee@0.4.17:
     resolution: {integrity: sha512-DGqD7Hjpi/1or4F/aYAspXKNm5Yili0QDAFAY4QYvpqpgiY6+1jOfqpmByzjxbWd/T9mChbCArXAbDAsTm5oXA==}
@@ -6804,7 +6803,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@libav.js/variant-webcodecs@6.8.8': {}
+  '@mediabunny/flac-encoder@1.56.0(mediabunny@1.56.0)':
+    dependencies:
+      mediabunny: 1.56.0
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
@@ -9829,7 +9830,7 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
-  mediabunny@1.45.3:
+  mediabunny@1.56.0:
     dependencies:
       '@types/dom-mediacapture-transform': 0.1.11
       '@types/dom-webcodecs': 0.1.13

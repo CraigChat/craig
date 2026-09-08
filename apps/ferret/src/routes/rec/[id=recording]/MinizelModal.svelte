@@ -5,7 +5,8 @@
   import cogIcon from '@iconify-icons/mdi/cog';
   import downloadIcon from '@iconify-icons/mdi/download';
   import errorIcon from '@iconify-icons/mdi/error';
-  import { canEncodeAudio, registerEncoder } from 'mediabunny';
+  import { registerFlacEncoder } from '@mediabunny/flac-encoder';
+  import { canEncodeAudio } from 'mediabunny';
   import { onDestroy, onMount } from 'svelte';
   import { SvelteMap, SvelteSet } from 'svelte/reactivity';
   import { t } from 'svelte-i18n';
@@ -20,7 +21,6 @@
     convertToTimemark,
     createResilientStream,
     formatBytes,
-    LibAVFlacEncoder,
     type MinizelFormat,
     MinizelProcessor,
     MixedProcessor,
@@ -170,8 +170,8 @@
     });
 
     if (!canEncode) {
-      console.log('Native FLAC encoding not supported, registering LibAV polyfill');
-      registerEncoder(LibAVFlacEncoder);
+      console.log('Native FLAC encoding not supported, registering MediaBunny FLAC encoder');
+      registerFlacEncoder();
       flacPolyfillRegistered = true;
     }
   }

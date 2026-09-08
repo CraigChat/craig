@@ -33,7 +33,9 @@ overrides:
   "sharp": "0.34.5"
   "supports-color": "8.1.1"
 minimumReleaseAgeExclude:
-- "@snazzah/davey*"
+  - '@snazzah/davey*'
+  - '@mediabunny/flac-encoder@1.56.0'
+  - mediabunny@1.56.0
 patchedDependencies:
   svelte-awesome-color-picker: patches/svelte-awesome-color-picker.patch
 allowUnusedPatches: true
