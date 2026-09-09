@@ -28,12 +28,12 @@ import StopCommand from '../commands/stop.js';
 import UnblessCommand from '../commands/unbless.js';
 import VoiceTestCommand from '../commands/voice-test.js';
 import WebappCommand from '../commands/webapp.js';
+import { createCtxT } from '../i18n.js';
 import { BotModule } from '../runtime.js';
 import { reportErrorFromCommand } from '../sentry.js';
 import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util.js';
 import type RecorderModule from './recorder/index.js';
 import { RecordingState } from './recorder/recording.js';
-import { createCtxT } from '../i18n.js';
 
 export interface SlashModuleOptions {
   creator?: Partial<SlashCreatorOptions>;

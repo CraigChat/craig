@@ -44,6 +44,13 @@ const discordLocales = [
   'vi'
 ] as const;
 
+const langMap: { [key: string]: string } = {
+  'en-US': 'en',
+  'en-GB': 'en',
+  'es-ES': 'es',
+  'es-419': 'es'
+};
+
 let initPromise: Promise<void> | undefined;
 
 export const init = (localePath = process.env.BOT_LOCALE_FOLDER || defaultLocalePath) => {
@@ -74,7 +81,7 @@ export function getDiscordLocalizations(key: string) {
   const localizations: Record<string, string> = {};
 
   for (const locale of discordLocales) {
-    const language = locale === 'es-ES' ? 'es' : locale;
+    const language = langMap[locale] ?? locale;
     const value = i18next.getResource(language, 'bot', key);
     if (typeof value === 'string') localizations[locale] = value;
   }
@@ -83,6 +90,7 @@ export function getDiscordLocalizations(key: string) {
 }
 
 export function createT(lang: string) {
+  lang = langMap[lang] ?? lang;
   const t = i18next.getFixedT(lang);
   const formats = new Map<string, IntlMessageFormat>();
 
@@ -100,12 +108,6 @@ export function createT(lang: string) {
 }
 
 export function createCtxT(ctx: CommandContext | ComponentContext | ModalInteractionContext): [ReturnType<typeof createT>, string] {
-  const langMap: { [key: string]: string } = {
-    'en-US': 'en',
-    'en-GB': 'en',
-    'es-ES': 'es'
-  };
-
   if (ctx.locale) {
     const lang = langMap[ctx.locale] ?? ctx.locale;
     if (i18next.getResourceBundle(lang, 'bot')) return [createT(lang), lang];

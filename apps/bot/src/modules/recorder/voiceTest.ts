@@ -7,8 +7,8 @@ import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndents } from 'common-tags';
 import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
 
-import type RecorderModule from './index.js';
 import { TFunction } from '../../i18n.js';
+import type RecorderModule from './index.js';
 
 const PACKET_TIME = 960; // 20ms
 const GAP_CLOSE_THRESHOLD = PACKET_TIME * 10; // 200ms
@@ -359,7 +359,7 @@ export default class VoiceTest {
 
   messageContent() {
     let color: number | undefined = undefined;
-    let title = 'Loading...';
+    let title = this.t('common.loading');
 
     switch (this.state) {
       case VoiceTestState.IDLE:
@@ -383,7 +383,7 @@ export default class VoiceTest {
         break;
 
       case VoiceTestState.NO_AUDIO:
-        title = 'No audio recorded!';
+        title = this.t('voicetest.panel.no_audio');
         color = 0xe74c3c;
         break;
 

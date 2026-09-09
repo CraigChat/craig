@@ -73,7 +73,7 @@ export default class VoiceTestCommand extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: t('voicetest.how_fix'),
+                label: t('common.how_fix'),
                 url: 'https://docs.craig.chat/features/access-roles/'
               }
             ]
@@ -145,12 +145,12 @@ export default class VoiceTestCommand extends GeneralCommand {
         err
       );
       this.recorder.voiceTests.delete(ctx.guildID);
-      return { content: t('recording.error'), ephemeral: true };
+      return { content: t('voicetest.error'), ephemeral: true };
     }
 
     if (!messageID) {
       this.recorder.voiceTests.delete(ctx.guildID);
-      return { content: t('common.could_not_message'), ephemeral: true };
+      return { content: t('responses.could_not_message'), ephemeral: true };
     }
 
     voiceTest.messageID = messageID;
@@ -172,7 +172,7 @@ export default class VoiceTestCommand extends GeneralCommand {
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: t('recording.error')
+            content: t('voicetest.error')
           }
         ]
       });

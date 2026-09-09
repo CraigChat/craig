@@ -2,8 +2,10 @@ import Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags } from 'slash-create';
 
 import type { CraigBot } from '../bot.js';
+import { createT, type TFunction } from '../i18n.js';
 import { client as redis } from '../redis.js';
 import { BotModule } from '../runtime.js';
+import type Recording from './recorder/recording.js';
 
 const SERVICES: Record<string, string> = {
   google: 'Google Drive',
@@ -14,11 +16,6 @@ const SERVICES: Record<string, string> = {
 
 const ERROR_COLOR = 0xe74c3c;
 const SUCCESS_COLOR = 0x2ecc71;
-
-const SERVICE_ERROR_MESSAGES: Record<string, string> = {
-  auth_invalidated: 'The authentication for this service was invalidated, you may need to re-authenticate.',
-  server_error: 'An unknown server error occurred.'
-};
 
 export default class UploadModule extends BotModule {
   running = false;
@@ -70,7 +67,15 @@ export default class UploadModule extends BotModule {
         .catch(() => {});
   }
 
-  async upload(recordingId: string, userId: string, driveService: string) {
+  failureDescription(t: TFunction, errorKey: string, recordingId: string, service: string) {
+    return `${t(errorKey)} ${t('upload.fail_message_end', { recording_id: recordingId, service })}`;
+  }
+
+  async upload(recording: Recording, driveService: string) {
+    const {
+      id: recordingId,
+      user: { id: userId }
+    } = recording;
     if (!this.client.config.kitchenURL) {
       this.logger.info(`Skipping upload for recording ${recordingId}: KITCHEN_URL is not configured`);
       return;
@@ -78,22 +83,23 @@ export default class UploadModule extends BotModule {
     const service = SERVICES[driveService] ?? driveService;
 
     try {
-      const response = await fetch(`${this.client.config.kitchenURL}/recordings/${recordingId}/upload/${userId}`, { method: 'POST' });
+      const uploadUrl = new URL(`/recordings/${recordingId}/upload/${userId}`, this.client.config.kitchenURL);
+      uploadUrl.searchParams.set('locale', recording.locale);
+      const response = await fetch(uploadUrl, { method: 'POST' });
       // 204's means this ran fine but theres no recording coming out of it
       if (response.status > 299) {
         const error = (await response.json().catch(() => null))?.error ?? 'server_error';
+        const errorKey = error === 'auth_invalidated' ? 'upload.errors.auth_invalidated' : 'upload.errors.server_error';
         this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} (${response.status}, ${error})`);
         await this.dm(
           userId,
           {
-            title: `Failed to upload to ${service}`,
-            description: `${
-              SERVICE_ERROR_MESSAGES[error] ?? SERVICE_ERROR_MESSAGES.server_error
-            } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+            title: recording.t('upload.failed_title', { service }),
+            description: this.failureDescription(recording.t, errorKey, recordingId, service),
             color: ERROR_COLOR
           },
           {
-            label: 'Open Dashboard',
+            label: recording.t('common.dashboard'),
             url: this.client.config.craig.dashboardURL
           }
         );
@@ -105,8 +111,8 @@ export default class UploadModule extends BotModule {
     } catch (e) {
       this.logger.error(`Failed to request upload for recording ${recordingId} for user ${userId} due to fetch error`, e);
       await this.dm(userId, {
-        title: `Failed to upload to ${service}`,
-        description: `Unable to connect to the Cloud Backup microservice. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+        title: recording.t('upload.failed_title', { service }),
+        description: this.failureDescription(recording.t, 'upload.microservice_error', recordingId, service),
         color: ERROR_COLOR
       });
     }
@@ -135,31 +141,30 @@ export default class UploadModule extends BotModule {
               const userId = job.postTaskOptions.userId;
               const driveService = job.outputData.uploadService;
               const service = SERVICES[driveService] ?? driveService;
+              const t = createT(job.postTaskOptions?.locale ?? 'en');
 
               if (job.status === 'error')
                 await this.dm(userId, {
-                  title: `Failed to upload to ${service}`,
-                  description: `${
-                    job.outputData.uploadError ? 'An error occurred while uploading.' : 'An error occurred while creating the download.'
-                  } You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+                  title: t('upload.failed_title', { service }),
+                  description: this.failureDescription(t, job.outputData.uploadError ? 'upload.error' : 'upload.process_error', recordingId, service),
                   color: ERROR_COLOR
                 });
               else if (job.status === 'cancelled')
                 await this.dm(userId, {
-                  title: `Failed to upload to ${service}`,
-                  description: `The download was cancelled, possibly due to server maintenance. You will need to manually upload your recording (\`${recordingId}\`) to ${service}.`,
+                  title: t('upload.failed_title', { service }),
+                  description: this.failureDescription(t, 'upload.cancelled', recordingId, service),
                   color: ERROR_COLOR
                 });
               else if (job.status === 'complete')
                 await this.dm(
                   userId,
                   {
-                    title: `Uploaded to ${service}`,
-                    description: `Recording \`${recordingId}\` was uploaded to ${service}.`,
+                    title: service,
+                    description: t('upload.uploaded', { recording_id: recordingId, service }),
                     color: SUCCESS_COLOR
                   },
                   {
-                    label: `Open in ${service}`,
+                    label: t('upload.open', { service }),
                     url: job.outputData.uploadFileURL
                   }
                 );

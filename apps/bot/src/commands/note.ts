@@ -22,11 +22,12 @@ export default class Note extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    const [t] = this.createT(ctx);
+    if (!ctx.guildID) return t('responses.guild_only');
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -36,7 +37,7 @@ export default class Note extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the note command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
@@ -44,12 +45,12 @@ export default class Note extends GeneralCommand {
     const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return {
-        content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
+        content: t('recording.need_perms'),
         ephemeral: true
       };
     if (!this.recorder.recordings.has(ctx.guildID))
       return {
-        content: "You aren't recording in this server.",
+        content: t('recording.not_recording'),
         ephemeral: true
       };
     const recording = this.recorder.recordings.get(ctx.guildID)!;
@@ -57,16 +58,18 @@ export default class Note extends GeneralCommand {
     try {
       recording.note(ctx.options.message || '');
       recording.pushToActivity(
-        `${ctx.user.mention} added a note.${ctx.options.message ? ` - ${cutoffText(ctx.options.message.replace(/\n/g, ' '), 100)}` : ''}`
+        `${t('recording.panel.added_note', { user: ctx.user.mention })}${
+          ctx.options.message ? ` - ${cutoffText(ctx.options.message.replace(/\n/g, ' '), 100)}` : ''
+        }`
       );
       return {
-        content: 'Added the note to the recording!',
+        content: t('recording.added_note'),
         ephemeral: true
       };
     } catch (e) {
       recording.recorder.logger.error(`Error adding note to recording ${recording.id}:`, e);
       return {
-        content: 'An error occurred while adding the note.',
+        content: t('recording.note_error'),
         ephemeral: true
       };
     }
