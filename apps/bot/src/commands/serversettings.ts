@@ -1,4 +1,3 @@
-import { stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis.js';
@@ -57,12 +56,13 @@ export default class ServerSettings extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    const [t] = this.createT(ctx);
+    if (!ctx.guildID) return t('responses.guild_only');
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
     if (!guild)
       return {
-        content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
+        content: t('responses.guild_unavailable', { server_invite: 'https://discord.gg/craig' }),
         ephemeral: true,
         components: [
           {
@@ -71,7 +71,7 @@ export default class ServerSettings extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Join Support Server',
+                label: t('common.support_server'),
                 url: 'https://discord.gg/craig'
               }
             ]
@@ -81,7 +81,7 @@ export default class ServerSettings extends GeneralCommand {
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -91,7 +91,7 @@ export default class ServerSettings extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the server-settings command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
@@ -99,7 +99,7 @@ export default class ServerSettings extends GeneralCommand {
     const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
     if (!ctx.member!.permissions.has('MANAGE_GUILD'))
       return {
-        content: 'You need the `Manage Server` permission to change server settings.',
+        content: t('server_settings.need_perms'),
         ephemeral: true
       };
 
@@ -108,10 +108,10 @@ export default class ServerSettings extends GeneralCommand {
         return {
           embeds: [
             {
-              title: 'Server Settings',
-              description: stripIndents`
-                **Access Roles:** ${guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : '*None*'}
-              `
+              title: t('server_settings.title'),
+              description: t('server_settings.view', {
+                roles: guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : t('server_settings.none')
+              })
             }
           ],
           ephemeral: true
@@ -123,7 +123,7 @@ export default class ServerSettings extends GeneralCommand {
             const roleID = ctx.options['access-role'].add.role;
             if (guildData && guildData.accessRoles.includes(roleID))
               return {
-                content: 'This role is already an access role.',
+                content: t('server_settings.already_access_role'),
                 ephemeral: true
               };
             await this.prisma.guild.upsert({
@@ -134,7 +134,7 @@ export default class ServerSettings extends GeneralCommand {
               create: { id: ctx.guildID, accessRoles: [roleID] }
             });
             return {
-              content: `Added role <@&${roleID}> to access roles.`,
+              content: t('server_settings.added_access_role', { role: `<@&${roleID}>` }),
               ephemeral: true
             };
           }
@@ -142,7 +142,7 @@ export default class ServerSettings extends GeneralCommand {
             const roleID = ctx.options['access-role'].remove.role;
             if (!guildData || !guildData.accessRoles.includes(roleID))
               return {
-                content: 'This role is not an access role.',
+                content: t('server_settings.not_access_role'),
                 ephemeral: true
               };
             await this.prisma.guild.update({
@@ -150,7 +150,7 @@ export default class ServerSettings extends GeneralCommand {
               data: { accessRoles: guildData.accessRoles.filter((r) => r !== roleID).filter((r) => guild.roles.has(r)) }
             });
             return {
-              content: `Removed <@&${roleID}> from access roles.`,
+              content: t('server_settings.removed_access_role', { role: `<@&${roleID}>` }),
               ephemeral: true
             };
           }
@@ -160,7 +160,7 @@ export default class ServerSettings extends GeneralCommand {
     }
 
     return {
-      content: 'Unknown sub-command.',
+      content: t('responses.unknown_subcommand'),
       ephemeral: true
     };
   }

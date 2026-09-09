@@ -332,7 +332,7 @@ export default class SlashModule extends BotModule {
       case 'recordings': {
         const [page] = args;
         try {
-          await ctx.editParent(await paginateRecordings(this.client as any, ctx.user.id, parseInt(page)));
+          await ctx.editParent(await paginateRecordings(this.client as any, ctx.user.id, t, parseInt(page)));
         } catch (e) {
           this.logger.error(`Error paginating recordings for user ${ctx.user.id}:`, e);
           await ctx.send({

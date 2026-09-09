@@ -1,4 +1,3 @@
-import { stripIndents } from 'common-tags';
 import { ButtonStyle, ChannelType, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis.js';
@@ -88,12 +87,13 @@ export default class AutoRecord extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    const [t] = this.createT(ctx);
+    if (!ctx.guildID) return t('responses.guild_only');
     const guild = this.client.bot.guilds.get(ctx.guildID);
 
     if (!guild)
       return {
-        content: 'This server is currently unavailable to me, try re-inviting this bot. If the issue persists, join the support server.',
+        content: t('responses.guild_unavailable', { server_invite: 'https://discord.gg/craig' }),
         ephemeral: true,
         components: [
           {
@@ -102,7 +102,7 @@ export default class AutoRecord extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Join Support Server',
+                label: t('common.support_server'),
                 url: 'https://discord.gg/craig'
               }
             ]
@@ -112,7 +112,7 @@ export default class AutoRecord extends GeneralCommand {
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -122,7 +122,7 @@ export default class AutoRecord extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the autorecord command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
@@ -131,7 +131,7 @@ export default class AutoRecord extends GeneralCommand {
     const hasPermission = checkRecordingPermission(ctx.member!, guildData);
     if (!hasPermission)
       return {
-        content: 'You need the `Manage Server` permission or have an access role to manage auto-recordings.',
+        content: t('autorecord.need_perms'),
         components: [
           {
             type: ComponentType.ACTION_ROW,
@@ -139,8 +139,8 @@ export default class AutoRecord extends GeneralCommand {
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'How do I fix this?',
-                url: 'https://craig.chat/docs/#setting-up-access-roles'
+                label: t('common.how_fix'),
+                url: 'https://docs.craig.chat/features/access-roles/'
               }
             ]
           }
@@ -163,22 +163,22 @@ export default class AutoRecord extends GeneralCommand {
 
           if (!autoRecording)
             return {
-              content: `The channel <#${ctx.options.view.channel}> is not auto-recorded.`,
+              content: t('autorecord.not_recorded', { channel: `<#${ctx.options.view.channel}>` }),
               ephemeral: true
             };
 
           return {
             embeds: [
               {
-                title: ctx.channels.get(ctx.options.view.channel)?.name ?? 'Unknown channel',
-                description: stripIndents`
-                  **Channel:** <#${ctx.options.view.channel}>
-                  **Created by:** <@${autoRecording.userId}>
-                  **Minimum members:** ${autoRecording.minimum === 0 ? '*None*' : autoRecording.minimum.toLocaleString()}
-                  **Trigger roles:** ${autoRecording.triggerRoles.map((roleId) => `<@&${roleId}>`).join(', ') || '*None*'}
-                  **Trigger users:** ${autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || '*None*'}
-                  **Updated at:** <t:${Math.round(autoRecording.updatedAt.valueOf() / 1000)}:F>
-                `
+                title: ctx.channels.get(ctx.options.view.channel)?.name ?? t('autorecord.unknown_channel'),
+                description: t('autorecord.view_channel', {
+                  channel: `<#${ctx.options.view.channel}>`,
+                  user: `<@${autoRecording.userId}>`,
+                  minimum: autoRecording.minimum === 0 ? t('autorecord.none') : autoRecording.minimum.toLocaleString(),
+                  roles: autoRecording.triggerRoles.map((roleId) => `<@&${roleId}>`).join(', ') || t('autorecord.none'),
+                  users: autoRecording.triggerUsers.map((userId) => `<@${userId}>`).join(', ') || t('autorecord.none'),
+                  updated_at: `<t:${Math.round(autoRecording.updatedAt.valueOf() / 1000)}:F>`
+                })
               }
             ],
             ephemeral: true
@@ -191,21 +191,21 @@ export default class AutoRecord extends GeneralCommand {
 
         if (autoRecordings.length === 0)
           return {
-            content: 'There are no auto-recorded channels.',
+            content: t('autorecord.no_channels'),
             ephemeral: true
           };
 
         return {
           embeds: [
             {
-              title: 'Auto-recorded Channels',
+              title: t('autorecord.channels_title'),
               description: autoRecordings
                 .map((ar) => {
                   const extra = [
-                    ar.minimum !== 0 ? `${ar.minimum} minimum` : null,
-                    ar.triggerRoles.length > 0 ? `${ar.triggerRoles.length} role[s]` : null,
-                    ar.triggerUsers.length > 0 ? `${ar.triggerUsers.length} user[s]` : null,
-                    ar.postChannelId ? `posting to <#${ar.postChannelId}>` : null
+                    ar.minimum !== 0 ? t('autorecord.minimum', { count: ar.minimum }) : null,
+                    ar.triggerRoles.length > 0 ? t('autorecord.roles', { count: ar.triggerRoles.length }) : null,
+                    ar.triggerUsers.length > 0 ? t('autorecord.users', { count: ar.triggerUsers.length }) : null,
+                    ar.postChannelId ? t('autorecord.posting_to', { channel: `<#${ar.postChannelId}>` }) : null
                   ].filter((e) => !!e) as string[];
                   return `<#${ar.channelId}> by <@${ar.userId}>${extra.length !== 0 ? ` (${extra.join(', ')})` : ''}`;
                 })
@@ -224,13 +224,9 @@ export default class AutoRecord extends GeneralCommand {
         // Check if user can manage auto-recordings
         if (!parsedRewards.rewards.features.includes('auto'))
           return {
-            content: stripIndents`
-              Sorry, but this feature is only for Tier 2 supporters ($4 patrons).
-              If you have recently became a supporter, login to the [dashboard](https://my.craig.chat/).
-              Your benefits may take up to an hour to become active.
-
-              > **Note:** You can still record regularly with the \`/join\` command.
-            `,
+            content: `${t('autorecord.supporter_required')}\n${t('responses.supporter_required', {
+              dashboard_url: this.client.config.craig.dashboardURL
+            })}`,
             components: [
               {
                 type: ComponentType.ACTION_ROW,
@@ -238,7 +234,7 @@ export default class AutoRecord extends GeneralCommand {
                   {
                     type: ComponentType.BUTTON,
                     style: ButtonStyle.LINK,
-                    label: 'Become a Supporter',
+                    label: t('common.supporter_cta'),
                     url: 'https://craig.chat/supporter'
                   }
                 ]
@@ -255,13 +251,13 @@ export default class AutoRecord extends GeneralCommand {
 
         if (min === 0 && triggerUsers.length <= 0 && triggerRoles.length <= 0)
           return {
-            content: 'You need to at least set a minimum user amount or add a user/role trigger.',
+            content: t('autorecord.need_trigger'),
             ephemeral: true
           };
 
         if (triggerRoles.includes(guild.id))
           return {
-            content: 'The `@everyone` role cannot be used as a trigger role.',
+            content: t('autorecord.everyone_trigger'),
             ephemeral: true
           };
 
@@ -271,7 +267,7 @@ export default class AutoRecord extends GeneralCommand {
 
         if (autoRecordingCount >= 10)
           return {
-            content: 'You can only have 10 auto-recordings at a time.',
+            content: t('autorecord.limit_reached', { limit: 10 }),
             ephemeral: true
           };
 
@@ -286,7 +282,7 @@ export default class AutoRecord extends GeneralCommand {
         });
 
         return {
-          content: `Auto-recording on <#${channel}> has been activated. Please make sure you can receive DMs from me.`,
+          content: t('autorecord.activated', { channel: `<#${channel}>` }),
           ephemeral: true
         };
       }
@@ -306,12 +302,12 @@ export default class AutoRecord extends GeneralCommand {
         if (autoRecording) await this.autoRecord.delete(autoRecording);
         else
           return {
-            content: `No auto-recording found on <#${channel}>.`,
+            content: t('autorecord.not_found', { channel: `<#${channel}>` }),
             ephemeral: true
           };
 
         return {
-          content: `Auto-recording on <#${channel}> has been deactivated.`,
+          content: t('autorecord.deactivated', { channel: `<#${channel}>` }),
           ephemeral: true
         };
       }
@@ -325,14 +321,14 @@ export default class AutoRecord extends GeneralCommand {
         });
 
         return {
-          content: `Pruned ${result.count} auto-record rules for non-existent channels.`,
+          content: t('autorecord.pruned', { count: result.count }),
           ephemeral: true
         };
       }
     }
 
     return {
-      content: 'Unknown sub-command.',
+      content: t('responses.unknown_subcommand'),
       ephemeral: true
     };
   }
