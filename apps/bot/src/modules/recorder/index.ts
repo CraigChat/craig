@@ -357,8 +357,8 @@ export default class RecorderModule extends BotModule {
       for (const recording of recordings) {
         if (recording.state === RecordingState.RECORDING) {
           recording.maintenceWarned = true;
-          recording.pushToActivity('⚠️ The bot is undergoing maintenance, recording will be stopped.', false);
-          recording.stateDescription = `__The bot is undergoing maintenance.__${maintenance.message ? `\n\n${maintenance.message}` : ''}`;
+          recording.pushToActivity(`⚠️ ${recording.t('recording.panel.maintenance')}`, false);
+          recording.stateDescription = `__${recording.t('join_command.maintenance')}__${maintenance.message ? `\n\n${maintenance.message}` : ''}`;
           await recording.stop().catch(() => null);
         }
       }

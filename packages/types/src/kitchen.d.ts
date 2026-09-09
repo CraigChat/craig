@@ -28,6 +28,7 @@ export interface CreateJobOptions {
   postTask?: PostTask;
   postTaskOptions?: {
     userId?: string;
+    locale?: string;
     googleFolderId?: string;
     uploadFolderId?: string;
   };

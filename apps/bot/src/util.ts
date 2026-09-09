@@ -1,7 +1,7 @@
 import type { Ban, Guild } from '@craig/db';
 import { prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
-import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
+import { stripIndentTransformer, TemplateTag } from 'common-tags';
 import {
   AnyComponent,
   ButtonStyle,
@@ -16,9 +16,9 @@ import {
 import packageJson from '../package.json';
 import type { CraigBot } from './bot.js';
 import type { CraigBotConfig, RewardTier } from './config.js';
+import type { TFunction } from './i18n.js';
 import type Recording from './modules/recorder/recording.js';
 import type SlashModule from './modules/slash.js';
-import type { TFunction } from './i18n.js';
 
 export const version = packageJson.version;
 
@@ -144,11 +144,13 @@ export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'
 });
 
 export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule['emojis']) {
+  const t = recording.t;
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
-  const headerInfo = `Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
-    Date.now() / 1000
-  )}:F>.\n-# You can bring up the recording panel with \`/join\`.`;
+  const headerInfo = `${t(recording.autorecorded ? 'join_command.info_header_auto' : 'join_command.info_header', {
+    channel: `<#${recording.channel.id}>`,
+    time: `<t:${Math.floor(Date.now() / 1000)}:F>`
+  })}\n${t('join_command.info_panel_reminder')}`;
   return {
     flags: MessageFlags.IS_COMPONENTS_V2,
     components: [
@@ -181,12 +183,12 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
           {
             type: ComponentType.TEXT_DISPLAY,
             content: [
-              `**Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})`,
-              `**Channel:** ${recording.channel.name} (${recording.channel.id})`,
-              `**Recording ID:** \`${recording.id}\``,
-              `**Delete key:** ||\`${recording.deleteKey}\`|| (click to show)`,
+              `**${t('common.guild')}:** ${recording.channel.guild.name} (${recording.channel.guild.id})`,
+              `**${t('common.channel')}:** ${recording.channel.name} (${recording.channel.id})`,
+              `**${t('common.rec_id')}:** \`${recording.id}\``,
+              `**${t('common.delete_key')}:** ||\`${recording.deleteKey}\`|| ${t('common.click_to_show')}`,
               recording.webapp
-                ? `**Webapp URL:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
+                ? `**${t('common.webapp_url')}:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
                 : ''
             ]
               .filter((v) => !!v)
@@ -199,11 +201,12 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
           },
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: stripIndents`
-              I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
-              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
-              -# The audio can be downloaded even while I'm still recording.
-            `
+            content: t('join_command.info_footer', {
+              record_hours: parsedRewards.rewards.recordHours,
+              record_time: `<t:${Math.floor(recordTime / 1000)}:R>`,
+              expire_time: `<t:${Math.floor(expireTime / 1000)}:R>`,
+              expiry_days: parsedRewards.rewards.downloadExpiryHours / 24
+            })
           },
           {
             type: ComponentType.SEPARATOR,
@@ -216,14 +219,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Download',
+                label: t('common.download'),
                 url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
                 emoji: emojis.getPartial('download')
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Delete recording',
+                label: t('join_command.delete_recording'),
                 url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${
                   recording.accessKey
                 }&delete=${recording.deleteKey}`,
@@ -239,7 +242,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                     {
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.LINK,
-                      label: 'Jump to recording panel',
+                      label: t('join_command.actions.jump_to_panel'),
                       url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
                     }
                   ]

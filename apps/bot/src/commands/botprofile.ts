@@ -94,7 +94,9 @@ export default class BotProfile extends GeneralCommand {
         components: [
           {
             type: ComponentType.ACTION_ROW,
-            components: [{ type: ComponentType.BUTTON, style: ButtonStyle.LINK, label: t('common.support_craig'), url: 'https://craig.chat/supporter' }]
+            components: [
+              { type: ComponentType.BUTTON, style: ButtonStyle.LINK, label: t('common.support_craig'), url: 'https://craig.chat/supporter' }
+            ]
           }
         ],
         ephemeral: true
