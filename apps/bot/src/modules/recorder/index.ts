@@ -377,7 +377,7 @@ export default class RecorderModule extends BotModule {
       const recording = this.recordings.get(guild.id)!;
       this.logger.warn(`Left guild ${guild.id} during a recording... (${recording.id})`);
       recording.state = RecordingState.ERROR;
-      recording.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
+      recording.stateDescription = `⚠️ ${recording.t('recording.went_unavailable')}`;
       await recording.stop(true).catch(() => {});
       await recording.updateMessage();
     }
@@ -385,7 +385,7 @@ export default class RecorderModule extends BotModule {
       const voiceTest = this.voiceTests.get(guild.id)!;
       this.logger.warn(`Left guild ${guild.id} during a voice test...`);
       voiceTest.state = VoiceTestState.ERROR;
-      voiceTest.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
+      voiceTest.stateDescription = `⚠️ ${voiceTest.t('voicetest.went_unavailable')}`;
       await voiceTest.cancel().catch(() => {});
       await voiceTest.updateMessage();
     }
@@ -397,7 +397,7 @@ export default class RecorderModule extends BotModule {
       const recording = this.recordings.get(guild.id)!;
       this.logger.warn(`Guild ${guild.id} went unavailable during a recording... (${recording.id})`);
       recording.state = RecordingState.ERROR;
-      recording.stateDescription = '⚠️ This guild went unavailable during recording! To prevent further errors, this recording has ended.';
+      recording.stateDescription = `⚠️ ${recording.t('recording.went_unavailable')}`;
       await recording.stop(true).catch(() => {});
       await recording.updateMessage();
     }
@@ -405,7 +405,7 @@ export default class RecorderModule extends BotModule {
       const voiceTest = this.voiceTests.get(guild.id)!;
       this.logger.warn(`Left guild ${guild.id} during a voice test...`);
       voiceTest.state = VoiceTestState.ERROR;
-      voiceTest.stateDescription = '⚠️ This guild went unavailable during a voice test! To prevent further errors, this voice test has ended.';
+      voiceTest.stateDescription = `⚠️ ${voiceTest.t('voicetest.went_unavailable')}`;
       await voiceTest.cancel().catch(() => {});
       await voiceTest.updateMessage();
     }
