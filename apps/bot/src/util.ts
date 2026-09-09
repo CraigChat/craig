@@ -333,7 +333,7 @@ export async function unblessServer(userID: string, guildID: string, t: TFunctio
   };
 }
 
-export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
+export async function paginateRecordings(client: CraigBot, userID: string, t: TFunction, requestedPage = 1) {
   const MAX_PAGE_AMOUNT = 5;
   const requested = Number.isFinite(requestedPage) ? Math.max(1, Math.trunc(requestedPage)) : 1;
   const where = {
@@ -366,7 +366,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
       components: [
         {
           type: ComponentType.TEXT_DISPLAY,
-          content: `You haven't done any recordings recently on ${client.bot.user.mention}.`
+          content: t('recordings.none', { bot: client.bot.user.mention })
         }
       ]
     } as EditMessageOptions;
@@ -408,7 +408,12 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: `## Previous recordings on ${client.bot.user.mention}\n-# ${recordingCount.toLocaleString()} recording(s), Page ${page}/${pages}`
+            content: t('recordings.list_header', {
+              bot: client.bot.user.mention,
+              count: recordingCount.toLocaleString(),
+              page,
+              pages
+            })
           },
           {
             type: ComponentType.SEPARATOR,
@@ -420,18 +425,17 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
             components: [
               {
                 type: ComponentType.TEXT_DISPLAY,
-                content: stripIndentsAndLines`
-                  ### 🎙️ Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
-                  ${r.autorecorded ? '*`Autorecorded`*' : ''} <#${r.channelId}> • Expires <t:${Math.floor(
-                    r.expiresAt.valueOf() / 1000
-                  )}:R> • Delete Key: ||\`${r.deleteKey}\`||
-                `
+                content: `### 🎙️ ${t('common.recordings')} \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**\n${
+                  r.autorecorded ? t('recordings.autorecorded') : ''
+                } <#${r.channelId}> • ${t('recordings.expires', {
+                  in_time: `<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R>`
+                })} • ${t('common.delete_key')}: ||\`${r.deleteKey}\`||`
               }
             ],
             accessory: {
               type: ComponentType.BUTTON,
               style: ButtonStyle.LINK,
-              label: 'Download',
+              label: t('common.download'),
               emoji: emojis.getPartial('download'),
               url: `${baseUrl}/rec/${r.id}?key=${r.accessKey}`
             }

@@ -14,9 +14,10 @@ export default class Recordings extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
+    const [t] = this.createT(ctx);
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -26,11 +27,11 @@ export default class Recordings extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the recordings command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
 
-    return await paginateRecordings(this.client as any, ctx.user.id);
+    return await paginateRecordings(this.client as any, ctx.user.id, t);
   }
 }

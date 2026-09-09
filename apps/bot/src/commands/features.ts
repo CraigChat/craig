@@ -1,7 +1,7 @@
-import { stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
 
 import type { RewardTier } from '../config.js';
+import type { TFunction } from '../i18n.js';
 import { processCooldown } from '../redis.js';
 import GeneralCommand from '../slashCommand.js';
 import { checkBan } from '../util.js';
@@ -15,40 +15,21 @@ export default class Features extends GeneralCommand {
     });
   }
 
-  formatRewards(rewards: RewardTier, tier: number, by?: string) {
-    const tierNames: { [key: number]: string } = {
-      [-1]: 'Greater Weasel',
-      0: 'Default',
-      10: 'Supporter',
-      20: 'Better Supporter',
-      30: 'FLAC Demander',
-      100: 'MP3 God'
-    };
-
-    const featureNames: { [key: string]: string } = {
-      mix: 'Smart Mix',
-      auto: 'Auto-recording',
-      drive: 'Cloud Backup',
-      glowers: 'Avatar Overlays',
-      eccontinuous: 'Continuous Mode via Webapp',
-      ecflac: 'FLAC via Webapp',
-      mp3: 'Exporting to MP3',
-      transcription: 'Transcription'
-    };
-
-    return stripIndents`
-      __**${tierNames[tier] || `Tier ${tier}`}**__ ${by ? `(Blessed by <@${by}>)` : ''}
-      Record Duration Limit: ${rewards.recordHours} hours
-      Download Expiration: ${rewards.downloadExpiryHours / 24} days
-
-      ${rewards.features.map((feat) => `${this.emojis.getMarkdown('check')} ${featureNames[feat] ?? feat}`).join('\n')}
-    `;
+  formatRewards(rewards: RewardTier, tier: number, t: TFunction, by?: string) {
+    return t('features.reward_details', {
+      tier: [-1, 0, 10, 20, 30, 100].includes(tier) ? t(`features.tiers.${tier}`) : t('features.unknown_tier', { tier }),
+      blessed_by: by ? t('features.blessed_by', { user: `<@${by}>` }) : '',
+      record_hours: rewards.recordHours,
+      expiry_days: rewards.downloadExpiryHours / 24,
+      features: rewards.features.map((feature) => `${this.emojis.getMarkdown('check')} ${t(`features.feature.${feature}`)}`).join('\n')
+    });
   }
 
   async run(ctx: CommandContext) {
+    const [t] = this.createT(ctx);
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -58,7 +39,7 @@ export default class Features extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the features command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
@@ -78,41 +59,47 @@ export default class Features extends GeneralCommand {
       ephemeral: true,
       embeds: [
         {
-          title: 'Features',
-          description: `[View Dashboard](${this.client.config.craig.dashboardURL})`,
+          title: t('features.title'),
           fields: [
             {
-              name: 'Your Perks',
-              value: this.formatRewards(userRewards, userTier),
+              name: t('features.your_perks'),
+              value: this.formatRewards(userRewards, userTier, t),
               inline: true
             },
             {
-              name: 'Server Perks',
-              value: !ctx.guildID || !blessingUser ? null : this.formatRewards(guildRewards, guildTier, blessingUser.id),
+              name: t('features.server_perks'),
+              value: !ctx.guildID || !blessingUser ? null : this.formatRewards(guildRewards, guildTier, t, blessingUser.id),
               inline: true
             }
           ].filter((f) => f.value),
           footer: {
-            text: ctx.guildID && !blessingUser && userTier !== 0 ? 'This server has no perks, you can bless this server.' : null
+            text: ctx.guildID && !blessingUser && userTier !== 0 ? t('features.no_server_perks') : null
           }
         }
       ],
-      components:
-        ctx.guildID && !blessingUser && userTier !== 0
-          ? [
-              {
-                type: ComponentType.ACTION_ROW,
-                components: [
+      components: [
+        {
+          type: ComponentType.ACTION_ROW,
+          components: [
+            {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: t('common.dashboard'),
+              url: this.client.config.craig.dashboardURL
+            },
+            ...(ctx.guildID && !blessingUser && userTier !== 0
+              ? [
                   {
                     type: ComponentType.BUTTON,
                     style: ButtonStyle.SUCCESS,
-                    label: 'Bless server',
+                    label: t('features.bless_server'),
                     custom_id: `user:bless:${ctx.guildID}`
                   }
                 ]
-              }
-            ]
-          : []
+              : [])
+          ]
+        }
+      ]
     };
   }
 }
