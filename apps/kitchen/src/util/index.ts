@@ -13,8 +13,8 @@ export const ROOT_DIR = fileURLToPath(new URL('../..', import.meta.url));
 export const FormatToExt: { [format: string]: string } = {
   flac: 'flac',
   oggflac: 'oga',
-  aac: 'm4a',
-  heaac: 'm4a',
+  aac: 'aac',
+  heaac: 'aac',
   opus: 'opus',
   vorbis: 'ogg',
   wav: 'wav',
@@ -27,8 +27,8 @@ export const FormatToExt: { [format: string]: string } = {
 export const FormatToMime: { [format: string]: string } = {
   flac: 'audio/flac',
   oggflac: 'audio/ogg',
-  aac: 'audio/mp4',
-  heaac: 'audio/mp4',
+  aac: 'audio/aac',
+  heaac: 'audio/aac',
   opus: 'audio/opus',
   vorbis: 'audio/ogg',
   wav: 'audio/wav',
@@ -41,8 +41,8 @@ export const FormatToMime: { [format: string]: string } = {
 export const FormatToCommand: { [format: string]: string } = {
   flac: 'flac - -c',
   oggflac: 'flac --ogg --serial-number=1 - -',
-  aac: 'ffmpeg -f wav -i - -c:a aac -b:a 128k -f mp4 -movflags frag_keyframe+empty_moov+default_base_moof -',
-  heaac: 'fdkaac -p 29 -m 1 -o "$OUTPUT" -',
+  aac: 'fdkaac -f 2 -m 4 -o - -',
+  heaac: 'fdkaac -p 29 -f 2 -m 4 -o - -',
   opus: 'opusenc --bitrate 96 - -',
   vorbis: 'oggenc -q 6 -',
   wav: 'ffmpeg -f wav -i - -c:a adpcm_ms -f wav -',
@@ -64,13 +64,13 @@ export function getEncodeOptions(tmpDir: string, fileName: string, format?: Form
       break;
     }
     case 'aac': {
-      ext = 'm4a';
-      command = 'ffmpeg -f wav -i - -c:a aac -b:a 128k -f mp4 -movflags frag_keyframe+empty_moov+default_base_moof -';
+      ext = 'aac';
+      command = 'fdkaac -f 2 -m 4 -o - -';
       break;
     }
     case 'heaac': {
-      ext = 'm4a';
-      command = 'fdkaac -p 29 -m 4 -o "$OUTPUT" -';
+      ext = 'aac';
+      command = 'fdkaac -p 29 -f 2 -m 4 -o - -';
       break;
     }
     case 'opus': {

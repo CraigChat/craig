@@ -36,8 +36,7 @@
   }
 
   const FormatToExt: Record<string, string> = {
-    aac: 'm4a',
-    heaac: 'm4a',
+    heaac: 'aac',
     vorbis: 'ogg',
     oggflac: 'oga',
     adpcm: 'wav',
