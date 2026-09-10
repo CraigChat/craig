@@ -11,6 +11,7 @@ import path from 'path';
 import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, SeparatorSpacingSize } from 'slash-create';
 
 import type { CraigBot } from '../../bot.js';
+import type { TFunction } from '../../i18n.js';
 import { getSelfMember, ParsedRewards, wait } from '../../util.js';
 import type RecorderModule from './index.js';
 import { UserExtraType, WebappOpCloseReason } from './protocol.js';
@@ -85,6 +86,8 @@ export default class Recording {
   ennuiKey = nanoid(6);
   channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel;
   user: Dysnomia.User;
+  t: TFunction;
+  locale: string;
   active = false;
   started = false;
   closing = false;
@@ -130,10 +133,19 @@ export default class Recording {
   encryptionRecoveryAttempts = 0;
   encryptionStopIssued = false;
 
-  constructor(recorder: RecorderModule, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, user: Dysnomia.User, auto = false) {
+  constructor(
+    recorder: RecorderModule,
+    channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel,
+    user: Dysnomia.User,
+    t: TFunction,
+    locale: string,
+    auto = false
+  ) {
     this.recorder = recorder;
     this.channel = channel;
     this.user = user;
+    this.t = t;
+    this.locale = locale;
     this.autorecorded = auto;
     this.sizeLimit = this.recorder.client.config.craig.sizeLimit;
   }
@@ -170,7 +182,7 @@ export default class Recording {
     }
 
     const dmChannel = await this.user.getDMChannel().catch(() => null);
-    if (dmChannel) await dmChannel.createMessage(`⚠️ Warning for recording \`${this.id}\`: ${text}`).catch(() => null);
+    if (dmChannel) await dmChannel.createMessage(`⚠️ \`${this.id}\`: ${text}`).catch(() => null);
   }
 
   async start(parsedRewards: ParsedRewards, webapp = false) {
@@ -188,10 +200,9 @@ export default class Recording {
         e
       );
       this.state = RecordingState.ERROR;
-      this.stateDescription =
-        'Failed to connect to your channel, try again later. If the issue persists, report it in the [support server](<https://discord.gg/craig>).';
+      this.stateDescription = this.t('recording.failed_to_connect');
       await this.stop(true);
-      await this.pushToActivity('Failed to connect!');
+      await this.pushToActivity(this.t('recording.panel.connect_fail'));
 
       // If the last message update errored & we can still use the message, retry once
       if (this.lastMessageError && this.messageID) await this.updateMessage();
@@ -246,8 +257,9 @@ export default class Recording {
       async () => {
         if (this.state !== RecordingState.RECORDING) return;
         this.writeToLog('Timeout reached, stopping recording');
-        this.stateDescription = `⚠️ You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`;
-        this.sendWarning(`You've reached the maximum time limit of ${rewards.recordHours} hours for this recording.`, false);
+        const timeLimitReached = this.t('recording.time_limit_reached', { hours: rewards.recordHours });
+        this.stateDescription = `⚠️ ${timeLimitReached}`;
+        this.sendWarning(timeLimitReached, false);
         await this.stop();
       },
       rewards.recordHours * 60 * 60 * 1000
@@ -264,17 +276,12 @@ export default class Recording {
 
       this.unusedMinutes++;
       if (this.usedMinutes === 0) {
-        this.stateDescription = "⚠️ I haven't received any audio from anyone!";
-        this.sendWarning(
-          "I haven't received any audio from anyone in this recording, try switching to a different voice region if this problem persists.",
-          false
-        );
+        this.stateDescription = `⚠️ ${this.t('recording.panel.no_audio')}`;
+        this.sendWarning(this.t('recording.no_audio_stop'), false);
         await this.stop();
       } else if (this.unusedMinutes === 5 && !this.silenceWarned) {
         this.silenceWarned = true;
-        this.sendWarning(
-          "Hello? I haven't heard anything for five minutes. Make sure to stop the recording if you are done! If you are taking a break, disregard this message."
-        );
+        this.sendWarning(this.t('recording.no_audio_warn'));
       }
     }, 60000);
 
@@ -317,7 +324,7 @@ export default class Recording {
       );
       if (!internal) {
         this.state = RecordingState.ENDED;
-        if (userID) this.pushToActivity(`Recording stopped by <@${userID}>.`);
+        if (userID) this.pushToActivity(this.t('recording.panel.stopped', { user: `<@${userID}>` }));
         else this.updateMessage();
       }
       this.channel.leave();
@@ -384,7 +391,7 @@ export default class Recording {
     const user = await prisma.user.findUnique({ where: { id: this.user.id } });
     if (!user || !user.driveEnabled) return;
 
-    await this.recorder.uploader.upload(this.id, this.user.id, user.driveService);
+    await this.recorder.uploader.upload(this, user.driveService);
   }
 
   async connect() {
@@ -446,7 +453,7 @@ export default class Recording {
 
     const reconnected = this.state === RecordingState.RECONNECTING;
     this.state = RecordingState.RECORDING;
-    if (reconnected) this.pushToActivity('Reconnected.');
+    if (reconnected) this.pushToActivity(this.t('recording.panel.reconnected'));
   }
 
   async retryConnect() {
@@ -461,11 +468,8 @@ export default class Recording {
       }
     }
     if (this.state !== RecordingState.RECORDING) {
-      this.pushToActivity('Failed to reconnect after 3 tries.', false);
-      this.sendWarning(
-        'I could not reconnect properly to the voice channel after 3 tries. Please restart the recording, and if this problem persists, please join the support server.',
-        false
-      );
+      this.pushToActivity(this.t('recording.panel.reconnect_fail'), false);
+      this.sendWarning(this.t('recording.failed_to_reconnect'), false);
       this.recorder.logger.warn(`Recording ${this.id} could not properly reconnect`);
       try {
         await this.stop();
@@ -490,12 +494,12 @@ export default class Recording {
     if (member.id === this.recorder.client.bot.user.id) {
       if (member.voiceState.deaf && !oldState.deaf) {
         this.warningState = WarningState.DEAFENED;
-        this.stateDescription = 'The bot has been deafened! Please undeafen me to continue recording.';
-        this.pushToActivity('I was deafened!');
+        this.stateDescription = this.t('recording.deafened');
+        this.pushToActivity(this.t('recording.panel.deafened'));
       } else if (!member.voiceState.deaf && oldState.deaf && this.warningState === WarningState.DEAFENED) {
         this.warningState = null;
         delete this.stateDescription;
-        this.pushToActivity('I was undeafened.');
+        this.pushToActivity(this.t('recording.panel.undeafened'));
       }
       this.logWrite(`${new Date().toISOString()}: Bot's voice state updated ${JSON.stringify(member.voiceState)} -> ${JSON.stringify(oldState)}\n`);
     }
@@ -509,11 +513,11 @@ export default class Recording {
     );
     this.recorder.logger.debug(`Recording ${this.id} connected`);
     if (this.connection!.channelID !== this.channel.id) {
-      this.stateDescription = '⚠️ I was moved to another channel! If you want me to leave, please press the stop button.';
+      this.stateDescription = `⚠️ ${this.t('recording.moved')}`;
       return await this.stop();
     } else if (this.state === RecordingState.RECONNECTING) {
       this.state = RecordingState.RECORDING;
-      this.pushToActivity('Reconnected.');
+      this.pushToActivity(this.t('recording.panel.reconnected'));
     }
   }
 
@@ -524,7 +528,7 @@ export default class Recording {
       'connection'
     );
     this.recorder.logger.debug(`Recording ${this.id} ready (mode=${this.connection?.mode}, dave=${this.connection?.daveProtocolVersion})`);
-    this.pushToActivity('Automatically reconnected.');
+    this.pushToActivity(this.t('recording.panel.auto_reconnected'));
 
     // Get voice & rtc worker versions
     this.connection?.sendWS(16, {});
@@ -541,7 +545,7 @@ export default class Recording {
     this.writeToLog(`Voice server latency: ${latency}ms`, 'connection');
     if (latency && latency > MAX_LATENCY_WARNING && !this.latencyWarned) {
       this.latencyWarned = true;
-      this.pushToActivity(`⚠️ High voice server latency: ${latency}ms, this may cause issues with the recording.`, true);
+      this.pushToActivity(`⚠️ ${this.t('recording.panel.high_latency', { latency })}`, true);
     } else await this.updateMessage();
   }
 
@@ -570,8 +574,7 @@ export default class Recording {
     if (this.encryptionRecoveryAttempts < ENCRYPTION_RECOVERY_STOP_THRESHOLD) return;
 
     this.encryptionStopIssued = true;
-    const stopWarning =
-      "Due to voice encryption issues, I could not properly hear anyone. Please switch this channel's voice region and restart the recording.";
+    const stopWarning = this.t('recording.e2ee_error');
     this.stateDescription = `⚠️ ${stopWarning}`;
     await this.sendWarning(stopWarning, false);
     await this.stop();
@@ -589,12 +592,12 @@ export default class Recording {
     });
     if (err) {
       this.state = RecordingState.RECONNECTING;
-      if (err.message.startsWith('4006')) this.pushToActivity('Discord requested us to reconnect, reconnecting...');
-      else this.pushToActivity('An error has disconnected me, reconnecting...');
+      if (err.message.startsWith('4006')) this.pushToActivity(this.t('recording.panel.discord_requested_reconnect'));
+      else this.pushToActivity(this.t('recording.panel.disconnected_from_error'));
       this.channel.leave();
       await this.retryConnect();
     } else if (this.state !== RecordingState.RECONNECTING) {
-      this.pushToActivity(`The voice connection was closed, disconnecting... ([why?](https://link.snaz.in/craigstopped))`, false);
+      this.pushToActivity(this.t('recording.panel.vc_closed'), false);
       try {
         await this.stop();
       } catch (e) {
@@ -654,8 +657,9 @@ export default class Recording {
     if (this.sizeLimit && this.bytesWritten >= this.sizeLimit) {
       if (!this.hardLimitHit) {
         this.hardLimitHit = true;
-        this.stateDescription = '⚠️ The recording has reached the size limit and has been automatically stopped.';
-        this.sendWarning('The recording has reached the size limit and has been automatically stopped.', false);
+        const sizeLimitReached = this.t('recording.size_limit_reached');
+        this.stateDescription = `⚠️ ${sizeLimitReached}`;
+        this.sendWarning(sizeLimitReached, false);
         this.stop();
       }
       return true;
@@ -692,7 +696,7 @@ export default class Recording {
         opus.decode(chunk.data);
       } catch (ex) {
         if (!(user.id in this.usersWarned)) {
-          this.pushToActivity(`⚠️ User <@${user.id}> has corrupt data! I will not be able to correctly process their audio!`);
+          this.pushToActivity(`⚠️ ${this.t('recording.panel.corrupt_data', { user: `<@${user.id}>` })}`);
           this.usersWarned.push(user.id);
         }
       }
@@ -766,7 +770,7 @@ export default class Recording {
       `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
       'recording'
     );
-    this.pushToActivity(`<@${userID}> joined the recording.`);
+    this.pushToActivity(this.t('recording.panel.joined', { user: `<@${userID}>` }));
     this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
     return recordingUser;
   }
@@ -843,35 +847,35 @@ export default class Recording {
 
   messageContent() {
     let color: number | undefined = undefined;
-    let title = 'Loading...';
+    let title = this.t('common.loading');
     switch (this.state) {
       case RecordingState.IDLE: {
         color = 0x3498db;
         break;
       }
       case RecordingState.RECORDING: {
-        title = '🔴 Recording...';
+        title = `🔴 ${this.t('recording.panel.recording')}`;
         if (this.warningState === null) color = 0x2ecc71;
         else color = 0xf1c40f;
         break;
       }
       case RecordingState.CONNECTING: {
-        title = 'Connecting...';
+        title = this.t('recording.panel.connecting');
         color = 0xf39c12;
         break;
       }
       case RecordingState.RECONNECTING: {
-        title = 'Reconnecting...';
+        title = this.t('recording.panel.reconnecting');
         color = 0xf39c12;
         break;
       }
       case RecordingState.ERROR: {
-        title = 'An error occurred.';
+        title = this.t('recording.panel.error');
         color = 0xe74c3c;
         break;
       }
       case RecordingState.ENDED: {
-        title = 'Recording ended.';
+        title = this.t('recording.panel.ended');
         break;
       }
     }
@@ -879,7 +883,7 @@ export default class Recording {
     if (this.warningState !== null)
       switch (this.warningState) {
         case WarningState.DEAFENED: {
-          title = '⚠️ I was deafened!';
+          title = `⚠️ ${this.t('recording.panel.deafened')}`;
           break;
         }
       }
@@ -901,7 +905,7 @@ export default class Recording {
             {
               type: ComponentType.TEXT_DISPLAY,
               content: stripIndents`
-                -# ${this.user.mention}'s recording
+                -# ${this.t('recording.panel.info.owner', { user: this.user.mention })}
                 ## ${title}
                 ${this.stateDescription ?? ''}
               `
@@ -914,11 +918,11 @@ export default class Recording {
             {
               type: ComponentType.TEXT_DISPLAY,
               content: [
-                `**Recording ID:** \`${this.id}\``,
-                `**Channel:** ${this.channel.mention}`,
-                startedTimestamp ? `**Started:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : '',
-                voiceRegion ? `**Voice Region:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : '',
-                this.latency ? `**Voice Server Latency:** ${this.latency}ms${this.latency > MAX_LATENCY_WARNING ? ' ⚠️' : ''}` : ''
+                `**${this.t('common.rec_id')}:** \`${this.id}\``,
+                `**${this.t('common.channel')}:** ${this.channel.mention}`,
+                startedTimestamp ? `**${this.t('common.started')}:** <t:${startedTimestamp}:T> (<t:${startedTimestamp}:R>)` : '',
+                voiceRegion ? `**${this.t('common.voice_region')}:** ${voiceRegion.replace(/\.discord\.media$/, '')}` : '',
+                this.latency ? `**${this.t('common.voice_latency')}:** ${this.latency}ms${this.latency > MAX_LATENCY_WARNING ? ' ⚠️' : ''}` : ''
               ]
                 .filter((v) => !!v)
                 .join('\n')
@@ -932,7 +936,7 @@ export default class Recording {
                   },
                   {
                     type: ComponentType.TEXT_DISPLAY,
-                    content: `### Activity\n${this.logs.slice(-10).join('\n')}`
+                    content: `### ${this.t('common.activity')}\n${this.logs.slice(-10).join('\n')}`
                   }
                 ]
               : []),
@@ -947,7 +951,7 @@ export default class Recording {
                 {
                   type: ComponentType.BUTTON,
                   style: ButtonStyle.DESTRUCTIVE,
-                  label: 'Stop recording',
+                  label: this.t('recording.actions.stop'),
                   custom_id: `rec:${this.id}:stop`,
                   disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
                   emoji: this.emojis.getPartial('stop')
@@ -955,7 +959,7 @@ export default class Recording {
                 {
                   type: ComponentType.BUTTON,
                   style: ButtonStyle.PRIMARY,
-                  label: 'Add a note',
+                  label: this.t('recording.actions.note'),
                   custom_id: `rec:${this.id}:note`,
                   disabled: this.state !== RecordingState.RECORDING && this.state !== RecordingState.RECONNECTING,
                   emoji: this.emojis.getPartial('addnote')
@@ -979,7 +983,7 @@ export default class Recording {
           ? [
               {
                 type: ComponentType.TEXT_DISPLAY,
-                content: '-# Is this panel stuck? Try running `/join` again for a new recording panel.'
+                content: `-# ${this.t('recording.panel.footer')}`
               }
             ]
           : [])

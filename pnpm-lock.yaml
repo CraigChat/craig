@@ -264,6 +264,9 @@ importers:
       i18next-fs-backend:
         specifier: ^2.6.1
         version: 2.6.5
+      intl-messageformat:
+        specifier: ^10.7.18
+        version: 10.7.18
       ioredis:
         specifier: 'catalog:'
         version: 6.0.0(supports-color@8.1.1)

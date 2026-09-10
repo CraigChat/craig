@@ -15,11 +15,12 @@ export default class Bless extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    const [t] = this.createT(ctx);
+    if (!ctx.guildID) return t('responses.guild_only');
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -29,11 +30,11 @@ export default class Bless extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the bless command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
 
-    return await blessServer(ctx.user.id, ctx.guildID, this.emojis);
+    return await blessServer(ctx.user.id, ctx.guildID, this.emojis, t);
   }
 }
