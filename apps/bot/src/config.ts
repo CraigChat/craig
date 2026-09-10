@@ -102,7 +102,7 @@ const defaultRewardTiers: Record<string, RewardTier> = {
   '-1': {
     recordHours: 24,
     downloadExpiryHours: 720,
-    features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3']
+    features: ['mix', 'auto', 'drive', 'glowers', 'eccontinuous', 'ecflac', 'mp3', 'transcription']
   },
   '0': {
     recordHours: 6,
