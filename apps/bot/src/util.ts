@@ -153,6 +153,8 @@ export interface StatusIncident {
 }
 
 export async function getCraigStatus(): Promise<StatusIncident[]> {
+  if (process.env.DISABLE_STATUS_CHECK) return [];
+
   return (
     (await cacheData({ key: 'craig-status', ttl: 30 }, async () => {
       const response = await fetch('https://status.craig.chat/api/planned-maintenance', {
