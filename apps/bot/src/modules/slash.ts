@@ -26,6 +26,7 @@ import RecordingsCommand from '../commands/recordings.js';
 import ServerSettingsCommand from '../commands/serversettings.js';
 import StopCommand from '../commands/stop.js';
 import UnblessCommand from '../commands/unbless.js';
+import UserSettingsCommand from '../commands/usersettings.js';
 import VoiceTestCommand from '../commands/voice-test.js';
 import WebappCommand from '../commands/webapp.js';
 import { createCtxT } from '../i18n.js';
@@ -60,6 +61,7 @@ const commandConstructors = [
   ServerSettingsCommand,
   StopCommand,
   UnblessCommand,
+  UserSettingsCommand,
   VoiceTestCommand,
   WebappCommand
 ];
