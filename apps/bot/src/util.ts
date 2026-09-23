@@ -538,7 +538,7 @@ export function formatVoiceCode(vpc: string, rows = 2) {
 
 export function displayUserSettings(client: CraigBot, userSettings: Pick<User, 'webapp'>, t: TFunction) {
   const emojis = client.slash.emojis;
-  const checkbox = (b: boolean) => emojis.getMarkdown(b ? 'check' : 'delete');
+  const checkbox = (b: boolean) => emojis.getMarkdown(b ? 'check' : 'remove');
   return {
     flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
     allowedMentions: {
