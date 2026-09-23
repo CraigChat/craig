@@ -353,7 +353,8 @@ export default class SlashModule extends BotModule {
         }
         return;
       }
-      case 'webapp': {
+      case 'settings': {
+        // TODO its webapp only for now
         try {
           const userSettings = (await prisma.user.findUnique({
             where: { id: ctx.user.id },
