@@ -193,7 +193,8 @@ export default class MetricsModule extends ShardManagerModule {
       'stop',
       'unbless',
       'webapp',
-      'voice-test'
+      'voice-test',
+      'user-settings'
     ])
       cmdUsage.inc({ command }, 0);
 
