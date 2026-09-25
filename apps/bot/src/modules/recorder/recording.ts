@@ -12,7 +12,7 @@ import { ButtonStyle, ComponentType, EditMessageOptions, MessageFlags, Separator
 
 import type { CraigBot } from '../../bot.js';
 import type { TFunction } from '../../i18n.js';
-import { getSelfMember, ParsedRewards, wait } from '../../util.js';
+import { getCraigStatus, getSelfMember, ParsedRewards, wait } from '../../util.js';
 import type RecorderModule from './index.js';
 import { UserExtraType, WebappOpCloseReason } from './protocol.js';
 import { WebappClient } from './webapp.js';
@@ -310,6 +310,22 @@ export default class Recording {
     if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
 
     this.recorder.metrics.onRecordingStart(this.autorecorded);
+
+    void this.#logCraigStatus();
+  }
+
+  async #logCraigStatus() {
+    const [incident, ...otherIncidents] = await getCraigStatus();
+    if (!incident) return;
+
+    const additionalCount = otherIncidents.length ? ` (+${otherIncidents.length})` : '';
+    const label =
+      incident.status !== 'maintenance'
+        ? this.t('recording.panel.ongoing_incident')
+        : Date.parse(incident.startedAt) <= Date.now()
+          ? this.t('recording.panel.ongoing_maintenance')
+          : this.t('recording.panel.upcoming_maintenance');
+    await this.pushToActivity(`🚧 ${label}: [${incident.title}](https://status.craig.chat/incidents/${incident.id})${additionalCount}`);
   }
 
   async stop(internal = false, userID?: string) {

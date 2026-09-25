@@ -19,6 +19,7 @@ import type { CraigBotConfig, RewardTier } from './config.js';
 import type { TFunction } from './i18n.js';
 import type Recording from './modules/recorder/recording.js';
 import type SlashModule from './modules/slash.js';
+import { cacheData } from './redis.js';
 
 export const version = packageJson.version;
 
@@ -130,6 +131,43 @@ export async function getDiscordStatus(): Promise<null | 'none' | 'critical' | '
   } catch (e) {
     return null;
   }
+}
+
+export type StatusType = 'maintenance' | 'outage' | 'minoroutage' | 'degraded' | 'operational';
+
+export interface StatusIncident {
+  id: string;
+  title: string;
+  status: StatusType;
+  services: {
+    id: string;
+    status: StatusType;
+  }[];
+  startedAt: string;
+  endedAt: string | null;
+  comments: {
+    message: string;
+    author: string;
+    createdAt: string;
+  }[];
+}
+
+export async function getCraigStatus(): Promise<StatusIncident[]> {
+  if (process.env.DISABLE_STATUS_CHECK) return [];
+
+  return (
+    (await cacheData({ key: 'craig-status', ttl: 30 }, async () => {
+      const response = await fetch('https://status.craig.chat/api/planned-maintenance', {
+        headers: { 'User-Agent': userAgent }
+      });
+      if (!response.ok) return [];
+      const info: StatusIncident[] = await response.json();
+      if (!info || !info.length) return [];
+
+      const incidentCutoff = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      return info.filter((incident) => Date.parse(incident.startedAt) <= incidentCutoff);
+    })) ?? []
+  );
 }
 
 export const mainBotCommandOnly = process.argv?.[1].includes('slash-up') && process.env.EXTRA_BOT == 'true' ? [] : undefined;
