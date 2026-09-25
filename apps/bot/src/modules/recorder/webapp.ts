@@ -78,7 +78,7 @@ export class WebappClient {
     this.ws.on('close', (code, reason) => {
       if (!this.ready && !this.disconnecting) {
         recording.recorder.logger.log(`Failed to connect to the webapp for recording ${recording.id}: ${WebappOpCloseReason[reason[0]]}`, 'webapp');
-        recording.pushToActivity(`Failed to connect to the webapp! (${WebappOpCloseReason[reason[0]]})`);
+        recording.pushToActivity(`${recording.t('recording.panel.webapp_fail')} (${WebappOpCloseReason[reason[0]]})`);
         return;
       }
 
@@ -133,7 +133,7 @@ export class WebappClient {
       this.userPacketNos[webUserID] = 0;
 
       // Announce them
-      this.recording.pushToActivity(`${username} has connected to the webapp!`);
+      this.recording.pushToActivity(this.recording.t('recording.panel.webapp_connected', { name: username }));
       this.monitorSetConnected(userTrackNo, `${userData.username}#${userData.discriminator}`, true, clientId);
 
       // Put a valid Opus header at the beginning if we're Opus

@@ -1,7 +1,7 @@
 import type { Ban, Guild } from '@craig/db';
 import { prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
-import { stripIndents, stripIndentTransformer, TemplateTag } from 'common-tags';
+import { stripIndentTransformer, TemplateTag } from 'common-tags';
 import {
   AnyComponent,
   ButtonStyle,
@@ -16,6 +16,7 @@ import {
 import packageJson from '../package.json';
 import type { CraigBot } from './bot.js';
 import type { CraigBotConfig, RewardTier } from './config.js';
+import type { TFunction } from './i18n.js';
 import type Recording from './modules/recorder/recording.js';
 import type SlashModule from './modules/slash.js';
 
@@ -143,11 +144,13 @@ export const stripIndentsAndLines = new TemplateTag(stripIndentTransformer('all'
 });
 
 export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedRewards, config: CraigBotConfig, emojis: SlashModule['emojis']) {
+  const t = recording.t;
   const recordTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.recordHours;
   const expireTime = Date.now() + 1000 * 60 * 60 * parsedRewards.rewards.downloadExpiryHours;
-  const headerInfo = `Started ${recording.autorecorded ? 'auto-' : ''}recording in <#${recording.channel.id}> at <t:${Math.floor(
-    Date.now() / 1000
-  )}:F>.\n-# You can bring up the recording panel with \`/join\`.`;
+  const headerInfo = `${t(recording.autorecorded ? 'join_command.info_header_auto' : 'join_command.info_header', {
+    channel: `<#${recording.channel.id}>`,
+    time: `<t:${Math.floor(Date.now() / 1000)}:F>`
+  })}\n${t('join_command.info_panel_reminder')}`;
   return {
     flags: MessageFlags.IS_COMPONENTS_V2,
     components: [
@@ -180,12 +183,12 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
           {
             type: ComponentType.TEXT_DISPLAY,
             content: [
-              `**Guild:** ${recording.channel.guild.name} (${recording.channel.guild.id})`,
-              `**Channel:** ${recording.channel.name} (${recording.channel.id})`,
-              `**Recording ID:** \`${recording.id}\``,
-              `**Delete key:** ||\`${recording.deleteKey}\`|| (click to show)`,
+              `**${t('common.guild')}:** ${recording.channel.guild.name} (${recording.channel.guild.id})`,
+              `**${t('common.channel')}:** ${recording.channel.name} (${recording.channel.id})`,
+              `**${t('common.rec_id')}:** \`${recording.id}\``,
+              `**${t('common.delete_key')}:** ||\`${recording.deleteKey}\`|| ${t('common.click_to_show')}`,
               recording.webapp
-                ? `**Webapp URL:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
+                ? `**${t('common.webapp_url')}:** ${config.craig.webapp.connectUrl.replace('{id}', recording.id).replace('{key}', recording.ennuiKey)}`
                 : ''
             ]
               .filter((v) => !!v)
@@ -198,11 +201,12 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
           },
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: stripIndents`
-              I will record up to ${parsedRewards.rewards.recordHours} hours, I'll stop recording <t:${Math.floor(recordTime / 1000)}:R> from now.
-              This recording will expire <t:${Math.floor(expireTime / 1000)}:R>. (${parsedRewards.rewards.downloadExpiryHours / 24} days from now)
-              -# The audio can be downloaded even while I'm still recording.
-            `
+            content: t('join_command.info_footer', {
+              record_hours: parsedRewards.rewards.recordHours,
+              record_time: `<t:${Math.floor(recordTime / 1000)}:R>`,
+              expire_time: `<t:${Math.floor(expireTime / 1000)}:R>`,
+              expiry_days: parsedRewards.rewards.downloadExpiryHours / 24
+            })
           },
           {
             type: ComponentType.SEPARATOR,
@@ -215,14 +219,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Download',
+                label: t('common.download'),
                 url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
                 emoji: emojis.getPartial('download')
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
-                label: 'Delete recording',
+                label: t('join_command.delete_recording'),
                 url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${
                   recording.accessKey
                 }&delete=${recording.deleteKey}`,
@@ -238,7 +242,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                     {
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.LINK,
-                      label: 'Jump to recording panel',
+                      label: t('join_command.actions.jump_to_panel'),
                       url: `https://discordapp.com/channels/${recording.channel.guild.id}/${recording.messageChannelID}/${recording.messageID}`
                     }
                   ]
@@ -251,7 +255,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
   } as EditMessageOptions as any;
 }
 
-export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis']): Promise<MessageOptions> {
+export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis'], t: TFunction): Promise<MessageOptions> {
   const userData = await prisma.user.findUnique({ where: { id: userID }, select: { id: true, rewardTier: true } });
   const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
   const blessingUser = blessing
@@ -265,7 +269,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 
   if (blessingUser && blessingUser.id === userID)
     return {
-      content: 'You already blessed this server.',
+      content: t('blessing.already_blessed'),
       ephemeral: true,
       components: [
         {
@@ -274,7 +278,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
             {
               type: ComponentType.BUTTON,
               style: ButtonStyle.DESTRUCTIVE,
-              label: 'Remove blessing',
+              label: t('blessing.remove'),
               custom_id: `user:unbless:${guildID}`,
               emoji: emojis.getPartial('remove') || undefined
             }
@@ -285,13 +289,13 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 
   if (userTier === 0)
     return {
-      content: "You don't have any perks to bless this server with.",
+      content: t('blessing.no_perks'),
       ephemeral: true
     };
 
   if (guildTier === -1 || (guildTier >= userTier && userTier !== -1))
     return {
-      content: 'This server has already been blessed by a similar or greater tier.',
+      content: t('blessing.server_already_blessed'),
       ephemeral: true
     };
 
@@ -305,17 +309,17 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
   });
 
   return {
-    content: 'You have blessed this server and gave it your perks. All future recordings will have your features.',
+    content: t('blessing.blessed'),
     ephemeral: true
   };
 }
 
-export async function unblessServer(userID: string, guildID: string): Promise<MessageOptions> {
+export async function unblessServer(userID: string, guildID: string, t: TFunction): Promise<MessageOptions> {
   const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
 
   if (!blessing || blessing.userId !== userID)
     return {
-      content: 'You have not blessed this server.',
+      content: t('blessing.not_blessed'),
       ephemeral: true
     };
 
@@ -324,12 +328,12 @@ export async function unblessServer(userID: string, guildID: string): Promise<Me
   });
 
   return {
-    content: 'Removed your blessing from this server.',
+    content: t('blessing.removed'),
     ephemeral: true
   };
 }
 
-export async function paginateRecordings(client: CraigBot, userID: string, requestedPage = 1) {
+export async function paginateRecordings(client: CraigBot, userID: string, t: TFunction, requestedPage = 1) {
   const MAX_PAGE_AMOUNT = 5;
   const requested = Number.isFinite(requestedPage) ? Math.max(1, Math.trunc(requestedPage)) : 1;
   const where = {
@@ -362,7 +366,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
       components: [
         {
           type: ComponentType.TEXT_DISPLAY,
-          content: `You haven't done any recordings recently on ${client.bot.user.mention}.`
+          content: t('recordings.none', { bot: client.bot.user.mention })
         }
       ]
     } as EditMessageOptions;
@@ -404,7 +408,12 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
         components: [
           {
             type: ComponentType.TEXT_DISPLAY,
-            content: `## Previous recordings on ${client.bot.user.mention}\n-# ${recordingCount.toLocaleString()} recording(s), Page ${page}/${pages}`
+            content: t('recordings.list_header', {
+              bot: client.bot.user.mention,
+              count: recordingCount.toLocaleString(),
+              page,
+              pages
+            })
           },
           {
             type: ComponentType.SEPARATOR,
@@ -416,18 +425,17 @@ export async function paginateRecordings(client: CraigBot, userID: string, reque
             components: [
               {
                 type: ComponentType.TEXT_DISPLAY,
-                content: stripIndentsAndLines`
-                  ### 🎙️ Recording \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**
-                  ${r.autorecorded ? '*`Autorecorded`*' : ''} <#${r.channelId}> • Expires <t:${Math.floor(
-                    r.expiresAt.valueOf() / 1000
-                  )}:R> • Delete Key: ||\`${r.deleteKey}\`||
-                `
+                content: `### 🎙️ ${t('common.recordings')} \`${r.id}\` - **<t:${Math.floor(r.createdAt.valueOf() / 1000)}:f>**\n${
+                  r.autorecorded ? t('recordings.autorecorded') : ''
+                } <#${r.channelId}> • ${t('recordings.expires', {
+                  in_time: `<t:${Math.floor(r.expiresAt.valueOf() / 1000)}:R>`
+                })} • ${t('common.delete_key')}: ||\`${r.deleteKey}\`||`
               }
             ],
             accessory: {
               type: ComponentType.BUTTON,
               style: ButtonStyle.LINK,
-              label: 'Download',
+              label: t('common.download'),
               emoji: emojis.getPartial('download'),
               url: `${baseUrl}/rec/${r.id}?key=${r.accessKey}`
             }

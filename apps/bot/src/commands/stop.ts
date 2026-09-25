@@ -15,12 +15,13 @@ export default class Stop extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
-    if (!ctx.guildID) return 'This command can only be used in a guild.';
+    const [t] = this.createT(ctx);
+    if (!ctx.guildID) return t('responses.guild_only');
     await ctx.defer(true);
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -30,7 +31,7 @@ export default class Stop extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the stop command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
@@ -38,18 +39,18 @@ export default class Stop extends GeneralCommand {
     const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findUnique({ where: { id: ctx.guildID } }));
     if (!hasPermission)
       return {
-        content: 'You need the `Manage Server` permission or have an access role to manage recordings.',
+        content: t('recording.need_perms'),
         ephemeral: true
       };
     if (!this.recorder.recordings.has(ctx.guildID))
       return {
-        content: 'There is no recording to stop.',
+        content: t('stop_command.no_recording'),
         ephemeral: true
       };
     const recording = this.recorder.recordings.get(ctx.guildID)!;
     await recording.stop(false, ctx.user.id);
     return {
-      content: 'Stopped recording.',
+      content: t('stop_command.stopped'),
       ephemeral: true
     };
   }

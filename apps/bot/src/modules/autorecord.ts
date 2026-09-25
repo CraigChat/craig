@@ -1,8 +1,8 @@
 import { type AutoRecord, prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
-import { stripIndents } from 'common-tags';
 import { ButtonStyle, ComponentType } from 'slash-create';
 
+import { createT } from '../i18n.js';
 import { checkMaintenance, processCooldown } from '../redis.js';
 import { BotModule } from '../runtime.js';
 import { reportAutorecordingError } from '../sentry.js';
@@ -211,7 +211,8 @@ export default class AutorecordModule extends BotModule {
         }
 
       // Start recording
-      const recording = new Recording(this.recorder, channel as any, member.user, true);
+      const locale = guild.preferredLocale ?? 'en';
+      const recording = new Recording(this.recorder, channel as any, member.user, createT(locale), locale, true);
       this.recorder.recordings.set(guildId, recording);
       if (autoRecording.postChannelId) {
         const postChannel = guild.channels.get(autoRecording.postChannelId);
@@ -234,6 +235,7 @@ export default class AutorecordModule extends BotModule {
         .catch((e) => e);
 
       if (error !== false) {
+        const t = recording.t;
         this.client.commands.logger.error(
           `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
           error
@@ -251,13 +253,8 @@ export default class AutorecordModule extends BotModule {
               embeds: [
                 {
                   color: 0xe74c3c,
-                  title: 'An error occurred.',
-                  description: stripIndents`
-                    An error occurred while trying to start the recording. Try again in a few minutes.
-                    If this problem persists, please join the support server with the button below.
-
-                    **Recording ID:** \`${recording.id}\`
-                  `
+                  title: t('recording.panel.error'),
+                  description: `${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
                 }
               ],
               components: [
@@ -267,7 +264,7 @@ export default class AutorecordModule extends BotModule {
                     {
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.LINK,
-                      label: 'Support Server',
+                      label: t('common.support_server'),
                       url: 'https://discord.gg/craig'
                     }
                   ]
