@@ -37,5 +37,6 @@ minimumReleaseAgeExclude:
   - '@mediabunny/flac-encoder@1.56.0'
   - mediabunny@1.56.0
 patchedDependencies:
+  '@discordjs/node-pre-gyp@0.4.5': patches/@discordjs__node-pre-gyp@0.4.5.patch
   svelte-awesome-color-picker: patches/svelte-awesome-color-picker.patch
 allowUnusedPatches: true

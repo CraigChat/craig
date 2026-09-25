@@ -1,0 +1,11 @@
+diff --git a/lib/util/compile.js b/lib/util/compile.js
+index e6696fc..0a1f950 100644
+--- a/lib/util/compile.js
++++ b/lib/util/compile.js
+@@ -72,5 +72,6 @@
+ 	const cmd = cp.spawn(shell_cmd, final_args, {
+ 		cwd: undefined,
+ 		env: process.env,
+ 		stdio: [0, 1, 2],
++		shell: win,
+ 	});

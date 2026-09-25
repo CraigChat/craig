@@ -155,6 +155,7 @@ overrides:
   supports-color: 8.1.1
 
 patchedDependencies:
+  '@discordjs/node-pre-gyp@0.4.5': 3f0b6f652b678980b3d380078ea095d51e827371eda8e0dd13c031a30af441d7
   svelte-awesome-color-picker: 1392ba36dbad1d4e3dc59c0c595e70f0a4f0458188d7ce34ed5d33cd9b19a619
 
 importers:
@@ -6209,7 +6210,7 @@ snapshots:
       enabled: 2.0.0
       kuler: 2.0.0
 
-  '@discordjs/node-pre-gyp@0.4.5(supports-color@8.1.1)':
+  '@discordjs/node-pre-gyp@0.4.5(patch_hash=3f0b6f652b678980b3d380078ea095d51e827371eda8e0dd13c031a30af441d7)(supports-color@8.1.1)':
     dependencies:
       detect-libc: 2.1.2
       https-proxy-agent: 5.0.1(supports-color@8.1.1)
@@ -6226,7 +6227,7 @@ snapshots:
 
   '@discordjs/opus@0.10.0(supports-color@8.1.1)':
     dependencies:
-      '@discordjs/node-pre-gyp': 0.4.5(supports-color@8.1.1)
+      '@discordjs/node-pre-gyp': 0.4.5(patch_hash=3f0b6f652b678980b3d380078ea095d51e827371eda8e0dd13c031a30af441d7)(supports-color@8.1.1)
       node-addon-api: 8.7.0
     transitivePeerDependencies:
       - encoding
