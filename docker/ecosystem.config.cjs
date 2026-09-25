@@ -23,7 +23,7 @@ module.exports = {
         BOT_LOCALE_FOLDER: '/opt/craig/locale',
         BOT_VOICE_TEST_FOLDER: '/opt/craig/bot/audio',
         KITCHEN_URL: process.env.KITCHEN_URL || 'http://127.0.0.1:9000',
-        WEBAPP_URL: process.env.WEBAPP_URL || 'ws://127.0.0.1:9001/shard'
+        WEBAPP_URL: process.env.WEBAPP_URL || 'ws://127.0.0.1:9002/shard'
       }
     },
     {
@@ -62,6 +62,18 @@ module.exports = {
         ...sharedEnv,
         HOST: '0.0.0.0',
         PORT: '9001'
+      }
+    },
+    {
+      name: 'Craig Webapp Server',
+      cwd: '/opt/craig/webapp-server',
+      script: 'dist/index.mjs',
+      wait_ready: true,
+      kill_timeout: 3000,
+      env: {
+        ...sharedEnv,
+        HOST: '0.0.0.0',
+        PORT: '9002'
       }
     },
     {

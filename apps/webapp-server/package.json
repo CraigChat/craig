@@ -1,0 +1,36 @@
+{
+  "name": "@craig/webapp-server",
+  "version": "2.0.0",
+  "description": "Craig webapp connection broker",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "exports": "./dist/index.mjs",
+  "license": "MIT",
+  "scripts": {
+    "start": "dotenv -e ../../.env -e .env -c -- node dist/index.mjs",
+    "start:test-client": "dotenv -e ../../.env -e .env -c -- tsx src/client",
+    "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
+    "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 reload ecosystem.config.cjs --update-env",
+    "build": "rimraf dist && tsdown src/index.ts src/client/index.ts",
+    "dev": "dotenv -e ../../.env -e .env -c -- tsx src",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "@craig/logger": "workspace:*",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/rate-limit": "^11.2.0",
+    "@fastify/websocket": "^11.3.1",
+    "fastify": "^5.12.1",
+    "nanoid": "catalog:",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/ws": "^8.18.1",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}
