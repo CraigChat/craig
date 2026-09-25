@@ -368,11 +368,11 @@ export default class SlashModule extends BotModule {
             select: { webapp: true }
           });
 
+          await ctx.editParent(displayUserSettings(this.client as any, newSettings, t));
           await ctx.send({
             content: t(userSettings.webapp ? 'webapp.off' : 'webapp.on'),
             ephemeral: true
           });
-          await ctx.editParent(displayUserSettings(this.client as any, newSettings, t));
         } catch (e) {
           this.logger.error(`Error displaying user settings for user ${ctx.user.id}:`, e);
           await ctx.send({
