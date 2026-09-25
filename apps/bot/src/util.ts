@@ -1,5 +1,5 @@
 import type { Ban, Guild } from '@craig/db';
-import { prisma } from '@craig/db';
+import { prisma, type User } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndentTransformer, TemplateTag } from 'common-tags';
 import {
@@ -534,4 +534,56 @@ export function formatVoiceCode(vpc: string, rows = 2) {
   }
 
   return result.join('\n');
+}
+
+export function displayUserSettings(client: CraigBot, userSettings: Pick<User, 'webapp'>, t: TFunction) {
+  const emojis = client.slash.emojis;
+  const checkbox = (b: boolean) => emojis.getMarkdown(b ? 'check' : 'remove');
+  return {
+    flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
+    allowedMentions: {
+      everyone: false,
+      users: false,
+      roles: false
+    },
+    components: [
+      {
+        type: ComponentType.CONTAINER,
+        components: [
+          {
+            type: ComponentType.SECTION,
+            components: [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: `### Webapp ${checkbox(userSettings.webapp)}\nEnable the [webapp](https://docs.craig.chat/features/webapp/) so that people outside of Discord can be in the recording. Enabling this includes a webapp URL inside your recording DM to send to other people.`
+              }
+            ],
+            accessory: {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.SECONDARY,
+              label: userSettings.webapp ? 'Disable' : 'Enable',
+              disabled: !client.config.craig.webapp.on,
+              custom_id: 'user:settings:webapp'
+            }
+          },
+          { type: ComponentType.SEPARATOR },
+          {
+            type: ComponentType.SECTION,
+            components: [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: '### Manage Cloud Backup'
+              }
+            ],
+            accessory: {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.LINK,
+              label: t('common.dashboard'),
+              url: client.config.craig.dashboardURL
+            }
+          }
+        ]
+      }
+    ]
+  } satisfies EditMessageOptions;
 }

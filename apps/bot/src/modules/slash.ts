@@ -26,12 +26,22 @@ import RecordingsCommand from '../commands/recordings.js';
 import ServerSettingsCommand from '../commands/serversettings.js';
 import StopCommand from '../commands/stop.js';
 import UnblessCommand from '../commands/unbless.js';
+import UserSettingsCommand from '../commands/usersettings.js';
 import VoiceTestCommand from '../commands/voice-test.js';
 import WebappCommand from '../commands/webapp.js';
 import { createCtxT } from '../i18n.js';
 import { BotModule } from '../runtime.js';
 import { reportErrorFromCommand } from '../sentry.js';
-import { blessServer, checkRecordingPermission, cutoffText, disableComponents, formatVoiceCode, paginateRecordings, unblessServer } from '../util.js';
+import {
+  blessServer,
+  checkRecordingPermission,
+  cutoffText,
+  disableComponents,
+  displayUserSettings,
+  formatVoiceCode,
+  paginateRecordings,
+  unblessServer
+} from '../util.js';
 import type RecorderModule from './recorder/index.js';
 import { RecordingState } from './recorder/recording.js';
 
@@ -51,6 +61,7 @@ const commandConstructors = [
   ServerSettingsCommand,
   StopCommand,
   UnblessCommand,
+  UserSettingsCommand,
   VoiceTestCommand,
   WebappCommand
 ];
@@ -335,6 +346,35 @@ export default class SlashModule extends BotModule {
           await ctx.editParent(await paginateRecordings(this.client as any, ctx.user.id, t, parseInt(page)));
         } catch (e) {
           this.logger.error(`Error paginating recordings for user ${ctx.user.id}:`, e);
+          await ctx.send({
+            content: t('responses.interaction_error'),
+            ephemeral: true
+          });
+        }
+        return;
+      }
+      case 'settings': {
+        // TODO its webapp only for now
+        try {
+          const userSettings = (await prisma.user.findUnique({
+            where: { id: ctx.user.id },
+            select: { webapp: true }
+          })) || { webapp: false };
+
+          const newSettings = await prisma.user.upsert({
+            where: { id: ctx.user.id },
+            update: { webapp: !userSettings.webapp },
+            create: { id: ctx.user.id, webapp: !userSettings.webapp },
+            select: { webapp: true }
+          });
+
+          await ctx.editParent(displayUserSettings(this.client as any, newSettings, t));
+          await ctx.send({
+            content: t(userSettings.webapp ? 'webapp.off' : 'webapp.on'),
+            ephemeral: true
+          });
+        } catch (e) {
+          this.logger.error(`Error displaying user settings for user ${ctx.user.id}:`, e);
           await ctx.send({
             content: t('responses.interaction_error'),
             ephemeral: true
