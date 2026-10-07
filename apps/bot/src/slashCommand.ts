@@ -57,7 +57,7 @@ export default abstract class GeneralCommand extends SlashCommand {
     return this.client.slash.emojis;
   }
 
-  get prisma() {
+  get prisma(): typeof prisma {
     return prisma;
   }
 
