@@ -153,54 +153,62 @@ const app = uWS
     message: async (ws, message, isBinary) => {
       const data = ws.getUserData();
 
-      if (!data.ready) {
-        // Parse payload
-        const json = Buffer.from(message).toString('utf-8', 0);
-        let payload: { i: string; k: string; t: number };
-        try {
-          payload = destr(json, { strict: true });
-        } catch (e) {
-          return ws.end(1001);
+      if (data.left || data.authenticating) return;
+      try {
+        if (!data.ready) {
+          // Parse payload
+          const json = Buffer.from(message).toString('utf-8', 0);
+          let payload: { i: string; k: string; t: number };
+          try {
+            payload = destr(json, { strict: true });
+          } catch (e) {
+            return ws.end(1001);
+          }
+
+          // Validate payload
+          if (
+            !payload ||
+            typeof payload !== 'object' ||
+            typeof payload.i !== 'string' ||
+            typeof payload.k !== 'string' ||
+            typeof payload.t !== 'number'
+          )
+            return ws.end(4001);
+          if (
+            payload.t < 1 ||
+            payload.t > 65535 ||
+            !Number.isInteger(payload.t) ||
+            !payload.i ||
+            !payload.k ||
+            !ID_REGEX.exec(payload.i) ||
+            !ID_REGEX.exec(payload.k)
+          )
+            return ws.end(4001);
+
+          // Validate recording
+          data.authenticating = true;
+          const recExists = await recordingExists(payload.i);
+          if (data.left) return;
+          if (!recExists.available || !recExists.dataExists) return ws.end(4002);
+          const { info, users } = await getRecordingInfo(payload.i);
+          if (data.left) return;
+          if (!safeKeyCompare(info.key, payload.k)) return ws.end(4002);
+          if (!users[payload.t - 1]) return ws.end(4003);
+
+          const status = ws.send('{"ok":true}');
+          if (data.left) return;
+          if (status === 2) return ws.end(1011);
+          data.ready = true;
+          data.cancelTimeout();
+          data.controller = streamController(ws, payload.i, payload.t);
+        } else {
+          if (isBinary) data.controller?.onMessage(message);
         }
-
-        // Validate payload
-        if (
-          !payload ||
-          typeof payload !== 'object' ||
-          typeof payload.i !== 'string' ||
-          typeof payload.k !== 'string' ||
-          typeof payload.t !== 'number'
-        )
-          return ws.end(4001);
-        if (
-          payload.t < 1 ||
-          payload.t > 65535 ||
-          !Number.isInteger(payload.t) ||
-          !payload.i ||
-          !payload.k ||
-          !ID_REGEX.exec(payload.i) ||
-          !ID_REGEX.exec(payload.k)
-        )
-          return ws.end(4001);
-
-        // Validate recording
-        const recExists = await recordingExists(payload.i);
-        if (!recExists.available || !recExists.dataExists) return ws.end(4002);
-        const { info, users } = await getRecordingInfo(payload.i);
-        if (!safeKeyCompare(info.key, payload.k)) return ws.end(4002);
-        if (!users[payload.t - 1]) return ws.end(4003);
-
-        // Websocket left before we started
-        if (data.left) return;
-
-        try {
-          ws.send('{"ok":true}');
-        } catch {}
-        data.ready = true;
-        data.cancelTimeout();
-        data.controller = streamController(ws, payload.i, payload.t);
-      } else {
-        if (isBinary) data.controller?.onMessage(message);
+      } catch (e) {
+        logger.error('WebSocket message handler failed', e);
+        if (!data.left) ws.end(1011);
+      } finally {
+        data.authenticating = false;
       }
     },
     drain(ws) {
@@ -208,13 +216,15 @@ const app = uWS
     },
     close: (ws, code, message) => {
       const data = ws.getUserData();
-      if (!data.ready) data.cancelTimeout();
+      data.cancelTimeout();
       data.left = true;
-      data.controller?.onEnd();
+      const controller = data.controller;
+      data.controller = undefined;
       openStreams.dec();
       openStreamCount--;
       const reason = message ? Buffer.from(message).toString() : '';
-      logger.info(`WS close (${openStreamCount}) code=${code} reason=${reason} buffered=${ws.getBufferedAmount()}`);
+      logger.info(`WS close (${openStreamCount}) code=${code} reason=${reason}`);
+      controller?.onEnd();
     }
   })
   .listen(HOST, PORT, async (token) => {
