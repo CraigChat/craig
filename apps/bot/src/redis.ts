@@ -1,9 +1,39 @@
+import { getSemaphore } from '@henrygd/semaphore';
 import { Redis, type RedisOptions } from 'ioredis';
 
 import { getRedisOptions } from './config.js';
 
 const redisConfig: RedisOptions = getRedisOptions();
 export const client = new Redis(redisConfig);
+
+export async function cacheData<T>(
+  { key, ttl, allowThrows = false }: { key: string; ttl: number; allowThrows?: boolean },
+  cacher: () => Promise<T>
+): Promise<T | null> {
+  const sem = getSemaphore(`redis/${key}`);
+  await sem.acquire();
+  try {
+    const cached = await client.get(key);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as T;
+      } catch {}
+    }
+    try {
+      const data = await cacher();
+      if (data !== undefined && data !== null) {
+        await client.set(key, JSON.stringify(data), 'EX', ttl);
+        return data;
+      }
+    } catch (e) {
+      if (allowThrows) throw e;
+      return null;
+    }
+    return null;
+  } finally {
+    sem.release();
+  }
+}
 
 interface Cooldown {
   uses: number;
