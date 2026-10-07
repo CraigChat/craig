@@ -84,6 +84,10 @@ export default class JobManager {
           logger.warn(`Skipped resuming job due to no information: ${jobId}`);
           continue;
         }
+        if (!(await this.recordingExists(jobData.recordingId))) {
+          this.createSavedJob(jobData).cancel('RECORDING_NOT_FOUND');
+          continue;
+        }
         logger.info(`Resuming ${jobData.type} job ${jobId} (${jobData.recordingId})`);
         const job = this.createJob(
           {
@@ -99,7 +103,8 @@ export default class JobManager {
           true
         );
         job.createdAt = new Date(jobData.createdAt);
-        await job.queue();
+        if (!(await this.recordingExists(jobData.recordingId))) job.cancel('RECORDING_NOT_FOUND');
+        else await job.queue();
       }
     }
 
@@ -112,7 +117,8 @@ export default class JobManager {
           logger.warn(`Skipped saved job due to no information: ${jobId}`);
           continue;
         }
-        this.createSavedJob(jobData);
+        const job = this.createSavedJob(jobData);
+        if (job.status === 'queued' && !(await this.recordingExists(job.recordingId))) job.cancel('RECORDING_NOT_FOUND');
       }
     }
 
