@@ -16,6 +16,7 @@ module.exports = {
       cwd: '/opt/craig/bot',
       script: 'dist/sharding/index.mjs',
       wait_ready: true,
+      log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 10000,
       env: {
         ...sharedEnv,
@@ -32,6 +33,7 @@ module.exports = {
       cwd: '/opt/craig/kitchen',
       script: 'dist/index.js',
       wait_ready: true,
+      log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 10000,
       env: {
         ...sharedEnv,
@@ -45,6 +47,7 @@ module.exports = {
       cwd: '/opt/craig/ferret',
       script: 'build/index.js',
       wait_ready: true,
+      log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 3000,
       env: {
         ...sharedEnv,
@@ -58,6 +61,7 @@ module.exports = {
       cwd: '/opt/craig/ennuizel-streamer',
       script: 'dist/index.mjs',
       wait_ready: true,
+      log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 3000,
       env: {
         ...sharedEnv,
@@ -70,6 +74,7 @@ module.exports = {
       cwd: '/opt/craig/dashboard',
       script: 'build/index.js',
       wait_ready: true,
+      log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 3000,
       env: {
         ...sharedEnv,
@@ -82,6 +87,7 @@ module.exports = {
       cwd: '/opt/craig/tasks',
       script: 'dist/index.mjs',
       wait_ready: true,
+      log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 10000,
       env: sharedEnv
     }
