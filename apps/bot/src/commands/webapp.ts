@@ -27,15 +27,16 @@ export default class Webapp extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
+    const [t] = this.createT(ctx);
     if (!this.recorder.client.config.craig.webapp.on)
       return {
-        content: 'This instance of Craig does not have a webapp.',
+        content: t('webapp.not_enabled'),
         ephemeral: true
       };
 
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -45,7 +46,7 @@ export default class Webapp extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the webapp command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
@@ -59,7 +60,7 @@ export default class Webapp extends GeneralCommand {
         });
 
         return {
-          content: 'Enabled the Craig Webapp in future recordings. You should get a Webapp link in your recording DM.',
+          content: t('webapp.on'),
           ephemeral: true
         };
       }
@@ -71,14 +72,14 @@ export default class Webapp extends GeneralCommand {
         });
 
         return {
-          content: 'Disabled the Craig Webapp.',
+          content: t('webapp.off'),
           ephemeral: true
         };
       }
     }
 
     return {
-      content: 'Unknown sub-command.',
+      content: t('responses.unknown_subcommand'),
       ephemeral: true
     };
   }

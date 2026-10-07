@@ -1,4 +1,3 @@
-import { stripIndents } from 'common-tags';
 import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis.js';
@@ -15,9 +14,11 @@ export default class Info extends GeneralCommand {
   }
 
   async run(ctx: CommandContext) {
+    const [t] = this.createT(ctx);
+
     if (await checkBan(ctx.user.id))
       return {
-        content: 'You are not allowed to use the bot at this time.',
+        content: t('responses.banned'),
         ephemeral: true
       };
 
@@ -27,22 +28,23 @@ export default class Info extends GeneralCommand {
         `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the info command, but was ratelimited.`
       );
       return {
-        content: 'You are running commands too often! Try again in a few seconds.',
+        content: t('responses.ratelimited'),
         ephemeral: true
       };
     }
 
-    const [guildCount, recordings] = await this.sharding.getCounts();
+    const [guilds, recordings] = await this.sharding.getCounts();
 
     return {
-      content: stripIndents`
-        ${this.emojis.getMarkdown('craig')} **Craig** is a multi-track voice channel recorder.
-        I am in **${guildCount.toLocaleString()}** guilds and currently recording **${recordings.toLocaleString()}** conversations.
-
-        This server is on shard ${this.client.shard?.id ?? process.env.SHARD_ID} with ${
-          this.client.shard?.latency ?? '<unknown>'
-        } milliseconds of latency.
-      `,
+      content:
+        this.emojis.getMarkdown('craig') +
+        ' ' +
+        t('info.text', {
+          guilds,
+          recordings,
+          shard: this.client.shard?.id ?? process.env.SHARD_ID,
+          ms: this.client.shard?.latency ?? '<unknown>'
+        }),
       ephemeral: true,
       components: [
         {
@@ -57,7 +59,7 @@ export default class Info extends GeneralCommand {
             {
               type: ComponentType.BUTTON,
               style: ButtonStyle.LINK,
-              label: 'Invite',
+              label: t('common.add_to_server'),
               url: `https://discord.com/oauth2/authorize?client_id=${
                 this.client.config.craig.inviteID ?? this.client.config.applicationID
               }&permissions=0&scope=bot%20applications.commands`,
@@ -66,7 +68,7 @@ export default class Info extends GeneralCommand {
             {
               type: ComponentType.BUTTON,
               style: ButtonStyle.LINK,
-              label: 'Support Server',
+              label: t('common.support_server'),
               url: 'https://discord.gg/craig'
             }
           ]

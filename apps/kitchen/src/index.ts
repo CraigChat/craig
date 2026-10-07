@@ -165,8 +165,9 @@ app.get<{ Params: { id: string } }>('/recordings/:id/notes', async (req, reply) 
   }
 });
 
-app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:userId', async (req, reply) => {
+app.post<{ Params: { id: string; userId: string }; Querystring: { locale?: string } }>('/recordings/:id/upload/:userId', async (req, reply) => {
   const { id, userId } = req.params;
+  const locale = typeof req.query.locale === 'string' && req.query.locale.trim() ? req.query.locale : 'en';
 
   let user: User | null = null;
   function send(status: number, payload?: unknown) {
@@ -195,7 +196,7 @@ app.post<{ Params: { id: string; userId: string } }>('/recordings/:id/upload/:us
   if (!user.driveEnabled) return send(204); // Not enabled
   if (user.rewardTier !== -1 && user.rewardTier < 20 && user.driveContainer === 'mix') return send(204); // Mix unavailable with current tier
 
-  const postTaskOptions: CreateJobOptions['postTaskOptions'] = { userId };
+  const postTaskOptions: CreateJobOptions['postTaskOptions'] = { userId, locale };
   switch (user.driveService) {
     case 'google': {
       const result = await googlePreflight(userId);

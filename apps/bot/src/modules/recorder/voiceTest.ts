@@ -7,6 +7,7 @@ import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndents } from 'common-tags';
 import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
 
+import { TFunction } from '../../i18n.js';
 import type RecorderModule from './index.js';
 
 const PACKET_TIME = 960; // 20ms
@@ -36,6 +37,8 @@ export default class VoiceTest {
   guildId: string;
   channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel;
   user: Dysnomia.User;
+  t: TFunction;
+
   createdAt = new Date();
   active = false;
   state: VoiceTestState = VoiceTestState.IDLE;
@@ -55,11 +58,12 @@ export default class VoiceTest {
   // Audio storage - userID -> packets
   userPackets: Map<string, Chunk[]> = new Map();
 
-  constructor(recorder: RecorderModule, guildId: string, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, user: Dysnomia.User) {
+  constructor(recorder: RecorderModule, guildId: string, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel, user: Dysnomia.User, t: TFunction) {
     this.recorder = recorder;
     this.guildId = guildId;
     this.channel = channel;
     this.user = user;
+    this.t = t;
   }
 
   async start(messageChannelID: string, messageID: string) {
@@ -75,7 +79,7 @@ export default class VoiceTest {
       this.recorder.traceVoiceTimeout(this.connection);
       this.recorder.logger.error(`Failed to connect for voice test in ${this.guildId}`, e);
       this.state = VoiceTestState.ERROR;
-      this.stateDescription = 'Failed to connect to your channel, try again later.';
+      this.stateDescription = this.t('recording.connect_fail');
       this.updateMessage();
       this.cleanup();
       return;
@@ -102,7 +106,7 @@ export default class VoiceTest {
     const hasAudio = Array.from(this.userPackets.values()).some((packets) => packets.length > 0);
     if (!hasAudio) {
       this.state = VoiceTestState.NO_AUDIO;
-      this.stateDescription = 'No audio was detected during the test. Please check your microphone and try again.';
+      this.stateDescription = this.t('voicetest.no_audio');
       this.updateMessage();
       this.cleanup();
       return;
@@ -312,7 +316,7 @@ export default class VoiceTest {
     });
 
     this.state = VoiceTestState.CANCELLED;
-    this.stateDescription = 'I was disconnected from the voice channel.';
+    this.stateDescription = this.t('voicetest.disconnected');
 
     if (this.recordingTimer) clearTimeout(this.recordingTimer);
 
@@ -355,7 +359,7 @@ export default class VoiceTest {
 
   messageContent() {
     let color: number | undefined = undefined;
-    let title = 'Loading...';
+    let title = this.t('common.loading');
 
     switch (this.state) {
       case VoiceTestState.IDLE:
@@ -363,38 +367,38 @@ export default class VoiceTest {
         break;
 
       case VoiceTestState.CONNECTING:
-        title = 'Connecting...';
+        title = this.t('recording.panel.connecting');
         color = 0xf39c12;
         break;
 
       case VoiceTestState.RECORDING: {
-        title = '🔴 Recording voice test...';
+        title = `🔴 ${this.t('voicetest.panel.recording')}`;
         color = 0x2ecc71;
         break;
       }
 
       case VoiceTestState.PLAYBACK:
-        title = `${this.emojis.getMarkdown('playingaudio')} Playing back audio...`;
+        title = `${this.emojis.getMarkdown('playingaudio')} ${this.t('voicetest.panel.playing')}`;
         color = 0x3498db;
         break;
 
       case VoiceTestState.NO_AUDIO:
-        title = 'No audio recorded!';
+        title = this.t('voicetest.panel.no_audio');
         color = 0xe74c3c;
         break;
 
       case VoiceTestState.ENDED:
-        title = `${this.emojis.getMarkdown('check')} Voice test finished.`;
+        title = `${this.emojis.getMarkdown('check')} ${this.t('voicetest.panel.finished')}`;
         color = 0x2ecc71;
         break;
 
       case VoiceTestState.CANCELLED:
-        title = 'Voice test cancelled.';
+        title = this.t('voicetest.panel.cancelled');
         color = 0x333333;
         break;
 
       case VoiceTestState.ERROR:
-        title = '❌ Voice test failed!';
+        title = `❌ ${this.t('voicetest.panel.failed')}`;
         color = 0xe74c3c;
         break;
     }
@@ -411,7 +415,7 @@ export default class VoiceTest {
               ${this.stateDescription ?? ''}
               ${
                 this.state === VoiceTestState.RECORDING && this.recordingEndTime
-                  ? `\n-# Recording will end <t:${Math.floor(this.recordingEndTime / 1000)}:R>`
+                  ? `\n-# ${this.t('voicetest.panel.will_end_in', { in_time: `<t:${Math.floor(this.recordingEndTime / 1000)}:R>` })}`
                   : ''
               }
             `
@@ -424,14 +428,14 @@ export default class VoiceTest {
                     {
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.DESTRUCTIVE,
-                      label: 'Stop & Listen',
+                      label: this.t('voicetest.panel.stop'),
                       custom_id: 'voicetest:stop',
                       emoji: this.emojis.getPartial('stop')
                     },
                     {
                       type: ComponentType.BUTTON,
                       style: ButtonStyle.SECONDARY,
-                      label: 'Cancel',
+                      label: this.t('common.cancel'),
                       custom_id: 'voicetest:cancel'
                     }
                   ]
