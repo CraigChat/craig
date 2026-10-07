@@ -41,6 +41,8 @@ export class Job extends EventEmitter {
   postTaskOptions?: Kitchen.CreateJobOptions['postTaskOptions'];
   abortController = new AbortController();
   state: Kitchen.JobState = {};
+  stateUpdatedAt = Date.now();
+  stageStartedAt = Date.now();
   outputData: Kitchen.JobOutputData = {};
   extraFiles: string[] = [];
 
@@ -184,6 +186,15 @@ export class Job extends EventEmitter {
   }
 
   setState(state: this['state']) {
+    this.stateUpdatedAt = Date.now();
+    if (state.type !== this.state.type) {
+      logger.info(`Job ${this.id} (${this.recordingId}) changed stage`, {
+        previous: this.state.type,
+        stage: state.type,
+        previousStageMs: this.stateUpdatedAt - this.stageStartedAt
+      });
+      this.stageStartedAt = this.stateUpdatedAt;
+    }
     this.state = state;
     this.emit('state', state);
     this.push();
@@ -225,17 +236,23 @@ export class Job extends EventEmitter {
     if (!QUEUE_SIZE || this.manager.getQueueLength() < QUEUE_SIZE || this.tags?.queueBypass) return this.run();
     this.setStatus('queued');
     await setStreamOpen(this.id);
-    logger.info(`Queued job ${this.id} (${this.recordingId})`);
+    logger.info(`Queued job ${this.id} (${this.recordingId})`, { type: this.type, resumed: this.continued, capacity: QUEUE_SIZE });
   }
 
   async run() {
+    this.startedAt = new Date();
     this.setStatus('running');
     this.setState({ type: 'starting' });
     await fs.mkdir(this.tmpDir, { recursive: true });
     await setStreamOpen(this.id);
 
-    logger.info(`Starting job ${this.id} (${this.recordingId})`);
-    this.startedAt = new Date();
+    logger.info(`Starting job ${this.id} (${this.recordingId})`, {
+      type: this.type,
+      export: this.exportString,
+      resumed: this.continued,
+      queueBypass: !!this.tags?.queueBypass,
+      ageMs: this.startedAt.valueOf() - this.createdAt.valueOf()
+    });
 
     if (this.type === 'recording') {
       this.promise = processRecordingJob(this)
@@ -261,11 +278,15 @@ export class Job extends EventEmitter {
   }
 
   async #onFinish() {
-    logger.info(`Job ${this.id} (${this.recordingId}) finished`);
     const stat = await this.getOutputStat();
     if (stat) this.outputSize = stat.size;
     this.finishedAt = new Date();
     this.setStatus('complete');
+    logger.info(`Job ${this.id} (${this.recordingId}) finished`, {
+      runtimeMs: this.finishedAt.valueOf() - (this.startedAt?.valueOf() ?? this.createdAt.valueOf()),
+      outputSize: this.outputSize,
+      warnedTracks: this.outputData.usersWarned
+    });
 
     await this.cleanup().catch(() => logger.error(`Failed to clean up ${this.id}`));
   }
@@ -275,7 +296,10 @@ export class Job extends EventEmitter {
       this.failReason = formatError(e).slice(0, 2000);
       this.abortController.abort(this.failReason);
       this.setStatus('error');
-      logger.error(`Job ${this.id} (${this.recordingId}) errored:`, e);
+      logger.error(`Job ${this.id} (${this.recordingId}) errored:`, e, {
+        stage: this.state.type,
+        runtimeMs: Date.now() - (this.startedAt?.valueOf() ?? this.createdAt.valueOf())
+      });
     }
     if (this.outputData.transcriptionRequestId)
       await fetch(`https://api.runpod.ai/v2/${RUNPOD_TRANSCRIPTION_ENDPOINT_ID}/cancel/${this.outputData.transcriptionRequestId}`, {

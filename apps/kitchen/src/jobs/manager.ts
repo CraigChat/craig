@@ -30,6 +30,8 @@ export default class JobManager {
   jobs = new Map<string, Job>();
   allowNewJobs = false;
   queueInterval?: NodeJS.Timeout;
+  queueTickRunning = false;
+  shuttingDown = false;
 
   createJob(opts: CreateJobOptions, force = false) {
     if (!this.allowNewJobs && !force) throw new Error('NOT_ACCEPTING_NEW_JOBS');
@@ -44,6 +46,7 @@ export default class JobManager {
 
   createSavedJob(jobJson: JobJSON) {
     const job = Job.fromSaved(jobJson, this);
+    if (job.status === 'queued') job.tags = { ...job.tags, queueBypass: job.postTask === 'upload' };
     this.jobs.set(job.id, job);
     return job;
   }
@@ -87,7 +90,7 @@ export default class JobManager {
             continueJobId: jobId,
             id: jobData.recordingId,
             from: jobData.from,
-            tags: jobData.tags,
+            tags: { ...jobData.tags, queueBypass: jobData.postTask === 'upload' },
             options: jobData.options,
             jobType: jobData.type,
             postTask: jobData.postTask,
@@ -95,12 +98,13 @@ export default class JobManager {
           },
           true
         );
-        await job.run();
+        job.createdAt = new Date(jobData.createdAt);
+        await job.queue();
       }
     }
 
     if (savedJobs.savedIds.length > 0) {
-      logger.info(`Loading saved jobs: ${savedJobs.savedIds.join(', ')}`);
+      logger.info(`Loading ${savedJobs.savedIds.length} completed/queued jobs.`);
 
       for (const jobId of savedJobs.savedIds) {
         const jobData = savedJobs.jobs.find((job) => job.id === jobId);
@@ -113,6 +117,7 @@ export default class JobManager {
     }
 
     if (this.jobs.size <= 0) return void logger.info('No jobs to resume from saved jobs.');
+    logger.info('Saved jobs restored.', this.getDiagnostics());
   }
 
   async init() {
@@ -137,13 +142,18 @@ export default class JobManager {
     this.allowNewJobs = true;
     this.cron.start();
     this.saveCron?.start();
-    if (QUEUE_SIZE) this.queueInterval = setInterval(() => this.queueIntervalTick(), 1_000);
+    if (QUEUE_SIZE)
+      this.queueInterval = setInterval(() => {
+        void this.queueIntervalTick().catch((error) => logger.error('Queue tick failed.', error));
+      }, 1_000);
 
     logger.info('Job manager ready.');
   }
 
   async onShutdown() {
     this.allowNewJobs = false;
+    this.shuttingDown = true;
+    if (this.queueInterval) clearInterval(this.queueInterval);
     const jobsToResume = this.cancelAllJobs('SERVICE_RESTARTING');
     const jobsToSave = Array.from(this.jobs.values()).filter((job) => job.status === 'complete' || job.status === 'queued');
     this.cron.stop();
@@ -205,6 +215,7 @@ export default class JobManager {
       }
     }
     this.jobs.delete(job.id);
+    logger.info(`Deleted job ${job.id} (${job.recordingId})`, { status: job.status, reason: cancelReason });
     return true;
   }
 
@@ -279,23 +290,60 @@ export default class JobManager {
     return Array.from(this.jobs.values()).filter((j) => j.status === 'running' && !j.tags?.queueBypass).length;
   }
 
+  getDiagnostics() {
+    const now = Date.now();
+    const jobs = Array.from(this.jobs.values());
+    const running = jobs.filter((job) => job.status === 'running');
+    const queued = jobs.filter((job) => job.status === 'queued');
+    return {
+      acceptingJobs: this.allowNewJobs,
+      capacity: QUEUE_SIZE,
+      running: running.length,
+      bypassRunning: running.filter((job) => job.tags?.queueBypass).length,
+      queued: queued.length,
+      oldestQueuedAgeMs: queued.reduce((age, job) => Math.max(age, now - job.createdAt.valueOf()), 0),
+      oldestRunning: running
+        .sort((a, b) => (a.startedAt?.valueOf() ?? a.createdAt.valueOf()) - (b.startedAt?.valueOf() ?? b.createdAt.valueOf()))
+        .slice(0, 5)
+        .map((job) => ({
+          id: job.id,
+          recordingId: job.recordingId,
+          type: job.type,
+          stage: job.state.type,
+          runtimeMs: now - (job.startedAt?.valueOf() ?? job.createdAt.valueOf()),
+          stateAgeMs: now - job.stateUpdatedAt,
+          stageAgeMs: now - job.stageStartedAt
+        }))
+    };
+  }
+
   async queueIntervalTick() {
-    const runningJobs = this.getQueueLength();
-    const queuedJobs = Array.from(this.jobs.values())
-      .filter((j) => j.status === 'queued')
-      .sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf());
-    let startedJobs = 0;
-    let queuePosition = 0;
+    if (this.queueTickRunning || this.shuttingDown) return;
+    this.queueTickRunning = true;
+    try {
+      let runningJobs = this.getQueueLength();
+      const queuedJobs = Array.from(this.jobs.values())
+        .filter((j) => j.status === 'queued')
+        .sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf());
+      let startedJobs = 0;
+      let queuePosition = 0;
 
-    for (const job of queuedJobs) {
-      if (!QUEUE_SIZE || runningJobs + startedJobs < QUEUE_SIZE) {
-        await job.run();
-        if (QUEUE_SIZE) startedJobs++;
-      } else {
-        job.setState({ position: ++queuePosition });
+      for (const job of queuedJobs) {
+        if (this.shuttingDown) break;
+        if (job.status !== 'queued') continue;
+        if (!QUEUE_SIZE || runningJobs < QUEUE_SIZE || job.tags?.queueBypass) {
+          await job.run();
+          // Other jobs can start or finish while run() initializes asynchronously.
+          runningJobs = this.getQueueLength();
+          startedJobs++;
+        } else {
+          job.setState({ position: ++queuePosition });
+        }
       }
-    }
 
-    if (startedJobs) logger.log(`Started ${startedJobs} jobs from queue.`);
+      if (startedJobs) logger.info(`Started ${startedJobs} jobs from queue.`, this.getDiagnostics());
+    } finally {
+      this.queueTickRunning = false;
+    }
   }
 }

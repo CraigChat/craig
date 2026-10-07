@@ -21,6 +21,7 @@ import { dropboxPreflight } from './jobs/upload/dropbox.js';
 import { googlePreflight } from './jobs/upload/google.js';
 import { onedrivePreflight } from './jobs/upload/onedrive.js';
 import { REC_DIRECTORY } from './util/config.js';
+import { installLifecycleLogging, logEmergency, logLifecycle } from './util/lifecycle.js';
 import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
 import { getDuration, getNotes } from './util/process.js';
@@ -34,6 +35,7 @@ const app = fastify({
   }
 });
 const jobManager = new JobManager();
+installLifecycleLogging(jobManager);
 
 app.get('/health', async (req, reply) => {
   return reply.status(200).send({ responseTime: reply.elapsedTime } as KitchenHealthResponse);
@@ -94,7 +96,7 @@ app.post<{ Params: { id: string } }>('/jobs/:id/cancel', async (req, reply) => {
 app.delete<{ Params: { id: string } }>('/jobs/:id', async (req, reply) => {
   const job = jobManager.jobs.get(req.params.id);
   if (!job) return reply.status(400).send({ error: 'Job not found' });
-  const success = jobManager.deleteJob(job.id);
+  const success = await jobManager.deleteJob(job.id);
   if (!success) return reply.status(400).send({ error: 'Job not found' });
 
   return reply.status(200).send(job);
@@ -292,21 +294,27 @@ const start = async () => {
     startMetricsServer(logger);
     if (process.send && process.env.pm_id !== undefined) process.send('ready');
   } catch (err) {
-    logger.error(err);
+    logEmergency('startup_failed', { error: String(err), stack: err instanceof Error ? err.stack : undefined });
     process.exit(1);
   }
 };
 
 void start();
 
-process.on('SIGINT', async () => {
-  logger.info('SIGINT recieved, shutting down...');
-  await jobManager.onShutdown();
-  process.exit(0);
-});
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  logLifecycle('signal_received', { signal, queue: jobManager.getDiagnostics() });
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    await jobManager.onShutdown();
+    logEmergency('shutdown_finished', { signal });
+    process.exit(0);
+  } catch (error) {
+    logEmergency('shutdown_failed', { signal, error: String(error), stack: error instanceof Error ? error.stack : undefined });
+    process.exit(1);
+  }
+}
 
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM recieved, shutting down...');
-  await jobManager.onShutdown();
-  process.exit(0);
-});
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
