@@ -296,6 +296,6 @@ export default class JobManager {
       }
     }
 
-    if (startedJobs) console.log(`Started ${startedJobs} jobs from queue.`);
+    if (startedJobs) logger.log(`Started ${startedJobs} jobs from queue.`);
   }
 }
