@@ -118,6 +118,12 @@ export default class SlashModule extends BotModule {
       else if (ctx.customID.startsWith('user:')) await this.handleUserInteraction(ctx);
     });
 
+    if (process.env.BOT_SYNC_COMMANDS === 'true' && (!process.env.SHARD_ID || process.env.SHARD_ID === '0')) {
+      this.logger.info('Syncing slash commands to Discord...');
+      await this.creator.syncCommands();
+      this.logger.info('Slash commands synced to Discord');
+    }
+
     if (process.env.EMOJI_SYNC_DATA) {
       this.emojis.loadFromDiscord(JSON.parse(process.env.EMOJI_SYNC_DATA));
       this.logger.debug('Loaded emojis from shard manager');

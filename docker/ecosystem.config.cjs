@@ -19,6 +19,7 @@ module.exports = {
       kill_timeout: 10000,
       env: {
         ...sharedEnv,
+        BOT_SYNC_COMMANDS: 'true',
         BOT_EMOJI_FOLDER: '/opt/craig/bot/emojis',
         BOT_LOCALE_FOLDER: '/opt/craig/locale',
         BOT_VOICE_TEST_FOLDER: '/opt/craig/bot/audio',
