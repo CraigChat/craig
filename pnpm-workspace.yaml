@@ -9,7 +9,7 @@ catalog:
   common-tags: ^1.8.2
   cron: ^4.3.4
   destr: ^2.0.5
-  execa: ^9.5.3
+  execa: ^10.1.0
   ioredis: ^6.0.0
   nanoid: ^6.0.1
   tsdown: 0.22.14
@@ -36,6 +36,7 @@ minimumReleaseAgeExclude:
   - '@snazzah/davey*'
   - '@mediabunny/flac-encoder@1.56.0'
   - mediabunny@1.56.0
+  - execa@10.1.0
 patchedDependencies:
   '@discordjs/node-pre-gyp@0.4.5': patches/@discordjs__node-pre-gyp@0.4.5.patch
   svelte-awesome-color-picker: patches/svelte-awesome-color-picker.patch

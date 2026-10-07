@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 
 import type { RecordingNote } from '@craig/types/recording';
-import { execaCommand } from 'execa';
 import type { WebSocket } from 'uWebSockets.js';
 
 import { REC_DIRECTORY } from './config.js';
@@ -10,6 +9,7 @@ import { ROOT_DIR, WebsocketData } from './index.js';
 import logger from './logger.js';
 import { wsHistogram } from './metrics.js';
 import { procOpts } from './processOptions.js';
+import { runCommand } from './subprocess.js';
 import { WebSocketStream } from './websocketStream.js';
 
 export { MAX_ACK, SEND_SIZE } from './websocketStream.js';
@@ -22,9 +22,9 @@ interface CommonProcessOptions {
 }
 
 export async function getNotes({ recFileBase, cancelSignal }: CommonProcessOptions) {
-  const subprocess = execaCommand(
+  const subprocess = runCommand(
     [['cat', ...['header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '), './cook/extnotes -f json'].join(' | '),
-    { cancelSignal, shell: true, cwd: ROOT_DIR }
+    { cancelSignal, shell: true, cwd: ROOT_DIR, timeout: DEF_TIMEOUT }
   );
   const { stdout } = await subprocess;
   return JSON.parse(stdout) as RecordingNote[];
@@ -42,9 +42,9 @@ export function rawPartwise({ recFileBase, track, cancelSignal }: RawPartwiseOpt
     `${pOpts} ./cook/oggcorrect ${track}`
   ];
 
-  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
+  const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
 
-  childProcess.stderr.on('data', () => {});
+  childProcess.stderr.resume();
   childProcess.stderr.on('error', () => {});
 
   return childProcess;
@@ -68,9 +68,9 @@ export function streamController(ws: WebSocket<WebsocketData>, id: string, track
   const recFileBase = join(REC_DIRECTORY, `${id}.ogg`);
   const childProcess = rawPartwise({ recFileBase, track, cancelSignal: abortController.signal });
 
-  childProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
-  childProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
-  childProcess.on('error', (e) => {
+  childProcess.nodeChildProcess.on('spawn', () => logger.info(`[${id}-${track}] Process spawned`));
+  childProcess.nodeChildProcess.on('exit', (code, signal) => logger.log(`[${id}-${track}] Process exited (${code}, ${signal})`));
+  childProcess.nodeChildProcess.on('error', (e) => {
     logger.log(`[${id}-${track}] Process errored (${e})`);
     wsStream.endStream(1003);
   });
@@ -87,10 +87,10 @@ export function streamController(ws: WebSocket<WebsocketData>, id: string, track
   logger.log(`[${id}-${track}] Stream ready with process ${childProcess.pid}`);
 
   const killProcess = () => {
-    if (childProcess.exitCode === null) {
+    if (childProcess.nodeChildProcess.exitCode === null) {
       logger.log(`[${id}-${track}] Killing process...`);
       const success = childProcess.kill();
-      if (!success) logger.log(`[${id}-${track}] Process killing did not succeed (ec: ${childProcess.exitCode})`);
+      if (!success) logger.log(`[${id}-${track}] Process killing did not succeed (ec: ${childProcess.nodeChildProcess.exitCode})`);
     }
   };
 

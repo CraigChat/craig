@@ -4,7 +4,6 @@ import * as path from 'node:path';
 
 import { StreamType } from '@craig/types/recording';
 import { source, stripIndent } from 'common-tags';
-import { execaCommand } from 'execa';
 import { createWriteStream, WriteStream } from 'fs';
 import he from 'he';
 import zip from 'just-zip-it';
@@ -25,6 +24,7 @@ import {
 } from '../../util/process.js';
 import { procOpts } from '../../util/processOptions.js';
 import { getInfoText, getRecordingInfo } from '../../util/recording.js';
+import { runCommand } from '../../util/subprocess.js';
 import { Job } from '../job.js';
 import { backgroundTranscription } from './transcription.js';
 
@@ -205,7 +205,7 @@ export async function processRecordingJob(job: Job) {
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
-        await execaCommand(`${pOpts} zip -r -FI - . | cat "${sfxPath}" - > ${job.outputFile}`, {
+        await runCommand(`${pOpts} zip -r -FI - . | cat "${sfxPath}" - > ${job.outputFile}`, {
           cancelSignal,
           timeout: DEF_TIMEOUT,
           shell: true,
@@ -367,7 +367,7 @@ export async function processRecordingJob(job: Job) {
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
-        await execaCommand(`${pOpts} zip -rFI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
+        await runCommand(`${pOpts} zip -rFI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
         break;
       }
     }

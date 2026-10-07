@@ -1,14 +1,14 @@
-import { createReadStream, createWriteStream, WriteStream } from 'node:fs';
+import { createReadStream, WriteStream } from 'node:fs';
 import { readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import { RecordingInfo, RecordingNote, RecordingUser, StreamType } from '@craig/types/recording';
-import { execaCommand } from 'execa';
 
 import { Job } from '../jobs/job.js';
 import logger from '../util/logger.js';
 import { ROOT_DIR } from './index.js';
 import { procOpts } from './processOptions.js';
+import { runCommand } from './subprocess.js';
 
 export const DEF_TIMEOUT = 14400 * 1000; // 4 hours
 
@@ -18,16 +18,20 @@ interface CommonProcessOptions {
 }
 
 export function streamRecording({ recFileBase, cancelSignal }: CommonProcessOptions) {
-  return execaCommand(['cat', ...['header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '), { cancelSignal, buffer: false });
+  return runCommand(['cat', ...['header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '), {
+    cancelSignal,
+    buffer: false,
+    timeout: DEF_TIMEOUT
+  });
 }
 
 export async function getNotes({
   recFileBase,
   cancelSignal
 }: Omit<CommonProcessOptions, 'cancelSignal'> & { cancelSignal?: AbortSignal | undefined }) {
-  const subprocess = execaCommand(
+  const subprocess = runCommand(
     [['cat', ...['header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '), './cook/extnotes -f json'].join(' | '),
-    { cancelSignal, shell: true, cwd: ROOT_DIR }
+    { cancelSignal, shell: true, cwd: ROOT_DIR, timeout: DEF_TIMEOUT }
   );
   const { stdout } = await subprocess;
   return JSON.parse(stdout) as RecordingNote[];
@@ -36,7 +40,7 @@ export async function getNotes({
 export async function getStreamTypes({ recFileBase, cancelSignal }: CommonProcessOptions) {
   const stream = createReadStream(`${recFileBase}.header1`);
   try {
-    const subprocess = execaCommand('./cook/oggtracks', { cancelSignal, cwd: ROOT_DIR, timeout: 10000 });
+    const subprocess = runCommand('./cook/oggtracks', { cancelSignal, cwd: ROOT_DIR, timeout: 10000 });
     stream.pipe(subprocess.stdin!);
     const { stdout } = await subprocess;
     return stdout.split('\n') as StreamType[];
@@ -50,35 +54,10 @@ interface DurationOptions extends Omit<CommonProcessOptions, 'cancelSignal'> {
   track?: number;
 }
 
-export async function getChildPids(pid: number, cancelSignal: AbortSignal) {
-  try {
-    if (!pid) return [];
-    return (await execaCommand(`ps --ppid ${pid} --no-headers -o pid`, { cancelSignal, timeout: 5000 })).stdout
-      .split('\n')
-      .map((l) => parseInt(l.trim(), 10));
-  } catch (e) {
-    return [];
-  }
-}
-
-function killPids(pids: number[], recFileBase: string, logId: string) {
-  const recId = recFileBase.split('/').reverse()[0].split('.')[0];
-  if (pids.length) {
-    logger.log(`Killing process for ${recId} [${logId}]: ${pids}`);
-    for (const pid of [...pids].reverse()) {
-      try {
-        process.kill(pid, 9);
-      } catch (e) {
-        logger.log(` - Failed to kill ${pid} for ${recId} [${logId}]: ${(e as any).code}`);
-      }
-    }
-  }
-}
-
 export async function getDuration({ recFileBase, cancelSignal, track }: DurationOptions) {
   const stream = createReadStream(`${recFileBase}.data`);
   try {
-    const subprocess = execaCommand(`${procOpts()} ./cook/oggduration${track ? ` ${track}` : ''}`, {
+    const subprocess = runCommand(`${procOpts()} ./cook/oggduration${track ? ` ${track}` : ''}`, {
       cancelSignal,
       cwd: ROOT_DIR,
       timeout: 5 * 60 * 1000
@@ -170,19 +149,17 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
   ];
 
   const directOutput = encodeCommand.includes('$OUTPUT');
-  const childProcess = execaCommand(commands.join(' | '), {
+  const childProcess = runCommand(commands.join(' | '), {
     cancelSignal,
     buffer: false,
     shell: true,
     timeout: DEF_TIMEOUT,
     cwd: ROOT_DIR,
-    env: directOutput ? { OUTPUT: audioWritePath } : undefined
+    env: directOutput ? { OUTPUT: audioWritePath } : undefined,
+    stdout: directOutput ? 'ignore' : { file: audioWritePath }
   });
-  const childPids = await getChildPids(childProcess.pid!, cancelSignal);
 
   const durationNum = parseFloat(duration);
-  const outputStream = directOutput ? undefined : createWriteStream(audioWritePath);
-  let abortListener: ((event: Event) => void) | undefined;
 
   try {
     childProcess
@@ -200,15 +177,6 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
       })
       .once('error', () => {});
 
-    // Add abort handler that we can clean up later
-    abortListener = () => {
-      childProcess.stderr!.removeAllListeners('data');
-      killPids(childPids, recFileBase, `encodeTrack/${track}`);
-    };
-    cancelSignal.addEventListener('abort', abortListener);
-
-    if (outputStream) childProcess.stdout!.pipe(outputStream);
-
     const success = await childProcess
       .then(() => true)
       .catch(() => {
@@ -218,9 +186,7 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
     return success;
   } finally {
     // Clean up event listeners and streams
-    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
-    childProcess.stderr.removeAllListeners();
-    outputStream?.end();
+    childProcess.stderr.removeAllListeners('data');
   }
 }
 
@@ -267,9 +233,9 @@ export async function createAvatarVideo({
     ].join(' ')
   ];
 
-  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
-  const childPids = await getChildPids(childProcess.pid!, cancelSignal);
-  let abortListener: ((event: Event) => void) | undefined;
+  const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
+
+  childProcess.stdout!.resume();
 
   try {
     childProcess
@@ -290,13 +256,6 @@ export async function createAvatarVideo({
       })
       .once('error', () => {});
 
-    // Add abort handler that we can clean up later
-    abortListener = () => {
-      childProcess.stderr!.removeAllListeners('data');
-      killPids(childPids, recFileBase, `createAvatarVideo/${track}`);
-    };
-    cancelSignal.addEventListener('abort', abortListener);
-
     const success = await childProcess
       .then(() => true)
       .catch(() => {
@@ -306,8 +265,7 @@ export async function createAvatarVideo({
     return success;
   } finally {
     // Clean up event listeners and streams
-    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
-    childProcess.stderr.removeAllListeners();
+    childProcess.stderr.removeAllListeners('data');
   }
 }
 
@@ -319,10 +277,9 @@ interface ReEncodeTrackOptions {
 export async function reEncodeTrack({ cancelSignal, audioWritePath }: ReEncodeTrackOptions) {
   const tempPath = path.join(path.dirname(audioWritePath), 'TMP-' + path.basename(audioWritePath));
   await rename(audioWritePath, tempPath);
-  const success = await execaCommand(`${procOpts()} ffmpeg -i "${tempPath}" -c:v copy -c:a flac "${audioWritePath}"`, {
+  const success = await runCommand(`${procOpts()} ffmpeg -i "${tempPath}" -c:v copy -c:a flac "${audioWritePath}"`, {
     cancelSignal,
     shell: true,
-    buffer: false,
     timeout: DEF_TIMEOUT
   })
     .then(() => true)
@@ -338,7 +295,7 @@ interface FileDurationOptions {
 }
 
 export async function getFileDuration({ cancelSignal, file }: FileDurationOptions) {
-  const subprocess = await execaCommand(`ffprobe -i "${file}" -show_entries format=duration -v quiet -of csv="p=0"`, {
+  const subprocess = await runCommand(`ffprobe -i "${file}" -show_entries format=duration -v quiet -of csv="p=0"`, {
     cancelSignal,
     shell: true,
     timeout: 5 * 60 * 1000
@@ -351,19 +308,10 @@ export async function encodeMixTrack({ recFileBase, track, cancelSignal, audioWr
     ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
     `${procOpts()} ./cook/oggcorrect ${track} > ${audioWritePath}`
   ];
-  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
-  const childPids = await getChildPids(childProcess.pid!, cancelSignal);
+  const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
 
-  // Prevent further data from stderr from spilling out
-  cancelSignal.addEventListener('abort', () => {
-    if (childProcess.killed) {
-      childProcess.stderr!.removeAllListeners('data');
-      killPids(childPids, recFileBase, `encodeMixTrack/${track}`);
-    }
-  });
-
-  // FIXME this doesnt work for some reason
-  // childProcess.stdout!.pipe(createWriteStream(audioWritePath));
+  childProcess.stdout!.resume();
+  childProcess.stderr!.resume();
 
   await childProcess.catch(() => {});
 }
@@ -401,17 +349,15 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
   ];
 
   const directOutput = encodeCommand.includes('$OUTPUT');
-  const childProcess = execaCommand(commands.join(' | '), {
+  const childProcess = runCommand(commands.join(' | '), {
     cancelSignal,
     buffer: false,
     shell: true,
     timeout: DEF_TIMEOUT,
     cwd: ROOT_DIR,
-    env: directOutput ? { OUTPUT: audioWritePath } : undefined
+    env: directOutput ? { OUTPUT: audioWritePath } : undefined,
+    stdout: directOutput ? 'ignore' : { file: audioWritePath }
   });
-  const childPids = await getChildPids(childProcess.pid!, cancelSignal);
-  const outputStream = directOutput ? undefined : createWriteStream(audioWritePath);
-  let abortListener: ((event: Event) => void) | undefined;
 
   try {
     const durationNum = parseFloat(duration);
@@ -427,19 +373,9 @@ export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeComma
       })
       .once('error', () => {});
 
-    abortListener = () => {
-      childProcess.stderr!.removeAllListeners('data');
-      killPids(childPids, recFileBase, 'encodeMix');
-    };
-    cancelSignal.addEventListener('abort', abortListener);
-
-    if (outputStream) childProcess.stdout!.pipe(outputStream);
-
     await childProcess.catch(() => {});
   } finally {
-    // Clean up event listeners and streams
-    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
-    outputStream?.end();
+    childProcess.stderr.removeAllListeners('data');
   }
 }
 
@@ -501,11 +437,11 @@ export async function encodeTranscriptionTrack({ recFileBase, codec, track, canc
     `${pOpts} ffmpeg -c:a ${codec === 'opus' ? 'libopus' : codec} -i - -f ogg -c:a libopus -ac 1 -ar 16000 -b:a 32k -application lowdelay -y "${audioWritePath}"`
   ];
 
-  const childProcess = execaCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
-  const childPids = await getChildPids(childProcess.pid!, cancelSignal);
+  const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
 
   const durationNum = parseFloat(duration);
-  let abortListener: ((event: Event) => void) | undefined;
+
+  childProcess.stdout!.resume();
 
   try {
     childProcess
@@ -523,13 +459,6 @@ export async function encodeTranscriptionTrack({ recFileBase, codec, track, canc
       })
       .once('error', () => {});
 
-    // Add abort handler that we can clean up later
-    abortListener = () => {
-      childProcess.stderr!.removeAllListeners('data');
-      killPids(childPids, recFileBase, `encodeTranscriptionTrack/${track}`);
-    };
-    cancelSignal.addEventListener('abort', abortListener);
-
     const success = await childProcess
       .then(() => true)
       .catch(() => {
@@ -539,7 +468,6 @@ export async function encodeTranscriptionTrack({ recFileBase, codec, track, canc
     return success;
   } finally {
     // Clean up event listeners and streams
-    if (abortListener) cancelSignal.removeEventListener('abort', abortListener);
-    childProcess.stderr.removeAllListeners();
+    childProcess.stderr.removeAllListeners('data');
   }
 }

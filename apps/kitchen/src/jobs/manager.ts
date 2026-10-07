@@ -17,11 +17,12 @@ import {
   TMP_DIRECTORY,
   TMP_EXPIRATION
 } from '../util/config.js';
-import { pathExists, wait } from '../util/index.js';
+import { pathExists } from '../util/index.js';
 import logger from '../util/logger.js';
 import { cleanedBytes, cleanedFiles, jobCount } from '../util/metrics.js';
 import { testProcessOptions } from '../util/processOptions.js';
 import { deleteSavedJobs, readSavedJobs, writeSavedJobs } from '../util/redis.js';
+import { stopProcesses } from '../util/subprocess.js';
 import { Job } from './job.js';
 
 export default class JobManager {
@@ -32,6 +33,7 @@ export default class JobManager {
   queueInterval?: NodeJS.Timeout;
   queueTickRunning = false;
   shuttingDown = false;
+  private pendingSave: Promise<unknown> = Promise.resolve();
 
   createJob(opts: CreateJobOptions, force = false) {
     if (!this.allowNewJobs && !force) throw new Error('NOT_ACCEPTING_NEW_JOBS');
@@ -160,23 +162,32 @@ export default class JobManager {
     this.allowNewJobs = false;
     this.shuttingDown = true;
     if (this.queueInterval) clearInterval(this.queueInterval);
-    const jobsToResume = this.cancelAllJobs('SERVICE_RESTARTING');
+    const jobsToResume = Array.from(this.jobs.values()).filter((job) => job.status === 'running');
     const jobsToSave = Array.from(this.jobs.values()).filter((job) => job.status === 'complete' || job.status === 'queued');
     this.cron.stop();
     this.saveCron?.stop();
 
-    if (!SAVE_JOBS) return;
-
-    if (jobsToResume.length === 0 && jobsToSave.length === 0) logger.info('No jobs needed to save.');
-    if (jobsToResume.length !== 0) logger.info(`Saving jobs to resume: ${jobsToResume.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
-    if (jobsToSave.length !== 0) logger.info(`Saving completed/queued jobs: ${jobsToSave.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
-    await this.saveJobs(jobsToResume, jobsToSave, 'shutdown');
-    logger.info('Saved jobs.');
-
-    await wait(1000);
+    try {
+      if (SAVE_JOBS) {
+        if (jobsToResume.length === 0 && jobsToSave.length === 0) logger.info('No jobs needed to save.');
+        if (jobsToResume.length !== 0)
+          logger.info(`Saving jobs to resume: ${jobsToResume.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
+        if (jobsToSave.length !== 0)
+          logger.info(`Saving completed/queued jobs: ${jobsToSave.map((job) => `${job.id} (${job.recordingId})`).join(', ')}`);
+        await this.saveJobs(jobsToResume, jobsToSave, 'shutdown');
+        logger.info('Saved jobs.');
+      }
+    } finally {
+      // Persist the snapshot before cancellation can change job status or state.
+      // Cleanup must still run if saving fails.
+      this.cancelAllJobs('SERVICE_RESTARTING');
+      await stopProcesses();
+      logger.info('Kitchen subprocesses stopped.');
+    }
   }
 
   async saveCronTick() {
+    if (this.shuttingDown) return;
     const jobsToResume = Array.from(this.jobs.values()).filter((job) => job.status === 'running');
     const jobsToSave = Array.from(this.jobs.values()).filter((job) => job.status === 'complete' || job.status === 'queued');
 
@@ -189,15 +200,19 @@ export default class JobManager {
   }
 
   async saveJobs(jobsToResume: Job[], jobsToSave: Job[], reason: SavedJobsJSON['reason']) {
+    if (reason === 'autosave' && this.shuttingDown) return;
     const payload: SavedJobsJSON = {
-      jobs: Array.from(this.jobs.values()).map((job) => job.toJSON()),
+      jobs: structuredClone(Array.from(this.jobs.values()).map((job) => job.toJSON())),
       reason,
       resumeIds: jobsToResume.map((job) => job.id),
       savedIds: jobsToSave.map((job) => job.id),
       timestamp: new Date().toISOString()
     };
 
-    await writeSavedJobs(payload);
+    // Keep writes in order so an earlier autosave cannot replace the shutdown snapshot.
+    const save = this.pendingSave.catch(() => {}).then(() => writeSavedJobs(payload));
+    this.pendingSave = save;
+    await save;
   }
 
   async clearTmpDirectory() {

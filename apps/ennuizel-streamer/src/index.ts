@@ -14,6 +14,7 @@ import { openStreams, requestHistogram, streamsTotal } from './util/metrics.js';
 import { getNotes, SEND_SIZE, streamController } from './util/process.js';
 import { testProcessOptions } from './util/processOptions.js';
 import { getInfoText, getRecordingInfo, recordingExists, safeKeyCompare } from './util/recording.js';
+import { stopProcesses } from './util/subprocess.js';
 
 interface SendOptions {
   status: number;
@@ -240,14 +241,18 @@ const app = uWS
     }
   });
 
-process.once('SIGTERM', () => {
-  logger.info('Recieved SIGTERM');
-  app.close();
-  process.exit();
-});
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info(`Received ${signal}`);
+  try {
+    app.close();
+  } finally {
+    await stopProcesses();
+  }
+  process.exit(0);
+}
 
-process.once('SIGINT', () => {
-  logger.info('Recieved SIGINT');
-  app.close();
-  process.exit();
-});
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));

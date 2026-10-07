@@ -2,13 +2,13 @@ import fs from 'node:fs/promises';
 import * as path from 'node:path';
 
 import { RecordingUser } from '@craig/types/recording';
-import { execaCommand } from 'execa';
 
 import { AVATAR_CDN } from '../../util/config.js';
 import { fileNameFromUser, ROOT_DIR, runParallelFunction } from '../../util/index.js';
 import { createAvatarVideo, DEF_TIMEOUT, getDuration, getStreamTypes } from '../../util/process.js';
 import { procOpts } from '../../util/processOptions.js';
 import { getRecordingUsers } from '../../util/recording.js';
+import { runCommand } from '../../util/subprocess.js';
 import { Job } from '../job.js';
 
 const ARESAMPLE = 'aresample=flags=res:min_comp=0.001:max_soft_comp=1000000:min_hard_comp=16:first_pts=0';
@@ -110,7 +110,7 @@ export async function processAvatarsJob(job: Job) {
     });
 
     if (splitChannels)
-      await execaCommand(
+      await runCommand(
         [
           `${pOpts} ffmpeg -nostdin`,
           '-i "./assets/glower-avatar.png"',
@@ -153,5 +153,5 @@ export async function processAvatarsJob(job: Job) {
 
   // Zip up stuff
   job.setState({ type: 'finalizing' });
-  await execaCommand(`${pOpts} zip -r1FI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
+  await runCommand(`${pOpts} zip -r1FI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
 }

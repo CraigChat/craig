@@ -1,7 +1,6 @@
-import { execaCommand } from 'execa';
-
 import { PROC_CHRT_IDLE, PROC_IONICE, PROC_NICENESS, PROC_TASKSET_CPU_MAP } from './config.js';
 import logger from './logger.js';
+import { runCommand } from './subprocess.js';
 
 let niceness: number | null = PROC_NICENESS;
 let cpuMap: string | null = PROC_TASKSET_CPU_MAP;
@@ -10,7 +9,7 @@ let useChrt = PROC_CHRT_IDLE;
 
 export async function testProcessOptions() {
   if (niceness) {
-    const niceProcess = await execaCommand(`nice -n${niceness} echo`)
+    const niceProcess = await runCommand(`nice -n${niceness} echo`)
       .then(() => null)
       .catch((e) => e);
     if (niceProcess) {
@@ -20,7 +19,7 @@ export async function testProcessOptions() {
   }
 
   if (cpuMap) {
-    const tasksetProcess = await execaCommand(`taskset -c ${cpuMap} echo`)
+    const tasksetProcess = await runCommand(`taskset -c ${cpuMap} echo`)
       .then(() => null)
       .catch((e) => e);
     if (tasksetProcess) {
@@ -30,7 +29,7 @@ export async function testProcessOptions() {
   }
 
   if (ioniceClass) {
-    const ioniceProcess = await execaCommand(`ionice -c${ioniceClass} echo`)
+    const ioniceProcess = await runCommand(`ionice -c${ioniceClass} echo`)
       .then(() => null)
       .catch((e) => e);
     if (ioniceProcess) {
@@ -40,7 +39,7 @@ export async function testProcessOptions() {
   }
 
   if (useChrt) {
-    const chrtProcess = await execaCommand('chrt -i 0 echo')
+    const chrtProcess = await runCommand('chrt -i 0 echo')
       .then(() => null)
       .catch((e) => e);
     if (chrtProcess) {
