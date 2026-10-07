@@ -555,13 +555,13 @@ export function displayUserSettings(client: CraigBot, userSettings: Pick<User, '
             components: [
               {
                 type: ComponentType.TEXT_DISPLAY,
-                content: `### Webapp ${checkbox(userSettings.webapp)}\nEnable the [webapp](https://docs.craig.chat/features/webapp/) so that people outside of Discord can be in the recording. Enabling this includes a webapp URL inside your recording DM to send to other people.`
+                content: `### ${t('usersettings.webapp.title')} ${checkbox(userSettings.webapp)}\n${t('usersettings.webapp.description')}`
               }
             ],
             accessory: {
               type: ComponentType.BUTTON,
               style: ButtonStyle.SECONDARY,
-              label: userSettings.webapp ? 'Disable' : 'Enable',
+              label: t(userSettings.webapp ? 'usersettings.disable' : 'usersettings.enable'),
               disabled: !client.config.craig.webapp.on,
               custom_id: 'user:settings:webapp'
             }
@@ -572,7 +572,7 @@ export function displayUserSettings(client: CraigBot, userSettings: Pick<User, '
             components: [
               {
                 type: ComponentType.TEXT_DISPLAY,
-                content: '### Manage Cloud Backup'
+                content: `### ${t('usersettings.cloud_backup')}`
               }
             ],
             accessory: {
