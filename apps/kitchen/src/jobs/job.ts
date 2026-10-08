@@ -30,6 +30,8 @@ export class Job extends EventEmitter {
   from?: string;
   tags?: Kitchen.JobTags;
   createdAt = new Date();
+  priority: Kitchen.JobPriority = 0;
+  enqueuedAt = this.createdAt;
   tmpDir: string;
   recFileBase: string;
   outputFile: string;
@@ -62,6 +64,8 @@ export class Job extends EventEmitter {
     super();
     this.id = opts.continueJobId || nanoid(30);
     this.continued = !!opts.continueJobId;
+    this.priority = opts.priority ?? 0;
+    this.enqueuedAt = opts.enqueuedAt ? new Date(opts.enqueuedAt) : this.createdAt;
     this.postTask = opts.postTask;
     this.recordingId = opts.id;
     this.type = opts.jobType;
@@ -80,6 +84,8 @@ export class Job extends EventEmitter {
       {
         id: jobJson.recordingId,
         continueJobId: jobJson.id,
+        priority: jobJson.priority,
+        enqueuedAt: jobJson.enqueuedAt ?? jobJson.createdAt,
         jobType: jobJson.type,
         from: jobJson.from,
         tags: jobJson.tags,
@@ -355,6 +361,8 @@ export class Job extends EventEmitter {
       postTask: this.postTask,
       postTaskOptions: this.postTaskOptions,
       createdAt: this.createdAt.toISOString(),
+      priority: this.priority,
+      enqueuedAt: this.enqueuedAt.toISOString(),
       outputFile: this.outputFile,
       outputFileName: path.basename(this.outputFile),
       type: this.type,

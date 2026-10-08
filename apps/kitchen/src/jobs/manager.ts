@@ -1,7 +1,8 @@
 import fs, { mkdir } from 'node:fs/promises';
 import * as path from 'node:path';
 
-import type { CreateJobOptions, JobJSON, SavedJobsJSON } from '@craig/types/kitchen';
+import { prisma } from '@craig/db';
+import type { CreateJobOptions, JobJSON, JobPriority, SavedJobsJSON } from '@craig/types/kitchen';
 import { CronJob } from 'cron';
 
 import {
@@ -25,6 +26,8 @@ import { deleteSavedJobs, readSavedJobs, writeSavedJobs } from '../util/redis.js
 import { stopProcesses } from '../util/subprocess.js';
 import { Job } from './job.js';
 
+const priorityByTier: Record<number, JobPriority> = { 0: 0, 10: 1, 20: 2, 30: 3, 100: 4, '-1': 4 };
+
 export default class JobManager {
   cron = new CronJob(KITCHEN_CRON_TIME, this.cleanCron.bind(this), null, false);
   saveCron = SAVE_JOBS ? new CronJob(KITCHEN_SAVE_CRON_TIME, this.saveCronTick.bind(this), null, false) : undefined;
@@ -35,9 +38,16 @@ export default class JobManager {
   shuttingDown = false;
   private pendingSave: Promise<unknown> = Promise.resolve();
 
-  createJob(opts: CreateJobOptions, force = false) {
+  private async resolvePriority(recordingId: string) {
+    const recording = await prisma.recording.findUnique({ where: { id: recordingId }, select: { rewardTier: true } });
+    return priorityByTier[recording?.rewardTier ?? 0] ?? 0;
+  }
+
+  async createJob(opts: CreateJobOptions, force = false) {
     if (!this.allowNewJobs && !force) throw new Error('NOT_ACCEPTING_NEW_JOBS');
-    const job = new Job(opts, this);
+    const priority = opts.priority ?? (await this.resolvePriority(opts.id));
+    if (!this.allowNewJobs && !force) throw new Error('NOT_ACCEPTING_NEW_JOBS');
+    const job = new Job({ ...opts, priority }, this);
     this.jobs.set(job.id, job);
     jobCount.inc({
       job_type: opts.jobType,
@@ -46,8 +56,10 @@ export default class JobManager {
     return job;
   }
 
-  createSavedJob(jobJson: JobJSON) {
+  async createSavedJob(jobJson: JobJSON) {
+    const priority = jobJson.priority ?? (await this.resolvePriority(jobJson.recordingId));
     const job = Job.fromSaved(jobJson, this);
+    job.priority = priority;
     if (job.status === 'queued') job.tags = { ...job.tags, queueBypass: job.postTask === 'upload' };
     this.jobs.set(job.id, job);
     return job;
@@ -87,13 +99,15 @@ export default class JobManager {
           continue;
         }
         if (!(await this.recordingExists(jobData.recordingId))) {
-          this.createSavedJob(jobData).cancel('RECORDING_NOT_FOUND');
+          (await this.createSavedJob(jobData)).cancel('RECORDING_NOT_FOUND');
           continue;
         }
         logger.info(`Resuming ${jobData.type} job ${jobId} (${jobData.recordingId})`);
-        const job = this.createJob(
+        const job = await this.createJob(
           {
             continueJobId: jobId,
+            priority: jobData.priority,
+            enqueuedAt: jobData.enqueuedAt ?? jobData.createdAt,
             id: jobData.recordingId,
             from: jobData.from,
             tags: { ...jobData.tags, queueBypass: jobData.postTask === 'upload' },
@@ -119,7 +133,7 @@ export default class JobManager {
           logger.warn(`Skipped saved job due to no information: ${jobId}`);
           continue;
         }
-        const job = this.createSavedJob(jobData);
+        const job = await this.createSavedJob(jobData);
         if (job.status === 'queued' && !(await this.recordingExists(job.recordingId))) job.cancel('RECORDING_NOT_FOUND');
       }
     }

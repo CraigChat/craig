@@ -117,7 +117,7 @@ app.post('/jobs', async (req, reply) => {
   if (!(await jobManager.recordingExists(opts.id))) return reply.status(404).send({ error: 'Non-existant recording' });
 
   try {
-    const job = jobManager.createJob(opts);
+    const job = await jobManager.createJob({ ...opts, priority: undefined, enqueuedAt: undefined });
     await job.queue();
     return reply.status(200).send(job);
   } catch (e) {
@@ -265,7 +265,7 @@ app.post<{ Params: { id: string; userId: string }; Querystring: { locale?: strin
       jobOptions.includeTranscription = driveOptions.includeTranscription;
     }
 
-    const job = jobManager.createJob({
+    const job = await jobManager.createJob({
       jobType: 'recording',
       id,
       from: 'upload',

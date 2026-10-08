@@ -20,10 +20,13 @@ export type ContainerType = 'ogg' | 'matroska' | 'mix' | 'zip' | 'aupzip' | 'ses
 export type JobType = 'recording' | 'avatars' | 'transcription';
 export type JobStatus = 'idle' | 'running' | 'complete' | 'error' | 'cancelled' | 'queued';
 export type PostTask = 'download' | 'upload';
+export type JobPriority = 0 | 1 | 2 | 3 | 4;
 
 export interface CreateJobOptions {
   id: string;
   continueJobId?: string;
+  priority?: JobPriority;
+  enqueuedAt?: string;
   jobType: JobType;
   postTask?: PostTask;
   postTaskOptions?: {
@@ -89,6 +92,8 @@ export interface JobJSON {
   recordingId: string;
   continued: boolean;
   createdAt: string;
+  priority?: JobPriority;
+  enqueuedAt?: string;
   outputFile: string;
   outputFileName: string;
   type: JobType;
