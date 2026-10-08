@@ -29,7 +29,8 @@ app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
   keyGenerator(req) {
-    return (req.headers['cf-connecting-ip'] as string) || req.ip;
+    const connectingIp = req.headers['cf-connecting-ip'];
+    return (Array.isArray(connectingIp) ? connectingIp[0] : connectingIp) || req.ip;
   },
   errorResponseBuilder() {
     return {
@@ -91,7 +92,8 @@ app.register(async function (app) {
 
   // Shard Websocket
   app.get('/shard', { websocket: true }, (socket, req) => {
-    if (!process.env.SHARD_AUTH || req.headers.authorization !== process.env.SHARD_AUTH) return socket.close();
+    const token = process.env.SHARD_AUTH || process.env.WEBAPP_TOKEN;
+    if (!token || req.headers.authorization !== token) return socket.close();
     timeoutWebsocket(socket);
     socket.once('message', (data) => {
       // Shard will first identify with its information in JSON because lazy

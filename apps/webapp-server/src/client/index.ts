@@ -462,7 +462,7 @@ class ShardClient {
 
 new ShardClient({
   url: process.env.WEBAPP_URL || `ws://${process.env.HOST || 'localhost'}:${process.env.PORT || 9002}/shard`,
-  token: process.env.SHARD_AUTH as string,
+  token: (process.env.SHARD_AUTH || process.env.WEBAPP_TOKEN) as string,
   id: 'test',
   ennuiKey: 'test',
   clientId: '0000000000',
