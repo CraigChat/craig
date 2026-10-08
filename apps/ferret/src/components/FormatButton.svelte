@@ -7,11 +7,21 @@
     disabled?: boolean;
     icon?: IconifyIcon | null;
     suffix?: string;
+    suffixParentheses?: boolean;
     onclick?: (e: MouseEvent) => void;
     children?: import('svelte').Snippet;
   }
 
-  let { ennuizel = false, minizel = false, disabled = false, icon = null, suffix = '', onclick, children }: Props = $props();
+  let {
+    ennuizel = false,
+    minizel = false,
+    disabled = false,
+    icon = null,
+    suffix = '',
+    suffixParentheses = false,
+    onclick,
+    children
+  }: Props = $props();
 </script>
 
 <button class:ennuizel class:minizel {disabled} {onclick}>
@@ -21,7 +31,7 @@
   <div>
     <span>{@render children?.()}</span>
     {#if suffix}
-      <small>{suffix}</small>
+      <small>{suffixParentheses ? `(${suffix})` : suffix}</small>
     {/if}
   </div>
 </button>

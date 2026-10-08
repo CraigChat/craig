@@ -118,7 +118,8 @@
                   <FormatButton
                     ennuizel={!!button.ennuizel}
                     minizel={!!button.minizel}
-                    suffix={button.suffix}
+                    suffix={button.suffix ? convertT(button.suffix, $t) : undefined}
+                    suffixParentheses={button.suffixParentheses}
                     icon={button.icon}
                     onclick={() => {
                       if (button.minizel) {
@@ -151,7 +152,8 @@
             {@const available = !button.showFor || button.showFor.map((f) => $device.platform[f]).includes(true)}
             {#if featureAvailable && (available || audioShowHidden)}
               <FormatButton
-                suffix={button.suffix}
+                suffix={button.suffix ? convertT(button.suffix, $t) : undefined}
+                suffixParentheses={button.suffixParentheses}
                 icon={button.icon}
                 onclick={() => onButtonClick({ ...button, jobType: 'transcription' }, $t('download.sections.transcription'))}
               >

@@ -30,7 +30,8 @@ export type MinizelOptions = {
 
 export type SectionButton = {
   text: Translatable;
-  suffix?: string;
+  suffix?: Translatable;
+  suffixParentheses?: boolean;
   icon?: IconifyIcon;
   jobType?: Kitchen.JobType;
   options?: {
@@ -105,14 +106,14 @@ export const audioButtons: SectionButtons = [
     beta: true,
     capabilities: ['minizel'],
     buttons: [
-      { text: 'FLAC', suffix: '(Multi-track)', minizel: { format: 'flac' }, noIgnore: true },
-      { text: 'AAC', suffix: '(Multi-track)', minizel: { format: 'aac' }, noIgnore: true },
-      { text: 'WAV', suffix: '(Multi-track)', minizel: { format: 'wav' }, noIgnore: true },
-      { text: 'Ogg', suffix: '(Multi-track)', minizel: { format: 'ogg' }, noIgnore: true },
+      { text: 'FLAC', suffix: { t: 'download.sections.mt' }, suffixParentheses: true, minizel: { format: 'flac' }, noIgnore: true },
+      { text: 'AAC', suffix: { t: 'download.sections.mt' }, suffixParentheses: true, minizel: { format: 'aac' }, noIgnore: true },
+      { text: 'WAV', suffix: { t: 'download.sections.mt' }, suffixParentheses: true, minizel: { format: 'wav' }, noIgnore: true },
+      { text: 'Ogg', suffix: { t: 'download.sections.mt' }, suffixParentheses: true, minizel: { format: 'ogg' }, noIgnore: true },
 
-      { text: 'FLAC', suffix: '(Mixed)', minizel: { format: 'flac', mix: true }, noIgnore: true },
-      { text: 'AAC', suffix: '(Mixed)', minizel: { format: 'aac', mix: true }, noIgnore: true },
-      { text: 'WAV', suffix: '(Mixed)', minizel: { format: 'wav', mix: true }, noIgnore: true }
+      { text: 'FLAC', suffix: { t: 'download.format_buttons.mixed' }, minizel: { format: 'flac', mix: true }, noIgnore: true },
+      { text: 'AAC', suffix: { t: 'download.format_buttons.mixed' }, minizel: { format: 'aac', mix: true }, noIgnore: true },
+      { text: 'WAV', suffix: { t: 'download.format_buttons.mixed' }, minizel: { format: 'wav', mix: true }, noIgnore: true }
     ]
   },
   {
