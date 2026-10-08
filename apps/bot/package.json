@@ -36,7 +36,7 @@
     "common-tags": "catalog:",
     "cron": "catalog:",
     "erlpack": "^0.1.4",
-    "fastify": "^5.12.1",
+    "fastify": "catalog:",
     "fastq": "^1.19.1",
     "i18next": "^25.7.2",
     "i18next-fs-backend": "^2.6.1",
@@ -46,13 +46,13 @@
     "semver": "^7.7.3",
     "slash-create": "^6.8.1",
     "sodium-native": "^5.1.0",
-    "ws": "^8.19.0"
+    "ws": "catalog:"
   },
   "devDependencies": {
     "@types/common-tags": "catalog:",
     "@types/node": "catalog:",
     "@types/semver": "^7.7.1",
-    "@types/ws": "^8.18.1",
+    "@types/ws": "catalog:",
     "slash-up": "^1.2.0",
     "tsdown": "catalog:",
     "tsx": "catalog:",

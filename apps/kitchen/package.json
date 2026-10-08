@@ -25,7 +25,7 @@
     "dropbox": "^10.34.0",
     "eventemitter3": "^5.0.1",
     "execa": "catalog:",
-    "fastify": "^5.12.1",
+    "fastify": "catalog:",
     "googleapis": "^176.0.0",
     "he": "^1.2.0",
     "ioredis": "catalog:",

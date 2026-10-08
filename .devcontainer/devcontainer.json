@@ -72,6 +72,9 @@
 		"9001": {
 			"label": "Ennuizel Streamer"
 		},
+		"9002": {
+			"label": "Webapp Server"
+		},
 		"9200": {
 			"label": "Bot Control API"
 		},
@@ -84,7 +87,7 @@
 			"onAutoForward": "openPreview"
 		}
 	},
-	"forwardPorts": [9000, 5173, 4173, 9001, 57131, 47131]
+	"forwardPorts": [9000, 5173, 4173, 9001, 9002, 57131, 47131]
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 

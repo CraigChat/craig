@@ -28,6 +28,7 @@ RUN pnpm --filter @craig/kitchen run build-cook \
     --filter=@craig/ferret \
     --filter=@craig/ennuizel-streamer \
     --filter=@craig/dashboard \
+    --filter=@craig/webapp-server \
     --filter=@craig/tasks
 
 RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
@@ -35,6 +36,7 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
   && pnpm deploy --filter @craig/ferret --prod --legacy /opt/craig/ferret \
   && pnpm deploy --filter @craig/ennuizel-streamer --prod --legacy /opt/craig/ennuizel-streamer \
   && pnpm deploy --filter @craig/dashboard --prod --legacy /opt/craig/dashboard \
+  && pnpm deploy --filter @craig/webapp-server --prod --legacy /opt/craig/webapp-server \
   && pnpm deploy --filter @craig/tasks --prod --legacy /opt/craig/tasks \
   && pnpm deploy --filter @craig/db --prod --legacy /opt/craig/migrate \
   && rm -rf \
@@ -45,6 +47,7 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
     /opt/craig/ennuizel-streamer/dist \
     /opt/craig/ennuizel-streamer/cook \
     /opt/craig/dashboard/build \
+    /opt/craig/webapp-server/dist \
     /opt/craig/tasks/dist \
   && cp -a apps/bot/dist /opt/craig/bot/dist \
   && cp -a apps/kitchen/dist /opt/craig/kitchen/dist \
@@ -53,6 +56,7 @@ RUN pnpm deploy --filter @craig/bot --prod --legacy /opt/craig/bot \
   && cp -a apps/ennuizel-streamer/dist /opt/craig/ennuizel-streamer/dist \
   && cp -a apps/ennuizel-streamer/cook /opt/craig/ennuizel-streamer/cook \
   && cp -a apps/dashboard/build /opt/craig/dashboard/build \
+  && cp -a apps/webapp-server/dist /opt/craig/webapp-server/dist \
   && cp -a apps/tasks/dist /opt/craig/tasks/dist \
   && rm -rf /opt/craig/migrate/prisma \
   && cp -a packages/db/prisma /opt/craig/migrate/prisma \
@@ -100,9 +104,9 @@ ENV NODE_ENV=production \
   TMP_DIRECTORY=/tmp/craig \
   BOT_LOCALE_FOLDER=/opt/craig/locale \
   KITCHEN_URL=http://127.0.0.1:9000 \
-  WEBAPP_URL=ws://127.0.0.1:9001/shard
+  WEBAPP_URL=ws://127.0.0.1:9002/shard
 
-EXPOSE 9001 9100 9200
+EXPOSE 9001 9002 9100 9200
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["craig-healthcheck.sh"]
 
