@@ -207,6 +207,7 @@ export class Job extends EventEmitter {
   }
 
   setStatus(status: this['status']) {
+    if (this.status === 'queued' && status !== 'queued') this.enqueuedAt = new Date();
     this.status = status;
     this.emit('status', status);
     if (['complete', 'error', 'cancelled'].includes(status)) {
@@ -242,13 +243,17 @@ export class Job extends EventEmitter {
   async queue() {
     if (this.status !== 'idle') return;
     await setStreamOpen(this.id);
-    if (this.status !== 'idle') return;
+    if (this.status !== 'idle') {
+      if (this.abortController.signal.aborted && !this.startedAt) await deleteStreamOpen(this.id);
+      return;
+    }
     this.setStatus('queued');
     logger.info(`Queued job ${this.id} (${this.recordingId})`, { type: this.type, resumed: this.continued, capacity: QUEUE_SIZE });
     await this.manager.queueIntervalTick();
   }
 
   async run() {
+    if (this.status !== 'idle' && this.status !== 'queued') return;
     this.startedAt = new Date();
     this.setStatus('running');
     this.setState({ type: 'starting' });
