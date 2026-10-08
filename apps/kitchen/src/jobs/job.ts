@@ -211,6 +211,7 @@ export class Job extends EventEmitter {
     this.emit('status', status);
     if (['complete', 'error', 'cancelled'].includes(status)) {
       this.push.flush();
+      queueMicrotask(() => this.manager.queueIntervalTick().catch((error) => logger.error('Queue tick failed.', error)));
       jobFinishedCount.inc({
         job_type: this.type,
         job_export: this.exportString,
@@ -239,42 +240,52 @@ export class Job extends EventEmitter {
   }
 
   async queue() {
-    if (!QUEUE_SIZE || this.manager.getQueueLength() < QUEUE_SIZE || this.tags?.queueBypass) return this.run();
-    this.setStatus('queued');
+    if (this.status !== 'idle') return;
     await setStreamOpen(this.id);
+    if (this.status !== 'idle') return;
+    this.setStatus('queued');
     logger.info(`Queued job ${this.id} (${this.recordingId})`, { type: this.type, resumed: this.continued, capacity: QUEUE_SIZE });
+    await this.manager.queueIntervalTick();
   }
 
   async run() {
     this.startedAt = new Date();
     this.setStatus('running');
     this.setState({ type: 'starting' });
-    await fs.mkdir(this.tmpDir, { recursive: true });
-    await setStreamOpen(this.id);
+    try {
+      await fs.mkdir(this.tmpDir, { recursive: true });
+      await setStreamOpen(this.id);
+      if (this.abortController.signal.aborted) {
+        await this.cleanup(true);
+        return;
+      }
 
-    logger.info(`Starting job ${this.id} (${this.recordingId})`, {
-      type: this.type,
-      export: this.exportString,
-      resumed: this.continued,
-      queueBypass: !!this.tags?.queueBypass,
-      ageMs: this.startedAt.valueOf() - this.createdAt.valueOf()
-    });
+      logger.info(`Starting job ${this.id} (${this.recordingId})`, {
+        type: this.type,
+        export: this.exportString,
+        resumed: this.continued,
+        queueBypass: !!this.tags?.queueBypass,
+        ageMs: this.startedAt.valueOf() - this.createdAt.valueOf()
+      });
 
-    if (this.type === 'recording') {
-      this.promise = processRecordingJob(this)
-        .then(() => this.#doPostTask())
-        .then(() => this.#onFinish())
-        .catch((e) => this.#onError(e));
-    } else if (this.type === 'avatars') {
-      this.promise = processAvatarsJob(this)
-        .then(() => this.#doPostTask())
-        .then(() => this.#onFinish())
-        .catch((e) => this.#onError(e));
-    } else if (this.type === 'transcription') {
-      this.promise = processTranscriptionJob(this)
-        .then(() => this.#doPostTask())
-        .then(() => this.#onFinish())
-        .catch((e) => this.#onError(e));
+      if (this.type === 'recording') {
+        this.promise = processRecordingJob(this)
+          .then(() => this.#doPostTask())
+          .then(() => this.#onFinish())
+          .catch((e) => this.#onError(e));
+      } else if (this.type === 'avatars') {
+        this.promise = processAvatarsJob(this)
+          .then(() => this.#doPostTask())
+          .then(() => this.#onFinish())
+          .catch((e) => this.#onError(e));
+      } else if (this.type === 'transcription') {
+        this.promise = processTranscriptionJob(this)
+          .then(() => this.#doPostTask())
+          .then(() => this.#onFinish())
+          .catch((e) => this.#onError(e));
+      }
+    } catch (error) {
+      await this.#onError(error);
     }
   }
 

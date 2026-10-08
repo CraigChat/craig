@@ -34,18 +34,19 @@ export default class JobManager {
   jobs = new Map<string, Job>();
   allowNewJobs = false;
   queueInterval?: NodeJS.Timeout;
-  queueTickRunning = false;
+  #queueTickRunning = false;
+  #queueTickPending = false;
+  #pendingSave: Promise<unknown> = Promise.resolve();
   shuttingDown = false;
-  private pendingSave: Promise<unknown> = Promise.resolve();
 
-  private async resolvePriority(recordingId: string) {
+  async #resolvePriority(recordingId: string) {
     const recording = await prisma.recording.findUnique({ where: { id: recordingId }, select: { rewardTier: true } });
     return priorityByTier[recording?.rewardTier ?? 0] ?? 0;
   }
 
   async createJob(opts: CreateJobOptions, force = false) {
     if (!this.allowNewJobs && !force) throw new Error('NOT_ACCEPTING_NEW_JOBS');
-    const priority = opts.priority ?? (await this.resolvePriority(opts.id));
+    const priority = opts.priority ?? (await this.#resolvePriority(opts.id));
     if (!this.allowNewJobs && !force) throw new Error('NOT_ACCEPTING_NEW_JOBS');
     const job = new Job({ ...opts, priority }, this);
     this.jobs.set(job.id, job);
@@ -57,7 +58,7 @@ export default class JobManager {
   }
 
   async createSavedJob(jobJson: JobJSON) {
-    const priority = jobJson.priority ?? (await this.resolvePriority(jobJson.recordingId));
+    const priority = jobJson.priority ?? (await this.#resolvePriority(jobJson.recordingId));
     const job = Job.fromSaved(jobJson, this);
     job.priority = priority;
     if (job.status === 'queued') job.tags = { ...job.tags, queueBypass: job.postTask === 'upload' };
@@ -224,8 +225,8 @@ export default class JobManager {
     };
 
     // Keep writes in order so an earlier autosave cannot replace the shutdown snapshot.
-    const save = this.pendingSave.catch(() => {}).then(() => writeSavedJobs(payload));
-    this.pendingSave = save;
+    const save = this.#pendingSave.catch(() => {}).then(() => writeSavedJobs(payload));
+    this.#pendingSave = save;
     await save;
   }
 
@@ -353,32 +354,34 @@ export default class JobManager {
   }
 
   async queueIntervalTick() {
-    if (this.queueTickRunning || this.shuttingDown) return;
-    this.queueTickRunning = true;
+    if (this.shuttingDown) return;
+    this.#queueTickPending = true;
+    if (this.#queueTickRunning) return;
+    this.#queueTickRunning = true;
     try {
-      let runningJobs = this.getQueueLength();
-      const queuedJobs = Array.from(this.jobs.values())
-        .filter((j) => j.status === 'queued')
-        .sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf());
-      let startedJobs = 0;
-      let queuePosition = 0;
+      do {
+        this.#queueTickPending = false;
+        const queuedJobs = Array.from(this.jobs.values())
+          .filter((job) => job.status === 'queued')
+          .sort((a, b) => a.createdAt.valueOf() - b.createdAt.valueOf());
+        let startedJobs = 0;
+        let queuePosition = 0;
 
-      for (const job of queuedJobs) {
-        if (this.shuttingDown) break;
-        if (job.status !== 'queued') continue;
-        if (!QUEUE_SIZE || runningJobs < QUEUE_SIZE || job.tags?.queueBypass) {
-          await job.run();
-          // Other jobs can start or finish while run() initializes asynchronously.
-          runningJobs = this.getQueueLength();
-          startedJobs++;
-        } else {
-          job.setState({ position: ++queuePosition });
+        for (const job of queuedJobs) {
+          if (this.shuttingDown) break;
+          if (job.status !== 'queued') continue;
+          if (!QUEUE_SIZE || this.getQueueLength() < QUEUE_SIZE || job.tags?.queueBypass) {
+            await job.run();
+            startedJobs++;
+          } else {
+            job.setState({ position: ++queuePosition });
+          }
         }
-      }
 
-      if (startedJobs) logger.info(`Started ${startedJobs} jobs from queue.`, this.getDiagnostics());
+        if (startedJobs) logger.info(`Started ${startedJobs} jobs from queue.`, this.getDiagnostics());
+      } while (this.#queueTickPending && !this.shuttingDown);
     } finally {
-      this.queueTickRunning = false;
+      this.#queueTickRunning = false;
     }
   }
 }

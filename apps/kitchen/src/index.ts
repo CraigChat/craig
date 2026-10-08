@@ -274,7 +274,7 @@ app.post<{ Params: { id: string; userId: string }; Querystring: { locale?: strin
       tags: { queueBypass: true },
       options: jobOptions
     });
-    await job.run();
+    await job.queue();
     return send(200, job);
   } catch (e) {
     return send(500, { error: (e as Error).message });
