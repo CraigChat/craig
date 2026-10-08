@@ -1,3 +1,5 @@
+export * from './webappProtocol.js';
+
 export interface TimeMarkOptions {
   includeHours?: boolean;
   secondsDecimalPlaces?: number;

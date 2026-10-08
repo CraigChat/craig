@@ -228,7 +228,7 @@ export function getBotConfig(): CraigBotConfig {
       inviteID: process.env.INVITE_CLIENT_ID || undefined,
       webapp: {
         on: boolFromEnv('WEBAPP_ENABLED', true),
-        url: process.env.WEBAPP_URL || 'ws://127.0.0.1:9001/shard',
+        url: process.env.WEBAPP_URL || 'ws://127.0.0.1:9002/shard',
         token: process.env.WEBAPP_TOKEN || '',
         connectUrl: process.env.WEBAPP_CONNECT_URL || 'http://localhost:5000?id={id}&key={key}'
       },

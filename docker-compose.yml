@@ -15,7 +15,7 @@ x-runtime-environment: &runtime-environment
   OUTPUT_DIRECTORY: /data/output
   BOT_LOCALE_FOLDER: /opt/craig/locale
   KITCHEN_URL: http://127.0.0.1:9000
-  WEBAPP_URL: ws://127.0.0.1:9001/shard
+  WEBAPP_URL: ws://127.0.0.1:9002/shard
 
 services:
   db:
@@ -59,6 +59,7 @@ services:
       - ${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
       - ${CRAIG_FERRET_HOST_PORT:-9100}:9100
       - ${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
+      - ${CRAIG_WEBAPP_HOST_PORT:-9002}:9002
     depends_on:
       db:
         condition: service_healthy

@@ -1,4 +1,4 @@
-import { convertToTimemark } from '@craig/common';
+import { convertToTimemark, UserExtraType, WebappOpCloseReason } from '@craig/common';
 import { prisma } from '@craig/db';
 import DiscordJsOpus from '@discordjs/opus';
 import type Dysnomia from '@projectdysnomia/dysnomia';
@@ -14,7 +14,6 @@ import type { CraigBot } from '../../bot.js';
 import type { TFunction } from '../../i18n.js';
 import { getCraigStatus, getSelfMember, ParsedRewards, wait } from '../../util.js';
 import type RecorderModule from './index.js';
-import { UserExtraType, WebappOpCloseReason } from './protocol.js';
 import { WebappClient } from './webapp.js';
 import RecordingWriter from './writer.js';
 

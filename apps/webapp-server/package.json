@@ -1,0 +1,36 @@
+{
+  "name": "@craig/webapp-server",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./dist/index.mjs",
+  "license": "MIT",
+  "scripts": {
+    "build": "rimraf dist && tsdown src/index.ts",
+    "start": "dotenv -e ../../.env -e .env -c -- node dist/index.mjs",
+    "dev": "dotenv -e ../../.env -e .env -c -- tsx src/index.ts",
+    "inspect": "dotenv -e ../../.env -e .env -c -- node --inspect=7004 dist/index.mjs",
+    "start:test-client": "dotenv -e ../../.env -e .env -c -- tsx src/client/index.ts",
+    "start-pm2": "dotenv -e ../../.env -e .env -c -- pm2 start ecosystem.config.cjs",
+    "reload-pm2": "dotenv -e ../../.env -e .env -c -- pm2 reload ecosystem.config.cjs --update-env",
+    "lint": "eslint .",
+    "format": "eslint . --fix"
+  },
+  "dependencies": {
+    "@craig/common": "workspace:*",
+    "@craig/logger": "workspace:*",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/rate-limit": "^11.2.0",
+    "@fastify/websocket": "^11.3.3",
+    "fastify": "catalog:",
+    "nanoid": "catalog:",
+    "ws": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/ws": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

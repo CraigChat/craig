@@ -1,3 +1,5 @@
+import { createWriteStream, mkdirSync } from 'node:fs';
+
 import {
   ConnectionType,
   ConnectionTypeMask,
@@ -7,19 +9,40 @@ import {
   EnnuicastrInfo,
   EnnuicastrParts,
   Feature,
-  UserExtraType,
   WebappOp,
   WebappOpCloseReason
 } from '@craig/common';
 import { WebSocket } from 'ws';
 
-import type { CraigBot } from '../../bot.js';
-import type { CraigBotConfig } from '../../config.js';
-import type { ParsedRewards } from '../../util.js';
-import Recording from './recording.js';
-import { toBuffer } from './util.js';
+import { toBuffer } from '../util.js';
+import OggEncoder, { BOS } from './ogg.js';
+import {
+  FLAC_HEADER_44k,
+  FLAC_HEADER_44k_VAD,
+  FLAC_HEADER_48k,
+  FLAC_HEADER_48k_VAD,
+  FLAC_TAGS,
+  OPUS_HEADERS_MONO,
+  OPUS_MONO_HEADER_VAD,
+  write
+} from './util.js';
 
-export interface WebUser {
+interface ShardClientOptions {
+  id: string;
+  ennuiKey: string;
+  clientId: string;
+  clientName?: string;
+  flacEnabled: boolean;
+  continuousEnabled: boolean;
+  serverName: string;
+  serverIcon?: string;
+  channelName: string;
+  channelType: 2 | 13;
+  url: string;
+  token: string;
+}
+
+interface WebUser {
   connected: boolean;
   dataType: DataTypeFlag;
   continuous: boolean;
@@ -27,64 +50,64 @@ export interface WebUser {
   webUserID: string;
   data: {
     id: string;
-    username: string;
-    discriminator: 'web';
+    name: string;
+    discrim: 'web';
     dtype: DataTypeFlag;
   };
 }
 
-export class WebappClient {
+mkdirSync('./rec', { recursive: true });
+
+const startTime = process.hrtime();
+const dataEncoder = new OggEncoder(createWriteStream('./rec/test2.ogg.data'));
+const headerEncoder1 = new OggEncoder(createWriteStream('./rec/test2.ogg.header1'));
+const headerEncoder2 = new OggEncoder(createWriteStream('./rec/test2.ogg.header2'));
+const usersStream = createWriteStream('./rec/test2.ogg.users');
+
+class ShardClient {
   ws: WebSocket;
-  recording: Recording;
   ready = false;
-  disconnecting = false;
   clients = new Map<string, ConnectionType>();
   webUsers = new Map<string, WebUser>();
-  config: CraigBotConfig;
 
+  trackNo = 0;
   userTrackNos: { [key: string]: number } = {};
   userPacketNos: { [key: string]: number } = {};
-  userTimeouts: { [key: string]: any } = {};
   speaking: { [key: number]: boolean } = {};
 
-  constructor(recording: Recording, parsedRewards: ParsedRewards) {
-    this.recording = recording;
-    this.config = recording.recorder.client.config;
-    this.ws = new WebSocket(this.config.craig.webapp.url, {
-      headers: { Authorization: this.config.craig.webapp.token }
-    });
+  constructor(opts: ShardClientOptions) {
+    this.ws = new WebSocket(opts.url, { headers: { Authorization: opts.token } });
     this.ws.on('open', () => {
-      recording.recorder.logger.log(`Opened webapp connection for recording ${recording.id}`);
+      console.log('opened connection');
 
       const payload = JSON.stringify({
-        id: recording.id,
-        ennuiKey: recording.ennuiKey,
-        clientId: recording.recorder.client.bot.user.id,
-        clientName: recording.recorder.client.bot.user.username,
-        shardId: (this.recording.recorder.client as unknown as CraigBot).shard!.id ?? -1,
-        flacEnabled: parsedRewards.rewards.features.includes('ecflac'),
-        continuousEnabled: parsedRewards.rewards.features.includes('eccontinuous'),
-        serverName: recording.channel.guild.name,
-        serverIcon: recording.channel.guild.icon ? recording.channel.guild.dynamicIconURL('png', 256) : null,
-        channelName: recording.channel.name,
-        channelType: recording.channel.type
+        id: opts.id,
+        ennuiKey: opts.ennuiKey,
+        clientId: opts.clientId,
+        clientName: opts.clientName,
+        shardId: 0,
+        flacEnabled: opts.flacEnabled,
+        continuousEnabled: opts.continuousEnabled,
+        serverName: opts.serverName,
+        serverIcon: opts.serverIcon,
+        channelName: opts.channelName,
+        channelType: opts.channelType
       });
-      const ret = Buffer.alloc(Buffer.from(payload).length + 4);
+      const ret = Buffer.alloc(payload.length + 4);
       ret.writeUInt32LE(WebappOp.IDENTIFY, 0);
       Buffer.from(payload).copy(ret, 4);
       this.ws.send(ret);
     });
     this.ws.on('message', (data) => this.parseMessage(toBuffer(data)));
     this.ws.on('close', (code, reason) => {
-      if (!this.ready && !this.disconnecting) {
-        recording.recorder.logger.log(`Failed to connect to the webapp for recording ${recording.id}: ${WebappOpCloseReason[reason[0]]}`, 'webapp');
-        recording.pushToActivity(`${recording.t('recording.panel.webapp_fail')} (${WebappOpCloseReason[reason[0]]})`);
+      if (!this.ready) {
+        console.log('failed to connect', WebappOpCloseReason[reason[0]]);
         return;
       }
 
-      recording.recorder.logger.log(`Disconnected from webapp for recording ${recording.id}: ${WebappOpCloseReason[reason[0]]}`, 'webapp');
+      console.log('disconnected', WebappOpCloseReason[reason[0]]);
     });
-    this.ws.on('error', (e) => recording.recorder.logger.log(`Websocket Error: ${String(e)}`, 'webapp'));
+    this.ws.on('error', (e) => console.log('ws error', e));
   }
 
   findWebUserFromClientId(id: string) {
@@ -101,14 +124,13 @@ export class WebappClient {
   }
 
   close(reason: WebappOpCloseReason) {
-    this.disconnecting = true;
-    this.ws.close(1000, Buffer.from([reason]));
+    this.ws.close(reason);
     this.ready = false;
   }
 
   createNewWebUser(clientId: string, username: string, dataType: DataTypeFlag, continuous: boolean) {
     let webUserID = username + '#web';
-    let user = this.webUsers.get(webUserID);
+    let user = this.webUsers.get(username);
     if (user && (user.connected || user.dataType !== dataType || user.continuous !== continuous)) {
       // Try another track
       let i;
@@ -123,24 +145,31 @@ export class WebappClient {
       webUserID = username + '#web';
     }
 
+    console.log('connected', username, dataType, continuous, webUserID);
+
     let userTrackNo: number;
     if (!user) {
       /* Initialize this user's data (FIXME: partially duplicated from
        * the Discord version) */
-      const userData: WebUser['data'] = { id: webUserID, username, discriminator: 'web', dtype: dataType };
-      userTrackNo = this.recording.trackNo++;
+      const userData: WebUser['data'] = { id: webUserID, name: username, discrim: 'web', dtype: dataType };
+      userTrackNo = this.trackNo++;
       this.userTrackNos[webUserID] = userTrackNo;
       this.userPacketNos[webUserID] = 0;
 
-      // Announce them
-      this.recording.pushToActivity(this.recording.t('recording.panel.webapp_connected', { name: username }));
-      this.monitorSetConnected(userTrackNo, `${userData.username}#${userData.discriminator}`, true, clientId);
+      this.monitorSetConnected(userTrackNo, `${userData.name}#${userData.discrim}`, true, clientId);
 
       // Put a valid Opus header at the beginning if we're Opus
-      if (dataType === DataTypeFlag.OPUS) this.recording.writer?.writeWebappOpusHeader(userTrackNo, continuous);
+      if (dataType === DataTypeFlag.OPUS) {
+        try {
+          write(headerEncoder1, 0, userTrackNo, 0, continuous ? OPUS_MONO_HEADER_VAD : OPUS_HEADERS_MONO[0], BOS);
+          write(headerEncoder2, 0, userTrackNo, 1, OPUS_HEADERS_MONO[1]);
+        } catch (ex) {
+          console.log('failed to write headers', ex);
+        }
+      }
 
       // Write their username etc to the recording data
-      this.recording.writer?.writeWebappUser(userTrackNo, userData);
+      usersStream.write(',"' + userTrackNo + '":' + JSON.stringify(userData) + '\n');
 
       user = {
         connected: true,
@@ -156,18 +185,6 @@ export class WebappClient {
       user.connected = true;
       user.clientId = clientId;
     }
-    this.recording.writeToLog(
-      `New user from webapp. trackNo=${userTrackNo}, clientId=${clientId}, id=${webUserID}, dataType=${DataTypeFlag[dataType]}, continuous=${continuous}`,
-      'webapp'
-    );
-
-    // We switch to a web size limit, depending on which features are enabled
-    if (dataType !== DataTypeFlag.OPUS || continuous)
-      this.recording.sizeLimit =
-        Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWeb) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
-    else
-      this.recording.sizeLimit =
-        Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWebOpus) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
 
     // Send them their own ID
     const idMessage = Buffer.alloc(EnnuicastrParts.info.length);
@@ -183,37 +200,34 @@ export class WebappClient {
     stMessage.writeUInt32LE(1, EnnuicastrParts.info.value);
     this.ws.send(this.wrapMessage(stMessage, clientId, WebappOp.DATA));
 
-    // Treat new data as a monitor aswell
-    this.createNewMonitor(clientId);
+    // And catch them up on connected users
+    for (const [, user] of this.webUsers) {
+      if (user.webUserID === webUserID || !user.connected) continue;
+      const nickBuf = Buffer.from(`${user.data.name}#${user.data.discrim}`, 'utf8');
+      const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
+      buf.writeUInt32LE(EnnuicastrId.USER, 0);
+      buf.writeUInt32LE(this.userTrackNos[user.webUserID], EnnuicastrParts.user.index);
+      buf.writeUInt32LE(1, EnnuicastrParts.user.status);
+      nickBuf.copy(buf, EnnuicastrParts.user.nick);
+      this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+    }
+
+    // And current speaking states
+    for (const trackNo in this.speaking) {
+      if (!this.speaking[trackNo]) continue;
+      const buf = Buffer.alloc(EnnuicastrParts.speech.length);
+      buf.writeUInt32LE(EnnuicastrId.SPEECH, 0);
+      buf.writeUInt32LE(parseInt(trackNo), EnnuicastrParts.speech.index);
+      buf.writeUInt32LE(this.speaking[trackNo] ? 1 : 0, EnnuicastrParts.speech.status);
+      this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
+    }
   }
 
   createNewMonitor(clientId: string) {
     // Catch the monitor up on connected users
-    for (const userID in this.recording.users) {
-      const user = this.recording.users[userID];
-      const nickBuf = Buffer.from(`${user.username}#${user.discriminator}`, 'utf8');
-      const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
-      buf.writeUInt32LE(EnnuicastrId.USER, 0);
-      buf.writeUInt32LE(user.track, EnnuicastrParts.user.index);
-      buf.writeUInt32LE(1, EnnuicastrParts.user.status);
-      nickBuf.copy(buf, EnnuicastrParts.user.nick);
-      this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
-
-      if (user.avatarUrl) {
-        const avyBuf = Buffer.from(user.avatarUrl, 'utf8');
-        const buf = Buffer.alloc(EnnuicastrParts.userExtra.length + avyBuf.length);
-        buf.writeUInt32LE(EnnuicastrId.USER_EXTRA, 0);
-        buf.writeUInt32LE(user.track, EnnuicastrParts.user.index);
-        buf.writeUInt32LE(UserExtraType.AVATAR, EnnuicastrParts.user.status);
-        avyBuf.copy(buf, EnnuicastrParts.userExtra.data);
-        this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
-      }
-    }
-
-    // Catch the monitor up on connected web users
     for (const [, user] of this.webUsers) {
       if (!user.connected) continue;
-      const nickBuf = Buffer.from(`${user.data.username}#${user.data.discriminator}`, 'utf8');
+      const nickBuf = Buffer.from(`${user.data.name}#${user.data.discrim}`, 'utf8');
       const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
       buf.writeUInt32LE(EnnuicastrId.USER, 0);
       buf.writeUInt32LE(this.userTrackNos[user.webUserID], EnnuicastrParts.user.index);
@@ -234,7 +248,6 @@ export class WebappClient {
   }
 
   monitorSetConnected(trackNo: number, nick: string, connected: boolean, excludeClientId?: string) {
-    if (!this.ready) return;
     const nickBuf = Buffer.from(nick, 'utf8');
     const buf = Buffer.alloc(EnnuicastrParts.user.length + nickBuf.length);
     buf.writeUInt32LE(EnnuicastrId.USER, 0);
@@ -248,20 +261,6 @@ export class WebappClient {
     // Send to all clients
     for (const [clientId, type] of this.clients) {
       if (clientId !== excludeClientId && type !== ConnectionType.PING) this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
-    }
-  }
-
-  monitorSetUserExtra(trackNo: number, type: UserExtraType, data: string) {
-    const dataBuf = Buffer.from(data, 'utf8');
-    const buf = Buffer.alloc(EnnuicastrParts.user.length + dataBuf.length);
-    buf.writeUInt32LE(EnnuicastrId.USER_EXTRA, 0);
-    buf.writeUInt32LE(trackNo, EnnuicastrParts.user.index);
-    buf.writeUInt32LE(type, EnnuicastrParts.user.status);
-    dataBuf.copy(buf, EnnuicastrParts.user.nick);
-
-    // Send to all clients
-    for (const [clientId, type] of this.clients) {
-      if (type !== ConnectionType.PING) this.ws.send(this.wrapMessage(buf, clientId, WebappOp.DATA));
     }
   }
 
@@ -279,15 +278,6 @@ export class WebappClient {
     }
   }
 
-  userSpeaking(trackNo: number) {
-    if (this.userTimeouts[trackNo]) clearTimeout(this.userTimeouts[trackNo]);
-    else this.monitorSetSpeaking(trackNo, true);
-    this.userTimeouts[trackNo] = setTimeout(() => {
-      this.monitorSetSpeaking(trackNo, false);
-      delete this.userTimeouts[trackNo];
-    }, 2000);
-  }
-
   onData(data: Buffer, clientId: string) {
     const user = this.findWebUserFromClientId(clientId);
     if (!user) return;
@@ -299,46 +289,61 @@ export class WebappClient {
 
     const cmd = message.readUInt32LE(0);
 
-    if (this.disconnecting || this.recording.closing) return;
-
     switch (cmd) {
       case EnnuicastrId.INFO: {
+        // FIXME: We're counting on the fact that only FLAC sends info right now
         if (message.length != EnnuicastrParts.info.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
 
         const key = message.readUInt32LE(EnnuicastrParts.info.key);
         const value = message.readUInt32LE(EnnuicastrParts.info.value);
-        // Now we can write our header
-        if (key === EnnuicastrInfo.SAMPLE_RATE) this.recording.writer?.writeWebappFlacHeader(userTrackNo, value, user);
+        if (key === EnnuicastrInfo.SAMPLE_RATE) {
+          // Now we can write our header
+          write(
+            headerEncoder1,
+            0,
+            userTrackNo,
+            0,
+            value === 44100 ? (user.continuous ? FLAC_HEADER_44k_VAD : FLAC_HEADER_44k) : user.continuous ? FLAC_HEADER_48k_VAD : FLAC_HEADER_48k,
+            BOS
+          );
+          write(headerEncoder2, 0, userTrackNo, 1, FLAC_TAGS);
+        }
         break;
       }
       case EnnuicastrId.DATA: {
         if (message.length < EnnuicastrParts.data.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
 
-        const granulePos = message.readUIntLE(EnnuicastrParts.data.granulePos, 6);
+        let granulePos = message.readUIntLE(EnnuicastrParts.data.granulePos, 6);
 
         // Calculate our "correct" time to make sure it's not unacceptably far off
-        const arrivalHrTime = process.hrtime(this.recording.startTime!);
+        const arrivalHrTime = process.hrtime(startTime);
         const arrivalTime = arrivalHrTime[0] * 48000 + ~~(arrivalHrTime[1] / 20833.333);
 
-        const adjustedGranulePos = granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000 ? arrivalTime : granulePos;
+        if (granulePos < arrivalTime - 30 * 48000 || granulePos > arrivalTime + 30 * 48000) granulePos = arrivalTime;
 
         // Accept the data
         const data = message.slice(EnnuicastrParts.data.length);
-        this.recording.writer?.writeData(adjustedGranulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
+        write(dataEncoder, granulePos, userTrackNo, this.userPacketNos[webUserID]++, data);
 
         // And inform the monitor
         const user = this.findWebUserFromClientId(clientId);
         if (!user) return;
         // Determine silence
-        const silence =
-          user.continuous && data.length ? !data.readUInt8(0) : user.dataType === DataTypeFlag.FLAC ? data.length < 16 : data.length < 8;
+        let silence: boolean;
+        if (user.continuous && data.length) {
+          silence = !data.readUInt8(0);
+        } else if (user.dataType === DataTypeFlag.FLAC) {
+          silence = data.length < 16;
+        } else {
+          silence = data.length < 8;
+        }
         this.monitorSetSpeaking(userTrackNo, !silence);
         break;
       }
       case EnnuicastrId.ERROR:
         // A client error occurred. Log it.
         try {
-          this.recording.writeToLog('Ennuicastr error: ' + message.toString('utf8', 4), 'webapp');
+          console.log('ennuicastr error', message.toString('utf8', 4));
         } catch (ex) {}
         break;
 
@@ -354,7 +359,7 @@ export class WebappClient {
     switch (op) {
       case WebappOp.READY: {
         this.ready = true;
-        this.recording.writeToLog(`Connected to webapp @ ${this.config.craig.webapp.url}`, 'webapp');
+        console.log('ready');
         break;
       }
       case WebappOp.NEW: {
@@ -364,17 +369,14 @@ export class WebappClient {
         const dataType: DataTypeFlag = flags & DataTypeMask;
         const continuous = !!(flags & Feature.CONTINUOUS);
 
-        this.recording.writeToLog(
-          `Webapp client connected. type=${ConnectionType[connectionType]}, clientId=${clientId}, nick=${nick}, dataType=${
-            DataTypeFlag[dataType]
-          }, continuous=${continuous} (userCount=${Object.keys(this.recording.users).length}, webUsersCount=${Object.keys(this.webUsers).length})`,
-          'webapp'
-        );
+        console.log(`connected:`, { connectionType, clientId });
         this.clients.set(clientId, connectionType);
         switch (connectionType) {
           case ConnectionType.PING:
+            console.log(`pinger connected: ${nick}`);
             break;
           case ConnectionType.DATA:
+            console.log(`data connected:`, { clientId, nick, dataType, continuous });
             this.createNewWebUser(clientId, nick, dataType, continuous);
             break;
           case ConnectionType.MONITOR:
@@ -398,8 +400,9 @@ export class WebappClient {
                 const ret = Buffer.alloc(EnnuicastrParts.pong.length);
                 ret.writeUInt32LE(EnnuicastrId.PONG, 0);
                 data.copy(ret, EnnuicastrParts.pong.clientTime, EnnuicastrParts.ping.clientTime);
-                const tm = process.hrtime(this.recording.startTime!);
+                const tm = process.hrtime(startTime);
                 ret.writeDoubleLE(tm[0] * 1000 + tm[1] / 1000000, EnnuicastrParts.pong.serverTime);
+                console.log('ping from', clientId);
                 this.ws.send(this.wrapMessage(ret, clientId));
                 break;
               }
@@ -419,26 +422,24 @@ export class WebappClient {
         break;
       }
       case WebappOp.CLOSE: {
-        this.recording.writeToLog(`Webapp client disconnected. clientId=${clientId}`, 'webapp');
+        console.log('close', clientId);
         const client = this.clients.get(clientId);
         if (!client) return;
         this.clients.delete(clientId);
 
         const user = this.findWebUserFromClientId(clientId);
         if (!user) return;
-        this.recording.writeToLog(
-          `Webapp user disconnected. clientId=${clientId}, name=${user.data.username}, trackNo=${this.userTrackNos[user.webUserID]}`,
-          'webapp'
-        );
+        console.log('disconnected:', user.data.name);
         user.connected = false;
-        this.monitorSetConnected(this.userTrackNos[user.webUserID], `${user.data.username}#${user.data.discriminator}`, false);
+        this.monitorSetConnected(this.userTrackNos[user.webUserID], `${user.data.name}#${user.data.discrim}`, false);
         break;
       }
       case WebappOp.PONG: {
+        console.log('pong');
         break;
       }
       default: {
-        this.recording.writeToLog(`Unknown op from server: ${op}`, 'webapp');
+        console.log(`Unknown op from server: ${op}`);
         break;
       }
     }
@@ -458,3 +459,18 @@ export class WebappClient {
     return ret;
   }
 }
+
+new ShardClient({
+  url: process.env.WEBAPP_URL || `ws://${process.env.HOST || 'localhost'}:${process.env.PORT || 9002}/shard`,
+  token: process.env.SHARD_AUTH as string,
+  id: 'test',
+  ennuiKey: 'test',
+  clientId: '0000000000',
+  clientName: 'test-client',
+  flacEnabled: true,
+  continuousEnabled: true,
+  serverName: 'fake server',
+  serverIcon: 'https://craig.horse/craig.png',
+  channelName: 'fake-channel',
+  channelType: 2
+});
