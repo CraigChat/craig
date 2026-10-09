@@ -1,6 +1,6 @@
 import { WriteStream } from 'node:fs';
 
-import crc32 from './crc32.js';
+import { crc32 } from '@craig/common';
 
 export const BOS = 2;
 export const EOS = 4;
@@ -58,7 +58,7 @@ export default class OggEncoder {
     chunk = header;
 
     // Now that it's together we can figure out the checksum
-    chunk.writeInt32LE(crc32(chunk), 22);
+    chunk.writeUInt32LE(crc32(chunk), 22);
 
     // And write it out
     this.stream.write(chunk);

@@ -1,3 +1,4 @@
+export * from './crc32.js';
 export * from './webappProtocol.js';
 
 export interface TimeMarkOptions {

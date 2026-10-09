@@ -1,6 +1,5 @@
+import { crc32 } from '@craig/common';
 import { WriteStream } from 'fs';
-
-import crc32 from './crc32.js';
 
 export const BOS = 2;
 export const EOS = 4;

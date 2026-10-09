@@ -9,8 +9,8 @@ for (let value = 0; value < TABLE.length; value++) {
   TABLE[value] = crc >>> 0;
 }
 
-/** Calculate the CRC-32. */
-export default function crc32(buffer: Buffer, seed = 0) {
+/** Calculate the unsigned Ogg CRC-32 (non-reflected, no final XOR). */
+export function crc32(buffer: Uint8Array, seed = 0) {
   let crc = seed >>> 0;
 
   for (const byte of buffer) {
