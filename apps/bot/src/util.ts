@@ -536,7 +536,7 @@ export function formatVoiceCode(vpc: string, rows = 2) {
   return result.join('\n');
 }
 
-export function displayUserSettings(client: CraigBot, userSettings: Pick<User, 'webapp'>, t: TFunction) {
+export function displayUserSettings(client: CraigBot, userSettings: Pick<User, 'webapp' | 'includeBots'>, t: TFunction) {
   const emojis = client.slash.emojis;
   const checkbox = (b: boolean) => emojis.getMarkdown(b ? 'check' : 'remove');
   return {
@@ -564,6 +564,21 @@ export function displayUserSettings(client: CraigBot, userSettings: Pick<User, '
               label: t(userSettings.webapp ? 'usersettings.disable' : 'usersettings.enable'),
               disabled: !client.config.craig.webapp.on,
               custom_id: 'user:settings:webapp'
+            }
+          },
+          {
+            type: ComponentType.SECTION,
+            components: [
+              {
+                type: ComponentType.TEXT_DISPLAY,
+                content: `### ${t('usersettings.include_bots.title')} ${checkbox(userSettings.includeBots)}\n${t(userSettings.includeBots ? 'usersettings.include_bots.on_desc' : 'usersettings.include_bots.off_desc')}`
+              }
+            ],
+            accessory: {
+              type: ComponentType.BUTTON,
+              style: ButtonStyle.SECONDARY,
+              label: t(userSettings.includeBots ? 'usersettings.disable' : 'usersettings.enable'),
+              custom_id: 'user:settings:includeBots'
             }
           },
           { type: ComponentType.SEPARATOR },

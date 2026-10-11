@@ -360,23 +360,27 @@ export default class SlashModule extends BotModule {
         return;
       }
       case 'settings': {
-        // TODO its webapp only for now
+        const [setting] = args;
+        if (setting !== 'webapp' && setting !== 'includeBots') return;
         try {
           const userSettings = (await prisma.user.findUnique({
             where: { id: ctx.user.id },
-            select: { webapp: true }
-          })) || { webapp: false };
+            select: { webapp: true, includeBots: true }
+          })) || { webapp: false, includeBots: true };
 
           const newSettings = await prisma.user.upsert({
             where: { id: ctx.user.id },
-            update: { webapp: !userSettings.webapp },
-            create: { id: ctx.user.id, webapp: !userSettings.webapp },
-            select: { webapp: true }
+            update: { [setting]: !userSettings[setting] },
+            create: { id: ctx.user.id, [setting]: !userSettings[setting] },
+            select: { webapp: true, includeBots: true }
           });
 
           await ctx.editParent(displayUserSettings(this.client as any, newSettings, t));
           await ctx.send({
-            content: t(userSettings.webapp ? 'webapp.off' : 'webapp.on'),
+            content:
+              setting === 'webapp'
+                ? t(newSettings.webapp ? 'webapp.on' : 'webapp.off')
+                : t(newSettings.includeBots ? 'usersettings.include_bots.on' : 'usersettings.include_bots.off'),
             ephemeral: true
           });
         } catch (e) {

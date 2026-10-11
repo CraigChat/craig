@@ -26,7 +26,8 @@ model User {
   patronId        String?
   tierManuallySet Boolean @default(false)
 
-  webapp Boolean @default(false)
+  webapp      Boolean @default(false)
+  includeBots Boolean @default(true)
 
   driveEnabled   Boolean @default(false)
   driveService   String  @default("google")
