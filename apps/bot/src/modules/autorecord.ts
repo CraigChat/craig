@@ -168,7 +168,10 @@ export default class AutorecordModule extends BotModule {
 
     if (shouldRecord && !recording) {
       // Get rewards
-      const userData = await prisma.user.findUnique({ where: { id: autoRecording.userId }, select: { rewardTier: true, webapp: true } });
+      const userData = await prisma.user.findUnique({
+        where: { id: autoRecording.userId },
+        select: { rewardTier: true, webapp: true, includeBots: true }
+      });
       const blessing = await prisma.blessing.findUnique({ where: { guildId: guildId }, select: { userId: true } });
       const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
       const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
@@ -230,7 +233,7 @@ export default class AutorecordModule extends BotModule {
       }
 
       const error = await recording
-        .start(parsedRewards, userData?.webapp ?? false)
+        .start(parsedRewards, { webapp: userData?.webapp ?? false, includeBots: userData?.includeBots ?? true })
         .then(() => (recording.state === RecordingState.ERROR ? recording.stateDescription || 'Unknown error' : false))
         .catch((e) => e);
 
