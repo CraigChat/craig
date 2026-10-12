@@ -3,8 +3,8 @@ import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
-import { isLess } from 'verkit'
 import { ComponentType, MessageFlags } from 'slash-create';
+import { isLessThan } from 'verkit';
 
 import type { CraigBot } from '../../bot.js';
 import { checkMaintenance } from '../../redis.js';
@@ -204,7 +204,7 @@ export default class RecorderModule extends BotModule {
       where: { regionId }
     });
 
-    if (!lastVoiceVersion || isLess(lastVoiceVersion.version, voiceVersion))
+    if (!lastVoiceVersion || isLessThan(lastVoiceVersion.version, voiceVersion))
       await prisma.regionVoiceVersion.upsert({
         where: { regionId },
         update: {
@@ -224,7 +224,7 @@ export default class RecorderModule extends BotModule {
       where: { regionId }
     });
 
-    if (!lastRtcWorkerVersion || isLess(lastRtcWorkerVersion.version, rtcWorkerVersion))
+    if (!lastRtcWorkerVersion || isLessThan(lastRtcWorkerVersion.version, rtcWorkerVersion))
       await prisma.regionRtcVersion.upsert({
         where: { regionId },
         update: {
