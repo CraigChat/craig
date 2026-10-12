@@ -36,8 +36,8 @@ export default class UserSettings extends GeneralCommand {
 
     const userSettings = (await this.prisma.user.findUnique({
       where: { id: ctx.user.id },
-      select: { webapp: true }
-    })) || { webapp: false };
+      select: { webapp: true, includeBots: true }
+    })) || { webapp: false, includeBots: true };
 
     return displayUserSettings(this.client, userSettings, t);
   }

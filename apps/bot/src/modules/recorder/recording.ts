@@ -77,6 +77,11 @@ export interface Chunk {
   time: number;
 }
 
+export interface RecordingStartOptions {
+  webapp?: boolean;
+  includeBots?: boolean;
+}
+
 export default class Recording {
   recorder: RecorderModule;
   id = recNanoid();
@@ -106,12 +111,15 @@ export default class Recording {
   logs: string[] = [];
   lastMessageError: Error | null = null;
   rewards: ParsedRewards | null = null;
+  options?: RecordingStartOptions;
   voiceVersion?: string;
   rtcWorkerVersion?: string;
 
   users: { [key: string]: RecordingUser } = {};
   userPackets: { [key: string]: Chunk[] } = {};
-  usersWarned: string[] = [];
+  usersWarned = new Set<string>();
+  usersIgnored = new Set<string>();
+  usersFetching = new Set<string>();
   trackNo = 1;
   notePacketNo = 0;
   bytesWritten = 0;
@@ -184,7 +192,7 @@ export default class Recording {
     if (dmChannel) await dmChannel.createMessage(`⚠️ \`${this.id}\`: ${text}`).catch(() => null);
   }
 
-  async start(parsedRewards: ParsedRewards, webapp = false) {
+  async start(parsedRewards: ParsedRewards, options: RecordingStartOptions = {}) {
     await this.sanityCheckIdClashing();
 
     this.recorder.logger.info(`Starting recording ${this.id} by ${this.user.username}#${this.user.discriminator} (${this.user.id})`);
@@ -214,6 +222,7 @@ export default class Recording {
     const fileBase = path.join(this.recorder.recordingPath, `${this.id}.ogg`);
     const { tier, rewards } = parsedRewards;
     this.rewards = { tier, rewards };
+    this.options = options;
     if (rewards.sizeLimitMult) this.sizeLimit *= rewards.sizeLimitMult;
     await writeFile(
       fileBase + '.info',
@@ -306,11 +315,10 @@ export default class Recording {
       }
     });
 
-    if (webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
+    if (options?.webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
 
     this.recorder.metrics.onRecordingStart(this.autorecorded);
-
-    void this.#logCraigStatus();
+    this.#logCraigStatus();
   }
 
   async #logCraigStatus() {
@@ -710,9 +718,9 @@ export default class Recording {
       try {
         opus.decode(chunk.data);
       } catch (ex) {
-        if (!(user.id in this.usersWarned)) {
+        if (!this.usersWarned.has(user.id)) {
           this.pushToActivity(`⚠️ ${this.t('recording.panel.corrupt_data', { user: `<@${user.id}>` })}`);
-          this.usersWarned.push(user.id);
+          this.usersWarned.add(user.id);
         }
       }
     }
@@ -722,72 +730,82 @@ export default class Recording {
   }
 
   async getOrCreateRecordingUser(userID: string) {
+    if (this.usersIgnored.has(userID)) return;
     if (!this.userPackets[userID]) this.userPackets[userID] = [];
     if (this.users[userID]) return this.users[userID];
     if (Object.keys(this.users).length >= USER_HARD_LIMIT) return;
-    let user = this.recorder.client.bot.users.get(userID);
-    this.users[userID] = {
-      id: userID,
-      username: user?.username ?? 'Unknown',
-      discriminator: user?.discriminator ?? '0000',
-      globalName: user?.globalName,
-      bot: user?.bot ?? false,
-      unknown: !user,
-      track: this.trackNo++,
-      packet: 2
-    };
-    const recordingUser = this.users[userID];
 
-    this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
-
+    // Prevent multiple inits while fetching this user, and this WILL forget packets in the meantime
+    // This shouldn't take long, and usually dysnomia cache has the user anyways, but in worse cases, packets will drop before we know who this is
+    if (this.usersFetching.has(userID)) return;
+    this.usersFetching.add(userID);
     try {
-      this.writeToLog(
-        `Writing headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}, ${recordingUser.id})`,
-        'recording'
-      );
-      this.writer?.writeUserHeader(recordingUser);
-    } catch (e) {
-      this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
-      this.writeToLog(`Failed to write headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`);
-    }
+      const user =
+        this.recorder.client.bot.users.get(userID) ||
+        this.channel.voiceMembers.get(userID)?.user ||
+        (await this.channel.guild.fetchMembers({ userIDs: [userID] }))?.[0]?.user;
 
-    if (recordingUser.unknown) {
-      const member = this.channel.voiceMembers.get(userID) || (await this.channel.guild.fetchMembers({ userIDs: [userID] }))?.[0];
-      recordingUser.username = member?.username ?? 'Unknown';
-      recordingUser.discriminator = member?.discriminator ?? '0000';
-      recordingUser.globalName = member?.user?.globalName;
-      recordingUser.bot = member?.user?.bot ?? false;
-      recordingUser.unknown = !member;
-      if (member) user = member.user;
-    }
-
-    if (user) {
-      try {
-        const response = await fetch(user.dynamicAvatarURL('png', 2048));
-        if (!response.ok) throw new Error(`Failed to fetch avatar: ${response.status} ${response.statusText}`);
-        const data = await response.arrayBuffer();
-        recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data).toString('base64');
-      } catch (e) {
-        this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
-        this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
+      if (user?.bot && !(this.options?.includeBots ?? true)) {
+        this.usersIgnored.add(userID);
+        this.pushToActivity(`<@${userID}> was excluded from the recording.`);
+        return;
       }
 
-      recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
-      if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
-    }
+      this.users[userID] = {
+        id: userID,
+        username: user?.username ?? 'Unknown',
+        discriminator: user?.discriminator ?? '0000',
+        globalName: user?.globalName,
+        bot: user?.bot ?? false,
+        unknown: !user,
+        track: this.trackNo++,
+        packet: 2
+      };
+      const recordingUser = this.users[userID];
 
-    if (this.writer) {
-      this.writer.writeUser(recordingUser);
-      delete recordingUser.avatar;
-    }
+      this.webapp?.monitorSetConnected(recordingUser.track, `${recordingUser.username}#${recordingUser.discriminator}`, true);
 
-    this.writeToLog(
-      `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
-      'recording'
-    );
-    this.pushToActivity(this.t('recording.panel.joined', { user: `<@${userID}>` }));
-    this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
-    return recordingUser;
+      try {
+        this.writeToLog(
+          `Writing headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}, ${recordingUser.id})`,
+          'recording'
+        );
+        this.writer?.writeUserHeader(recordingUser);
+      } catch (e) {
+        this.recorder.logger.error(`Failed to write headers for recording ${this.id}`, e);
+        this.writeToLog(`Failed to write headers on track ${recordingUser.track} (${recordingUser.username}#${recordingUser.discriminator}): ${e}`);
+      }
+
+      if (user) {
+        try {
+          const response = await fetch(user.dynamicAvatarURL('png', 2048));
+          if (!response.ok) throw new Error(`Failed to fetch avatar: ${response.status} ${response.statusText}`);
+          const data = await response.arrayBuffer();
+          recordingUser.avatar = 'data:image/png;base64,' + Buffer.from(data).toString('base64');
+        } catch (e) {
+          this.recorder.logger.warn(`Failed to fetch avatar for recording ${this.id}`, e);
+          this.writeToLog(`Failed to fetch avatar for recording ${this.id}: ${e}`);
+        }
+
+        recordingUser.avatarUrl = user.dynamicAvatarURL('png', 256);
+        if (recordingUser.avatarUrl) this.webapp?.monitorSetUserExtra(recordingUser.track, UserExtraType.AVATAR, recordingUser.avatarUrl);
+      }
+
+      if (this.writer) {
+        this.writer.writeUser(recordingUser);
+        delete recordingUser.avatar;
+      }
+
+      this.writeToLog(
+        `New user ${recordingUser.username}#${recordingUser.discriminator} (${recordingUser.id}, track=${recordingUser.track})`,
+        'recording'
+      );
+      this.pushToActivity(this.t('recording.panel.joined', { user: `<@${userID}>` }));
+      this.recorder.logger.debug(`User ${recordingUser.username}#${recordingUser.discriminator} (${userID}) joined recording ${this.id}`);
+      return recordingUser;
+    } finally {
+      this.usersFetching.delete(userID);
+    }
   }
 
   async onData(data: Buffer, userID: string, timestamp: number) {

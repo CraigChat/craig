@@ -352,7 +352,7 @@ export default class Join extends GeneralCommand {
     recording.messageID = messageID;
     recording.messageChannelID = ctx.channelID;
     const error = await recording
-      .start(parsedRewards, userData?.webapp ?? false)
+      .start(parsedRewards, { webapp: userData?.webapp ?? false, includeBots: userData?.includeBots ?? true })
       .then(() => false)
       .catch((e) => e);
 
