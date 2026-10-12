@@ -98,7 +98,7 @@ export function createT(lang: string) {
     const message = t(key);
     let format = formats.get(message);
     if (!format) {
-      format = new IntlMessageFormat(message, lang.replace('_', '-'));
+      format = new IntlMessageFormat(message, lang.replace('_', '-'), undefined, { ignoreTag: true });
       formats.set(message, format);
     }
 
