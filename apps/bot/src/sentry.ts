@@ -1,31 +1,11 @@
-import { prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
-import { RewriteFrames } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
-import { Integrations } from '@sentry/tracing';
-import { CommandContext } from 'slash-create';
+import type { CommandContext } from 'slash-create';
 
-import packageJson from '../package.json';
 import { getSentryOptions } from './config.js';
-import Recording from './modules/recorder/recording.js';
+import type Recording from './modules/recorder/recording.js';
 
 const sentryOpts = getSentryOptions();
-if (sentryOpts)
-  Sentry.init({
-    dsn: sentryOpts.dsn,
-    integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-      new RewriteFrames({
-        root: process.cwd()
-      }),
-      new Integrations.Prisma({ client: prisma })
-    ],
-
-    environment: sentryOpts.env || process.env.NODE_ENV || 'development',
-
-    release: `craig-bot@${packageJson.version}`,
-    tracesSampleRate: sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1.0
-  });
 
 export function reportErrorFromCommand(ctx: CommandContext, error: any, commandName: string, type?: string) {
   if (!sentryOpts) return;

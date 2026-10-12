@@ -2,6 +2,10 @@
 	"$schema": "https://turborepo.dev/schema.v2.json",
 	"ui": "tui",
   "tasks": {
+    "@craig/bot#sentry:sourcemaps": {
+      "cache": false,
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT", "SENTRY_URL"]
+    },
     "build": {
       "outputs": [
         ".svelte-kit/**",

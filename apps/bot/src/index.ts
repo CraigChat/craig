@@ -1,5 +1,4 @@
-import './env.js';
+import './instrument.js';
 
-import { connect } from './bot.js';
-
+const { connect } = await import('./bot.js');
 connect();

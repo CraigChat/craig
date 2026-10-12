@@ -20,6 +20,7 @@ catalog:
   typescript: ^7.0.2
   zod: ^4.3.5
 allowBuilds:
+  '@sentry/cli': false
   '@discordjs/opus': true
   '@parcel/watcher': true
   '@prisma/client': true
