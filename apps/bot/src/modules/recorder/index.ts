@@ -3,7 +3,7 @@ import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
 import { access, mkdir } from 'fs/promises';
 import path from 'path';
-import semver from 'semver';
+import { isLess } from 'verkit'
 import { ComponentType, MessageFlags } from 'slash-create';
 
 import type { CraigBot } from '../../bot.js';
@@ -204,7 +204,7 @@ export default class RecorderModule extends BotModule {
       where: { regionId }
     });
 
-    if (!lastVoiceVersion || semver.lt(lastVoiceVersion.version, voiceVersion))
+    if (!lastVoiceVersion || isLess(lastVoiceVersion.version, voiceVersion))
       await prisma.regionVoiceVersion.upsert({
         where: { regionId },
         update: {
@@ -224,7 +224,7 @@ export default class RecorderModule extends BotModule {
       where: { regionId }
     });
 
-    if (!lastRtcWorkerVersion || semver.lt(lastRtcWorkerVersion.version, rtcWorkerVersion))
+    if (!lastRtcWorkerVersion || isLess(lastRtcWorkerVersion.version, rtcWorkerVersion))
       await prisma.regionRtcVersion.upsert({
         where: { regionId },
         update: {

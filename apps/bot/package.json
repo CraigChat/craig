@@ -42,9 +42,9 @@
     "intl-messageformat": "^10.7.18",
     "ioredis": "catalog:",
     "nanoid": "catalog:",
-    "semver": "^7.7.3",
     "slash-create": "^6.8.1",
     "sodium-native": "^5.1.0",
+    "verkit": "^0.5.0",
     "ws": "catalog:"
   },
   "devDependencies": {

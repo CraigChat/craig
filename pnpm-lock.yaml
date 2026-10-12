@@ -277,15 +277,15 @@ importers:
       nanoid:
         specifier: 'catalog:'
         version: 6.0.1
-      semver:
-        specifier: ^7.7.3
-        version: 7.8.1
       slash-create:
         specifier: ^6.8.1
         version: 6.8.1(fastify@5.12.1)
       sodium-native:
         specifier: ^5.1.0
         version: 5.1.0(bare-events@2.8.3)
+      verkit:
+        specifier: ^0.5.0
+        version: 0.5.0
       ws:
         specifier: 'catalog:'
         version: 8.22.0
@@ -6290,6 +6290,10 @@ packages:
     resolution: {integrity: sha512-zj/ob3UsvJGN0whEAKFp53REA5X66hvffVqoCtVQAakJKnKlH+/PcOfMoFwIG/o4rElqLv/ycAFlx8ZlXUorCg==}
     engines: {node: '>=18.12.0'}
 
+  verkit@0.5.0:
+    resolution: {integrity: sha512-u4J1hr6Y+C/hit34GwL3eIcUf3wngT8TlYUjK7tk0jxydKLAq3sYvifjdTDA6U3KCKRcQCQDGf/srjxfZF3l7g==}
+    engines: {node: '>=18.12.0'}
+
   vite-imagetools@9.0.3:
     resolution: {integrity: sha512-FwjApRNZyN+RucPW9Z9kf0dyzyi3r3zlDfrTnzHXNaYpmT3pZ5w//d6QkApy1iypbDm+3fq+Gwfv+PYA4j4uYw==}
     engines: {node: '>=20.0.0'}
@@ -11527,6 +11531,8 @@ snapshots:
       typescript: 6.0.3
 
   verkit@0.3.2: {}
+
+  verkit@0.5.0: {}
 
   vite-imagetools@9.0.3(rollup@4.55.1):
     dependencies:
