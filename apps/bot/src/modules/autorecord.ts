@@ -1,6 +1,6 @@
 import { type AutoRecord, prisma } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
-import { ButtonStyle, ComponentType } from 'slash-create';
+import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
 
 import { createT } from '../i18n.js';
 import { checkMaintenance, processCooldown } from '../redis.js';
@@ -253,22 +253,26 @@ export default class AutorecordModule extends BotModule {
         if (recording.messageID && recording.messageChannelID)
           await this.client.bot
             .editMessage(recording.messageChannelID, recording.messageID, {
-              embeds: [
-                {
-                  color: 0xe74c3c,
-                  title: t('recording.panel.error'),
-                  description: `${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
-                }
-              ],
+              flags: MessageFlags.IS_COMPONENTS_V2,
               components: [
                 {
-                  type: ComponentType.ACTION_ROW,
+                  type: ComponentType.CONTAINER,
+                  accent_color: 0xe74c3c,
                   components: [
                     {
-                      type: ComponentType.BUTTON,
-                      style: ButtonStyle.LINK,
-                      label: t('common.support_server'),
-                      url: 'https://discord.gg/craig'
+                      type: ComponentType.TEXT_DISPLAY,
+                      content: `### ${t('recording.panel.error')}\n${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
+                    },
+                    {
+                      type: ComponentType.ACTION_ROW,
+                      components: [
+                        {
+                          type: ComponentType.BUTTON,
+                          style: ButtonStyle.LINK,
+                          label: t('common.support_server'),
+                          url: 'https://discord.gg/craig'
+                        }
+                      ]
                     }
                   ]
                 }

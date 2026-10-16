@@ -1,4 +1,4 @@
-import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMessageOptions, SlashCreator } from 'slash-create';
+import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMessageOptions, MessageFlags, SlashCreator } from 'slash-create';
 
 import Recording, { RecordingState } from '../modules/recorder/recording.js';
 import { checkMaintenance, processCooldown } from '../redis.js';
@@ -37,22 +37,26 @@ export default class Join extends GeneralCommand {
     const [t] = this.createT(ctx);
 
     const errorMessage: EditMessageOptions = {
-      embeds: [
-        {
-          color: 0xe74c3c,
-          title: t('recording.panel.error'),
-          description: `${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
-        }
-      ],
+      flags: MessageFlags.IS_COMPONENTS_V2,
       components: [
         {
-          type: ComponentType.ACTION_ROW,
+          type: ComponentType.CONTAINER,
+          accent_color: 0xe74c3c,
           components: [
             {
-              type: ComponentType.BUTTON,
-              style: ButtonStyle.LINK,
-              label: t('common.support_server'),
-              url: 'https://discord.com/invite/PEc4QBE45f'
+              type: ComponentType.TEXT_DISPLAY,
+              content: `### ${t('recording.panel.error')}\n${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
+            },
+            {
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.LINK,
+                  label: t('common.support_server'),
+                  url: 'https://discord.com/invite/PEc4QBE45f'
+                }
+              ]
             }
           ]
         }
@@ -337,7 +341,11 @@ export default class Join extends GeneralCommand {
     const recording = new Recording(this.recorder, channel as any, member.user, t, locale);
     this.recorder.recordings.set(ctx.guildID, recording);
     const { messageID, err } = await ctx
-      .editOriginal(recording.messageContent() as any)
+      .editOriginal({
+        ...recording.messageContent(),
+        // Clear the nickname warning before enabling Components V2.
+        content: null
+      })
       .then((m) => ({ err: null, messageID: m.id }))
       .catch((e) => ({ err: e, messageID: null }));
     if (err) {
