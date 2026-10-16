@@ -1,2 +1,5 @@
 audio/*.opus
 !audio/voicetest_*.opus
+.sentryclirc
+sentry.env
+sentry.env.local
