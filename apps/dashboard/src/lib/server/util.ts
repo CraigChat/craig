@@ -28,3 +28,16 @@ export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: 
 
   return result('Unknown Error');
 }
+
+const SAFE_REDIRECT_CHARS = /^[\w\-.~!$&'()*+,;=:@%/?#]+$/;
+
+export function sanitizePath(next: unknown, origin: string): string | null {
+  if (typeof next !== 'string' || next.length > 2048 || !next.startsWith('/') || !SAFE_REDIRECT_CHARS.test(next)) return null;
+
+  const url = URL.parse(next, origin);
+  if (!url || url.origin !== new URL(origin).origin) return null;
+
+  const { pathname, search, hash } = url;
+  if (pathname.startsWith('//') || pathname.includes('%') || /^\/api(\/|$)/i.test(pathname)) return null;
+  return pathname + search + hash;
+}

@@ -8,6 +8,7 @@ import { env as publicEnv } from '$env/dynamic/public';
 import { requiredEnv } from '$lib/server/env';
 import { signSession } from '$lib/server/jwt';
 import { rateLimitRequest, redis } from '$lib/server/redis';
+import { sanitizePath } from '$lib/server/util';
 import { INVITE_PERMISSIONS_BITFIELD } from '$lib/util';
 
 import type { RequestHandler } from './$types';
@@ -40,8 +41,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   if (!code) {
     const state = randomBytes(32).toString('hex');
     const nextParam = url.searchParams.get('next');
-    let validatedNext: string | null = null;
-    if (nextParam && typeof nextParam === 'string' && nextParam.startsWith('/')) validatedNext = nextParam;
+    const validatedNext = sanitizePath(nextParam, url.origin);
 
     await redis.set(`oauth_state:${state}`, JSON.stringify({ next: validatedNext }), 'EX', 300);
 
@@ -80,7 +80,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   try {
     const parsed = JSON.parse(stored);
     // const guildId = url.searchParams.get('guild_id');
-    if (parsed?.next && typeof parsed.next === 'string' && parsed.next.startsWith('/')) redirectTo = parsed.next;
+    const next = sanitizePath(parsed?.next, url.origin);
+    if (next) redirectTo = next;
     // else if (guildId) redirectTo = `/servers/${guildId}/onboarding`;
   } catch {}
 
