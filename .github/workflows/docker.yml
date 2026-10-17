@@ -27,6 +27,7 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
+          persist-credentials: false
       - name: Collect changed paths
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -61,6 +62,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
+          persist-credentials: false
       - uses: docker/setup-buildx-action@v4
       - name: Log in to GHCR
         if: needs.changes.outputs.publish == 'true'
@@ -87,5 +89,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: true
+          persist-credentials: false
       - name: Validate Compose config
         run: docker compose --env-file docker.env.example config
