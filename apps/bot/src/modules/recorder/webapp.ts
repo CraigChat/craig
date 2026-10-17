@@ -19,6 +19,10 @@ import type { ParsedRewards } from '../../util.js';
 import Recording from './recording.js';
 import { toBuffer } from './util.js';
 
+const MAX_ERROR_LENGTH = 1024;
+const DATA_CONNECT_LIMIT = 10;
+const DATA_CONNECT_WINDOW = 60 * 1000;
+
 export interface WebUser {
   connected: boolean;
   dataType: DataTypeFlag;
@@ -46,6 +50,7 @@ export class WebappClient {
   userPacketNos: { [key: string]: number } = {};
   userTimeouts: { [key: string]: any } = {};
   speaking: { [key: number]: boolean } = {};
+  dataConnectTimes: number[] = [];
 
   constructor(recording: Recording, parsedRewards: ParsedRewards) {
     this.recording = recording;
@@ -107,6 +112,15 @@ export class WebappClient {
   }
 
   createNewWebUser(clientId: string, username: string, dataType: DataTypeFlag, continuous: boolean) {
+    // Rate-limit data connections per recording
+    const now = Date.now();
+    this.dataConnectTimes = this.dataConnectTimes.filter((t) => now - t < DATA_CONNECT_WINDOW);
+    if (this.dataConnectTimes.length >= DATA_CONNECT_LIMIT) {
+      this.recording.writeToLog(`Rejected webapp data connection (rate limited), clientId=${clientId}`, 'webapp');
+      return this.closeClient(clientId, WebappOpCloseReason.INVALID);
+    }
+    this.dataConnectTimes.push(now);
+
     let webUserID = username + '#web';
     let user = this.webUsers.get(webUserID);
     if (user && (user.connected || user.dataType !== dataType || user.continuous !== continuous)) {
@@ -162,12 +176,10 @@ export class WebappClient {
     );
 
     // We switch to a web size limit, depending on which features are enabled
-    if (dataType !== DataTypeFlag.OPUS || continuous)
-      this.recording.sizeLimit =
-        Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWeb) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
-    else
-      this.recording.sizeLimit =
-        Math.max(this.recording.sizeLimit, this.config.craig.sizeLimitWebOpus) * (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
+    const webSizeLimit =
+      (dataType !== DataTypeFlag.OPUS || continuous ? this.config.craig.sizeLimitWeb : this.config.craig.sizeLimitWebOpus) *
+      (this.recording.rewards?.rewards.sizeLimitMult ?? 1);
+    this.recording.sizeLimit = Math.max(this.recording.sizeLimit, webSizeLimit);
 
     // Send them their own ID
     const idMessage = Buffer.alloc(EnnuicastrParts.info.length);
@@ -338,7 +350,9 @@ export class WebappClient {
       case EnnuicastrId.ERROR:
         // A client error occurred. Log it.
         try {
-          this.recording.writeToLog('Ennuicastr error: ' + message.toString('utf8', 4), 'webapp');
+          const errorText = message.toString('utf8', 4, Math.min(message.length, 4 + MAX_ERROR_LENGTH));
+          if (this.recording.increaseBytesWritten(Buffer.byteLength(errorText))) break;
+          this.recording.writeToLog('Ennuicastr error: ' + errorText, 'webapp');
         } catch (ex) {}
         break;
 
