@@ -1,8 +1,15 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit';
 import { locale } from 'svelte-i18n';
 
+import { env } from '$env/dynamic/private';
 import { localeCookieName } from '$lib/cookie';
 import { processUserAgent } from '$lib/device';
+import { requiredEnv } from '$lib/server/env';
+import { assertJwtSecret } from '$lib/server/jwt';
+
+export const init: ServerInit = () => {
+  assertJwtSecret(requiredEnv('JWT_SECRET', env.JWT_SECRET));
+};
 
 const CYRILLIC_LANGS = ['be', 'ru', 'uk'];
 

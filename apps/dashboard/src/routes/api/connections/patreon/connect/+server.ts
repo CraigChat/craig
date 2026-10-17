@@ -3,6 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { env as envPub } from '$env/dynamic/public';
 import { toRedirectUri } from '$lib/oauth';
 import { checkAuth } from '$lib/server/discord';
+import { SESSION_COOKIE } from '$lib/server/jwt';
 import { generateOAuthState, rateLimitRequest } from '$lib/server/redis';
 
 import type { RequestHandler } from './$types';
@@ -13,7 +14,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-patreon-url', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
 
-  const sessionCookie = cookies.get('session');
+  const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
 

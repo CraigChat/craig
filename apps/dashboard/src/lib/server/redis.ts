@@ -8,7 +8,7 @@ import { env } from '$env/dynamic/private';
 
 import { REDIS_OPTIONS } from './config';
 import { requiredEnv } from './env';
-import { verifySession } from './jwt';
+import { SESSION_COOKIE, verifySession } from './jwt';
 
 export const redis = new Redis(REDIS_OPTIONS);
 
@@ -83,7 +83,7 @@ export async function rateLimitRequest(
 ) {
   let id = `ip:${event.getClientAddress()}`;
   try {
-    const session = event.cookies.get('session');
+    const session = event.cookies.get(SESSION_COOKIE);
     if (session) {
       const payload = await verifySession(session, requiredEnv('JWT_SECRET', env.JWT_SECRET));
       if (typeof payload.id === 'string') id = `user:${payload.id}`;

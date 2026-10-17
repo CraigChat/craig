@@ -2,11 +2,12 @@ import { error, redirect } from '@sveltejs/kit';
 
 import { getUserData } from '$lib/server/data';
 import { checkAuth } from '$lib/server/discord';
+import { SESSION_COOKIE } from '$lib/server/jwt';
 
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ cookies, url }) => {
-  const sessionCookie = cookies.get('session');
+  const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
 
   if (!auth) {

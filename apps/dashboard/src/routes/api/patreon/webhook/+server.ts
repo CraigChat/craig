@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { prisma } from '@craig/db';
+import { getSemaphore } from '@henrygd/semaphore';
 import { json } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -9,6 +10,14 @@ import { determineRewardTier, type PatreonWebhookBody, resolveUserEntitlement } 
 import type { RequestHandler } from './$types';
 
 type PatreonEvent = `members:pledge:${'create' | 'update' | 'delete'}`;
+
+const MAX_BYTES = 1024 * 1024;
+
+function sameTiers(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const sortedB = b.toSorted();
+  return a.toSorted().every((t, i) => sortedB[i] === t);
+}
 
 async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody) {
   const id = body.data.relationships.user?.data?.id;
@@ -55,7 +64,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       dbPatron.name !== patron.name ||
       dbPatron.email !== patron.email ||
       dbPatron.cents !== patron.cents ||
-      !dbPatron.tiers.every((t, i) => patron.tiers[i] === t)
+      !sameTiers(dbPatron.tiers, patron.tiers)
     ) {
       console.info(new Date().toISOString(), `Upserting patron ${patron.id} (${patron.name})`);
       await prisma.patreon.upsert({
@@ -125,16 +134,35 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const event: PatreonEvent = request.headers.get('x-patreon-event') as any;
   const signature = request.headers.get('x-patreon-signature');
+  if (!event || !signature || !/^[0-9a-f]{32}$/i.test(signature) || request.headers.get('user-agent') !== 'Patreon HTTP Robot')
+    return json({ message: 'Unauthorized' }, { status: 401 });
+  if (Number(request.headers.get('content-length')) > MAX_BYTES) return json({ message: 'Payload too large' }, { status: 413 });
   const text = await request.text();
-  if (!event || !signature || request.headers.get('user-agent') !== 'Patreon HTTP Robot') return json({ message: 'Unauthorized' }, { status: 401 });
+  if (Buffer.byteLength(text) > MAX_BYTES) return json({ message: 'Payload too large' }, { status: 413 });
   const hash = createHmac('md5', env.PATREON_WEBHOOK_SECRET).update(text).digest('hex');
-  if (!timingSafeEqual(Buffer.from(hash), Buffer.from(signature))) {
+  const hashBuffer = Buffer.from(hash);
+  const signatureBuffer = Buffer.from(signature.toLowerCase());
+  if (hashBuffer.length !== signatureBuffer.length || !timingSafeEqual(hashBuffer, signatureBuffer)) {
     console.log(`A Patreon webhook event (${event}) was rejected: ${hash} != ${signature} [expected]`);
     return json({ message: 'Unauthorized' }, { status: 401 });
   }
-  const body: PatreonWebhookBody = JSON.parse(text);
+  let body: PatreonWebhookBody;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return json({ message: 'Invalid body' }, { status: 400 });
+  }
 
-  handlePatreonEvent(event, body).catch((e) => console.error(`Failed to handle patreon event ${event}`, e));
+  const sem = getSemaphore(`patreon/${body.data?.relationships?.user?.data?.id ?? body.data?.id}`);
+  await sem.acquire();
+  try {
+    await handlePatreonEvent(event, body);
+  } catch (e) {
+    console.error(`Failed to handle patreon event ${event}`, e);
+    return json({ message: 'Failed to handle event' }, { status: 500 });
+  } finally {
+    sem.release();
+  }
 
   return json({ ok: true });
 };

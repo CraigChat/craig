@@ -4,6 +4,7 @@ import { destr } from 'destr';
 import { z } from 'zod';
 
 import { checkAuth } from '$lib/server/discord';
+import { SESSION_COOKIE } from '$lib/server/jwt';
 import { rateLimitRequest } from '$lib/server/redis';
 import { errorResponse } from '$lib/server/util';
 import { APIErrorCode } from '$lib/types';
@@ -43,7 +44,7 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'user-settings', limit: 20, window: 10 });
   if (rlResponse) return rlResponse;
 
-  const sessionCookie = cookies.get('session');
+  const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return errorResponse(APIErrorCode.UNAUTHORIZED, { status: 401 });
 

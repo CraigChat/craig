@@ -6,7 +6,7 @@ import type { APIUser } from 'discord-api-types/v10';
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import { requiredEnv } from '$lib/server/env';
-import { signSession } from '$lib/server/jwt';
+import { SESSION_COOKIE, signSession } from '$lib/server/jwt';
 import { rateLimitRequest, redis } from '$lib/server/redis';
 import { sanitizePath } from '$lib/server/util';
 import { INVITE_PERMISSIONS_BITFIELD } from '$lib/util';
@@ -15,7 +15,7 @@ import type { RequestHandler } from './$types';
 
 const OAUTH_URL = 'https://discord.com/oauth2/authorize';
 const TOKEN_URL = 'https://discord.com/api/oauth2/token';
-const USER_URL = 'https://discord.com/api/users/@me';
+const USER_URL = 'https://discord.com/api/v10/users/@me';
 const SCOPES = ['identify', 'guilds', 'guilds.members.read'];
 
 export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) => {
@@ -124,8 +124,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     }
   });
 
-  const token = await signSession({ id: user.id, username: user.username }, jwtSecret);
-  cookies.set('session', token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
+  const token = await signSession({ id: user.id }, jwtSecret);
+  cookies.set(SESSION_COOKIE, token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
 
   redirect(307, redirectTo);
 };

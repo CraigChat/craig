@@ -6,6 +6,7 @@ import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
 import { googleScopes } from '$lib/oauth';
 import { checkAuth } from '$lib/server/discord';
+import { SESSION_COOKIE } from '$lib/server/jwt';
 import { logger } from '$lib/server/logger';
 import { googleOAuth2Client } from '$lib/server/oauth';
 import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
@@ -18,7 +19,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-google', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
 
-  const sessionCookie = cookies.get('session');
+  const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
   const user = await prisma.user.findUnique({ where: { id: auth.id } });
