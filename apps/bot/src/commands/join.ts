@@ -369,7 +369,7 @@ export default class Join extends GeneralCommand {
         `Failed to start recording ${recording.id} (${guild.name}, ${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
         error
       );
-      await this.reportError(ctx, err, recording).catch(() => {});
+      await this.reportError(ctx, error, recording).catch(() => {});
       return;
     }
 

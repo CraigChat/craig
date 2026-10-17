@@ -7,6 +7,25 @@ import type Recording from './modules/recorder/recording.js';
 
 const sentryOpts = getSentryOptions();
 
+function summarizeContext(ctx: CommandContext) {
+  let opts = ctx.options;
+  for (const sub of ctx.subcommands) opts = opts?.[sub];
+  const optionNames = opts && typeof opts === 'object' ? Object.keys(opts) : [];
+
+  return {
+    commandName: ctx.commandName,
+    commandID: ctx.commandID,
+    commandType: ctx.commandType,
+    subcommands: ctx.subcommands,
+    optionNames,
+    interactionID: ctx.interactionID,
+    guildID: ctx.guildID,
+    channelID: ctx.channelID,
+    userID: ctx.user?.id,
+    locale: ctx.locale
+  };
+}
+
 export function reportErrorFromCommand(ctx: CommandContext, error: any, commandName: string, type?: string) {
   if (!sentryOpts) return;
   Sentry.withScope((scope) => {
@@ -15,7 +34,7 @@ export function reportErrorFromCommand(ctx: CommandContext, error: any, commandN
     scope.setTag('user', ctx ? ctx.user.id : undefined);
     scope.setTag('guild', ctx ? ctx.guildID : undefined);
     scope.setTag('channel', ctx ? ctx.channelID : undefined);
-    scope.setExtra('ctx', ctx);
+    scope.setExtra('ctx', ctx ? summarizeContext(ctx) : undefined);
     scope.setUser({
       id: ctx ? ctx.user.id : undefined,
       username: ctx ? ctx.user.username : undefined,
@@ -34,7 +53,7 @@ export function reportRecordingError(ctx: CommandContext, error: any, recording?
     scope.setTag('user', ctx ? ctx.user.id : undefined);
     scope.setTag('guild', ctx ? ctx.guildID : undefined);
     scope.setTag('channel', ctx ? ctx.channelID : undefined);
-    scope.setExtra('ctx', ctx);
+    scope.setExtra('ctx', ctx ? summarizeContext(ctx) : undefined);
     scope.setUser({
       id: ctx ? ctx.user.id : undefined,
       username: ctx ? ctx.user.username : undefined,
