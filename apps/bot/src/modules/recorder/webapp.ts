@@ -307,7 +307,7 @@ export class WebappClient {
     const userTrackNo = this.userTrackNos[webUserID];
 
     const message = toBuffer(data);
-    if (message.length < 4) this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
+    if (message.length < 4) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
 
     const cmd = message.readUInt32LE(0);
 
@@ -363,7 +363,12 @@ export class WebappClient {
   }
 
   private parseMessage(message: Buffer) {
-    const { op, clientId, message: data } = this.unwrapMessage(message);
+    const unwrapped = this.unwrapMessage(message);
+    if (!unwrapped) {
+      this.recording.writeToLog(`Received a short message from the webapp server (${message.length} bytes)`, 'webapp');
+      return;
+    }
+    const { op, clientId, message: data } = unwrapped;
 
     switch (op) {
       case WebappOp.READY: {
@@ -372,6 +377,7 @@ export class WebappClient {
         break;
       }
       case WebappOp.NEW: {
+        if (data.length < EnnuicastrParts.login.length) return this.closeClient(clientId, WebappOpCloseReason.INVALID_MESSAGE);
         const nick = data.toString('utf8', EnnuicastrParts.login.nick).substring(0, 32);
         const flags = data.readUInt32LE(EnnuicastrParts.login.flags);
         const connectionType: ConnectionType = flags & ConnectionTypeMask;
@@ -381,7 +387,7 @@ export class WebappClient {
         this.recording.writeToLog(
           `Webapp client connected. type=${ConnectionType[connectionType]}, clientId=${clientId}, nick=${nick}, dataType=${
             DataTypeFlag[dataType]
-          }, continuous=${continuous} (userCount=${Object.keys(this.recording.users).length}, webUsersCount=${Object.keys(this.webUsers).length})`,
+          }, continuous=${continuous} (userCount=${Object.keys(this.recording.users).length}, webUsersCount=${this.webUsers.size})`,
           'webapp'
         );
         this.clients.set(clientId, connectionType);
@@ -459,6 +465,7 @@ export class WebappClient {
   }
 
   private unwrapMessage(message: Buffer) {
+    if (message.length < 12) return null;
     const op: WebappOp = message.readUInt32LE(0);
     const clientId = message.toString('utf8', 4, 12);
     return { op, clientId, message: message.slice(12) };
