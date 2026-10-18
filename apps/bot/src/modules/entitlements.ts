@@ -5,6 +5,8 @@ import { CommandContext, ComponentContext } from 'slash-create';
 import type { CraigBot } from '../bot.js';
 import { BotModule } from '../runtime.js';
 
+const WEBHOOK_TIMEOUT = 5000;
+
 export default class EntitlementsModule extends BotModule {
   private readonly handleEntitlementCreate = this.onEntitlementCreate.bind(this);
   private readonly handleEntitlementUpdate = this.onEntitlementUpdate.bind(this);
@@ -148,6 +150,7 @@ export default class EntitlementsModule extends BotModule {
         this.client.config.craig.entitlementWebhookURLs.map((i) =>
           fetch(i.url, {
             method: 'POST',
+            signal: AbortSignal.timeout(WEBHOOK_TIMEOUT),
             headers: {
               Authorization: i.key,
               'Content-Type': 'application/json'
@@ -168,14 +171,22 @@ export default class EntitlementsModule extends BotModule {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
     const testEntitlement = !entitlement.startsAt;
-    await prisma.entitlement.update({
+    await prisma.entitlement.upsert({
       where: {
         userId_source: {
           userId: entitlement.userID,
           source: 'discord'
         }
       },
-      data: {
+      create: {
+        userId: entitlement.userID,
+        source: 'discord',
+        tier,
+        sourceEntitlementId: entitlement.id,
+        expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
+        ...(testEntitlement ? { note: 'Test entitlement' } : {})
+      },
+      update: {
         tier,
         sourceEntitlementId: entitlement.id,
         expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
@@ -188,6 +199,7 @@ export default class EntitlementsModule extends BotModule {
         this.client.config.craig.entitlementWebhookURLs.map((i) =>
           fetch(i.url, {
             method: 'POST',
+            signal: AbortSignal.timeout(WEBHOOK_TIMEOUT),
             headers: {
               Authorization: i.key,
               'Content-Type': 'application/json'
@@ -221,6 +233,7 @@ export default class EntitlementsModule extends BotModule {
         this.client.config.craig.entitlementWebhookURLs.map((i) =>
           fetch(i.url, {
             method: 'POST',
+            signal: AbortSignal.timeout(WEBHOOK_TIMEOUT),
             headers: {
               Authorization: i.key,
               'Content-Type': 'application/json'
