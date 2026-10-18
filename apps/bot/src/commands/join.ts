@@ -1,5 +1,7 @@
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMessageOptions, MessageFlags, SlashCreator } from 'slash-create';
 
+import type { TFunction } from '../i18n.js';
 import Recording, { RecordingState } from '../modules/recorder/recording.js';
 import { checkMaintenance, processCooldown } from '../redis.js';
 import { reportRecordingError } from '../sentry.js';
@@ -185,6 +187,21 @@ export default class Join extends GeneralCommand {
       return;
     }
 
+    const startLock = this.recorder.claimStart(ctx.guildID);
+    if (!startLock)
+      return {
+        content: t('responses.recording_in_progress'),
+        ephemeral: true
+      };
+
+    try {
+      return await this.startRecording(ctx, guild, member, t, locale);
+    } finally {
+      startLock.release();
+    }
+  }
+
+  async startRecording(ctx: CommandContext, guild: Dysnomia.Guild, member: Dysnomia.Member, t: TFunction, locale: string) {
     // Check channel
     let channel = guild.channels.get(ctx.options.channel);
     if (!channel && member?.voiceState?.channelID) channel = guild.channels.get(member.voiceState.channelID);
@@ -261,10 +278,10 @@ export default class Join extends GeneralCommand {
     }
 
     // Check guild-wide cooldown
-    const guildCooldown = await processCooldown(`join:guild:${ctx.guildID}:${this.client?.bot?.user?.id}`, 30, 2);
+    const guildCooldown = await processCooldown(`join:guild:${guild.id}:${this.client?.bot?.user?.id}`, 30, 2);
     if (guildCooldown !== true) {
       this.client.commands.logger.warn(
-        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was server-ratelimited. (${ctx.guildID})`
+        `${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id}) tried to use the join command, but was server-ratelimited. (${guild.id})`
       );
       return {
         content: t('responses.ratelimited'),
@@ -325,7 +342,7 @@ export default class Join extends GeneralCommand {
         const nickWarnTimeout = setTimeout(() => {
           if (!nickChanged) ctx.editOriginal(t('join_command.nick_changing'));
         }, 3000) as unknown as number;
-        await this.client.bot.editGuildMember(ctx.guildID, '@me', { nick: recNick }, 'Setting recording status');
+        await this.client.bot.editGuildMember(guild.id, '@me', { nick: recNick }, 'Setting recording status');
         nickChanged = true;
         clearTimeout(nickWarnTimeout);
       } catch (e) {
@@ -339,7 +356,7 @@ export default class Join extends GeneralCommand {
 
     // Start recording
     const recording = new Recording(this.recorder, channel as any, member.user, t, locale);
-    this.recorder.recordings.set(ctx.guildID, recording);
+    this.recorder.recordings.set(guild.id, recording);
     const { messageID, err } = await ctx
       .editOriginal({
         ...recording.messageContent(),

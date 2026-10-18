@@ -167,125 +167,138 @@ export default class AutorecordModule extends BotModule {
     }
 
     if (shouldRecord && !recording) {
-      // Get rewards
-      const userData = await prisma.user.findUnique({
-        where: { id: autoRecording.userId },
-        select: { rewardTier: true, webapp: true, includeBots: true }
-      });
-      const blessing = await prisma.blessing.findUnique({ where: { guildId: guildId }, select: { userId: true } });
-      const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
-      const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
-
-      // Remove auto-recording if they lost the ability to autorecord
-      if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));
-
-      // Check maintenence
-      const maintenence = await checkMaintenance(this.client.bot.user.id);
-      if (maintenence) return;
-
-      this.logger.info(`Starting to autorecord ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`);
-      // Check permissions
-      if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
-        return void this.logger.debug(`Could not connect to ${channelId}: Missing voice connect permissions`);
-      if (!isChannelNotFull(channel, this.client.bot.user.id))
-        return void this.logger.debug(`Could not connect to ${channelId}: Channel is full and Move Members permission is missing`);
-      if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname'))
-        return void this.logger.debug(`Could not connect to ${channelId}: Missing nickname permissions`);
-
-      // Find member
-      const member = guild.members.get(autoRecording.userId) || (await guild.fetchMembers({ userIDs: [autoRecording.userId] }))[0];
-      if (!member) return void (await this.delete(autoRecording));
-
-      // Check if user can record (sanity check)
-      if (parsedRewards.rewards.recordHours <= 0) return void (await this.delete(autoRecording));
-
-      // Check guild-wide cooldown, skip if hit
-      const guildCooldown = await processCooldown(`join:guild:${guildId}`, 30, 2);
-      if (guildCooldown !== true) return;
-
-      // Nickname the bot
-      const selfUser = await getSelfMember(guild, this.client.bot);
-      const recNick = cutoffText(`![RECORDING] ${selfUser ? (selfUser.nick ?? selfUser.username) : this.client.bot.user.username}`, 32);
-      if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
-        try {
-          await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
-        } catch (e) {
-          return void this.logger.warn(`Could not connect to ${channelId} while autorecording: An error occurred while changing my nickname`, e);
-        }
-
-      // Start recording
-      const locale = guild.preferredLocale ?? 'en';
-      const recording = new Recording(this.recorder, channel as any, member.user, createT(locale), locale, true);
-      this.recorder.recordings.set(guildId, recording);
-      if (autoRecording.postChannelId) {
-        const postChannel = guild.channels.get(autoRecording.postChannelId);
-        if (
-          postChannel &&
-          postChannel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
-          postChannel.permissionsOf(this.client.bot.user.id).has('embedLinks')
-        ) {
-          const message = await this.client.bot.createMessage(postChannel.id, recording.messageContent() as any).catch(() => null);
-          if (message) {
-            recording.messageID = message.id;
-            recording.messageChannelID = message.channel.id;
-          }
-        }
+      const startLock = this.recorder.claimStart(guildId);
+      if (!startLock) return;
+      try {
+        await this.startAutorecord(autoRecording, guild, channel);
+      } finally {
+        startLock.release();
       }
-
-      const error = await recording
-        .start(parsedRewards, { webapp: userData?.webapp ?? false, includeBots: userData?.includeBots ?? true })
-        .then(() => (recording.state === RecordingState.ERROR ? recording.stateDescription || 'Unknown error' : false))
-        .catch((e) => e);
-
-      if (error !== false) {
-        const t = recording.t;
-        this.client.commands.logger.error(
-          `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
-          error
-        );
-        reportAutorecordingError(member, guildId, channelId, error, recording);
-
-        if (recording.state !== RecordingState.ERROR) {
-          recording.state = RecordingState.ERROR;
-          await recording.stop(true).catch(() => {});
-        }
-
-        if (recording.messageID && recording.messageChannelID)
-          await this.client.bot
-            .editMessage(recording.messageChannelID, recording.messageID, {
-              flags: MessageFlags.IS_COMPONENTS_V2,
-              components: [
-                {
-                  type: ComponentType.CONTAINER,
-                  accent_color: 0xe74c3c,
-                  components: [
-                    {
-                      type: ComponentType.TEXT_DISPLAY,
-                      content: `### ${t('recording.panel.error')}\n${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
-                    },
-                    {
-                      type: ComponentType.ACTION_ROW,
-                      components: [
-                        {
-                          type: ComponentType.BUTTON,
-                          style: ButtonStyle.LINK,
-                          label: t('common.support_server'),
-                          url: 'https://discord.gg/craig'
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            })
-            .catch(() => {});
-        return;
-      }
-
-      // Try to DM user
-      const dmChannel = await member.user.getDMChannel().catch(() => null);
-      if (dmChannel) await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
     }
+  }
+
+  async startAutorecord(autoRecording: AutoRecord, guild: Dysnomia.Guild, channel: Dysnomia.StageChannel | Dysnomia.VoiceChannel) {
+    const guildId = guild.id;
+    const channelId = channel.id;
+
+    // Get rewards
+    const userData = await prisma.user.findUnique({
+      where: { id: autoRecording.userId },
+      select: { rewardTier: true, webapp: true, includeBots: true }
+    });
+    const blessing = await prisma.blessing.findUnique({ where: { guildId: guildId }, select: { userId: true } });
+    const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
+    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
+
+    // Remove auto-recording if they lost the ability to autorecord
+    if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));
+
+    // Check maintenence
+    const maintenence = await checkMaintenance(this.client.bot.user.id);
+    if (maintenence) return;
+
+    this.logger.info(`Starting to autorecord ${channelId} in ${autoRecording.userId} (${autoRecording.id})...`);
+    // Check permissions
+    if (!channel.permissionsOf(this.client.bot.user.id).has('voiceConnect'))
+      return void this.logger.debug(`Could not connect to ${channelId}: Missing voice connect permissions`);
+    if (!isChannelNotFull(channel, this.client.bot.user.id))
+      return void this.logger.debug(`Could not connect to ${channelId}: Channel is full and Move Members permission is missing`);
+    if (!guild.permissionsOf(this.client.bot.user.id).has('changeNickname'))
+      return void this.logger.debug(`Could not connect to ${channelId}: Missing nickname permissions`);
+
+    // Find member
+    const member = guild.members.get(autoRecording.userId) || (await guild.fetchMembers({ userIDs: [autoRecording.userId] }))[0];
+    if (!member) return void (await this.delete(autoRecording));
+
+    // Check if user can record (sanity check)
+    if (parsedRewards.rewards.recordHours <= 0) return void (await this.delete(autoRecording));
+
+    // Check guild-wide cooldown, skip if hit
+    const guildCooldown = await processCooldown(`join:guild:${guildId}`, 30, 2);
+    if (guildCooldown !== true) return;
+
+    // Nickname the bot
+    const selfUser = await getSelfMember(guild, this.client.bot);
+    const recNick = cutoffText(`![RECORDING] ${selfUser ? (selfUser.nick ?? selfUser.username) : this.client.bot.user.username}`, 32);
+    if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
+      try {
+        await this.client.bot.editGuildMember(guildId, '@me', { nick: recNick }, 'Setting recording status');
+      } catch (e) {
+        return void this.logger.warn(`Could not connect to ${channelId} while autorecording: An error occurred while changing my nickname`, e);
+      }
+
+    // Start recording
+    const locale = guild.preferredLocale ?? 'en';
+    const recording = new Recording(this.recorder, channel as any, member.user, createT(locale), locale, true);
+    this.recorder.recordings.set(guildId, recording);
+    if (autoRecording.postChannelId) {
+      const postChannel = guild.channels.get(autoRecording.postChannelId);
+      if (
+        postChannel &&
+        postChannel.permissionsOf(this.client.bot.user.id).has('sendMessages') &&
+        postChannel.permissionsOf(this.client.bot.user.id).has('embedLinks')
+      ) {
+        const message = await this.client.bot.createMessage(postChannel.id, recording.messageContent() as any).catch(() => null);
+        if (message) {
+          recording.messageID = message.id;
+          recording.messageChannelID = message.channel.id;
+        }
+      }
+    }
+
+    const error = await recording
+      .start(parsedRewards, { webapp: userData?.webapp ?? false, includeBots: userData?.includeBots ?? true })
+      .then(() => (recording.state === RecordingState.ERROR ? recording.stateDescription || 'Unknown error' : false))
+      .catch((e) => e);
+
+    if (error !== false) {
+      const t = recording.t;
+      this.client.commands.logger.error(
+        `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
+        error
+      );
+      reportAutorecordingError(member, guildId, channelId, error, recording);
+
+      if (recording.state !== RecordingState.ERROR) {
+        recording.state = RecordingState.ERROR;
+        await recording.stop(true).catch(() => {});
+      }
+
+      if (recording.messageID && recording.messageChannelID)
+        await this.client.bot
+          .editMessage(recording.messageChannelID, recording.messageID, {
+            flags: MessageFlags.IS_COMPONENTS_V2,
+            components: [
+              {
+                type: ComponentType.CONTAINER,
+                accent_color: 0xe74c3c,
+                components: [
+                  {
+                    type: ComponentType.TEXT_DISPLAY,
+                    content: `### ${t('recording.panel.error')}\n${t('recording.start_error')}\n\n**${t('common.rec_id')}:** \`${recording.id}\``
+                  },
+                  {
+                    type: ComponentType.ACTION_ROW,
+                    components: [
+                      {
+                        type: ComponentType.BUTTON,
+                        style: ButtonStyle.LINK,
+                        label: t('common.support_server'),
+                        url: 'https://discord.gg/craig'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          })
+          .catch(() => {});
+      return;
+    }
+
+    // Try to DM user
+    const dmChannel = await member.user.getDMChannel().catch(() => null);
+    if (dmChannel) await dmChannel.createMessage(makeDownloadMessage(recording, parsedRewards, this.client.config, this.emojis)).catch(() => null);
   }
 
   async debounceCheck(channelId: string, guildId: string) {

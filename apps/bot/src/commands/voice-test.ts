@@ -1,5 +1,7 @@
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, CommandContext, ComponentType } from 'slash-create';
 
+import type { TFunction } from '../i18n.js';
 import VoiceTest from '../modules/recorder/voiceTest.js';
 import { processCooldown } from '../redis.js';
 import GeneralCommand from '../slashCommand.js';
@@ -82,14 +84,22 @@ export default class VoiceTestCommand extends GeneralCommand {
         ephemeral: true
       };
 
-    // Check for existing recording or voice test
-    if (this.recorder.recordings.has(ctx.guildID) || this.recorder.voiceTests.has(ctx.guildID)) {
+    // Check for an existing recording or voice test
+    const startLock = this.recorder.claimStart(ctx.guildID);
+    if (!startLock)
       return {
         content: t('responses.recording_in_progress'),
         ephemeral: true
       };
-    }
 
+    try {
+      return await this.startVoiceTest(ctx, guild, t);
+    } finally {
+      startLock.release();
+    }
+  }
+
+  private async startVoiceTest(ctx: CommandContext, guild: Dysnomia.Guild, t: TFunction) {
     // Get member from guild
     const member = guild.members.get(ctx.user.id) || (await guild.fetchMembers({ userIDs: [ctx.user.id] }))[0];
 
@@ -131,8 +141,8 @@ export default class VoiceTestCommand extends GeneralCommand {
     await ctx.defer();
 
     // Create voice test
-    const voiceTest = new VoiceTest(this.recorder, ctx.guildID, channel as any, member.user, t);
-    this.recorder.voiceTests.set(ctx.guildID, voiceTest);
+    const voiceTest = new VoiceTest(this.recorder, guild.id, channel as any, member.user, t);
+    this.recorder.voiceTests.set(guild.id, voiceTest);
 
     const { messageID, err } = await ctx
       .editOriginal(voiceTest.messageContent() as any)
@@ -144,12 +154,12 @@ export default class VoiceTestCommand extends GeneralCommand {
         `Failed to edit message while starting voice test in ${guild.name} (${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
         err
       );
-      this.recorder.voiceTests.delete(ctx.guildID);
+      this.recorder.voiceTests.delete(guild.id);
       return { content: t('voicetest.error'), ephemeral: true };
     }
 
     if (!messageID) {
-      this.recorder.voiceTests.delete(ctx.guildID);
+      this.recorder.voiceTests.delete(guild.id);
       return { content: t('responses.could_not_message'), ephemeral: true };
     }
 
@@ -167,7 +177,7 @@ export default class VoiceTestCommand extends GeneralCommand {
         `Failed to start voice test in ${guild.name} (${guild.id}) (${ctx.user.username}#${ctx.user.discriminator}, ${ctx.user.id})`,
         error
       );
-      this.recorder.voiceTests.delete(ctx.guildID);
+      this.recorder.voiceTests.delete(guild.id);
       await ctx.editOriginal({
         components: [
           {

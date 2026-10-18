@@ -1,4 +1,5 @@
 import { prisma } from '@craig/db';
+import { getSemaphore } from '@henrygd/semaphore';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
 import { access, mkdir } from 'fs/promises';
@@ -44,6 +45,15 @@ export default class RecorderModule extends BotModule {
 
     this.recordingPath = path.resolve(this.client.config.craig.recordingFolder);
     this.cron = new CronJob('* * * * *', this.onCron.bind(this), null, false, 'America/New_York');
+  }
+
+  /** Claim a guild's recording so subsequent requests don't run over */
+  claimStart(guildId: string) {
+    if (this.recordings.has(guildId) || this.voiceTests.has(guildId)) return null;
+    const lock = getSemaphore(`recorder/start/${guildId}`);
+    if (lock.size() > 0) return null;
+    lock.acquire();
+    return lock;
   }
 
   get uploader() {
