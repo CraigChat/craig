@@ -7,6 +7,8 @@ import GeneralCommand from '../slashCommand.js';
 import { checkBan } from '../util.js';
 
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const IMAGE_FETCH_TIMEOUT = 10000;
 
 export default class BotProfile extends GeneralCommand {
   constructor(creator: SlashCreator) {
@@ -78,17 +80,20 @@ export default class BotProfile extends GeneralCommand {
     for (const [name, attachment] of [
       ['avatar', avatar],
       ['banner', banner]
-    ] as const)
+    ] as const) {
       if (attachment && (!attachment.content_type || !ALLOWED_IMAGE_TYPES.includes(attachment.content_type)))
         return {
           content: `${t('botprofile.invalid_content_type', { item: t(`botprofile.item.${name}`) })}${attachment.content_type ? ` (${attachment.content_type})` : ''}`,
           ephemeral: true
         };
+      if (attachment && attachment.size > MAX_IMAGE_SIZE)
+        return { content: t('botprofile.too_large', { item: t(`botprofile.item.${name}`), max: MAX_IMAGE_SIZE / 1024 / 1024 }), ephemeral: true };
+    }
 
     const userData = await this.entitlements.getCurrentUser(ctx);
     const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
     const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
-    if ((userData?.rewardTier ?? blessingUser?.rewardTier ?? 0) === 0)
+    if ((userData?.rewardTier || blessingUser?.rewardTier || 0) === 0)
       return {
         content: `${t('botprofile.supporter_required')}\n${t('responses.supporter_required', { dashboard_url: this.client.config.craig.dashboardURL })}`,
         components: [
@@ -102,9 +107,19 @@ export default class BotProfile extends GeneralCommand {
         ephemeral: true
       };
     try {
-      const toDataURL = async (attachment: typeof avatar) =>
-        attachment &&
-        `data:${attachment.content_type};base64,${Buffer.from((await fetch(attachment.url).then((r) => r.arrayBuffer())) as any, 'binary').toString('base64')}`;
+      const toDataURL = async (attachment: typeof avatar) => {
+        if (!attachment) return attachment;
+        const res = await fetch(attachment.url, { signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT) });
+        if (!res.ok) throw new Error(`Failed to fetch attachment: ${res.status}`);
+        const contentLength = Number(res.headers.get('content-length'));
+        if (contentLength > MAX_IMAGE_SIZE) {
+          await res.body?.cancel();
+          throw new Error('Attachment too large');
+        }
+        const data = Buffer.from(await res.arrayBuffer());
+        if (data.length > MAX_IMAGE_SIZE) throw new Error('Attachment too large');
+        return `data:${attachment.content_type};base64,${data.toString('base64')}`;
+      };
       const [avatarData, bannerData] = await Promise.all([toDataURL(avatar), toDataURL(banner)]);
       await this.client.bot.editGuildMember(ctx.guildID!, '@me', { avatar: avatarData, banner: bannerData });
       return { content: t('botprofile.updated'), ephemeral: true };
