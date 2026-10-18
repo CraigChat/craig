@@ -15,6 +15,7 @@ import { VoiceTestState } from './voiceTest.js';
 const RECORDING_TTL = 5 * 60 * 1000;
 const VOICE_OBSERVATORY_URL = 'https://vo-api.snaz.in';
 const VOICE_OBSERVATORY_TIMEOUT = 1500;
+const SYSTEM_NOTIFICATION_TIMEOUT = 5000;
 
 interface VoiceTraceOptions {
   connection: Dysnomia.VoiceConnection | null;
@@ -26,6 +27,7 @@ interface VoiceTraceOptions {
 export default class RecorderModule extends BotModule {
   recordings = new Map<string, Recording>();
   voiceTests = new Map<string, import('./voiceTest.js').default>();
+  private readonly seenVoiceVersions = new Set<string>();
   recordingPath: string;
   recordingsChecked = false;
   cron: CronJob;
@@ -172,72 +174,70 @@ export default class RecorderModule extends BotModule {
 
     this.metrics.onVoiceServerConnect(regionId);
 
-    const existingRegion = await prisma.voiceRegion.findUnique({ where: { id: regionId } });
+    // Skip the DB entirely for combinations this process has already recorded (or is recording)
+    const key = `${regionId}|${voiceVersion}|${rtcWorkerVersion}`;
+    if (this.seenVoiceVersions.has(key)) return;
+    this.seenVoiceVersions.add(key);
 
-    await prisma.voiceRegion.upsert({
-      where: { id: regionId },
-      update: {},
-      create: { id: regionId }
-    });
+    try {
+      await this.recordVoiceVersions(regionId, voiceEndpoint, voiceVersion, rtcWorkerVersion);
+    } catch (e) {
+      this.seenVoiceVersions.delete(key);
+      this.logger.error(`Failed to push voice versions (region: ${regionId}, voice: ${voiceVersion}, rtc worker: ${rtcWorkerVersion})`, e);
+    }
+  }
 
-    // Detect and track versions
-    const voiceVersionSeen = await prisma.voiceVersion.findUnique({
-      where: { version: voiceVersion }
-    });
+  private async recordVoiceVersions(regionId: string, voiceEndpoint: string, voiceVersion: string, rtcWorkerVersion: string) {
+    const [regionResult, voiceVersionResult, rtcWorkerVersionResult, lastVoiceVersion, lastRtcWorkerVersion] = await prisma.$transaction([
+      prisma.voiceRegion.createMany({ data: [{ id: regionId }], skipDuplicates: true }),
+      prisma.voiceVersion.createMany({
+        data: [{ version: voiceVersion, regionId, endpoint: voiceEndpoint }],
+        skipDuplicates: true
+      }),
+      prisma.rtcVersion.createMany({
+        data: [{ version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }],
+        skipDuplicates: true
+      }),
+      prisma.regionVoiceVersion.findUnique({ where: { regionId } }),
+      prisma.regionRtcVersion.findUnique({ where: { regionId } })
+    ]);
+    const existingRegion = regionResult.count === 0;
+    const voiceVersionSeen = voiceVersionResult.count === 0;
+    const rtcWorkerVersionSeen = rtcWorkerVersionResult.count === 0;
 
-    if (!voiceVersionSeen)
-      await prisma.voiceVersion.create({
-        data: { version: voiceVersion, regionId, endpoint: voiceEndpoint }
-      });
-
-    const rtcWorkerVersionSeen = await prisma.rtcVersion.findUnique({
-      where: { version: rtcWorkerVersion }
-    });
-
-    if (!rtcWorkerVersionSeen)
-      await prisma.rtcVersion.create({
-        data: { version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }
-      });
-
-    // Update latest region voice version
-    const lastVoiceVersion = await prisma.regionVoiceVersion.findUnique({
-      where: { regionId }
-    });
-
-    if (!lastVoiceVersion || isLessThan(lastVoiceVersion.version, voiceVersion))
-      await prisma.regionVoiceVersion.upsert({
-        where: { regionId },
-        update: {
-          version: voiceVersion,
-          endpoint: voiceEndpoint,
-          seenAt: new Date()
-        },
-        create: {
-          regionId,
-          version: voiceVersion,
-          endpoint: voiceEndpoint
-        }
-      });
-
-    // Update latest rtc worker version
-    const lastRtcWorkerVersion = await prisma.regionRtcVersion.findUnique({
-      where: { regionId }
-    });
-
-    if (!lastRtcWorkerVersion || isLessThan(lastRtcWorkerVersion.version, rtcWorkerVersion))
-      await prisma.regionRtcVersion.upsert({
-        where: { regionId },
-        update: {
-          version: rtcWorkerVersion,
-          endpoint: voiceEndpoint,
-          seenAt: new Date()
-        },
-        create: {
-          regionId,
-          version: rtcWorkerVersion,
-          endpoint: voiceEndpoint
-        }
-      });
+    // Update latest region voice & rtc worker versions
+    await Promise.all([
+      !lastVoiceVersion || isLessThan(lastVoiceVersion.version, voiceVersion)
+        ? prisma.regionVoiceVersion.upsert({
+            where: { regionId },
+            update: {
+              version: voiceVersion,
+              endpoint: voiceEndpoint,
+              seenAt: new Date()
+            },
+            create: {
+              regionId,
+              version: voiceVersion,
+              endpoint: voiceEndpoint
+            }
+          })
+        : null,
+      !lastRtcWorkerVersion || isLessThan(lastRtcWorkerVersion.version, rtcWorkerVersion)
+        ? prisma.regionRtcVersion.upsert({
+            where: { regionId },
+            update: {
+              version: rtcWorkerVersion,
+              endpoint: voiceEndpoint,
+              seenAt: new Date()
+            },
+            create: {
+              regionId,
+              version: rtcWorkerVersion,
+              endpoint: voiceEndpoint
+            }
+          })
+        : null
+    ]);
 
     if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
       const title = `New ${[
@@ -249,6 +249,7 @@ export default class RecorderModule extends BotModule {
         .join(', ')}`;
       await fetch(`${this.client.config.craig.systemNotificationURL}?with_components=true`, {
         method: 'POST',
+        signal: AbortSignal.timeout(SYSTEM_NOTIFICATION_TIMEOUT),
         headers: {
           'Content-Type': 'application/json'
         },
