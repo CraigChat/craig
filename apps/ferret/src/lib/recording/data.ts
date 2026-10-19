@@ -3,6 +3,7 @@ import { get, writable } from 'svelte/store';
 
 import type { APIErrorResponse, MinimalJobInfo, MinimalRecordingInfo, RecordingPageEmitter } from '$lib/types';
 import { APIErrorCode } from '$lib/types';
+import { recordingApiUrl } from '$lib/util';
 
 export const jobOpen = writable(false);
 export const jobPosting = writable(false);
@@ -22,21 +23,30 @@ export async function postJob(
   jobPosting.set(true);
   jobPostError.set(null);
   try {
-    const response = await fetch(`/api/v1/recordings/${recording.id}/job?key=${key}`, {
+    const response = await fetch(recordingApiUrl(recording.id, '/job', { key }), {
       method: 'POST',
       body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' }
     }).catch(() => null);
-    if (!response) return;
+    if (!response) {
+      jobPostError.set(APIErrorCode.UNKNOWN_ERROR);
+      return;
+    }
     if (!response.ok) {
       const err: APIErrorResponse = await response.json().catch(() => null);
       jobPostError.set(err?.code ?? APIErrorCode.UNKNOWN_ERROR);
     } else {
       const jobResponse: { job: MinimalJobInfo } = await response.json().catch(() => null);
-      if (!jobResponse?.job) return;
+      if (!jobResponse?.job) {
+        jobPostError.set(APIErrorCode.UNKNOWN_ERROR);
+        return;
+      }
       emitter.emit('streamJob', jobResponse.job);
       closeCallback?.();
     }
-  } catch (e) {}
-  jobPosting.set(false);
+  } catch {
+    jobPostError.set(APIErrorCode.UNKNOWN_ERROR);
+  } finally {
+    jobPosting.set(false);
+  }
 }

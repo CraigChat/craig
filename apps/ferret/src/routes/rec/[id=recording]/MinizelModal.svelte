@@ -26,6 +26,7 @@
     MixedProcessor,
     type TrackStats
   } from '$lib/minizel';
+  import { recordingApiUrl } from '$lib/util';
 
   const recording = page.data.recording!;
   const users: Recording.RecordingUser[] = page.data.users!.filter((user) => !user.id.startsWith('redacted:'));
@@ -227,7 +228,7 @@
 
       // Create resilient stream that auto-retries on connection drops
       abortController = new AbortController();
-      const rawStream = createResilientStream(`/api/v1/recordings/${recording.id}/raw.dat?key=${key}`, {
+      const rawStream = createResilientStream(recordingApiUrl(recording.id, '/raw.dat', { key }), {
         maxRetries: 15,
         retryDelay: 1000,
         signal: abortController.signal,

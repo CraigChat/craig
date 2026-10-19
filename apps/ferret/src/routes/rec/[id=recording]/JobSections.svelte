@@ -13,7 +13,7 @@
   import { toast } from '$lib/toaster';
   import { tooltip } from '$lib/tooltip';
   import type { MinimalJobInfo, MinimalJobUpdate, RecordingPageEmitter } from '$lib/types';
-  import { capitalize, currentTime, formatBytes, formatMilliseconds, getNameFromJob, getRTF, relativeTime } from '$lib/util';
+  import { capitalize, currentTime, formatBytes, formatMilliseconds, getNameFromJob, getRTF, recordingApiUrl, relativeTime } from '$lib/util';
 
   import NotificationBell from './NotificationBell.svelte';
 
@@ -131,7 +131,7 @@
   /** Starts the SSE connection, and attempts to recieve data to the client. */
   function startStream() {
     if (pollingMode) return;
-    sseClient.connect(`/api/v1/recordings/${recording.id}/sse?key=${key}`);
+    sseClient.connect(recordingApiUrl(recording.id, '/sse', { key }));
   }
 
   function onStreamJob(newJob: MinimalJobInfo) {
@@ -155,7 +155,7 @@
     if (fetching) return;
     try {
       fetching = true;
-      const response = await fetch(`/api/v1/recordings/${recording.id}/job?key=${key}`).catch(() => null);
+      const response = await fetch(recordingApiUrl(recording.id, '/job', { key })).catch(() => null);
       if (!response || !response.ok) return;
       const jobResponse: { job: MinimalJobInfo | null; streamOpen: boolean } = await response.json().catch(() => null);
       job = jobResponse.job;
@@ -172,7 +172,7 @@
     if (cancelling) return;
     cancelling = true;
     try {
-      const response = await fetch(`/api/v1/recordings/${recording.id}/job?key=${key}`, { method: 'DELETE' });
+      const response = await fetch(recordingApiUrl(recording.id, '/job', { key }), { method: 'DELETE' });
       if (!response.ok && response.status !== 200) {
         if (response.status === 400 || response.status === 404) {
           job = null;

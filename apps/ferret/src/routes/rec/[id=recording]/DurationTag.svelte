@@ -3,7 +3,7 @@
 
   import { page } from '$app/state';
   import { toast } from '$lib/toaster';
-  import { currentTime, formatMilliseconds } from '$lib/util';
+  import { currentTime, formatMilliseconds, recordingApiUrl } from '$lib/util';
 
   const recording = page.data.recording!;
   const key = page.data.key!;
@@ -16,14 +16,15 @@
     if (loading) return;
     loading = true;
     try {
-      const response = await fetch(`/api/v1/recordings/${recording.id}/duration?key=${key}`);
-      const data: { duration: number } = await response.json().catch(() => null);
-      if (!data.duration) return;
+      const response = await fetch(recordingApiUrl(recording.id, '/duration', { key }));
+      const data: { duration?: number } | null = await response.json().catch(() => null);
+      if (!response.ok || typeof data?.duration !== 'number') throw new Error('Failed to get duration');
       duration = data.duration;
-    } catch (e) {
+    } catch {
       toast.error($t('errors.generic.duration'));
+    } finally {
+      loading = false;
     }
-    loading = false;
   }
 
   let loading = $state(false);

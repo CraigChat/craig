@@ -10,6 +10,7 @@
   import { loadingIcon } from '$lib/icons';
   import { jobOpen } from '$lib/recording/data';
   import { APIErrorCode, type APIErrorResponse } from '$lib/types';
+  import { recordingApiUrl } from '$lib/util';
 
   const recording = page.data.recording!;
   const key = page.data.key!;
@@ -31,10 +32,13 @@
     keyInvalid = false;
     onsetclosable?.(false);
     try {
-      const response = await fetch(`/api/v1/recordings/${recording.id}?key=${key}&delete=${deletekey}`, {
+      const response = await fetch(recordingApiUrl(recording.id, '', { key, delete: deletekey }), {
         method: 'DELETE'
       }).catch(() => null);
-      if (!response) return;
+      if (!response) {
+        responseError = APIErrorCode.UNKNOWN_ERROR;
+        return;
+      }
       if (!response.ok) {
         const err: APIErrorResponse = await response.json().catch(() => null);
         responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
@@ -43,9 +47,12 @@
           keyInvalid = true;
         }
       } else location.reload();
-    } catch (e) {}
-    onsetclosable?.(true);
-    deleting = false;
+    } catch {
+      responseError = APIErrorCode.UNKNOWN_ERROR;
+    } finally {
+      onsetclosable?.(true);
+      deleting = false;
+    }
   }
 </script>
 

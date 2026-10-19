@@ -21,7 +21,7 @@
   import { type Description, descriptions } from '$lib/recording/descriptions';
   import type { FocusedButton } from '$lib/recording/sections';
   import type { RecordingPageEmitter } from '$lib/types';
-  import { convertT, formatUser } from '$lib/util';
+  import { convertT, formatUser, recordingApiUrl } from '$lib/util';
 
   import IgnoreTracksSection from './IgnoreTracksSection.svelte';
 
@@ -96,7 +96,12 @@
   let ezTimerTween = new Tween(5);
   let ezTimer = $derived(Math.ceil(ezTimerTween.current));
   let ezEnable = $derived(ezTimer === 0);
-  let ezUrl = `${env.PUBLIC_ENNUIZEL_URL}?i=${recording.id}&k=${key}&w=${(button.ennuizel ?? 0).toString(36)}&a=${env.PUBLIC_ENNUIZEL_API_HOSTNAME || location.host}`;
+  let ezUrl = `${env.PUBLIC_ENNUIZEL_URL}?${new URLSearchParams({
+    i: recording.id,
+    k: key,
+    w: (button.ennuizel ?? 0).toString(36),
+    a: env.PUBLIC_ENNUIZEL_API_HOSTNAME || location.host
+  })}`;
 
   async function startDownload() {
     if (ennuizel) {
@@ -104,7 +109,7 @@
       onclose?.();
       ennuizelWarned.set(true);
     } else if (button.url) {
-      open(`/api/v1/recordings/${recording.id}${button.url}?key=${key}`, '_blank');
+      open(recordingApiUrl(recording.id, button.url, { key }), '_blank');
       onclose?.();
     } else
       await postJob(emitter, onclose, recording, key, {

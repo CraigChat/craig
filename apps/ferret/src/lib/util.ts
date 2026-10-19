@@ -96,6 +96,10 @@ export function relativeTime(rtf: Intl.RelativeTimeFormat, seconds: number) {
   return rtf.format(Math.round(seconds / 2592000), 'month');
 }
 
+export function recordingApiUrl(id: string, path: string, params: Record<string, string>) {
+  return `/api/v1/recordings/${id}${path}?${new URLSearchParams(params)}`;
+}
+
 export const currentTime = writable(Math.floor(Date.now() / 1000), (set) => {
   const tick = () => set(Math.floor(Date.now() / 1000));
   tick();
