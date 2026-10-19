@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 
+import { getBotApplicationWithCache } from '$lib/server/data';
 import { APIErrorCode, type RecordingResponse } from '$lib/types';
 
 import type { PageServerLoad } from './$types';
@@ -15,8 +16,12 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
   const recordingData = await recordingResponse.json();
   if (recordingResponse.status !== 200) error(recordingResponse.status, recordingData);
 
+  const { recording } = recordingData as RecordingResponse;
+  const botApplication = recording.client.id ? await getBotApplicationWithCache(recording.client.id) : null;
+
   return {
     ...(recordingData as RecordingResponse),
+    botApplication,
     key,
     deleteKey
   };

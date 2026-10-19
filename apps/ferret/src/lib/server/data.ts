@@ -1,7 +1,24 @@
 import type { RecordingNote } from '@craig/types/recording';
+import type { APIApplication } from 'discord-api-types/v10';
 
 import { redis } from './redis';
 import { getRecordingDuration, getRecordingNotes } from './util';
+
+export type BotApplication = Pick<APIApplication, 'id' | 'name' | 'icon'>;
+
+export async function getBotApplicationWithCache(clientId: string): Promise<BotApplication | null> {
+  const cacheKey = `discord_app:${clientId}`;
+  const cached = await redis.get(cacheKey).catch(() => null);
+  if (cached !== null) return JSON.parse(cached);
+
+  const response = await fetch(`https://discord.com/api/v10/applications/${clientId}/rpc`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
+  const app: APIApplication | null = response?.ok ? await response.json().catch(() => null) : null;
+  const botApplication = app ? { id: app.id, name: app.name, icon: app.icon } : null;
+
+  // Allow failures to persist briefly also, to prevent spam n such
+  await redis.set(cacheKey, JSON.stringify(botApplication), 'EX', botApplication ? 24 * 60 * 60 : 5 * 60).catch(() => {});
+  return botApplication;
+}
 
 export async function getRecordingDurationWithCache(id: string, dataSize?: number): Promise<number | false> {
   const cacheKey = dataSize !== undefined ? `rec_duration:${id}:${dataSize}` : undefined;

@@ -1,7 +1,5 @@
 <script lang="ts">
   import clsx from 'clsx';
-  import type { APIApplication } from 'discord-api-types/v10';
-  import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { locale, t } from 'svelte-i18n';
   import Portal from 'svelte-portal';
@@ -30,14 +28,7 @@
 
   let guildIconURL: string | undefined = $state(recording.guild.icon);
 
-  let botApplication: APIApplication | undefined = $state();
-  async function getClientInfo(clientId: string) {
-    const response = await fetch(`https://discord.com/api/v10/applications/${clientId}/rpc`).catch(() => null);
-    if (!response || !response.ok) return;
-    const clientInfo: APIApplication = await response.json().catch(() => null);
-    if (!clientInfo) return;
-    botApplication = clientInfo;
-  }
+  const botApplication = page.data.botApplication;
 
   let deleteKey = $state(page.data.deleteKey ?? '');
   let showDeleteModal = $state(!!page.data.deleteKey);
@@ -52,19 +43,12 @@
   function onModalClick(this: any, e: any) {
     if (e.target === this && allowModalClosing) showDeleteModal = false;
   }
-
-  onMount(() => {
-    if (recording.client.id) getClientInfo(recording.client.id);
-  });
 </script>
 
 <svelte:head>
   {#if recording.guild.icon}
     <link rel="preload" as="image" href={recording.guild.icon} />
   {/if}
-  {#each users.filter((u) => u.avatarUrl) as user}
-    <link rel="preload" as="image" href={user.avatarUrl} />
-  {/each}
 </svelte:head>
 
 {#snippet channel()}
