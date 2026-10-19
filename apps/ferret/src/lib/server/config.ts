@@ -12,6 +12,7 @@ export const KITCHEN_URL = env.KITCHEN_URL;
 export const REC_DIRECTORY = fileURLToPath(new URL(env.REC_DIRECTORY || `${rootDir}/rec`, import.meta.url));
 export const DOWNLOADS_DIRECTORY = fileURLToPath(new URL(env.DOWNLOADS_DIRECTORY || `${rootDir}/downloads`, import.meta.url));
 export const DOWNLOADS_ACCEL_PATH = env.DOWNLOADS_ACCEL_PATH ? env.DOWNLOADS_ACCEL_PATH.replace(/\/*$/, '/') : null;
+export const RATE_LIMIT = env.RATE_LIMIT !== 'false';
 
 export const REDIS_OPTIONS: RedisOptions = {
   host: env.REDIS_HOST || 'localhost',

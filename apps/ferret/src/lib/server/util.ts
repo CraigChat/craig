@@ -276,6 +276,8 @@ export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: 
       return result('This feature is unavailable to this recording');
     case APIErrorCode.INVALID_DELETE_KEY:
       return result('Invalid delete key');
+    case APIErrorCode.RATE_LIMITED:
+      return result('Too many requests');
   }
 
   return result('Unknown Error');

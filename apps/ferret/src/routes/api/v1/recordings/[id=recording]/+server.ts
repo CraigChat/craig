@@ -60,7 +60,7 @@ export const DELETE: RequestHandler = async ({ url, params }) => {
   if (!safeKeyCompare(recording.info.key, key)) return errorResponse(APIErrorCode.INVALID_KEY, { status: 401 });
   if (!recExists.dataExists) return errorResponse(APIErrorCode.RECORDING_NO_DATA, { status: 404 });
 
-  if (recording.info.delete !== deleteKey) return errorResponse(APIErrorCode.INVALID_DELETE_KEY, { status: 401 });
+  if (!safeKeyCompare(recording.info.delete, deleteKey)) return errorResponse(APIErrorCode.INVALID_DELETE_KEY, { status: 401 });
 
   await deleteRecording(id);
   await markRecordingDeleted(id, recording.info);
