@@ -7,7 +7,6 @@ import { prisma } from '@craig/db';
 import type { Kitchen, Recording } from '@craig/types';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 import { json } from '@sveltejs/kit';
-import clone from 'just-clone';
 
 import { APIErrorCode, type MinimalJobInfo, type MinimalJobUpdate, type MinimalRecordingInfo } from '$lib/types';
 
@@ -19,23 +18,24 @@ export function kitchenUrl(p: string) {
   return new URL(p, KITCHEN_URL);
 }
 
-type RequestInitExtra = RequestInit & { query?: Record<string, string> };
+const KITCHEN_TIMEOUT = 5000;
+/** Timeout for longer running kitchen requests (duration, notes) */
+const KITCHEN_SCAN_TIMEOUT = 60_000;
 
-export async function kitchenFetch(path: string, initOpts?: RequestInitExtra) {
+type RequestInitExtra = RequestInit & { query?: Record<string, string>; timeout?: number };
+
+export async function kitchenFetch(path: string, { query, timeout = KITCHEN_TIMEOUT, ...init }: RequestInitExtra = {}) {
   const url = kitchenUrl(path);
-  const init = initOpts ? clone(initOpts) : undefined;
-  if (init?.query) {
-    const query = init.query;
-    delete init.query;
-    for (const key in query) url.searchParams.append(key, query[key]);
-  }
+  if (query) for (const key in query) url.searchParams.append(key, query[key]);
+
+  const headers = new Headers(init.headers);
+  if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+  const timeoutSignal = AbortSignal.timeout(timeout);
 
   const response = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      ...(init?.headers ?? {})
-    },
-    ...(init ?? {})
+    ...init,
+    headers,
+    signal: init.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal
   });
 
   if (debug) logger.debug(`requested kitchen ${url.toString()} - recieved ${response.status}`);
@@ -314,7 +314,7 @@ export async function getLatestJob(recordingId: string) {
 
 export async function getRecordingDuration(recordingId: string) {
   try {
-    const response = await kitchenFetch(`/recordings/${recordingId}/duration`);
+    const response = await kitchenFetch(`/recordings/${recordingId}/duration`, { timeout: KITCHEN_SCAN_TIMEOUT });
     if (response.status !== 200) return false;
 
     const { duration }: { duration: number } = await response.json();
@@ -327,7 +327,7 @@ export async function getRecordingDuration(recordingId: string) {
 
 export async function getRecordingNotes(recordingId: string) {
   try {
-    const response = await kitchenFetch(`/recordings/${recordingId}/notes`);
+    const response = await kitchenFetch(`/recordings/${recordingId}/notes`, { timeout: KITCHEN_SCAN_TIMEOUT });
     if (response.status !== 200) return false;
 
     const { notes }: { notes: RecordingNote[] } = await response.json();

@@ -578,9 +578,6 @@ importers:
       ioredis:
         specifier: 'catalog:'
         version: 6.0.0(supports-color@8.1.1)
-      just-clone:
-        specifier: ^6.2.0
-        version: 6.2.0
       mediabunny:
         specifier: ^1.56.0
         version: 1.56.0
@@ -4900,9 +4897,6 @@ packages:
 
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
-
-  just-clone@6.2.0:
-    resolution: {integrity: sha512-1IynUYEc/HAwxhi3WDpIpxJbZpMCvvrrmZVqvj9EhpvbH8lls7HhdhiByjL7DkAaWlLIzpC0Xc/VPvy/UxLNjA==}
 
   just-range@4.2.0:
     resolution: {integrity: sha512-z2Ip8H2j7a9Vr8rKFi0IZf4IXn2Yuq2lGZFS41GjfPwksoHWTaTx1xIjU6C0HyQ1jBXEoz/FzjS5eyVXeW19tg==}
@@ -10047,8 +10041,6 @@ snapshots:
   json-schema-traverse@1.0.0: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
-
-  just-clone@6.2.0: {}
 
   just-range@4.2.0: {}
 

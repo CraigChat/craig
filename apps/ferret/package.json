@@ -32,7 +32,6 @@
     "emittery": "^1.2.0",
     "eventemitter3": "^5.0.1",
     "ioredis": "catalog:",
-    "just-clone": "^6.2.0",
     "mediabunny": "^1.56.0",
     "nanoid": "catalog:",
     "opus-decoder": "^0.7.10",
