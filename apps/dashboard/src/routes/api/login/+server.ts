@@ -9,7 +9,6 @@ import { requiredEnv } from '$lib/server/env';
 import { SESSION_COOKIE, signSession } from '$lib/server/jwt';
 import { rateLimitRequest, redis } from '$lib/server/redis';
 import { sanitizePath } from '$lib/server/util';
-import { INVITE_PERMISSIONS_BITFIELD } from '$lib/util';
 
 import type { RequestHandler } from './$types';
 
@@ -40,8 +39,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   const code = url.searchParams.get('code');
   if (!code) {
     const state = randomBytes(32).toString('hex');
-    const nextParam = url.searchParams.get('next');
-    const validatedNext = sanitizePath(nextParam, url.origin);
+    const validatedNext = sanitizePath(url.searchParams.get('next'), url.origin);
 
     await redis.set(`oauth_state:${state}`, JSON.stringify({ next: validatedNext }), 'EX', 300);
 
@@ -49,16 +47,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
       client_id: publicDiscordClientID,
       redirect_uri: discordRedirectURI,
       response_type: 'code',
-      ...(nextParam === 'add_bot'
-        ? {
-            permissions: INVITE_PERMISSIONS_BITFIELD,
-            scope: [...SCOPES, 'bot', 'applications.commands'].join(' '),
-            integration_type: '0'
-          }
-        : {
-            scope: SCOPES.join(' '),
-            prompt: 'none'
-          }),
+      scope: SCOPES.join(' '),
+      prompt: 'none',
       state
     });
     return new Response(null, {
@@ -79,10 +69,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   let redirectTo: string = '/';
   try {
     const parsed = JSON.parse(stored);
-    // const guildId = url.searchParams.get('guild_id');
     const next = sanitizePath(parsed?.next, url.origin);
     if (next) redirectTo = next;
-    // else if (guildId) redirectTo = `/servers/${guildId}/onboarding`;
   } catch {}
 
   const body = new URLSearchParams({

@@ -21,8 +21,6 @@ interface MinimalDiscordUser {
   avatar?: string | null;
 }
 
-export const INVITE_PERMISSIONS_BITFIELD = '68159488';
-
 export const SUPPORT_SERVER_URL = 'https://discord.gg/craig';
 export const CDN_URL = 'https://cdn.discordapp.com';
 export const AVATAR_PLACEHOLDER = `${CDN_URL}/embed/avatars/0.png`;
