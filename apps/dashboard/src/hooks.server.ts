@@ -23,7 +23,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     preload(input) {
       // Preload cyrillic for specific langs
       if (includeCyrillic && input.type === 'font' && !!/\/.+-cyrillic-wght-normal\..+\.woff2$/.exec(input.path)) return true;
-      return input.type === 'js' || input.type === 'css' || (input.type === 'font' && !!/\/.+-latin-wght-normal\..+\.woff2$/.exec(input.path));
+      return input.type === 'js' || input.type === 'css' || (input.type === 'font' && !!/\/(.+-latin-wght-normal|PublicSans-variable)\.[^/]+\.woff2$/.exec(input.path));
     }
   });
 };

@@ -29,7 +29,6 @@
 
 <svelte:head>
   <title>Craig Dashboard</title>
-  <link rel="preload" as="font" type="font/ttf" crossorigin="anonymous" href="/assets/fonts/PublicSans-variable.ttf" />
   {#if env.PUBLIC_PLAUSIBLE_HOSTNAME}
     <script data-domain={env.PUBLIC_HOSTNAME} src="https://{env.PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"></script>
   {/if}
