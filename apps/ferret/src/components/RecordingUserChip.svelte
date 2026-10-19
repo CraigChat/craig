@@ -26,7 +26,13 @@
       <Icon icon={webIcon} class="text-teal-500" />
     </div>
   {:else}
-    <FallbackImage class="h-5 w-5 rounded-full bg-black/20" src={getAvatar(user)} alt={user.username} fallbackSrc={getDefaultAvatar(user)} />
+    <FallbackImage
+      class="h-5 w-5 rounded-full bg-black/20"
+      src={getAvatar(user)}
+      alt={user.username}
+      fallbackSrc={getDefaultAvatar(user)}
+      loading="lazy"
+    />
   {/if}
   <div class="flex items-center justify-center">
     <div class="font-display text-sm font-medium sm:text-base">

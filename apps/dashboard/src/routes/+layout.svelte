@@ -30,7 +30,7 @@
 <svelte:head>
   <title>Craig Dashboard</title>
   {#if env.PUBLIC_PLAUSIBLE_HOSTNAME}
-    <script data-domain={env.PUBLIC_HOSTNAME} src="https://{env.PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"></script>
+    <script defer data-domain={env.PUBLIC_HOSTNAME} src="https://{env.PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"></script>
   {/if}
 </svelte:head>
 
