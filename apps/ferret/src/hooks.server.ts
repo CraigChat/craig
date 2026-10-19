@@ -1,9 +1,8 @@
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { locale } from 'svelte-i18n';
 
 import { localeCookieName } from '$lib/cookie';
-import { processUserAgent } from '$lib/device';
+import { resolveLocale } from '$lib/i18n';
 import { RATE_LIMIT } from '$lib/server/config';
 import { checkRateLimit, hitRateLimit, RateLimits } from '$lib/server/ratelimit';
 import { errorResponse } from '$lib/server/util';
@@ -12,11 +11,14 @@ import { APIErrorCode } from '$lib/types';
 const CYRILLIC_LANGS = ['be', 'ru', 'uk'];
 
 const handleLocale: Handle = async ({ event, resolve }) => {
-  const lang = event.cookies.get(localeCookieName) || event.request.headers.get('accept-language')?.split(',')[0]?.split(';')[0];
-  const includeCyrillic = lang && CYRILLIC_LANGS.some((l) => lang.startsWith(l));
-  if (lang && lang !== 'null' && lang !== '*') locale.set(lang);
-  const userAgent = event.request.headers.get('user-agent');
-  if (userAgent) processUserAgent(userAgent);
+  const acceptLanguages =
+    event.request.headers
+      .get('accept-language')
+      ?.split(',')
+      .map((l) => l.split(';')[0]) ?? [];
+  const lang = resolveLocale([event.cookies.get(localeCookieName) ?? '', ...acceptLanguages]);
+  event.locals.lang = lang;
+  const includeCyrillic = CYRILLIC_LANGS.includes(lang);
   return resolve(event, {
     preload(input) {
       // Preload cyrillic for specific langs

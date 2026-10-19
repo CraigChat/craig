@@ -13,7 +13,9 @@ declare global {
       code?: string;
       deletedAt?: number;
     }
-    // interface Locals {}
+    interface Locals {
+      lang: string;
+    }
     interface PageData {
       recording?: MinimalRecordingInfo;
       users?: Recording.RecordingUser[];

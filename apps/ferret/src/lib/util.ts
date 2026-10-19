@@ -1,6 +1,8 @@
 import type { RecordingUser } from '@craig/types/recording';
 import { writable } from 'svelte/store';
 
+import { browser } from '$app/environment';
+
 import { defaultLocale } from './i18n';
 import type { MinimalJobInfo } from './types';
 
@@ -94,9 +96,16 @@ export function relativeTime(rtf: Intl.RelativeTimeFormat, seconds: number) {
   return rtf.format(Math.round(seconds / 2592000), 'month');
 }
 
-export const currentTime = writable(Math.floor(Date.now() / 1000), (set, update) => {
-  const interval = setInterval(() => update((time) => time + 1), 1000);
-  return () => clearInterval(interval);
+export const currentTime = writable(Math.floor(Date.now() / 1000), (set) => {
+  const tick = () => set(Math.floor(Date.now() / 1000));
+  tick();
+  if (!browser) return;
+  const interval = setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', tick);
+  return () => {
+    clearInterval(interval);
+    document.removeEventListener('visibilitychange', tick);
+  };
 });
 
 const FormatToName: Record<string, string> = {

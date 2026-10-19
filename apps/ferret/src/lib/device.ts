@@ -61,8 +61,8 @@ export function processUserAgent(userAgent: string) {
   const android = ua.includes('android');
   const firefox = ua.includes('firefox');
 
-  device.update((d) => ({
-    ...d,
+  device.set({
+    ...defaultDevice,
     userAgent,
     platform: {
       windows: ua.includes('windows nt'),
@@ -78,7 +78,7 @@ export function processUserAgent(userAgent: string) {
       showDirectoryPicker: !firefox,
       minizel: !firefox
     }
-  }));
+  });
 }
 
 /** Refresh device capabilities - call once after mount to ensure reactivity */

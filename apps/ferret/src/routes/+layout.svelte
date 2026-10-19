@@ -6,17 +6,30 @@
 
   import Icon from '@iconify/svelte';
   import reloadIcon from '@iconify-icons/mdi/reload';
+  import { untrack } from 'svelte';
   import { fly } from 'svelte/transition';
+  import { locale } from 'svelte-i18n';
 
+  import { browser } from '$app/environment';
   import { page, updated } from '$app/state';
   import bgMask from '$assets/bgmask.svg';
   import { env } from '$env/dynamic/public';
+  import { processUserAgent } from '$lib/device';
+
+  import type { LayoutData } from './$types';
 
   interface Props {
+    data: LayoutData;
     children?: import('svelte').Snippet;
   }
 
-  let { children }: Props = $props();
+  let { data, children }: Props = $props();
+
+  if (!browser)
+    untrack(() => {
+      locale.set(data.lang);
+      processUserAgent(data.userAgent);
+    });
 </script>
 
 <svelte:head>

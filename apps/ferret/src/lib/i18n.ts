@@ -8,9 +8,23 @@ export const defaultLocale = 'en';
 
 const localeFiles = import.meta.glob('$locale/*/ferret.json');
 
+export const supportedLocales: string[] = [];
+
 for (const [file, importer] of Object.entries(localeFiles)) {
   const [_, lang] = file.split('/').reverse();
+  supportedLocales.push(lang);
   register(lang, () => importer());
+}
+
+export function resolveLocale(tags: string[]) {
+  for (const tag of tags) {
+    const normalized = tag.trim().replace(/_/g, '-').toLowerCase();
+    if (!normalized || normalized === 'null' || normalized === '*') continue;
+    const match =
+      supportedLocales.find((l) => l.toLowerCase() === normalized) ?? supportedLocales.find((l) => l.toLowerCase() === normalized.split('-')[0]);
+    if (match) return match;
+  }
+  return defaultLocale;
 }
 
 function getLocale() {

@@ -1,12 +1,10 @@
 import '$lib/i18n';
 
-import type { Load } from '@sveltejs/kit';
-import { get } from 'svelte/store';
 import { dictionary, locale, waitLocale } from 'svelte-i18n';
 
 import { browser } from '$app/environment';
-import { get as getCookie, localeCookieName } from '$lib/cookie';
-import { device } from '$lib/device';
+
+import type { LayoutLoad } from './$types';
 
 // svelte-i18n doesn't exactly wait for keys to be populated before finishing up, so this waits for that.
 function waitForLocaleUpdate() {
@@ -36,13 +34,15 @@ function waitForLocaleUpdate() {
   });
 }
 
-export const load: Load = async () => {
+export const load: LayoutLoad = async ({ data }) => {
   if (browser) {
-    locale.set(getCookie(localeCookieName) || get(device)?.prefers?.language || 'en');
+    locale.set(data.lang);
     window.plausible = window.plausible || ((e, o, ev) => (window.plausible.q = window.plausible.q || []).push([e, o, ev]));
     console.time('Locale Loaded');
   }
-  await waitLocale();
+
+  await waitLocale(data.lang);
   await waitForLocaleUpdate();
   if (browser) console.timeEnd('Locale Loaded');
+  return data;
 };
