@@ -1,5 +1,5 @@
 import { prisma } from '@craig/db';
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
 import { env as envPub } from '$env/dynamic/public';
@@ -102,6 +102,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       }
     });
   } catch (e) {
+    if (isRedirect(e)) throw e;
     console.error('Failed to get Microsoft info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=microsoft');
   }

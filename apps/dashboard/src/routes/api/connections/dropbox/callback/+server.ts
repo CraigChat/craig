@@ -1,5 +1,5 @@
 import { prisma } from '@craig/db';
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
 import { Dropbox } from 'dropbox';
 
 import { env } from '$env/dynamic/private';
@@ -63,6 +63,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       create: { id: user.id, token: tokens.access_token, refreshToken: tokens.refresh_token, name: dropboxUser.result.name.display_name }
     });
   } catch (e) {
+    if (isRedirect(e)) throw e;
     console.error('Failed to get Dropbox info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=dropbox');
   }

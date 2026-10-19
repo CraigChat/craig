@@ -1,5 +1,5 @@
 import { prisma } from '@craig/db';
-import { redirect } from '@sveltejs/kit';
+import { isRedirect, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 
 import { env } from '$env/dynamic/private';
@@ -42,7 +42,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   try {
     const { tokens } = await googleOAuth2Client.getToken(code);
-    if (!('access_token' in tokens)) return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=google`);
+    if (!tokens.access_token || !tokens.refresh_token) return redirect(307, `/?error=__NO_ACCESS_TOKEN&from=google`);
     if (tokens.scope!.split(' ').sort().join(' ') !== googleScopes.sort().join(' ')) return redirect(307, '/?error=__INVALID_SCOPE&from=google');
 
     let serviceUserId = 'unknown';
@@ -67,10 +67,11 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     await prisma.googleDriveUser.upsert({
       where: { id: user.id },
-      update: { token: tokens.access_token!, refreshToken: tokens.refresh_token },
-      create: { id: user.id, token: tokens.access_token!, refreshToken: tokens.refresh_token }
+      update: { token: tokens.access_token, refreshToken: tokens.refresh_token },
+      create: { id: user.id, token: tokens.access_token, refreshToken: tokens.refresh_token }
     });
   } catch (e) {
+    if (isRedirect(e)) throw e;
     console.error('Failed to get Google info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=google');
   }

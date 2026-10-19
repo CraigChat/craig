@@ -26,6 +26,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
   const state = await generateOAuthState(auth.id);
   const params = new URLSearchParams({
     access_type: 'offline',
+    prompt: 'consent',
     scope: googleScopes.join(' '),
     response_type: 'code',
     client_id: envPub.PUBLIC_GOOGLE_CLIENT_ID,
