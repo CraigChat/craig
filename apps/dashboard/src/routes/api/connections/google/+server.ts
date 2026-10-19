@@ -27,8 +27,7 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
   await prisma.googleDriveUser.delete({ where: { id: auth.id } }).catch(() => {});
 
   const revokable = googleUser?.refreshToken ?? googleUser?.token;
-  if (revokable)
-    await googleOAuth2Client.revokeToken(revokable).catch((e) => logger.warn(`Failed to revoke Google token (user=${auth.id})`, e));
+  if (revokable) await googleOAuth2Client.revokeToken(revokable).catch((e) => logger.warn(`Failed to revoke Google token (user=${auth.id})`, e));
 
   return json({ ok: true });
 };
