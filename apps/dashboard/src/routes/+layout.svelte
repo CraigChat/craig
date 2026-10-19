@@ -6,16 +6,22 @@
   import reloadIcon from '@iconify-icons/mdi/reload';
   import { ProgressBar } from '@prgm/sveltekit-progress-bar';
   import { Tooltip } from 'bits-ui';
-  import { onMount, type Snippet } from 'svelte';
+  import { onMount, type Snippet, untrack } from 'svelte';
   import { fly } from 'svelte/transition';
+  import { locale } from 'svelte-i18n';
   import { Toaster } from 'svelte-sonner';
 
+  import { browser } from '$app/environment';
   import { onNavigate } from '$app/navigation';
   import { updated } from '$app/state';
   import Header from '$components/Header.svelte';
   import { env } from '$env/dynamic/public';
 
-  let { children }: { children: Snippet } = $props();
+  import type { LayoutData } from './$types';
+
+  let { data, children }: { data: LayoutData; children: Snippet } = $props();
+
+  if (!browser) untrack(() => locale.set(data.lang));
 
   function pageview() {
     window.plausible?.('pageview', {

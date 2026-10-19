@@ -11,7 +11,9 @@ declare global {
       error?: string;
       code?: string;
     }
-    // interface Locals {}
+    interface Locals {
+      lang: string;
+    }
     interface PageData {
       auth?: {
         user: APIUser;
