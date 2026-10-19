@@ -77,6 +77,7 @@ model Recording {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, clientId, createdAt(sort: Desc)])
+  @@index([clientId, shardId, endedAt])
 }
 
 model AutoRecord {

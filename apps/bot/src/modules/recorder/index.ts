@@ -308,7 +308,8 @@ export default class RecorderModule extends BotModule {
           shardId: this.client.shard.id,
           errored: false,
           endedAt: null
-        }
+        },
+        select: { id: true, guildId: true, channelId: true, userId: true }
       })
     ).filter((br) => !this.find(br.id));
 
