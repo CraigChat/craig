@@ -4,6 +4,7 @@
 generator client {
   provider = "prisma-client"
   output   = "../.prisma-client"
+  compilerBuild = "small"
 }
 
 datasource db {

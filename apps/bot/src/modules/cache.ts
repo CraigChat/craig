@@ -1,10 +1,14 @@
 import { CronJob } from 'cron';
 
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import type { CraigBot } from '../bot.js';
 import { BotModule } from '../runtime.js';
 
 export default class CacheModule extends BotModule {
   cron: CronJob;
+  private readonly handleGuildCreate = this.onGuildCreate.bind(this);
+  private readonly handleGuildAvailable = this.onGuildAvailable.bind(this);
+  private readonly handleReady = this.onCron.bind(this);
 
   constructor(client: CraigBot) {
     super(client, {
@@ -16,11 +20,30 @@ export default class CacheModule extends BotModule {
   }
 
   load() {
+    this.client.bot.on('guildCreate', this.handleGuildCreate);
+    this.client.bot.on('guildAvailable', this.handleGuildAvailable);
+    this.client.bot.on('ready', this.handleReady);
     this.cron.start();
   }
 
   unload() {
     this.cron.stop();
+    this.client.bot.removeListener('guildCreate', this.handleGuildCreate);
+    this.client.bot.removeListener('guildAvailable', this.handleGuildAvailable);
+    this.client.bot.removeListener('ready', this.handleReady);
+  }
+
+  onGuildCreate(guild: Dysnomia.Guild) {
+    // Clear guild attributes we dont care about
+    guild.emojis = [];
+    guild.stickers = [];
+    guild.soundboardSounds.clear();
+    guild.events.clear();
+    guild.stageInstances.clear();
+  }
+
+  onGuildAvailable(guild: Dysnomia.Guild) {
+    this.onGuildCreate(guild);
   }
 
   onCron() {
@@ -29,22 +52,28 @@ export default class CacheModule extends BotModule {
     let usersRemoved = 0;
 
     for (const [, guild] of this.client.bot.guilds) {
-      for (const [userId] of guild.voiceStates) keepUsers.add(userId.toString());
+      const inVoice = new Set<string>();
+      for (const [userId, voiceState] of guild.voiceStates) {
+        if (voiceState.channelID !== null) inVoice.add(userId.toString());
+      }
 
       // Clean up guild members
       for (const [memberId] of guild.members) {
         if (memberId === this.client.bot.user.id) continue;
-        if (!guild.voiceStates.has(memberId)) {
+        if (!inVoice.has(memberId.toString())) {
           guild.members.delete(memberId);
           membersRemoved++;
-        } else keepUsers.add(memberId.toString());
+        }
       }
+
+      for (const userId of inVoice) keepUsers.add(userId);
 
       // Clear guild attributes we dont care about
       guild.emojis = [];
       guild.stickers = [];
       guild.soundboardSounds.clear();
       guild.events.clear();
+      guild.stageInstances.clear();
     }
 
     for (const [userId] of this.client.bot.users) {
