@@ -1,7 +1,6 @@
-import { prisma } from '@craig/db';
 import { json } from '@sveltejs/kit';
 
-import { setNextAvailableService } from '$lib/server/data';
+import { disconnectService } from '$lib/server/data';
 import { checkAuth } from '$lib/server/discord';
 import { SESSION_COOKIE } from '$lib/server/jwt';
 import { rateLimitRequest } from '$lib/server/redis';
@@ -18,10 +17,7 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return errorResponse(APIErrorCode.UNAUTHORIZED, { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (user) await setNextAvailableService(user, 'box');
-
-  await prisma.boxUser.delete({ where: { id: auth.id } }).catch(() => {});
+  await disconnectService(auth.id, 'box', (tx) => tx.boxUser.deleteMany({ where: { id: auth.id } }));
 
   return json({ ok: true });
 };

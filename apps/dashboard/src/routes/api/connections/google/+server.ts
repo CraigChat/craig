@@ -1,7 +1,6 @@
-import { prisma } from '@craig/db';
 import { json } from '@sveltejs/kit';
 
-import { setNextAvailableService } from '$lib/server/data';
+import { disconnectService } from '$lib/server/data';
 import { checkAuth } from '$lib/server/discord';
 import { SESSION_COOKIE } from '$lib/server/jwt';
 import { logger } from '$lib/server/logger';
@@ -20,11 +19,11 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return errorResponse(APIErrorCode.UNAUTHORIZED, { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (user) await setNextAvailableService(user, 'google');
-
-  const googleUser = await prisma.googleDriveUser.findUnique({ where: { id: auth.id } });
-  await prisma.googleDriveUser.delete({ where: { id: auth.id } }).catch(() => {});
+  const googleUser = await disconnectService(auth.id, 'google', async (tx) => {
+    const row = await tx.googleDriveUser.findUnique({ where: { id: auth.id } });
+    await tx.googleDriveUser.deleteMany({ where: { id: auth.id } });
+    return row;
+  });
 
   const revokable = googleUser?.refreshToken ?? googleUser?.token;
   if (revokable) await googleOAuth2Client.revokeToken(revokable).catch((e) => logger.warn(`Failed to revoke Google token (user=${auth.id})`, e));

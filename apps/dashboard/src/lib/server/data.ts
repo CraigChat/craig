@@ -1,4 +1,4 @@
-import { prisma, type User } from '@craig/db';
+import { type Prisma, prisma } from '@craig/db';
 import type { DriveOptions } from '@craig/types';
 
 export async function getUserData(userId: string) {
@@ -57,37 +57,42 @@ export async function getUserData(userId: string) {
   };
 }
 
-export async function setNextAvailableService(user: User, exclude: string) {
-  const services = ['google', 'onedrive', 'dropbox', 'box'].filter((s) => s !== exclude);
+export const DRIVE_SERVICES = ['google', 'onedrive', 'dropbox', 'box'] as const;
+export type DriveService = (typeof DRIVE_SERVICES)[number];
 
-  for (const service of services) {
-    let serviceData;
-    switch (service) {
-      case 'google':
-        serviceData = await prisma.googleDriveUser.findUnique({ where: { id: user.id }, select: { id: true } });
-        break;
-      case 'onedrive':
-        serviceData = await prisma.microsoftUser.findUnique({ where: { id: user.id }, select: { id: true } });
-        break;
-      case 'dropbox':
-        serviceData = await prisma.dropboxUser.findUnique({ where: { id: user.id }, select: { id: true } });
-        break;
-      case 'box':
-        serviceData = await prisma.boxUser.findUnique({ where: { id: user.id }, select: { id: true } });
-        break;
-    }
+async function getConnectedServices(userId: string, db: Prisma.TransactionClient = prisma): Promise<Record<DriveService, boolean>> {
+  const [google, onedrive, dropbox, box] = await Promise.all([
+    db.googleDriveUser.findUnique({ where: { id: userId }, select: { id: true } }),
+    db.microsoftUser.findUnique({ where: { id: userId }, select: { id: true } }),
+    db.dropboxUser.findUnique({ where: { id: userId }, select: { id: true } }),
+    db.boxUser.findUnique({ where: { id: userId }, select: { id: true } })
+  ]);
+  return { google: !!google, onedrive: !!onedrive, dropbox: !!dropbox, box: !!box };
+}
 
-    if (serviceData) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { driveService: service }
+export async function isServiceConnected(userId: string, service: DriveService) {
+  return (await getConnectedServices(userId))[service];
+}
+
+/**
+ * Removes a cloud provider connection in one transaction. If it was the selected
+ * `driveService`, switches to the next connected provider, or disables uploads if none are left.
+ * `remove` must not throw on a missing row (use `deleteMany`), since a failed statement aborts the transaction.
+ */
+export async function disconnectService<T>(userId: string, service: DriveService, remove: (tx: Prisma.TransactionClient) => Promise<T>) {
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id: userId }, select: { driveService: true } });
+    const result = await remove(tx);
+
+    if (user?.driveService === service) {
+      const connected = await getConnectedServices(userId, tx);
+      const next = DRIVE_SERVICES.find((s) => s !== service && connected[s]);
+      await tx.user.update({
+        where: { id: userId },
+        data: next ? { driveService: next } : { driveEnabled: false }
       });
-      return;
     }
-  }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { driveEnabled: false }
+    return result;
   });
 }
