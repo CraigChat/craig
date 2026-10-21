@@ -2,9 +2,16 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
-  output   = "../.prisma-client"
+  provider      = "prisma-client"
+  output        = "../.prisma-client"
   compilerBuild = "small"
+}
+
+generator kysely {
+  provider        = "prisma-kysely"
+  output          = "../.kysely"
+  fileName        = "types.ts"
+  importExtension = ".js"
 }
 
 datasource db {
@@ -17,7 +24,7 @@ model UserToken {
   refreshToken String
   expiresAt    DateTime
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 }
 
 model User {
@@ -39,7 +46,7 @@ model User {
   entitlements Entitlement[]
 
   createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   @@index([patronId])
 }
@@ -50,14 +57,14 @@ model Ban {
   name      String?
   reason    String?
   createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model Guild {
   id          String   @id
   accessRoles String[]
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model Recording {
@@ -82,7 +89,7 @@ model Recording {
 }
 
 model AutoRecord {
-  id            String   @id @default(cuid())
+  id            String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   channelId     String
   clientId      String
   guildId       String
@@ -91,7 +98,7 @@ model AutoRecord {
   minimum       Int      @default(1)
   triggerUsers  String[]
   triggerRoles  String[]
-  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   @@unique([clientId, guildId, channelId])
   @@index([clientId], type: Hash)
@@ -134,7 +141,7 @@ model Blessing {
   guildId   String   @id
   userId    String
   createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model Patreon {
@@ -144,7 +151,7 @@ model Patreon {
   cents     Int
   tiers     String[]
   createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 }
 
 model Entitlement {

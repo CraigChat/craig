@@ -49,3 +49,4 @@ nohup.out
 .env.*
 !.env.example
 !*.env.example
+.kysely/
