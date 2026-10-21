@@ -16,6 +16,9 @@ const SENSITIVE_PATTERNS: [RegExp, string][] = [
   [/([?&](?:key|delete|token)=)[^&\s"'`]+/gi, `$1${FILTERED}`],
   // Recording keys in Prisma invocation errors
   [/((?:access|delete|ennui)Key["']?\s*[:=]\s*)(["'`]?)[\w-]+\2/g, `$1"${FILTERED}"`],
+  // Row values in Postgres error details (unique/foreign key and constraint violations)
+  [/(Key \(.*?\)=\().*?(\) (?:already exists|is not present|is still referenced|conflicts with))/g, `$1${FILTERED}$2`],
+  [/(Failing row contains \().*(\))/g, `$1${FILTERED}$2`],
   // Discord bot tokens
   [/[\w-]{24,}\.[\w-]{6}\.[\w-]{27,}/g, FILTERED],
   // ANSI colors from the logger
@@ -76,7 +79,14 @@ if (sentryOpts) {
       Sentry.onUnhandledRejectionIntegration({ mode: 'none' }),
       Sentry.nodeContextIntegration({ cloudResource: false, culture: false }),
       Sentry.rewriteFramesIntegration({ root: process.cwd() }),
-      ...(tracing ? [Sentry.httpIntegration(), Sentry.nativeNodeFetchIntegration(), Sentry.prismaIntegration()] : [])
+      ...(tracing
+        ? [
+            Sentry.httpIntegration(),
+            Sentry.nativeNodeFetchIntegration(),
+            Sentry.prismaIntegration(),
+            Sentry.postgresIntegration({ ignoreConnectSpans: true })
+          ]
+        : [])
     ],
     maxBreadcrumbs: 30,
     dataCollection: {
