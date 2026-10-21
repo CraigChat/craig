@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { getUserBlessing } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -19,8 +19,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
   const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (!user || user.rewardTier === 0) return redirect(307, '/');
+  if ((await getUserBlessing(auth.id)) === 0) return redirect(307, '/');
 
   const state = await generateOAuthState(auth.id);
   const params = new URLSearchParams({

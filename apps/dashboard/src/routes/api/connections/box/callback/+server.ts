@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db, getUserBlessing } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -33,8 +33,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (!user || user.rewardTier === 0) return redirect(307, '/');
+  if ((await getUserBlessing(auth.id)) === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
   if (error) return redirect(307, `/?error=${encodeURIComponent(error)}&from=box`);
@@ -72,24 +71,25 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       headers: { Authorization: `Bearer ${response.access_token}` }
     }).then((res) => res.json());
 
-    logger.info(`OAuth connection established (user=${user.id}, service=box, serviceUserId=${me?.id ?? 'unknown'})`);
+    logger.info(`OAuth connection established (user=${auth.id}, service=box, serviceUserId=${me?.id ?? 'unknown'})`);
 
-    await prisma.boxUser.upsert({
-      where: { id: user.id },
-      update: { token: response.access_token, refreshToken: response.refresh_token, name: me?.name || '' },
-      create: { id: user.id, token: response.access_token, refreshToken: response.refresh_token, name: me?.name || '' }
-    });
+    const values = { token: response.access_token, refreshToken: response.refresh_token, name: me?.name || '' };
+    await db
+      .insertInto('BoxUser')
+      .values({ id: auth.id, ...values })
+      .onConflict((oc) => oc.column('id').doUpdateSet(values))
+      .execute();
   } catch (e) {
     if (isRedirect(e)) throw e;
     console.error('Failed to get Box info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=box');
   }
 
-  await prisma.user.upsert({
-    where: { id: user.id },
-    update: { driveService: 'box' },
-    create: { id: user.id, driveService: 'box' }
-  });
+  await db
+    .insertInto('User')
+    .values({ id: auth.id, driveService: 'box' })
+    .onConflict((oc) => oc.column('id').doUpdateSet({ driveService: 'box' }))
+    .execute();
 
   return redirect(307, '/?r=account_linked&from=box');
 };

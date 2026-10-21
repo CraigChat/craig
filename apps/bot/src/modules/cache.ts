@@ -1,6 +1,6 @@
+import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
 
-import type Dysnomia from '@projectdysnomia/dysnomia';
 import type { CraigBot } from '../bot.js';
 import { BotModule } from '../runtime.js';
 

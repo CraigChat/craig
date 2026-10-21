@@ -1,34 +1,19 @@
-import { type Prisma, prisma } from '@craig/db';
+import { db, type DbClient } from '@craig/db';
 import type { DriveOptions } from '@craig/types';
 
 export async function getUserData(userId: string) {
   const [userData, entitlements, patreon, google, microsoft, dropbox, box] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        webapp: true,
-        rewardTier: true,
-        driveEnabled: true,
-        driveService: true,
-        driveContainer: true,
-        driveFormat: true,
-        driveOptions: true,
-        patronId: true
-      }
-    }),
-    prisma.entitlement.findMany({
-      where: { userId },
-      select: {
-        source: true,
-        tier: true,
-        expiresAt: true
-      }
-    }),
-    prisma.patreon.findUnique({ where: { id: userId }, select: { name: true } }),
-    prisma.googleDriveUser.findUnique({ where: { id: userId }, select: { id: true } }),
-    prisma.microsoftUser.findUnique({ where: { id: userId }, select: { name: true } }),
-    prisma.dropboxUser.findUnique({ where: { id: userId }, select: { name: true } }),
-    prisma.boxUser.findUnique({ where: { id: userId }, select: { name: true } })
+    db
+      .selectFrom('User')
+      .select(['webapp', 'rewardTier', 'driveEnabled', 'driveService', 'driveContainer', 'driveFormat', 'driveOptions', 'patronId'])
+      .where('id', '=', userId)
+      .executeTakeFirst(),
+    db.selectFrom('Entitlement').select(['source', 'tier', 'expiresAt']).where('userId', '=', userId).execute(),
+    db.selectFrom('Patreon').select('name').where('id', '=', userId).executeTakeFirst(),
+    db.selectFrom('GoogleDriveUser').select('id').where('id', '=', userId).executeTakeFirst(),
+    db.selectFrom('MicrosoftUser').select('name').where('id', '=', userId).executeTakeFirst(),
+    db.selectFrom('DropboxUser').select('name').where('id', '=', userId).executeTakeFirst(),
+    db.selectFrom('BoxUser').select('name').where('id', '=', userId).executeTakeFirst()
   ]);
 
   return {
@@ -60,12 +45,12 @@ export async function getUserData(userId: string) {
 export const DRIVE_SERVICES = ['google', 'onedrive', 'dropbox', 'box'] as const;
 export type DriveService = (typeof DRIVE_SERVICES)[number];
 
-async function getConnectedServices(userId: string, db: Prisma.TransactionClient = prisma): Promise<Record<DriveService, boolean>> {
+async function getConnectedServices(userId: string, client: DbClient = db): Promise<Record<DriveService, boolean>> {
   const [google, onedrive, dropbox, box] = await Promise.all([
-    db.googleDriveUser.findUnique({ where: { id: userId }, select: { id: true } }),
-    db.microsoftUser.findUnique({ where: { id: userId }, select: { id: true } }),
-    db.dropboxUser.findUnique({ where: { id: userId }, select: { id: true } }),
-    db.boxUser.findUnique({ where: { id: userId }, select: { id: true } })
+    client.selectFrom('GoogleDriveUser').select('id').where('id', '=', userId).executeTakeFirst(),
+    client.selectFrom('MicrosoftUser').select('id').where('id', '=', userId).executeTakeFirst(),
+    client.selectFrom('DropboxUser').select('id').where('id', '=', userId).executeTakeFirst(),
+    client.selectFrom('BoxUser').select('id').where('id', '=', userId).executeTakeFirst()
   ]);
   return { google: !!google, onedrive: !!onedrive, dropbox: !!dropbox, box: !!box };
 }
@@ -74,23 +59,19 @@ export async function isServiceConnected(userId: string, service: DriveService) 
   return (await getConnectedServices(userId))[service];
 }
 
-/**
- * Removes a cloud provider connection in one transaction. If it was the selected
- * `driveService`, switches to the next connected provider, or disables uploads if none are left.
- * `remove` must not throw on a missing row (use `deleteMany`), since a failed statement aborts the transaction.
- */
-export async function disconnectService<T>(userId: string, service: DriveService, remove: (tx: Prisma.TransactionClient) => Promise<T>) {
-  return prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({ where: { id: userId }, select: { driveService: true } });
+export async function disconnectService<T>(userId: string, service: DriveService, remove: (tx: DbClient) => Promise<T>) {
+  return db.transaction().execute(async (tx) => {
+    const user = await tx.selectFrom('User').select('driveService').where('id', '=', userId).executeTakeFirst();
     const result = await remove(tx);
 
     if (user?.driveService === service) {
       const connected = await getConnectedServices(userId, tx);
       const next = DRIVE_SERVICES.find((s) => s !== service && connected[s]);
-      await tx.user.update({
-        where: { id: userId },
-        data: next ? { driveService: next } : { driveEnabled: false }
-      });
+      await tx
+        .updateTable('User')
+        .set(next ? { driveService: next } : { driveEnabled: false })
+        .where('id', '=', userId)
+        .execute();
     }
 
     return result;

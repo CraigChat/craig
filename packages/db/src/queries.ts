@@ -12,3 +12,9 @@ export async function getGuildBlessing(guildId: string, client: DbClient = db): 
   if (!row) return null;
   return { userId: row.userId, rewardTier: row.rewardTier ?? 0 };
 }
+
+/** Get the reward tier of a user. */
+export async function getUserBlessing(userId: string, client: DbClient = db): Promise<number> {
+  const row = await client.selectFrom('User').select('rewardTier').where('id', '=', userId).executeTakeFirst();
+  return row?.rewardTier ?? 0;
+}

@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db, getUserBlessing } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -36,8 +36,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (!user || user.rewardTier === 0) return redirect(307, '/');
+  if ((await getUserBlessing(auth.id)) === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
   if (error) return redirect(307, `/?error=${encodeURIComponent(error)}&from=microsoft`);
@@ -88,30 +87,25 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     if (!('displayName' in me) || !('userPrincipalName' in me)) return redirect(307, `/?error=__NO_USER_DATA&from=microsoft`);
 
-    logger.info(`OAuth connection established (user=${user.id}, service=microsoft, serviceUserId=${me.id})`);
+    logger.info(`OAuth connection established (user=${auth.id}, service=microsoft, serviceUserId=${me.id})`);
 
-    await prisma.microsoftUser.upsert({
-      where: { id: user.id },
-      update: { token: response.access_token, refreshToken: response.refresh_token, name: me.displayName, username: me.userPrincipalName },
-      create: {
-        id: user.id,
-        token: response.access_token,
-        refreshToken: response.refresh_token,
-        name: me.displayName,
-        username: me.userPrincipalName
-      }
-    });
+    const values = { token: response.access_token, refreshToken: response.refresh_token, name: me.displayName, username: me.userPrincipalName };
+    await db
+      .insertInto('MicrosoftUser')
+      .values({ id: auth.id, ...values })
+      .onConflict((oc) => oc.column('id').doUpdateSet(values))
+      .execute();
   } catch (e) {
     if (isRedirect(e)) throw e;
     console.error('Failed to get Microsoft info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=microsoft');
   }
 
-  await prisma.user.upsert({
-    where: { id: user.id },
-    update: { driveService: 'onedrive' },
-    create: { id: user.id, driveService: 'onedrive' }
-  });
+  await db
+    .insertInto('User')
+    .values({ id: auth.id, driveService: 'onedrive' })
+    .onConflict((oc) => oc.column('id').doUpdateSet({ driveService: 'onedrive' }))
+    .execute();
 
   return redirect(307, '/?r=account_linked&from=microsoft');
 };

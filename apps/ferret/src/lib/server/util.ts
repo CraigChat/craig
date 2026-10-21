@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { convertToTimemark } from '@craig/common';
-import { prisma } from '@craig/db';
+import { db, getGuildBlessing, getUserBlessing } from '@craig/db';
 import type { Kitchen, Recording } from '@craig/types';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 import { json } from '@sveltejs/kit';
@@ -177,12 +177,7 @@ async function getFeaturesFromUser(userId: string): Promise<string[]> {
   const features: string[] = [];
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { rewardTier: true }
-    });
-
-    const rewardTier = user?.rewardTier ?? 0;
+    const rewardTier = await getUserBlessing(userId);
     features.push(...rewardTierToFeatures(rewardTier));
   } catch (e) {
     logger.error(`Failed to get reward tier for user ${userId}`, e);
@@ -201,10 +196,9 @@ async function getFeaturesFromGuild(guildId: string): Promise<string[]> {
   const features: string[] = [];
 
   try {
-    const blessing = await prisma.blessing.findUnique({ where: { guildId }, select: { userId: true } });
-    const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
+    const blessing = await getGuildBlessing(guildId);
 
-    const rewardTier = blessingUser?.rewardTier ?? 0;
+    const rewardTier = blessing?.rewardTier ?? 0;
     features.push(...rewardTierToFeatures(rewardTier));
   } catch (e) {
     logger.error(`Failed to get reward tier for guild ${guildId}`, e);
@@ -225,12 +219,9 @@ export async function isRecordingLive(recordingId: string): Promise<boolean> {
   if (cached !== null) return cached === 'true';
 
   try {
-    const recording = await prisma.recording.findUnique({
-      where: { id: recordingId },
-      select: { endedAt: true }
-    });
+    const recording = await db.selectFrom('Recording').select('endedAt').where('id', '=', recordingId).executeTakeFirst();
 
-    const live = recording !== null && recording.endedAt === null;
+    const live = recording !== undefined && recording.endedAt === null;
     await redis.set(cacheKey, String(live), 'EX', 5);
 
     return live;

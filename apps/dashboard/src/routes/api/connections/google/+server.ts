@@ -20,9 +20,7 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
   if (!auth) return errorResponse(APIErrorCode.UNAUTHORIZED, { status: 401 });
 
   const googleUser = await disconnectService(auth.id, 'google', async (tx) => {
-    const row = await tx.googleDriveUser.findUnique({ where: { id: auth.id } });
-    await tx.googleDriveUser.deleteMany({ where: { id: auth.id } });
-    return row;
+    return tx.deleteFrom('GoogleDriveUser').where('id', '=', auth.id).returning(['token', 'refreshToken']).executeTakeFirst();
   });
 
   const revokable = googleUser?.refreshToken ?? googleUser?.token;
