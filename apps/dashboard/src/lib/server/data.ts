@@ -2,19 +2,24 @@ import { db, type DbClient } from '@craig/db';
 import type { DriveOptions } from '@craig/types';
 
 export async function getUserData(userId: string) {
-  const [userData, entitlements, patreon, google, microsoft, dropbox, box] = await Promise.all([
+  const [userData, entitlements, connections] = await Promise.all([
     db
       .selectFrom('User')
       .select(['webapp', 'rewardTier', 'driveEnabled', 'driveService', 'driveContainer', 'driveFormat', 'driveOptions', 'patronId'])
+      .select((eb) => eb.selectFrom('Patreon').select('name').whereRef('Patreon.id', '=', 'User.patronId').as('patreonName'))
       .where('id', '=', userId)
       .executeTakeFirst(),
     db.selectFrom('Entitlement').select(['source', 'tier', 'expiresAt']).where('userId', '=', userId).execute(),
-    db.selectFrom('Patreon').select('name').where('id', '=', userId).executeTakeFirst(),
-    db.selectFrom('GoogleDriveUser').select('id').where('id', '=', userId).executeTakeFirst(),
-    db.selectFrom('MicrosoftUser').select('name').where('id', '=', userId).executeTakeFirst(),
-    db.selectFrom('DropboxUser').select('name').where('id', '=', userId).executeTakeFirst(),
-    db.selectFrom('BoxUser').select('name').where('id', '=', userId).executeTakeFirst()
+    db
+      .selectNoFrom((eb) => [
+        eb.exists(eb.selectFrom('GoogleDriveUser').where('id', '=', userId)).as('google'),
+        eb.selectFrom('MicrosoftUser').select('name').where('id', '=', userId).as('microsoft'),
+        eb.selectFrom('DropboxUser').select('name').where('id', '=', userId).as('dropbox'),
+        eb.selectFrom('BoxUser').select('name').where('id', '=', userId).as('box')
+      ])
+      .executeTakeFirstOrThrow()
   ]);
+  const { google, microsoft, dropbox, box } = connections;
 
   return {
     data: {
@@ -31,13 +36,13 @@ export async function getUserData(userId: string) {
       patreon: userData?.patronId
         ? {
             id: userData.patronId,
-            name: patreon?.name
+            name: userData.patreonName ?? undefined
           }
         : null,
       google: google ? { connected: true, name: null } : null,
-      onedrive: microsoft ? { connected: true, name: microsoft.name } : null,
-      dropbox: dropbox ? { connected: true, name: dropbox.name } : null,
-      box: box ? { connected: true, name: box.name } : null
+      onedrive: microsoft !== null ? { connected: true, name: microsoft } : null,
+      dropbox: dropbox !== null ? { connected: true, name: dropbox } : null,
+      box: box !== null ? { connected: true, name: box } : null
     }
   };
 }
@@ -45,14 +50,15 @@ export async function getUserData(userId: string) {
 export const DRIVE_SERVICES = ['google', 'onedrive', 'dropbox', 'box'] as const;
 export type DriveService = (typeof DRIVE_SERVICES)[number];
 
-async function getConnectedServices(userId: string, client: DbClient = db): Promise<Record<DriveService, boolean>> {
-  const [google, onedrive, dropbox, box] = await Promise.all([
-    client.selectFrom('GoogleDriveUser').select('id').where('id', '=', userId).executeTakeFirst(),
-    client.selectFrom('MicrosoftUser').select('id').where('id', '=', userId).executeTakeFirst(),
-    client.selectFrom('DropboxUser').select('id').where('id', '=', userId).executeTakeFirst(),
-    client.selectFrom('BoxUser').select('id').where('id', '=', userId).executeTakeFirst()
-  ]);
-  return { google: !!google, onedrive: !!onedrive, dropbox: !!dropbox, box: !!box };
+function getConnectedServices(userId: string, client: DbClient = db): Promise<Record<DriveService, boolean>> {
+  return client
+    .selectNoFrom((eb) => [
+      eb.exists(eb.selectFrom('GoogleDriveUser').where('id', '=', userId)).$castTo<boolean>().as('google'),
+      eb.exists(eb.selectFrom('MicrosoftUser').where('id', '=', userId)).$castTo<boolean>().as('onedrive'),
+      eb.exists(eb.selectFrom('DropboxUser').where('id', '=', userId)).$castTo<boolean>().as('dropbox'),
+      eb.exists(eb.selectFrom('BoxUser').where('id', '=', userId)).$castTo<boolean>().as('box')
+    ])
+    .executeTakeFirstOrThrow();
 }
 
 export async function isServiceConnected(userId: string, service: DriveService) {
