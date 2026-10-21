@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 
-import { db, type Selectable, type Tables } from '@craig/db';
+import { db, type GoogleDriveUser } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 import { type drive_v3, google } from 'googleapis';
 
@@ -32,7 +32,7 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive, userId: st
   }
 }
 
-function createOAuthClient(driveUser: Selectable<Tables.GoogleDriveUser>) {
+function createOAuthClient(driveUser: GoogleDriveUser) {
   const oAuth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
 
   oAuth2Client.setCredentials({

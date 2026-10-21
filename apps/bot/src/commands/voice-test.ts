@@ -1,3 +1,4 @@
+import { getGuildAccessRoles } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, CommandContext, ComponentType } from 'slash-create';
 
@@ -63,8 +64,7 @@ export default class VoiceTestCommand extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
-    const hasPermission = checkRecordingPermission(ctx.member!, guildData);
+    const hasPermission = checkRecordingPermission(ctx.member!, await getGuildAccessRoles(ctx.guildID));
     if (!hasPermission)
       return {
         content: t('voicetest.need_perms'),

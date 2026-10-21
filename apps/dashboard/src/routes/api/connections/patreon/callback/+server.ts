@@ -97,14 +97,14 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     const cents = membership.attributes.currently_entitled_amount_cents;
     const patron = await db
       .insertInto('Patreon')
-      .values({ id: me.data.id, name: name ?? '', email: email ?? '', cents, tiers: [] })
+      .values({ id: me.data.id, name: name ?? '', email: email ?? '', cents })
       .onConflict((oc) => oc.column('id').doUpdateSet({ name, email, cents }))
       .returning('tiers')
       .executeTakeFirstOrThrow();
 
     await upsertPatronId(auth.id, me.data.id);
 
-    const patreonTier = determineRewardTier(patron.tiers ?? []);
+    const patreonTier = determineRewardTier(patron.tiers);
     if (patreonTier !== 0) {
       await db
         .insertInto('Entitlement')

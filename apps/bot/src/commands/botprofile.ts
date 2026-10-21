@@ -1,3 +1,4 @@
+import { getGuildBlessing } from '@craig/db';
 import Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
@@ -91,9 +92,8 @@ export default class BotProfile extends GeneralCommand {
     }
 
     const userData = await this.entitlements.getCurrentUser(ctx);
-    const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
-    const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
-    if ((userData?.rewardTier || blessingUser?.rewardTier || 0) === 0)
+    const blessing = await getGuildBlessing(guild.id);
+    if ((userData?.rewardTier || blessing?.rewardTier || 0) === 0)
       return {
         content: `${t('botprofile.supporter_required')}\n${t('responses.supporter_required', { dashboard_url: this.client.config.craig.dashboardURL })}`,
         components: [

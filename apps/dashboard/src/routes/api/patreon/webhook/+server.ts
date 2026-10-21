@@ -67,7 +67,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       dbPatron.name !== patron.name ||
       dbPatron.email !== patron.email ||
       dbPatron.cents !== patron.cents ||
-      !sameTiers(dbPatron.tiers ?? [], patron.tiers)
+      !sameTiers(dbPatron.tiers, patron.tiers)
     ) {
       console.info(new Date().toISOString(), `Upserting patron ${patron.id} (${patron.name})`);
       const values = { name: patron.name, email: patron.email, cents: patron.cents, tiers: patron.tiers };

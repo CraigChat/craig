@@ -13,6 +13,12 @@ export async function getGuildBlessing(guildId: string, client: DbClient = db): 
   return { userId: row.userId, rewardTier: row.rewardTier ?? 0 };
 }
 
+/** Get the access roles of a guild. */
+export async function getGuildAccessRoles(guildId: string, client: DbClient = db): Promise<string[] | null> {
+  const row = await client.selectFrom('Guild').select('accessRoles').where('id', '=', guildId).executeTakeFirst();
+  return row?.accessRoles ?? null;
+}
+
 /** Get the reward tier of a user. */
 export async function getUserBlessing(userId: string, client: DbClient = db): Promise<number> {
   const row = await client.selectFrom('User').select('rewardTier').where('id', '=', userId).executeTakeFirst();

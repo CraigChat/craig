@@ -1,5 +1,5 @@
 import { cancel, confirm, intro, isCancel, outro, select, spinner, text } from '@clack/prompts';
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 
 const DEVELOPER_SOURCE = 'developer';
 
@@ -12,60 +12,44 @@ const TIERS = {
 } as const;
 
 async function ensureUserExists(userId: string) {
-  return prisma.user.upsert({
-    where: { id: userId },
-    update: {},
-    create: { id: userId }
-  });
+  return db
+    .insertInto('User')
+    .values({ id: userId })
+    .onConflict((oc) => oc.column('id').doNothing())
+    .execute();
 }
 
 async function updateUserTier(userId: string) {
-  const entitlements = await prisma.entitlement.findMany({
-    where: {
-      userId,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-    },
-    select: {
-      tier: true
-    }
-  });
+  const entitlements = await db
+    .selectFrom('Entitlement')
+    .select('tier')
+    .where('userId', '=', userId)
+    .where((eb) => eb.or([eb('expiresAt', 'is', null), eb('expiresAt', '>', new Date())]))
+    .execute();
 
   const maxTier = entitlements.some((entitlement) => entitlement.tier === -1)
     ? -1
     : entitlements.reduce((max, entitlement) => Math.max(max, entitlement.tier), 0);
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
+  await db
+    .updateTable('User')
+    .set({
       rewardTier: maxTier,
       ...(maxTier === 0 ? { driveEnabled: false } : {})
-    }
-  });
+    })
+    .where('id', '=', userId)
+    .execute();
 }
 
 async function createEntitlement(userId: string, tier: number, note?: string, expiresAt?: Date) {
   await ensureUserExists(userId);
 
-  const entitlement = await prisma.entitlement.upsert({
-    where: {
-      userId_source: {
-        userId,
-        source: DEVELOPER_SOURCE
-      }
-    },
-    update: {
-      tier,
-      note,
-      expiresAt
-    },
-    create: {
-      userId,
-      source: DEVELOPER_SOURCE,
-      tier,
-      note,
-      expiresAt
-    }
-  });
+  const entitlement = await db
+    .insertInto('Entitlement')
+    .values({ userId, source: DEVELOPER_SOURCE, tier, note, expiresAt })
+    .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet({ tier, note, expiresAt }))
+    .returningAll()
+    .executeTakeFirstOrThrow();
 
   await updateUserTier(userId);
 
@@ -73,25 +57,8 @@ async function createEntitlement(userId: string, tier: number, note?: string, ex
 }
 
 async function revokeEntitlement(userId: string) {
-  const exists = await prisma.entitlement.findUnique({
-    where: {
-      userId_source: {
-        userId,
-        source: DEVELOPER_SOURCE
-      }
-    }
-  });
-
-  if (!exists) return;
-
-  await prisma.entitlement.delete({
-    where: {
-      userId_source: {
-        userId,
-        source: DEVELOPER_SOURCE
-      }
-    }
-  });
+  const result = await db.deleteFrom('Entitlement').where('userId', '=', userId).where('source', '=', DEVELOPER_SOURCE).executeTakeFirst();
+  if (!result.numDeletedRows) return;
 
   await updateUserTier(userId);
 }
@@ -196,5 +163,5 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await db.destroy();
   });

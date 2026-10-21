@@ -23,8 +23,24 @@ export const prisma = new PrismaClient({ adapter: new PrismaPg(pool, { disposeEx
 export const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 
 export type { DB };
-export type { Insertable, Selectable, Updateable } from 'kysely';
 export type * as Tables from '../.kysely/types.js';
 export * from '../.prisma-client/client.js';
 export * from './queries.js';
-export type * from './utils.js';
+export type { Insertable, Selectable, Updateable } from 'kysely';
+export type {
+  AutoRecord,
+  Ban,
+  Blessing,
+  BoxUser,
+  DbClient,
+  DropboxUser,
+  Entitlement,
+  GoogleDriveUser,
+  Guild,
+  GuildBlessing,
+  MicrosoftUser,
+  Patreon,
+  Recording,
+  User,
+  UserToken
+} from './utils.js';

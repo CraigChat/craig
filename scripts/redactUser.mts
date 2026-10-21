@@ -625,27 +625,32 @@ async function main(): Promise<number> {
   if (!input || process.argv.length > 3) throw new Error('Usage: pnpm redact-user <user-id>');
   const userId = parseUserId(input);
   const recDirectory = fileURLToPath(new URL(process.env.REC_DIRECTORY || '../rec', import.meta.url));
-  const { prisma } = await import('@craig/db');
+  const { db } = await import('@craig/db');
   const database: RecordingDatabase = {
     async findByRequesterIds(userIds) {
-      return prisma.recording.findMany({
-        where: { userId: { in: [...userIds] } },
-        select: { id: true, userId: true, endedAt: true }
-      });
+      if (userIds.length === 0) return [];
+      return db
+        .selectFrom('Recording')
+        .select(['id', 'userId', 'endedAt'])
+        .where('userId', 'in', [...userIds])
+        .execute();
     },
     async findByIds(recordingIds) {
       if (recordingIds.length === 0) return [];
-      return prisma.recording.findMany({
-        where: { id: { in: [...recordingIds] } },
-        select: { id: true, userId: true, endedAt: true }
-      });
+      return db
+        .selectFrom('Recording')
+        .select(['id', 'userId', 'endedAt'])
+        .where('id', 'in', [...recordingIds])
+        .execute();
     },
     async redactRequester(recordingId, originalUserId, redactedId) {
-      const result = await prisma.recording.updateMany({
-        where: { id: recordingId, userId: originalUserId },
-        data: { userId: redactedId }
-      });
-      return result.count > 0;
+      const result = await db
+        .updateTable('Recording')
+        .set({ userId: redactedId })
+        .where('id', '=', recordingId)
+        .where('userId', '=', originalUserId)
+        .executeTakeFirst();
+      return result.numUpdatedRows > 0n;
     }
   };
 
@@ -697,7 +702,7 @@ async function main(): Promise<number> {
     else cancel(formatReport(report));
     return exitCode;
   } finally {
-    await prisma.$disconnect();
+    await db.destroy();
   }
 }
 

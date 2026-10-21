@@ -1,4 +1,4 @@
-import { db, type Selectable, type Tables } from '@craig/db';
+import { db, type UserToken } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
 
@@ -9,7 +9,7 @@ import { requiredEnv } from './env';
 import { verifySession } from './jwt';
 import { cacheData } from './redis';
 
-export async function checkAndRefreshTokens(userTokens: Pick<Selectable<Tables.UserToken>, 'id' | 'accessToken' | 'refreshToken' | 'expiresAt'>) {
+export async function checkAndRefreshTokens(userTokens: Pick<UserToken, 'id' | 'accessToken' | 'refreshToken' | 'expiresAt'>) {
   const publicDiscordClientID = requiredEnv('PUBLIC_DISCORD_CLIENT_ID', publicEnv.PUBLIC_DISCORD_CLIENT_ID);
   const discordClientSecret = requiredEnv('DISCORD_CLIENT_SECRET', env.DISCORD_CLIENT_SECRET);
   const discordRedirectURI = requiredEnv('DISCORD_REDIRECT_URI', env.DISCORD_REDIRECT_URI);

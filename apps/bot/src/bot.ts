@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { Logger } from '@craig/logger';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { Client } from '@projectdysnomia/dysnomia';
@@ -79,8 +79,8 @@ export class CraigBot {
     return this._shard;
   }
 
-  get prisma() {
-    return prisma;
+  get db() {
+    return db;
   }
 
   get version() {
@@ -193,10 +193,14 @@ process.on('uncaughtException', (e) => {
   client.log('error', 'sys', ['Uncaught exception:', e, ...('errors' in e ? ((e as any).errors as Error[]) : [])]);
 });
 
+async function checkDatabase() {
+  await db.selectNoFrom((eb) => eb.val(1).as('ok')).execute();
+}
+
 export async function connect() {
   const start = performance.now();
 
-  await Promise.all([client.loadModules(), i18nInit(client.config.assets.localeFolder), redisClient.connect(), prisma.$connect()]);
+  await Promise.all([client.loadModules(), i18nInit(client.config.assets.localeFolder), redisClient.connect(), checkDatabase()]);
 
   client.sharding.send('preloaded');
   client.log('info', 'bot', [`Preloaded in ${performance.now() - start}ms`]);
@@ -207,6 +211,6 @@ export async function connect() {
 export async function disconnect() {
   await client.disconnect();
   await closeSentry();
-  await prisma.$disconnect();
+  await db.destroy();
   redisClient.disconnect();
 }
