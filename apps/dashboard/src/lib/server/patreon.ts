@@ -1,4 +1,4 @@
-import { db } from '@craig/db';
+import { db, rewardTierUpdate } from '@craig/db';
 
 import { env } from '$env/dynamic/private';
 
@@ -6,21 +6,12 @@ const tierMap: { [tier: string]: number } = JSON.parse(env.PATREON_TIER_MAP ?? '
 export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
 
 export async function resolveUserEntitlement(userId: string, patronId?: string | null) {
-  const entitlements = await db
-    .selectFrom('Entitlement')
-    .select('tier')
-    .where('userId', '=', userId)
-    .where((eb) => eb.or([eb('expiresAt', 'is', null), eb('expiresAt', '>', new Date())]))
-    .execute();
-  const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
-
   await db
     .updateTable('User')
-    .set({
-      rewardTier: maxTier,
-      ...(maxTier === 0 ? { driveEnabled: false } : {}),
+    .set((eb) => ({
+      ...rewardTierUpdate(eb),
       ...(patronId !== undefined ? { patronId } : {})
-    })
+    }))
     .where('id', '=', userId)
     .execute();
 }

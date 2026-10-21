@@ -1,5 +1,5 @@
 import { cancel, confirm, intro, isCancel, outro, select, spinner, text } from '@clack/prompts';
-import { db } from '@craig/db';
+import { db, updateRewardTiers } from '@craig/db';
 
 const DEVELOPER_SOURCE = 'developer';
 
@@ -19,28 +19,6 @@ async function ensureUserExists(userId: string) {
     .execute();
 }
 
-async function updateUserTier(userId: string) {
-  const entitlements = await db
-    .selectFrom('Entitlement')
-    .select('tier')
-    .where('userId', '=', userId)
-    .where((eb) => eb.or([eb('expiresAt', 'is', null), eb('expiresAt', '>', new Date())]))
-    .execute();
-
-  const maxTier = entitlements.some((entitlement) => entitlement.tier === -1)
-    ? -1
-    : entitlements.reduce((max, entitlement) => Math.max(max, entitlement.tier), 0);
-
-  await db
-    .updateTable('User')
-    .set({
-      rewardTier: maxTier,
-      ...(maxTier === 0 ? { driveEnabled: false } : {})
-    })
-    .where('id', '=', userId)
-    .execute();
-}
-
 async function createEntitlement(userId: string, tier: number, note?: string, expiresAt?: Date) {
   await ensureUserExists(userId);
 
@@ -51,7 +29,7 @@ async function createEntitlement(userId: string, tier: number, note?: string, ex
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  await updateUserTier(userId);
+  await updateRewardTiers([userId]);
 
   return entitlement;
 }
@@ -60,7 +38,7 @@ async function revokeEntitlement(userId: string) {
   const result = await db.deleteFrom('Entitlement').where('userId', '=', userId).where('source', '=', DEVELOPER_SOURCE).executeTakeFirst();
   if (!result.numDeletedRows) return;
 
-  await updateUserTier(userId);
+  await updateRewardTiers([userId]);
 }
 
 function exitCancelled(): never {

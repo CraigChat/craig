@@ -1,5 +1,31 @@
+import { type Expression, type ExpressionBuilder, expressionBuilder, sql } from 'kysely';
+
+import type { DB } from '../.kysely/types.js';
 import { db } from './index.js';
 import type { DbClient, GuildBlessing } from './utils.js';
+
+export function activeRewardTier(userId: string | Expression<string>) {
+  return (
+    expressionBuilder<DB>()
+      .selectFrom('Entitlement')
+      .select(sql<number>`case when bool_or("Entitlement"."tier" = -1) then -1 else coalesce(max("Entitlement"."tier"), 0) end`.as('tier'))
+      .where('Entitlement.userId', '=', userId)
+      .where((eb) => eb.or([eb('Entitlement.expiresAt', 'is', null), eb('Entitlement.expiresAt', '>', new Date())]))
+  );
+}
+
+export function rewardTierUpdate(eb: ExpressionBuilder<DB, 'User'>) {
+  const tier = activeRewardTier(eb.ref('User.id'));
+  return {
+    rewardTier: tier,
+    driveEnabled: eb.and([eb.ref('User.driveEnabled'), eb(tier, '!=', 0)]).$castTo<boolean>()
+  };
+}
+
+export async function updateRewardTiers(userIds: string[], client: DbClient = db) {
+  if (userIds.length === 0) return;
+  await client.updateTable('User').set(rewardTierUpdate).where('id', 'in', userIds).execute();
+}
 
 /** Get the blessing of a guild. */
 export async function getGuildBlessing(guildId: string, client: DbClient = db): Promise<GuildBlessing | null> {

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { db, type DbClient } from '@craig/db';
+import { db, type DbClient, updateRewardTiers } from '@craig/db';
 
 import {
   PATREON_CAMPAIGN_ID,
@@ -239,21 +239,6 @@ export class RefreshPatronsJob extends TaskJob {
     return patrons;
   }
 
-  resolveUserEntitlement(tx: DbClient, entitlements: { tier: number }[], userId: string) {
-    const maxTier = entitlements.some((entitlement) => entitlement.tier === -1)
-      ? -1
-      : entitlements.reduce((max, entitlement) => Math.max(max, entitlement.tier), 0);
-
-    return tx
-      .updateTable('User')
-      .set({
-        rewardTier: maxTier,
-        ...(maxTier === 0 ? { driveEnabled: false } : {})
-      })
-      .where('id', '=', userId)
-      .execute();
-  }
-
   async run() {
     this.assertConfigured();
 
@@ -359,26 +344,6 @@ export class RefreshPatronsJob extends TaskJob {
     }
 
     this.logger.info(`Re-evaluating ${affectedUserIds.size.toLocaleString()} users.`);
-    const entitlements =
-      affectedUserIds.size > 0
-        ? await db
-            .selectFrom('Entitlement')
-            .select(['userId', 'tier'])
-            .where('userId', 'in', [...affectedUserIds])
-            .where((eb) => eb.or([eb('expiresAt', 'is', null), eb('expiresAt', '>', new Date())]))
-            .execute()
-        : [];
-    const entitlementsByUserId = new Map<string, { tier: number }[]>();
-    for (const entitlement of entitlements) {
-      const userEntitlements = entitlementsByUserId.get(entitlement.userId) ?? [];
-      userEntitlements.push(entitlement);
-      entitlementsByUserId.set(entitlement.userId, userEntitlements);
-    }
-
-    if (affectedUserIds.size > 0) {
-      await db.transaction().execute(async (tx) => {
-        for (const userId of affectedUserIds) await this.resolveUserEntitlement(tx, entitlementsByUserId.get(userId) ?? [], userId);
-      });
-    }
+    await updateRewardTiers([...affectedUserIds]);
   }
 }

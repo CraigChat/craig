@@ -1,4 +1,4 @@
-import { db } from '@craig/db';
+import { activeRewardTier, db, rewardTierUpdate } from '@craig/db';
 import Dysnomia from '@projectdysnomia/dysnomia';
 import { CommandContext, ComponentContext } from 'slash-create';
 
@@ -59,25 +59,11 @@ export default class EntitlementsModule extends BotModule {
     return await this.resolveUserEntitlement(userId);
   }
 
-  async resolveUserEntitlement(userId: string) {
-    const entitlements = await db
-      .selectFrom('Entitlement')
-      .select('tier')
-      .where('userId', '=', userId)
-      .where((eb) => eb.or([eb('expiresAt', 'is', null), eb('expiresAt', '>', new Date())]))
-      .execute();
-
-    const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
-
+  resolveUserEntitlement(userId: string) {
     return db
       .insertInto('User')
-      .values({ id: userId, rewardTier: maxTier })
-      .onConflict((oc) =>
-        oc.column('id').doUpdateSet({
-          rewardTier: maxTier,
-          ...(maxTier === 0 ? { driveEnabled: false } : {})
-        })
-      )
+      .values({ id: userId, rewardTier: activeRewardTier(userId) })
+      .onConflict((oc) => oc.column('id').doUpdateSet(rewardTierUpdate))
       .returning(['id', 'rewardTier', 'webapp', 'includeBots'])
       .executeTakeFirstOrThrow();
   }

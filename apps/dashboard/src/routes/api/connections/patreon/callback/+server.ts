@@ -92,8 +92,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       return redirect(307, '/?error=__USER_ID_MISMATCH&from=patreon');
     }
 
-    const name = me.data.attributes.full_name ?? membership.attributes.full_name;
-    const email = me.data.attributes.email ?? membership.attributes.email;
+    const name = me.data.attributes.full_name ?? membership.attributes.full_name ?? undefined;
+    const email = me.data.attributes.email ?? membership.attributes.email ?? undefined;
     const cents = membership.attributes.currently_entitled_amount_cents;
     const patron = await db
       .insertInto('Patreon')

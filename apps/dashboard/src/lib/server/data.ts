@@ -53,11 +53,12 @@ export type DriveService = (typeof DRIVE_SERVICES)[number];
 function getConnectedServices(userId: string, client: DbClient = db): Promise<Record<DriveService, boolean>> {
   return client
     .selectNoFrom((eb) => [
-      eb.exists(eb.selectFrom('GoogleDriveUser').where('id', '=', userId)).$castTo<boolean>().as('google'),
-      eb.exists(eb.selectFrom('MicrosoftUser').where('id', '=', userId)).$castTo<boolean>().as('onedrive'),
-      eb.exists(eb.selectFrom('DropboxUser').where('id', '=', userId)).$castTo<boolean>().as('dropbox'),
-      eb.exists(eb.selectFrom('BoxUser').where('id', '=', userId)).$castTo<boolean>().as('box')
+      eb.exists(eb.selectFrom('GoogleDriveUser').where('id', '=', userId)).as('google'),
+      eb.exists(eb.selectFrom('MicrosoftUser').where('id', '=', userId)).as('onedrive'),
+      eb.exists(eb.selectFrom('DropboxUser').where('id', '=', userId)).as('dropbox'),
+      eb.exists(eb.selectFrom('BoxUser').where('id', '=', userId)).as('box')
     ])
+    .$castTo<Record<DriveService, boolean>>()
     .executeTakeFirstOrThrow();
 }
 
