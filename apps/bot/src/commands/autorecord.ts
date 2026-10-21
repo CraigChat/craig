@@ -268,11 +268,11 @@ export default class AutoRecord extends GeneralCommand {
 
         const autoRecordingCount = await this.db
           .selectFrom('AutoRecord')
-          .select((eb) => eb.fn.countAll<string>().as('count'))
+          .select((eb) => eb.fn.countAll<number>().as('count'))
           .where('guildId', '=', ctx.guildID)
           .where('clientId', '=', this.client.bot.user.id)
           .executeTakeFirstOrThrow()
-          .then((row) => Number(row.count));
+          .then((row) => row.count);
 
         if (autoRecordingCount >= 10)
           return {

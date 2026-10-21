@@ -382,9 +382,9 @@ export async function paginateRecordings(client: CraigBot, userID: string, t: TF
   const [recordings, recordingCount] = await Promise.all([
     getPage(requested),
     userRecordings
-      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .select((eb) => eb.fn.countAll<number>().as('count'))
       .executeTakeFirstOrThrow()
-      .then((row) => Number(row.count))
+      .then((row) => row.count)
   ]);
 
   if (recordingCount === 0)
