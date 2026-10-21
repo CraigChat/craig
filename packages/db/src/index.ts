@@ -23,6 +23,7 @@ export const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 export const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 
 export type { DB };
+export type { Insertable, Selectable, Updateable } from 'kysely';
 export type * as Tables from '../.kysely/types.js';
 export * from '../.prisma-client/client.js';
 export * from './queries.js';

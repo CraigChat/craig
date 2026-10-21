@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { rename, unlink } from 'fs/promises';
 import { basename, join } from 'path';
 
@@ -39,7 +39,11 @@ async function cloudUpload(job: Job) {
     ].join('_');
 
     if (!job.postTaskOptions?.userId) return;
-    const user = await prisma.user.findUnique({ where: { id: job.postTaskOptions.userId } });
+    const user = await db
+      .selectFrom('User')
+      .select(['id', 'rewardTier', 'driveEnabled', 'driveService'])
+      .where('id', '=', job.postTaskOptions.userId)
+      .executeTakeFirst();
     if (!user) return;
     driveService = user.driveService;
     if (user.rewardTier === 0 || !user.driveEnabled) return;

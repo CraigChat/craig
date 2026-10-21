@@ -1,6 +1,6 @@
 import './util/env.js';
 
-import { prisma, type User } from '@craig/db';
+import { db } from '@craig/db';
 import { startMetricsServer } from '@craig/metrics';
 import type { DriveOptions } from '@craig/types';
 import type {
@@ -164,9 +164,9 @@ app.post<{ Params: { id: string; userId: string }; Querystring: { locale?: strin
   const { id, userId } = req.params;
   const locale = typeof req.query.locale === 'string' && req.query.locale.trim() ? req.query.locale : 'en';
 
-  let user: User | null = null;
+  let driveService: string | undefined = undefined;
   function send(status: number, payload?: unknown) {
-    uploadCount.inc({ service: user?.driveService, status });
+    uploadCount.inc({ service: driveService, status });
     return reply.status(status).send(payload);
   }
 
@@ -185,7 +185,12 @@ app.post<{ Params: { id: string; userId: string }; Querystring: { locale?: strin
   )
     return send(400, { error: 'Recording already being uploaded' });
 
-  user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await db
+    .selectFrom('User')
+    .select(['rewardTier', 'driveEnabled', 'driveService', 'driveFormat', 'driveContainer', 'driveOptions'])
+    .where('id', '=', userId)
+    .executeTakeFirst();
+  driveService = user?.driveService;
   if (!user) return send(204); // Not found
   if (user.rewardTier === 0) return send(204); // Not allowed
   if (!user.driveEnabled) return send(204); // Not enabled
