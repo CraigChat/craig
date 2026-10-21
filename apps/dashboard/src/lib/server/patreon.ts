@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 
 import { env } from '$env/dynamic/private';
 
@@ -6,23 +6,23 @@ const tierMap: { [tier: string]: number } = JSON.parse(env.PATREON_TIER_MAP ?? '
 export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
 
 export async function resolveUserEntitlement(userId: string, patronId?: string | null) {
-  const entitlements = await prisma.entitlement.findMany({
-    where: {
-      userId,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-    },
-    select: { tier: true }
-  });
+  const entitlements = await db
+    .selectFrom('Entitlement')
+    .select('tier')
+    .where('userId', '=', userId)
+    .where((eb) => eb.or([eb('expiresAt', 'is', null), eb('expiresAt', '>', new Date())]))
+    .execute();
   const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
 
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
+  await db
+    .updateTable('User')
+    .set({
       rewardTier: maxTier,
       ...(maxTier === 0 ? { driveEnabled: false } : {}),
       ...(patronId !== undefined ? { patronId } : {})
-    }
-  });
+    })
+    .where('id', '=', userId)
+    .execute();
 }
 
 export interface PatreonUser {
@@ -70,12 +70,13 @@ export interface PatreonMember {
   type: 'member';
 }
 
+// Patreon omits `included` when there is nothing to include (e.g. no memberships)
 export interface PatreonIdentifyResponse {
   data: PatreonUser;
-  included: PatreonMember[];
+  included?: PatreonMember[];
 }
 
 export interface PatreonWebhookBody {
   data: PatreonMember;
-  included: PatreonUser[];
+  included?: PatreonUser[];
 }

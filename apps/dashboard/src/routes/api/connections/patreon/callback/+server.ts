@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -11,6 +11,14 @@ import { determineRewardTier, type PatreonIdentifyResponse, resolveUserEntitleme
 import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
 
 import type { RequestHandler } from './$types';
+
+function upsertPatronId(userId: string, patronId: string) {
+  return db
+    .insertInto('User')
+    .values({ id: userId, patronId })
+    .onConflict((oc) => oc.column('id').doUpdateSet({ patronId }))
+    .execute();
+}
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
   if (!envPub.PUBLIC_PATREON_CLIENT_ID || !env.PATREON_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
@@ -63,18 +71,18 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   ).then((res) => res.json());
   if (!('data' in me)) return redirect(307, '/?error=__NO_USER_DATA&from=patreon');
 
-  logger.info(`OAuth connection established (user=${auth.id}, service=patreon, serviceUserId=${me.data.id})`, JSON.stringify(me, null, 2));
+  logger.info(`OAuth connection established (user=${auth.id}, service=patreon, serviceUserId=${me.data.id})`);
 
-  const otherUser = await prisma.user.findFirst({ where: { patronId: me.data.id }, select: { id: true } });
+  const otherUser = await db.selectFrom('User').select('id').where('patronId', '=', me.data.id).executeTakeFirst();
   if (otherUser && otherUser.id !== auth.id) {
     logger.info(
       `Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`
     );
-    await prisma.user.update({ where: { id: otherUser.id }, data: { patronId: null } });
+    await db.updateTable('User').set({ patronId: null }).where('id', '=', otherUser.id).execute();
   }
 
   // Update patron status
-  const membership = me.included.find((i) => i.type === 'member');
+  const membership = me.included?.find((i) => i.type === 'member');
   if (membership?.attributes.patron_status === 'active_patron') {
     const linkedDiscordId = me.data?.attributes.social_connections?.discord?.user_id;
     if (linkedDiscordId && auth.id !== linkedDiscordId) {
@@ -84,57 +92,30 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       return redirect(307, '/?error=__USER_ID_MISMATCH&from=patreon');
     }
 
-    const patron = await prisma.patreon.upsert({
-      where: { id: me.data.id },
-      update: {
-        name: me.data.attributes.full_name ?? membership.attributes.full_name ?? undefined,
-        email: me.data.attributes.email ?? membership.attributes.email ?? undefined,
-        cents: membership.attributes.currently_entitled_amount_cents
-      },
-      create: {
-        id: me.data.id,
-        name: me.data.attributes.full_name ?? membership.attributes.full_name ?? '',
-        email: me.data.attributes.email ?? membership.attributes.email ?? '',
-        cents: membership.attributes.currently_entitled_amount_cents
-      }
-    });
+    const name = me.data.attributes.full_name ?? membership.attributes.full_name;
+    const email = me.data.attributes.email ?? membership.attributes.email;
+    const cents = membership.attributes.currently_entitled_amount_cents;
+    const patron = await db
+      .insertInto('Patreon')
+      .values({ id: me.data.id, name: name ?? '', email: email ?? '', cents, tiers: [] })
+      .onConflict((oc) => oc.column('id').doUpdateSet({ name, email, cents }))
+      .returning('tiers')
+      .executeTakeFirstOrThrow();
 
-    await prisma.user.upsert({
-      where: { id: auth.id },
-      update: { patronId: me.data.id },
-      create: { id: auth.id, patronId: me.data.id }
-    });
+    await upsertPatronId(auth.id, me.data.id);
 
-    const patreonTier = determineRewardTier(patron.tiers);
+    const patreonTier = determineRewardTier(patron.tiers ?? []);
     if (patreonTier !== 0) {
-      await prisma.entitlement.upsert({
-        where: {
-          userId_source: {
-            userId: auth.id,
-            source: 'patreon'
-          }
-        },
-        create: {
-          userId: auth.id,
-          source: 'patreon',
-          tier: patreonTier,
-          sourceEntitlementId: membership.id
-        },
-        update: {
-          tier: patreonTier,
-          sourceEntitlementId: membership.id
-        }
-      });
+      await db
+        .insertInto('Entitlement')
+        .values({ userId: auth.id, source: 'patreon', tier: patreonTier, sourceEntitlementId: membership.id })
+        .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet({ tier: patreonTier, sourceEntitlementId: membership.id }))
+        .execute();
       logger.info(`Patreon tier resolved (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, tier=${patreonTier})`);
     }
 
     await resolveUserEntitlement(auth.id);
-  } else
-    await prisma.user.upsert({
-      where: { id: auth.id },
-      update: { patronId: me.data.id },
-      create: { id: auth.id, patronId: me.data.id }
-    });
+  } else await upsertPatronId(auth.id, me.data.id);
 
   return redirect(307, '/?r=account_linked&from=patreon');
 };

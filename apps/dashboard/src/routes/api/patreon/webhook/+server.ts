@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import { json } from '@sveltejs/kit';
 
@@ -19,11 +19,19 @@ function sameTiers(a: string[], b: string[]) {
   return a.toSorted().every((t, i) => sortedB[i] === t);
 }
 
+function findUserByPatronId(patronId: string) {
+  return db.selectFrom('User').select('id').where('patronId', '=', patronId).executeTakeFirst();
+}
+
+function deletePatreonEntitlement(userId: string) {
+  return db.deleteFrom('Entitlement').where('userId', '=', userId).where('source', '=', 'patreon').execute();
+}
+
 async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody) {
   const id = body.data.relationships.user?.data?.id;
   console.info(new Date().toISOString(), `Recieved Patreon webhook event: ${event} (${id}, ${body.data.id}, ${body.data.attributes.full_name})`);
   if (!id) return;
-  const user = body.included.find((i: any) => i.type === 'user' && i.id === id);
+  const user = body.included?.find((i) => i.type === 'user' && i.id === id);
 
   const patron = {
     id,
@@ -33,26 +41,21 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
     tiers: body.data.relationships.currently_entitled_tiers?.data.map((tier: { id: string }) => tier.id) || [],
     discordId: user?.attributes?.social_connections?.discord?.user_id
   };
-  const dbPatron = await prisma.patreon.findUnique({ where: { id: patron.id } });
+  const dbPatron = await db.selectFrom('Patreon').select(['name', 'email', 'cents', 'tiers']).where('id', '=', patron.id).executeTakeFirst();
 
   if (event === 'members:pledge:delete') {
-    const user = await prisma.user.findFirst({ where: { patronId: patron.id }, select: { id: true } });
+    const user = await findUserByPatronId(patron.id);
     console.info(new Date().toISOString(), `Deleted patron ${patron.id} (${body.data.attributes.patron_status}, user ${user?.id})`);
-    if (body.data.attributes.patron_status !== 'active_patron') await prisma.patreon.delete({ where: { id: patron.id } });
+    if (body.data.attributes.patron_status !== 'active_patron') await db.deleteFrom('Patreon').where('id', '=', patron.id).execute();
     if (user) {
       if (body.data.attributes.patron_status === 'active_patron')
-        await prisma.entitlement
-          .update({
-            where: { userId_source: { userId: user.id, source: 'patreon' } },
-            data: { expiresAt: new Date(body.data.attributes.next_charge_date) }
-          })
-          .catch(() => {});
-      else
-        await prisma.entitlement
-          .delete({
-            where: { userId_source: { userId: user.id, source: 'patreon' } }
-          })
-          .catch(() => {});
+        await db
+          .updateTable('Entitlement')
+          .set({ expiresAt: new Date(body.data.attributes.next_charge_date) })
+          .where('userId', '=', user.id)
+          .where('source', '=', 'patreon')
+          .execute();
+      else await deletePatreonEntitlement(user.id);
       console.info(new Date().toISOString(), `Re-evaluating rewards for user ${user.id} (${body.data.attributes.patron_status})`);
       await resolveUserEntitlement(user.id);
     }
@@ -64,64 +67,42 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       dbPatron.name !== patron.name ||
       dbPatron.email !== patron.email ||
       dbPatron.cents !== patron.cents ||
-      !sameTiers(dbPatron.tiers, patron.tiers)
+      !sameTiers(dbPatron.tiers ?? [], patron.tiers)
     ) {
       console.info(new Date().toISOString(), `Upserting patron ${patron.id} (${patron.name})`);
-      await prisma.patreon.upsert({
-        where: { id: patron.id },
-        update: {
-          name: patron.name,
-          email: patron.email,
-          cents: patron.cents,
-          tiers: patron.tiers
-        },
-        create: {
-          id: patron.id,
-          name: patron.name,
-          email: patron.email,
-          cents: patron.cents,
-          tiers: patron.tiers
-        }
-      });
+      const values = { name: patron.name, email: patron.email, cents: patron.cents, tiers: patron.tiers };
+      await db
+        .insertInto('Patreon')
+        .values({ id: patron.id, ...values })
+        .onConflict((oc) => oc.column('id').doUpdateSet(values))
+        .execute();
     }
 
     if (patron.discordId) {
-      const user = await prisma.user.findFirst({ where: { patronId: patron.id }, select: { id: true } });
+      const user = await findUserByPatronId(patron.id);
       if (user && user.id !== patron.discordId) {
         console.info(new Date().toISOString(), `Removing patronage for ${user.id} due to clashing with ${patron.discordId} (${patron.id})`);
-        await prisma.entitlement.delete({ where: { userId_source: { userId: user.id, source: 'patreon' } } }).catch(() => {});
+        await deletePatreonEntitlement(user.id);
         await resolveUserEntitlement(user.id, null);
       }
     }
 
-    const userId = patron.discordId ?? (await prisma.user.findFirst({ where: { patronId: patron.id }, select: { id: true } }))?.id;
+    const userId = patron.discordId ?? (await findUserByPatronId(patron.id))?.id;
     if (!userId) return;
 
     const tier = determineRewardTier(patron.tiers);
     if (tier !== 0) {
-      await prisma.entitlement.upsert({
-        where: {
-          userId_source: {
-            userId,
-            source: 'patreon'
-          }
-        },
-        update: {
-          tier,
-          expiresAt: null,
-          sourceEntitlementId: body.data.id
-        },
-        create: {
-          user: {
-            connectOrCreate: {
-              where: { id: userId },
-              create: { id: userId, patronId: patron.id }
-            }
-          },
-          source: 'patreon',
-          tier,
-          sourceEntitlementId: body.data.id
-        }
+      await db.transaction().execute(async (tx) => {
+        await tx
+          .insertInto('User')
+          .values({ id: userId, patronId: patron.id })
+          .onConflict((oc) => oc.column('id').doNothing())
+          .execute();
+        await tx
+          .insertInto('Entitlement')
+          .values({ userId, source: 'patreon', tier, sourceEntitlementId: body.data.id })
+          .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet({ tier, expiresAt: null, sourceEntitlementId: body.data.id }))
+          .execute();
       });
       console.info(new Date().toISOString(), `Re-evaluating user ${userId} for patron ${patron.id} (${patron.name}, tier=${tier})`);
       await resolveUserEntitlement(userId, patron.id);

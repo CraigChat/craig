@@ -19,7 +19,7 @@ const pool = new Pool({
 });
 
 /** @deprecated */
-export const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+export const prisma = new PrismaClient({ adapter: new PrismaPg(pool, { disposeExternalPool: true }) });
 export const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 
 export type { DB };

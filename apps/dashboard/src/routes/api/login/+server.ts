@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { json, redirect } from '@sveltejs/kit';
 import { randomBytes } from 'crypto';
 import type { APIUser } from 'discord-api-types/v10';
@@ -97,20 +97,16 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   const user: APIUser = await userRes.json();
   await redis.set(`user:${user.id}`, JSON.stringify(user), 'EX', 60 * 60);
 
-  await prisma.userToken.upsert({
-    where: { id: user.id },
-    update: {
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000)
-    },
-    create: {
-      id: user.id,
-      accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      expiresAt: new Date(Date.now() + tokenData.expires_in * 1000)
-    }
-  });
+  const tokens = {
+    accessToken: tokenData.access_token,
+    refreshToken: tokenData.refresh_token,
+    expiresAt: new Date(Date.now() + tokenData.expires_in * 1000)
+  };
+  await db
+    .insertInto('UserToken')
+    .values({ id: user.id, ...tokens })
+    .onConflict((oc) => oc.column('id').doUpdateSet(tokens))
+    .execute();
 
   const token = await signSession({ id: user.id }, jwtSecret);
   cookies.set(SESSION_COOKIE, token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
