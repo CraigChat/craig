@@ -332,14 +332,16 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
       ephemeral: true
     };
 
-  // Remove other blessings
-  if (userTier !== -1) await db.deleteFrom('Blessing').where('userId', '=', userID).execute();
+  await db.transaction().execute(async (tx) => {
+    // Remove other blessings
+    if (userTier !== -1) await tx.deleteFrom('Blessing').where('userId', '=', userID).execute();
 
-  await db
-    .insertInto('Blessing')
-    .values({ guildId: guildID, userId: userID })
-    .onConflict((oc) => oc.column('guildId').doUpdateSet({ userId: userID }))
-    .execute();
+    await tx
+      .insertInto('Blessing')
+      .values({ guildId: guildID, userId: userID })
+      .onConflict((oc) => oc.column('guildId').doUpdateSet({ userId: userID }))
+      .execute();
+  });
 
   return {
     content: t('blessing.blessed'),

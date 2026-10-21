@@ -1,4 +1,4 @@
-import { db } from '@craig/db';
+import { db, type DbClient } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -12,8 +12,8 @@ import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
 
 import type { RequestHandler } from './$types';
 
-function upsertPatronId(userId: string, patronId: string) {
-  return db
+function upsertPatronId(client: DbClient, userId: string, patronId: string) {
+  return client
     .insertInto('User')
     .values({ id: userId, patronId })
     .onConflict((oc) => oc.column('id').doUpdateSet({ patronId }))
@@ -73,20 +73,9 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   logger.info(`OAuth connection established (user=${auth.id}, service=patreon, serviceUserId=${me.data.id})`);
 
-  const otherUser = await db.selectFrom('User').select('id').where('patronId', '=', me.data.id).executeTakeFirst();
-  if (otherUser && otherUser.id !== auth.id) {
-    logger.info(
-      `Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`
-    );
-    await db.transaction().execute(async (tx) => {
-      await tx.deleteFrom('Entitlement').where('userId', '=', otherUser.id).where('source', '=', 'patreon').execute();
-      await resolveUserEntitlement(otherUser.id, null, tx);
-    });
-  }
-
-  // Update patron status
   const membership = me.included?.find((i) => i.type === 'member');
-  if (membership?.attributes.patron_status === 'active_patron') {
+  const activeMembership = membership?.attributes.patron_status === 'active_patron' ? membership : null;
+  if (activeMembership) {
     const linkedDiscordId = me.data?.attributes.social_connections?.discord?.user_id;
     if (linkedDiscordId && auth.id !== linkedDiscordId) {
       logger.warn(
@@ -94,32 +83,45 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       );
       return redirect(307, '/?error=__USER_ID_MISMATCH&from=patreon');
     }
+  }
 
-    const name = me.data.attributes.full_name ?? membership.attributes.full_name ?? undefined;
-    const email = me.data.attributes.email ?? membership.attributes.email ?? undefined;
-    const cents = membership.attributes.currently_entitled_amount_cents;
-    const tiers = membership.relationships?.currently_entitled_tiers?.data.map((tier) => tier.id);
-    const patron = await db
+  await db.transaction().execute(async (tx) => {
+    const otherUser = await tx.selectFrom('User').select('id').where('patronId', '=', me.data.id).executeTakeFirst();
+    if (otherUser && otherUser.id !== auth.id) {
+      logger.info(
+        `Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`
+      );
+      await tx.deleteFrom('Entitlement').where('userId', '=', otherUser.id).where('source', '=', 'patreon').execute();
+      await resolveUserEntitlement(otherUser.id, null, tx);
+    }
+
+    await upsertPatronId(tx, auth.id, me.data.id);
+    if (!activeMembership) return;
+
+    // Update patron status
+    const name = me.data.attributes.full_name ?? activeMembership.attributes.full_name ?? undefined;
+    const email = me.data.attributes.email ?? activeMembership.attributes.email ?? undefined;
+    const cents = activeMembership.attributes.currently_entitled_amount_cents;
+    const tiers = activeMembership.relationships?.currently_entitled_tiers?.data.map((tier) => tier.id);
+    const patron = await tx
       .insertInto('Patreon')
       .values({ id: me.data.id, name: name ?? '', email: email ?? '', cents, tiers: tiers ?? [] })
       .onConflict((oc) => oc.column('id').doUpdateSet({ name, email, cents, tiers }))
       .returning('tiers')
       .executeTakeFirstOrThrow();
 
-    await upsertPatronId(auth.id, me.data.id);
-
     const patreonTier = determineRewardTier(patron.tiers);
     if (patreonTier !== 0) {
-      await db
+      await tx
         .insertInto('Entitlement')
-        .values({ userId: auth.id, source: 'patreon', tier: patreonTier, sourceEntitlementId: membership.id })
-        .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet({ tier: patreonTier, sourceEntitlementId: membership.id }))
+        .values({ userId: auth.id, source: 'patreon', tier: patreonTier, sourceEntitlementId: activeMembership.id })
+        .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet({ tier: patreonTier, sourceEntitlementId: activeMembership.id }))
         .execute();
       logger.info(`Patreon tier resolved (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, tier=${patreonTier})`);
     }
 
-    await resolveUserEntitlement(auth.id);
-  } else await upsertPatronId(auth.id, me.data.id);
+    await resolveUserEntitlement(auth.id, undefined, tx);
+  });
 
   return redirect(307, '/?r=account_linked&from=patreon');
 };

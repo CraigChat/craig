@@ -363,16 +363,19 @@ export default class SlashModule extends BotModule {
         const [setting] = args;
         if (setting !== 'webapp' && setting !== 'includeBots') return;
         try {
-          const userSettings = (await db.selectFrom('User').select(['webapp', 'includeBots']).where('id', '=', ctx.user.id).executeTakeFirst()) || {
-            webapp: false,
-            includeBots: true
-          };
-
-          const update = setting === 'webapp' ? { webapp: !userSettings.webapp } : { includeBots: !userSettings.includeBots };
+          // Flip settings in SQL to avoid race conditions
           const newSettings = await db
             .insertInto('User')
-            .values({ id: ctx.user.id, ...update })
-            .onConflict((oc) => oc.column('id').doUpdateSet(update))
+            // Default values
+            .values(setting === 'webapp' ? { id: ctx.user.id, webapp: true } : { id: ctx.user.id, includeBots: false })
+            .onConflict((oc) =>
+              oc
+                .column('id')
+                .doUpdateSet((eb) =>
+                  // Setting flips
+                  setting === 'webapp' ? { webapp: eb.not(eb.ref('User.webapp')) } : { includeBots: eb.not(eb.ref('User.includeBots')) }
+                )
+            )
             .returning(['webapp', 'includeBots'])
             .executeTakeFirstOrThrow();
 
