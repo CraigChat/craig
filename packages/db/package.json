@@ -19,8 +19,6 @@
     "prisma": "prisma"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
     "kysely": "^0.29.7",
     "pg": "^8.23.0",
     "prisma": "^7.10.0"

@@ -1,11 +1,9 @@
-import { PrismaPg } from '@prisma/adapter-pg';
 import { Kysely, PostgresDialect } from 'kysely';
 import { defaults, Pool, types } from 'pg';
 
 import type { DB } from '../.kysely/types.js';
-import { PrismaClient } from '../.prisma-client/client.js';
 
-// Prisma handles non-timezone timestamps as UTC but `pg` uses local time
+// Timestamps without a timezone are stored as UTC but `pg` uses local time
 defaults.parseInputDatesAsUTC = true;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -18,29 +16,9 @@ const pool = new Pool({
   }
 });
 
-/** @deprecated */
-export const prisma = new PrismaClient({ adapter: new PrismaPg(pool, { disposeExternalPool: true }) });
 export const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 
 export type { DB };
-export type * as Tables from '../.kysely/types.js';
-export * from '../.prisma-client/client.js';
 export * from './queries.js';
+export type * from './utils.js';
 export type { Insertable, Selectable, Updateable } from 'kysely';
-export type {
-  AutoRecord,
-  Ban,
-  Blessing,
-  BoxUser,
-  DbClient,
-  DropboxUser,
-  Entitlement,
-  GoogleDriveUser,
-  Guild,
-  GuildBlessing,
-  MicrosoftUser,
-  Patreon,
-  Recording,
-  User,
-  UserToken
-} from './utils.js';

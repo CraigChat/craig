@@ -9,7 +9,6 @@ node_modules/
 .idea/
 .vercel/
 .turbo/
-.prisma-client/
 .pnpm-store/
 .tmp/
 .docker/
