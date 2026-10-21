@@ -31,7 +31,7 @@ import VoiceTestCommand from '../commands/voice-test.js';
 import WebappCommand from '../commands/webapp.js';
 import { createCtxT } from '../i18n.js';
 import { BotModule } from '../runtime.js';
-import { reportErrorFromCommand } from '../sentry.js';
+import { reportErrorFromCommand, withInteractionScope } from '../sentry.js';
 import {
   blessServer,
   checkRecordingPermission,
@@ -95,7 +95,7 @@ export default class SlashModule extends BotModule {
     this.creator.withServer(
       new GatewayServer((handler) => {
         this.interactionHandler = (event: any) => {
-          if (event.t === 'INTERACTION_CREATE') handler(event.d as any);
+          if (event.t === 'INTERACTION_CREATE') withInteractionScope(() => handler(event.d as any));
         };
         this.client.bot.on('rawWS', this.interactionHandler);
       })

@@ -257,7 +257,7 @@ export default class AutorecordModule extends BotModule {
         `Failed to start auto-recording ${recording.id} (${guild.name}, ${guild.id}) (${member.username}#${member.discriminator}, ${member.id})`,
         error
       );
-      reportAutorecordingError(member, guildId, channelId, error, recording);
+      if (typeof error !== 'string') reportAutorecordingError(member, guildId, channelId, error, recording);
 
       if (recording.state !== RecordingState.ERROR) {
         recording.state = RecordingState.ERROR;

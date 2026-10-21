@@ -16,7 +16,7 @@ import SlashModule from './modules/slash.js';
 import UploadModule from './modules/upload.js';
 import { client as redisClient } from './redis.js';
 import type { LoggerExtra } from './runtime.js';
-import { close as closeSentry } from './sentry.js';
+import { addLogBreadcrumb, close as closeSentry } from './sentry.js';
 
 export const version = packageJson.version;
 
@@ -120,6 +120,7 @@ export class CraigBot {
   log(level: string, moduleName: string, args: any[], extra?: LoggerExtra) {
     const logger = this.getLogger(moduleName);
     const logArgs = extra && Object.keys(extra).length > 0 ? [...args, extra] : args;
+    addLogBreadcrumb(level, moduleName, args);
     switch (level) {
       case 'error':
         logger.error(...logArgs);

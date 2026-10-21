@@ -1,11 +1,56 @@
+import { formatWithOptions } from 'node:util';
+
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import * as Sentry from '@sentry/node';
 import type { CommandContext } from 'slash-create';
 
 import { getSentryOptions } from './config.js';
-import type Recording from './modules/recorder/recording.js';
+import { type default as Recording, RecordingState } from './modules/recorder/recording.js';
 
 const sentryOpts = getSentryOptions();
+const BREADCRUMB_LEVELS: Record<string, Sentry.SeverityLevel> = { info: 'info', warn: 'warning', error: 'error' };
+// Shard-wide events; other modules log per-user activity that only belongs on that interaction's events
+const PROCESS_CATEGORIES = new Set(['bot', 'sys', 'dysnomia', 'sharding']);
+const rootIsolationScope = sentryOpts ? Sentry.getIsolationScope() : null;
+
+// The logger writes to stdout directly, so the console integration never sees it
+export function addLogBreadcrumb(level: string, moduleName: string, args: any[]) {
+  if (!sentryOpts || !BREADCRUMB_LEVELS[level]) return;
+  // Uncaught exceptions and unhandled rejections are already captured as events
+  if (moduleName === 'sys' && level === 'error') return;
+  if (!PROCESS_CATEGORIES.has(moduleName) && Sentry.getIsolationScope() === rootIsolationScope) return;
+  Sentry.addBreadcrumb({
+    category: moduleName,
+    level: BREADCRUMB_LEVELS[level],
+    message: formatWithOptions(
+      { depth: 1, breakLength: Infinity },
+      ...args.map((arg) => (arg instanceof Error ? `${arg.name}: ${arg.message}` : arg))
+    )
+  });
+}
+
+export function withInteractionScope<T>(callback: () => T): T {
+  if (!sentryOpts) return callback();
+  return Sentry.withIsolationScope(() => callback());
+}
+
+function summarizeRecording(recording: Recording) {
+  return {
+    id: recording.id,
+    state: RecordingState[recording.state],
+    autorecorded: recording.autorecorded,
+    webapp: !!recording.options?.webapp,
+    includeBots: !!recording.options?.includeBots,
+    tier: recording.rewards?.tier ?? null,
+    startedAt: recording.startedAt?.toISOString() ?? null,
+    users: Object.keys(recording.users).length,
+    bytesWritten: recording.bytesWritten,
+    latency: recording.latency,
+    voiceVersion: recording.voiceVersion ?? null,
+    rtcWorkerVersion: recording.rtcWorkerVersion ?? null,
+    encryptionRecoveryAttempts: recording.encryptionRecoveryAttempts
+  };
+}
 
 function summarizeContext(ctx: CommandContext) {
   let opts = ctx.options;
@@ -13,15 +58,9 @@ function summarizeContext(ctx: CommandContext) {
   const optionNames = opts && typeof opts === 'object' ? Object.keys(opts) : [];
 
   return {
-    commandName: ctx.commandName,
-    commandID: ctx.commandID,
-    commandType: ctx.commandType,
     subcommands: ctx.subcommands,
     optionNames,
     interactionID: ctx.interactionID,
-    guildID: ctx.guildID,
-    channelID: ctx.channelID,
-    userID: ctx.user?.id,
     locale: ctx.locale
   };
 }
@@ -31,14 +70,12 @@ export function reportErrorFromCommand(ctx: CommandContext, error: any, commandN
   Sentry.withScope((scope) => {
     scope.setTag('type', type || 'generic');
     if (commandName) scope.setTag('command', commandName);
-    scope.setTag('user', ctx ? ctx.user.id : undefined);
     scope.setTag('guild', ctx ? ctx.guildID : undefined);
     scope.setTag('channel', ctx ? ctx.channelID : undefined);
     scope.setExtra('ctx', ctx ? summarizeContext(ctx) : undefined);
     scope.setUser({
       id: ctx ? ctx.user.id : undefined,
-      username: ctx ? ctx.user.username : undefined,
-      discriminator: ctx ? ctx.user.discriminator : undefined
+      username: ctx ? ctx.user.username : undefined
     });
     Sentry.captureException(error);
   });
@@ -49,15 +86,16 @@ export function reportRecordingError(ctx: CommandContext, error: any, recording?
   Sentry.withScope((scope) => {
     scope.setTag('type', 'command');
     scope.setTag('command', 'join');
-    if (recording) scope.setTag('recording', recording.id);
-    scope.setTag('user', ctx ? ctx.user.id : undefined);
+    if (recording) {
+      scope.setTag('recording', recording.id);
+      scope.setContext('recording', summarizeRecording(recording));
+    }
     scope.setTag('guild', ctx ? ctx.guildID : undefined);
     scope.setTag('channel', ctx ? ctx.channelID : undefined);
     scope.setExtra('ctx', ctx ? summarizeContext(ctx) : undefined);
     scope.setUser({
       id: ctx ? ctx.user.id : undefined,
-      username: ctx ? ctx.user.username : undefined,
-      discriminator: ctx ? ctx.user.discriminator : undefined
+      username: ctx ? ctx.user.username : undefined
     });
     Sentry.captureException(error);
   });
@@ -67,14 +105,15 @@ export function reportAutorecordingError(member: Dysnomia.Member, guildId: strin
   if (!sentryOpts) return;
   Sentry.withScope((scope) => {
     scope.setTag('type', 'autorecord');
-    if (recording) scope.setTag('recording', recording.id);
-    scope.setTag('user', member.id);
+    if (recording) {
+      scope.setTag('recording', recording.id);
+      scope.setContext('recording', summarizeRecording(recording));
+    }
     scope.setTag('guild', guildId);
     scope.setTag('channel', channelId);
     scope.setUser({
       id: member.id,
-      username: member.username,
-      discriminator: member.discriminator
+      username: member.username
     });
     Sentry.captureException(error);
   });
