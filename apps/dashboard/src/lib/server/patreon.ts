@@ -1,12 +1,12 @@
-import { db, rewardTierUpdate } from '@craig/db';
+import { db, type DbClient, rewardTierUpdate } from '@craig/db';
 
 import { env } from '$env/dynamic/private';
 
 const tierMap: { [tier: string]: number } = JSON.parse(env.PATREON_TIER_MAP ?? '{}');
 export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
 
-export async function resolveUserEntitlement(userId: string, patronId?: string | null) {
-  await db
+export async function resolveUserEntitlement(userId: string, patronId?: string | null, client: DbClient = db) {
+  await client
     .updateTable('User')
     .set((eb) => ({
       ...rewardTierUpdate(eb),

@@ -51,7 +51,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       if (body.data.attributes.patron_status === 'active_patron')
         await db
           .updateTable('Entitlement')
-          .set({ expiresAt: new Date(body.data.attributes.next_charge_date) })
+          .set({ expiresAt: body.data.attributes.next_charge_date ? new Date(body.data.attributes.next_charge_date) : null })
           .where('userId', '=', user.id)
           .where('source', '=', 'patreon')
           .execute();
@@ -70,7 +70,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
       !sameTiers(dbPatron.tiers, patron.tiers)
     ) {
       console.info(new Date().toISOString(), `Upserting patron ${patron.id} (${patron.name})`);
-      const values = { name: patron.name, email: patron.email, cents: patron.cents, tiers: patron.tiers };
+      const values = { name: patron.name ?? dbPatron?.name ?? '', email: patron.email, cents: patron.cents, tiers: patron.tiers };
       await db
         .insertInto('Patreon')
         .values({ id: patron.id, ...values })

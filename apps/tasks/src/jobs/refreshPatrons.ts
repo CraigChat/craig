@@ -258,11 +258,7 @@ export class RefreshPatronsJob extends TaskJob {
         ? await db
             .selectFrom('User')
             .select(['id', 'patronId'])
-            .where(
-              'patronId',
-              'in',
-              activePatrons.map((patron) => patron.id)
-            )
+            .where((eb) => eb('patronId', '=', eb.fn.any(eb.val(activePatrons.map((patron) => patron.id)))))
             .execute()
         : [];
     const linkedUsersByPatronId = new Map<string, (typeof linkedUsers)[number][]>();
@@ -333,13 +329,17 @@ export class RefreshPatronsJob extends TaskJob {
     if (activePatronIds.size > 0)
       staleEntitlementQuery = staleEntitlementQuery
         .innerJoin('User', 'User.id', 'Entitlement.userId')
-        .where((eb) => eb.or([eb('User.patronId', 'is', null), eb('User.patronId', 'not in', [...activePatronIds])]));
+        .where((eb) => eb.or([eb('User.patronId', 'is', null), eb.not(eb('User.patronId', '=', eb.fn.any(eb.val([...activePatronIds]))))]));
 
     const staleEntitlements = await staleEntitlementQuery.execute();
 
     if (staleEntitlements.length > 0) {
       const staleUserIds = staleEntitlements.map(({ userId }) => userId);
-      await db.deleteFrom('Entitlement').where('source', '=', 'patreon').where('userId', 'in', staleUserIds).execute();
+      await db
+        .deleteFrom('Entitlement')
+        .where('source', '=', 'patreon')
+        .where((eb) => eb('userId', '=', eb.fn.any(eb.val(staleUserIds))))
+        .execute();
       for (const userId of staleUserIds) affectedUserIds.add(userId);
     }
 

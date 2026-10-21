@@ -78,7 +78,10 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     logger.info(
       `Previous user ID from patreon being removed (user=${auth.id}, service=patreon, serviceUserId=${me.data.id}, otherUserId=${otherUser.id})`
     );
-    await db.updateTable('User').set({ patronId: null }).where('id', '=', otherUser.id).execute();
+    await db.transaction().execute(async (tx) => {
+      await tx.deleteFrom('Entitlement').where('userId', '=', otherUser.id).where('source', '=', 'patreon').execute();
+      await resolveUserEntitlement(otherUser.id, null, tx);
+    });
   }
 
   // Update patron status
@@ -95,10 +98,11 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
     const name = me.data.attributes.full_name ?? membership.attributes.full_name ?? undefined;
     const email = me.data.attributes.email ?? membership.attributes.email ?? undefined;
     const cents = membership.attributes.currently_entitled_amount_cents;
+    const tiers = membership.relationships?.currently_entitled_tiers?.data.map((tier) => tier.id);
     const patron = await db
       .insertInto('Patreon')
-      .values({ id: me.data.id, name: name ?? '', email: email ?? '', cents })
-      .onConflict((oc) => oc.column('id').doUpdateSet({ name, email, cents }))
+      .values({ id: me.data.id, name: name ?? '', email: email ?? '', cents, tiers: tiers ?? [] })
+      .onConflict((oc) => oc.column('id').doUpdateSet({ name, email, cents, tiers }))
       .returning('tiers')
       .executeTakeFirstOrThrow();
 
