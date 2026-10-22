@@ -10,6 +10,9 @@
       ],
       "dependsOn": [
         "^build"
+      ],
+      "env": [
+        "CRAIG_VERSION"
       ]
     },
     "lint": {},
