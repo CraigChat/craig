@@ -369,12 +369,10 @@ export default class SlashModule extends BotModule {
             // Default values
             .values(setting === 'webapp' ? { id: ctx.user.id, webapp: true } : { id: ctx.user.id, includeBots: false })
             .onConflict((oc) =>
-              oc
-                .column('id')
-                .doUpdateSet((eb) =>
-                  // Setting flips
-                  setting === 'webapp' ? { webapp: eb.not(eb.ref('User.webapp')) } : { includeBots: eb.not(eb.ref('User.includeBots')) }
-                )
+              oc.column('id').doUpdateSet((eb) =>
+                // Setting flips
+                setting === 'webapp' ? { webapp: eb.not(eb.ref('User.webapp')) } : { includeBots: eb.not(eb.ref('User.includeBots')) }
+              )
             )
             .returning(['webapp', 'includeBots'])
             .executeTakeFirstOrThrow();
