@@ -93,7 +93,7 @@ if (sentryOpts) {
       frameContextLines: 0
     },
     environment: sentryOpts.env || process.env.NODE_ENV || 'development',
-    release: `craig-bot@${packageJson.version}`,
+    release: `craig-bot@${process.env.CRAIG_VERSION || packageJson.version}`,
     initialScope: process.env.SHARD_ID
       ? {
           tags: { shard: process.env.SHARD_ID },
