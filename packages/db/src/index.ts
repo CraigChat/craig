@@ -3,11 +3,12 @@ import { defaults, Pool, types } from 'pg';
 
 import type { DB } from '../.kysely/types.js';
 
-// Timestamps without a timezone are stored as UTC but `pg` uses local time
 defaults.parseInputDatesAsUTC = true;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: Number(process.env.DATABASE_POOL_MAX) || 2,
+  // force timestamps to UTC like Prisma
+  options: '-c TimeZone=UTC',
   types: {
     getTypeParser: ((oid: number, format?: 'text' | 'binary') => {
       if (format === 'binary') return types.getTypeParser(oid, format);
