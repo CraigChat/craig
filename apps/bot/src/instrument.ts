@@ -63,7 +63,7 @@ function scrub<T>(value: T, depth = 0): T {
 
 const sentryOpts = getSentryOptions();
 if (sentryOpts) {
-  const tracesSampleRate = sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 0;
+  const tracesSampleRate = sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1;
   const tracing = tracesSampleRate > 0;
 
   Sentry.init({
