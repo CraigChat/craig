@@ -7,6 +7,8 @@ defaults.parseInputDatesAsUTC = true;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: Number(process.env.DATABASE_POOL_MAX) || 2,
+  // Prisma's pool timeout is 10s
+  connectionTimeoutMillis: Number(process.env.DATABASE_CONNECTION_TIMEOUT) || 10_000,
   // force timestamps to UTC like Prisma
   options: '-c TimeZone=UTC',
   types: {
@@ -19,6 +21,9 @@ const pool = new Pool({
     }) as typeof types.getTypeParser
   }
 });
+
+// idle clients emit errors when the server drops them (restarts, failovers), the pool replaces them
+pool.on('error', (err) => console.error('[db] Idle client error:', err.message));
 
 export const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 
