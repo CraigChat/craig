@@ -6,7 +6,7 @@ import type { DB } from '../.kysely/types.js';
 defaults.parseInputDatesAsUTC = true;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: Number(process.env.DATABASE_POOL_MAX) || 2,
+  max: Number(process.env.DATABASE_POOL_MAX) || 5,
   // Prisma's pool timeout is 10s
   connectionTimeoutMillis: Number(process.env.DATABASE_CONNECTION_TIMEOUT) || 10_000,
   // force timestamps to UTC like Prisma
