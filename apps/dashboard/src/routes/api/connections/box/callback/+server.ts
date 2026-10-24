@@ -1,4 +1,4 @@
-import { db, getUserBlessing } from '@craig/db';
+import { db, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 
 import { env } from '$env/dynamic/private';
@@ -33,7 +33,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
-  if ((await getUserBlessing(auth.id)) === 0) return redirect(307, '/');
+  if ((await getRewardTier(auth.id)) === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
   if (error) return redirect(307, `/?error=${encodeURIComponent(error)}&from=box`);

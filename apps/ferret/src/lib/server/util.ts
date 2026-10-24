@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { convertToTimemark } from '@craig/common';
-import { db, getGuildBlessing, getUserBlessing } from '@craig/db';
+import { db, getGuildBlessing, getRewardTier } from '@craig/db';
 import type { Kitchen, Recording } from '@craig/types';
 import type { RecordingInfo, RecordingNote, RecordingUser } from '@craig/types/recording';
 import { json } from '@sveltejs/kit';
@@ -177,7 +177,7 @@ async function getFeaturesFromUser(userId: string): Promise<string[]> {
   const features: string[] = [];
 
   try {
-    const rewardTier = await getUserBlessing(userId);
+    const rewardTier = await getRewardTier(userId);
     features.push(...rewardTierToFeatures(rewardTier));
   } catch (e) {
     logger.error(`Failed to get reward tier for user ${userId}`, e);

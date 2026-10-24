@@ -1,4 +1,4 @@
-import { db, getGuildBlessing, getUserBlessing } from '@craig/db';
+import { db, getGuildBlessing, getRewardTier } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndentTransformer, TemplateTag } from 'common-tags';
 import {
@@ -297,7 +297,7 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
 }
 
 export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis'], t: TFunction): Promise<MessageOptions> {
-  const [userTier, blessing] = await Promise.all([getUserBlessing(userID), getGuildBlessing(guildID)]);
+  const [userTier, blessing] = await Promise.all([getRewardTier(userID), getGuildBlessing(guildID)]);
   const guildTier = blessing?.rewardTier || 0;
 
   if (blessing && blessing.userId === userID)

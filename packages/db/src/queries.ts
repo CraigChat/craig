@@ -48,7 +48,7 @@ export async function getGuildAccessRoles(guildId: string, client: DbClient = db
 }
 
 /** Get the reward tier of a user. */
-export async function getUserBlessing(userId: string, client: DbClient = db): Promise<number> {
+export async function getRewardTier(userId: string, client: DbClient = db): Promise<number> {
   const row = await client.selectFrom('User').select('rewardTier').where('id', '=', userId).executeTakeFirst();
   return row?.rewardTier ?? 0;
 }
