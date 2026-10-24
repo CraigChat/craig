@@ -35,11 +35,11 @@ export interface PatreonMember {
     full_name: string;
     email?: string;
     is_follower: false;
-    last_charge_date: string;
-    last_charge_status: string;
+    last_charge_date: string | null;
+    last_charge_status: string | null;
     lifetime_support_cents: number;
     currently_entitled_amount_cents: number;
-    next_charge_date: string;
+    next_charge_date: string | null;
     pledge_relationship_start: string;
     patron_status: 'active_patron' | 'declined_patron' | 'former_patron' | null;
   };

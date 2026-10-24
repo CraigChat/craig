@@ -12,6 +12,7 @@ import type { RequestHandler } from './$types';
 type PatreonEvent = `members:pledge:${'create' | 'update' | 'delete'}`;
 
 const MAX_BYTES = 1024 * 1024;
+const PLEDGE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
 
 function sameTiers(a: string[], b: string[]) {
   if (a.length !== b.length) return false;
@@ -25,6 +26,16 @@ function findUserByPatronId(patronId: string) {
 
 function deletePatreonEntitlement(userId: string) {
   return db.deleteFrom('Entitlement').where('userId', '=', userId).where('source', '=', 'patreon').execute();
+}
+
+function getPledgeExpiry(attributes: PatreonWebhookBody['data']['attributes']) {
+  if (attributes.patron_status === 'declined_patron') return null;
+  let expiresAt: Date | null = null;
+  if (attributes.next_charge_date) expiresAt = new Date(attributes.next_charge_date);
+  else if (attributes.last_charge_date && attributes.last_charge_status === 'Paid')
+    expiresAt = new Date(new Date(attributes.last_charge_date).getTime() + PLEDGE_PERIOD_MS);
+  if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) return null;
+  return expiresAt;
 }
 
 async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody) {
@@ -48,10 +59,11 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
     console.info(new Date().toISOString(), `Deleted patron ${patron.id} (${body.data.attributes.patron_status}, user ${user?.id})`);
     if (body.data.attributes.patron_status !== 'active_patron') await db.deleteFrom('Patreon').where('id', '=', patron.id).execute();
     if (user) {
-      if (body.data.attributes.patron_status === 'active_patron')
+      const expiresAt = getPledgeExpiry(body.data.attributes);
+      if (expiresAt)
         await db
           .updateTable('Entitlement')
-          .set({ expiresAt: body.data.attributes.next_charge_date ? new Date(body.data.attributes.next_charge_date) : null })
+          .set({ expiresAt })
           .where('userId', '=', user.id)
           .where('source', '=', 'patreon')
           .execute();
