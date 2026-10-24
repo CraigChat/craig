@@ -1,5 +1,5 @@
 import { convertToTimemark, UserExtraType, WebappOpCloseReason } from '@craig/common';
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import DiscordJsOpus from '@discordjs/opus';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { DiscordRESTError } from '@projectdysnomia/dysnomia';
@@ -159,7 +159,7 @@ export default class Recording {
 
   async sanityCheckIdClashing() {
     // Realistically, this should never happen, but just in case
-    if (await prisma.recording.count({ where: { id: this.id } })) {
+    if (await db.selectFrom('Recording').select('id').where('id', '=', this.id).executeTakeFirst()) {
       this.id = recNanoid();
       await this.sanityCheckIdClashing();
     }
@@ -298,8 +298,9 @@ export default class Recording {
     await this.playNowRecording();
     this.updateMessage();
 
-    await prisma.recording.create({
-      data: {
+    await db
+      .insertInto('Recording')
+      .values({
         id: this.id,
         accessKey: this.accessKey,
         deleteKey: this.deleteKey,
@@ -312,8 +313,8 @@ export default class Recording {
         autorecorded: this.autorecorded,
         expiresAt: new Date(this.startedAt.valueOf() + rewards.downloadExpiryHours * 60 * 60 * 1000),
         createdAt: this.startedAt
-      }
-    });
+      })
+      .execute();
 
     if (options?.webapp && this.recorder.client.config.craig.webapp.on) this.webapp = new WebappClient(this, parsedRewards);
 
@@ -384,26 +385,25 @@ export default class Recording {
 
     // Update DB
     if (this.rewards && this.startedAt && this.started)
-      await prisma.recording
-        .upsert({
-          where: { id: this.id },
-          update: { endedAt: new Date() },
-          create: {
-            id: this.id,
-            accessKey: this.accessKey,
-            deleteKey: this.deleteKey,
-            userId: this.user.id,
-            channelId: this.channel.id,
-            guildId: this.channel.guild.id,
-            clientId: this.recorder.client.bot.user.id,
-            shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
-            rewardTier: this.rewards.tier,
-            autorecorded: this.autorecorded,
-            expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
-            createdAt: this.startedAt,
-            endedAt: new Date()
-          }
+      await db
+        .insertInto('Recording')
+        .values({
+          id: this.id,
+          accessKey: this.accessKey,
+          deleteKey: this.deleteKey,
+          userId: this.user.id,
+          channelId: this.channel.id,
+          guildId: this.channel.guild.id,
+          clientId: this.recorder.client.bot.user.id,
+          shardId: (this.recorder.client as unknown as CraigBot).shard!.id ?? -1,
+          rewardTier: this.rewards.tier,
+          autorecorded: this.autorecorded,
+          expiresAt: new Date(this.startedAt.valueOf() + this.rewards.rewards.downloadExpiryHours * 60 * 60 * 1000),
+          createdAt: this.startedAt,
+          endedAt: new Date()
         })
+        .onConflict((oc) => oc.column('id').doUpdateSet({ endedAt: new Date() }))
+        .execute()
         .catch((e) => this.recorder.logger.error(`Error writing end date to recording ${this.id}`, e));
 
     // Reset nickname
@@ -425,7 +425,7 @@ export default class Recording {
   }
 
   async uploadToDrive() {
-    const user = await prisma.user.findUnique({ where: { id: this.user.id } });
+    const user = await db.selectFrom('User').select(['driveEnabled', 'driveService']).where('id', '=', this.user.id).executeTakeFirst();
     if (!user || !user.driveEnabled) return;
 
     await this.recorder.uploader.upload(this, user.driveService);

@@ -1,3 +1,4 @@
+import { getGuildBlessing } from '@craig/db';
 import { ButtonStyle, CommandContext, ComponentType, SlashCreator } from 'slash-create';
 
 import type { RewardTier } from '../config.js';
@@ -45,13 +46,10 @@ export default class Features extends GeneralCommand {
     }
 
     const userData = await this.entitlements.getCurrentUser(ctx);
-    const blessing = ctx.guildID ? await this.prisma.blessing.findUnique({ where: { guildId: ctx.guildID }, select: { userId: true } }) : null;
-    const blessingUser = blessing
-      ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { id: true, rewardTier: true } })
-      : null;
+    const blessing = ctx.guildID ? await getGuildBlessing(ctx.guildID) : null;
 
     const userTier = userData?.rewardTier || 0;
-    const guildTier = blessingUser?.rewardTier || 0;
+    const guildTier = blessing?.rewardTier || 0;
     const userRewards = this.client.config.craig.rewardTiers[userTier] || this.client.config.craig.rewardTiers[0];
     const guildRewards = this.client.config.craig.rewardTiers[guildTier] || this.client.config.craig.rewardTiers[0];
 
@@ -68,12 +66,12 @@ export default class Features extends GeneralCommand {
             },
             {
               name: t('features.server_perks'),
-              value: !ctx.guildID || !blessingUser ? null : this.formatRewards(guildRewards, guildTier, t, blessingUser.id),
+              value: !ctx.guildID || !blessing ? null : this.formatRewards(guildRewards, guildTier, t, blessing.userId),
               inline: true
             }
           ].filter((f) => f.value),
           footer: {
-            text: ctx.guildID && !blessingUser && userTier !== 0 ? t('features.no_server_perks') : null
+            text: ctx.guildID && !blessing && userTier !== 0 ? t('features.no_server_perks') : null
           }
         }
       ],
@@ -87,7 +85,7 @@ export default class Features extends GeneralCommand {
               label: t('common.dashboard'),
               url: this.client.config.craig.dashboardURL
             },
-            ...(ctx.guildID && !blessingUser && userTier !== 0
+            ...(ctx.guildID && !blessing && userTier !== 0
               ? [
                   {
                     type: ComponentType.BUTTON,

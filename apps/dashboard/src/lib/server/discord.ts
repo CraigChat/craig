@@ -1,4 +1,4 @@
-import { prisma, type UserToken } from '@craig/db';
+import { db, type UserToken } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
 
@@ -9,7 +9,7 @@ import { requiredEnv } from './env';
 import { verifySession } from './jwt';
 import { cacheData } from './redis';
 
-export async function checkAndRefreshTokens(userTokens: UserToken) {
+export async function checkAndRefreshTokens(userTokens: Pick<UserToken, 'id' | 'accessToken' | 'refreshToken' | 'expiresAt'>) {
   const publicDiscordClientID = requiredEnv('PUBLIC_DISCORD_CLIENT_ID', publicEnv.PUBLIC_DISCORD_CLIENT_ID);
   const discordClientSecret = requiredEnv('DISCORD_CLIENT_SECRET', env.DISCORD_CLIENT_SECRET);
   const discordRedirectURI = requiredEnv('DISCORD_REDIRECT_URI', env.DISCORD_REDIRECT_URI);
@@ -29,19 +29,20 @@ export async function checkAndRefreshTokens(userTokens: UserToken) {
       body
     });
     if (!res.ok) {
-      await prisma.userToken.delete({ where: { id: userTokens.id } });
+      await db.deleteFrom('UserToken').where('id', '=', userTokens.id).execute();
       return null;
     }
     const data = await res.json();
     accessToken = data.access_token;
-    await prisma.userToken.update({
-      where: { id: userTokens.id },
-      data: {
+    await db
+      .updateTable('UserToken')
+      .set({
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
         expiresAt: new Date(Date.now() + data.expires_in * 1000)
-      }
-    });
+      })
+      .where('id', '=', userTokens.id)
+      .execute();
   }
 
   return accessToken;
@@ -63,7 +64,11 @@ export async function validateAuth(token: string | null) {
   const sem = getSemaphore(`validateAuth/${payload.id}`);
   await sem.acquire();
   try {
-    const userToken = await prisma.userToken.findUnique({ where: { id: payload.id } });
+    const userToken = await db
+      .selectFrom('UserToken')
+      .select(['id', 'accessToken', 'refreshToken', 'expiresAt'])
+      .where('id', '=', payload.id)
+      .executeTakeFirst();
     if (!userToken) return null;
 
     const accessToken = await checkAndRefreshTokens(userToken);

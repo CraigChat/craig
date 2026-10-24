@@ -1,3 +1,4 @@
+import { getGuildAccessRoles } from '@craig/db';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis.js';
@@ -96,7 +97,7 @@ export default class ServerSettings extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
+    const accessRoles = await getGuildAccessRoles(ctx.guildID);
     if (!ctx.member!.permissions.has('MANAGE_GUILD'))
       return {
         content: t('server_settings.need_perms'),
@@ -110,7 +111,7 @@ export default class ServerSettings extends GeneralCommand {
             {
               title: t('server_settings.title'),
               description: t('server_settings.view', {
-                roles: guildData && guildData.accessRoles.length ? guildData.accessRoles.map((r) => `<@&${r}>`).join(', ') : t('server_settings.none')
+                roles: accessRoles && accessRoles.length ? accessRoles.map((r) => `<@&${r}>`).join(', ') : t('server_settings.none')
               })
             }
           ],
@@ -121,18 +122,17 @@ export default class ServerSettings extends GeneralCommand {
         switch (ctx.subcommands[1]) {
           case 'add': {
             const roleID = ctx.options['access-role'].add.role;
-            if (guildData && guildData.accessRoles.includes(roleID))
+            if (accessRoles && accessRoles.includes(roleID))
               return {
                 content: t('server_settings.already_access_role'),
                 ephemeral: true
               };
-            await this.prisma.guild.upsert({
-              where: { id: ctx.guildID },
-              update: {
-                accessRoles: [...(guildData ? guildData.accessRoles.filter((r) => guild.roles.has(r)) : []), roleID]
-              },
-              create: { id: ctx.guildID, accessRoles: [roleID] }
-            });
+            const newRoles = [...(accessRoles ? accessRoles.filter((r) => guild.roles.has(r)) : []), roleID];
+            await this.db
+              .insertInto('Guild')
+              .values({ id: ctx.guildID, accessRoles: newRoles })
+              .onConflict((oc) => oc.column('id').doUpdateSet({ accessRoles: newRoles }))
+              .execute();
             return {
               content: t('server_settings.added_access_role', { role: `<@&${roleID}>` }),
               ephemeral: true
@@ -140,15 +140,16 @@ export default class ServerSettings extends GeneralCommand {
           }
           case 'remove': {
             const roleID = ctx.options['access-role'].remove.role;
-            if (!guildData || !guildData.accessRoles.includes(roleID))
+            if (!accessRoles || !accessRoles.includes(roleID))
               return {
                 content: t('server_settings.not_access_role'),
                 ephemeral: true
               };
-            await this.prisma.guild.update({
-              where: { id: ctx.guildID },
-              data: { accessRoles: guildData.accessRoles.filter((r) => r !== roleID).filter((r) => guild.roles.has(r)) }
-            });
+            await this.db
+              .updateTable('Guild')
+              .set({ accessRoles: accessRoles.filter((r) => r !== roleID).filter((r) => guild.roles.has(r)) })
+              .where('id', '=', ctx.guildID)
+              .execute();
             return {
               content: t('server_settings.removed_access_role', { role: `<@&${roleID}>` }),
               ephemeral: true

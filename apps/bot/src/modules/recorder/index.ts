@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { CronJob } from 'cron';
@@ -198,54 +198,47 @@ export default class RecorderModule extends BotModule {
   }
 
   private async recordVoiceVersions(regionId: string, voiceEndpoint: string, voiceVersion: string, rtcWorkerVersion: string) {
-    const [regionResult, voiceVersionResult, rtcWorkerVersionResult, lastVoiceVersion, lastRtcWorkerVersion] = await prisma.$transaction([
-      prisma.voiceRegion.createMany({ data: [{ id: regionId }], skipDuplicates: true }),
-      prisma.voiceVersion.createMany({
-        data: [{ version: voiceVersion, regionId, endpoint: voiceEndpoint }],
-        skipDuplicates: true
-      }),
-      prisma.rtcVersion.createMany({
-        data: [{ version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint }],
-        skipDuplicates: true
-      }),
-      prisma.regionVoiceVersion.findUnique({ where: { regionId } }),
-      prisma.regionRtcVersion.findUnique({ where: { regionId } })
-    ]);
-    const existingRegion = regionResult.count === 0;
-    const voiceVersionSeen = voiceVersionResult.count === 0;
-    const rtcWorkerVersionSeen = rtcWorkerVersionResult.count === 0;
+    const [regionResult, voiceVersionResult, rtcWorkerVersionResult, lastVoiceVersion, lastRtcWorkerVersion] = await db.transaction().execute(
+      async (tx) =>
+        [
+          await tx
+            .insertInto('VoiceRegion')
+            .values({ id: regionId })
+            .onConflict((oc) => oc.doNothing())
+            .executeTakeFirst(),
+          await tx
+            .insertInto('VoiceVersion')
+            .values({ version: voiceVersion, regionId, endpoint: voiceEndpoint })
+            .onConflict((oc) => oc.doNothing())
+            .executeTakeFirst(),
+          await tx
+            .insertInto('RtcVersion')
+            .values({ version: rtcWorkerVersion, regionId, endpoint: voiceEndpoint })
+            .onConflict((oc) => oc.doNothing())
+            .executeTakeFirst(),
+          await tx.selectFrom('RegionVoiceVersion').select('version').where('regionId', '=', regionId).executeTakeFirst(),
+          await tx.selectFrom('RegionRtcVersion').select('version').where('regionId', '=', regionId).executeTakeFirst()
+        ] as const
+    );
+    const existingRegion = !regionResult.numInsertedOrUpdatedRows;
+    const voiceVersionSeen = !voiceVersionResult.numInsertedOrUpdatedRows;
+    const rtcWorkerVersionSeen = !rtcWorkerVersionResult.numInsertedOrUpdatedRows;
 
     // Update latest region voice & rtc worker versions
     await Promise.all([
       !lastVoiceVersion || isLessThan(lastVoiceVersion.version, voiceVersion)
-        ? prisma.regionVoiceVersion.upsert({
-            where: { regionId },
-            update: {
-              version: voiceVersion,
-              endpoint: voiceEndpoint,
-              seenAt: new Date()
-            },
-            create: {
-              regionId,
-              version: voiceVersion,
-              endpoint: voiceEndpoint
-            }
-          })
+        ? db
+            .insertInto('RegionVoiceVersion')
+            .values({ regionId, version: voiceVersion, endpoint: voiceEndpoint })
+            .onConflict((oc) => oc.column('regionId').doUpdateSet({ version: voiceVersion, endpoint: voiceEndpoint, seenAt: new Date() }))
+            .execute()
         : null,
       !lastRtcWorkerVersion || isLessThan(lastRtcWorkerVersion.version, rtcWorkerVersion)
-        ? prisma.regionRtcVersion.upsert({
-            where: { regionId },
-            update: {
-              version: rtcWorkerVersion,
-              endpoint: voiceEndpoint,
-              seenAt: new Date()
-            },
-            create: {
-              regionId,
-              version: rtcWorkerVersion,
-              endpoint: voiceEndpoint
-            }
-          })
+        ? db
+            .insertInto('RegionRtcVersion')
+            .values({ regionId, version: rtcWorkerVersion, endpoint: voiceEndpoint })
+            .onConflict((oc) => oc.column('regionId').doUpdateSet({ version: rtcWorkerVersion, endpoint: voiceEndpoint, seenAt: new Date() }))
+            .execute()
         : null
     ]);
 
@@ -302,15 +295,14 @@ export default class RecorderModule extends BotModule {
     if (this.recordingsChecked && !force) return;
     this.recordingsChecked = true;
     const badRecordings = (
-      await prisma.recording.findMany({
-        where: {
-          clientId: this.client.bot.user.id,
-          shardId: this.client.shard.id,
-          errored: false,
-          endedAt: null
-        },
-        select: { id: true, guildId: true, channelId: true, userId: true }
-      })
+      await db
+        .selectFrom('Recording')
+        .select(['id', 'guildId', 'channelId', 'userId'])
+        .where('clientId', '=', this.client.bot.user.id)
+        .where('shardId', '=', this.client.shard.id)
+        .where('errored', '=', false)
+        .where('endedAt', 'is', null)
+        .execute()
     ).filter((br) => !this.find(br.id));
 
     this.logger.info(
@@ -357,9 +349,15 @@ export default class RecorderModule extends BotModule {
     }
 
     // Delete errored recordings
-    for (const recording of badRecordings) {
-      await prisma.recording.delete({ where: { id: recording.id } }).catch(() => {});
-    }
+    await db
+      .deleteFrom('Recording')
+      .where(
+        'id',
+        'in',
+        badRecordings.map((r) => r.id)
+      )
+      .execute()
+      .catch((e) => this.logger.error('Failed to delete errored recordings', e));
   }
 
   async checkForMaintenance() {

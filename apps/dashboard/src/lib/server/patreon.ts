@@ -1,28 +1,19 @@
-import { prisma } from '@craig/db';
+import { db, type DbClient, rewardTierUpdate } from '@craig/db';
 
 import { env } from '$env/dynamic/private';
 
 const tierMap: { [tier: string]: number } = JSON.parse(env.PATREON_TIER_MAP ?? '{}');
 export const determineRewardTier = (tiers: string[]) => tiers.map((t) => tierMap[t] || 0).sort((a, b) => b - a)[0] || 0;
 
-export async function resolveUserEntitlement(userId: string, patronId?: string | null) {
-  const entitlements = await prisma.entitlement.findMany({
-    where: {
-      userId,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-    },
-    select: { tier: true }
-  });
-  const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
-
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      rewardTier: maxTier,
-      ...(maxTier === 0 ? { driveEnabled: false } : {}),
+export async function resolveUserEntitlement(userId: string, patronId?: string | null, client: DbClient = db) {
+  await client
+    .updateTable('User')
+    .set((eb) => ({
+      ...rewardTierUpdate(eb),
       ...(patronId !== undefined ? { patronId } : {})
-    }
-  });
+    }))
+    .where('id', '=', userId)
+    .execute();
 }
 
 export interface PatreonUser {
@@ -44,11 +35,11 @@ export interface PatreonMember {
     full_name: string;
     email?: string;
     is_follower: false;
-    last_charge_date: string;
-    last_charge_status: string;
+    last_charge_date: string | null;
+    last_charge_status: string | null;
     lifetime_support_cents: number;
     currently_entitled_amount_cents: number;
-    next_charge_date: string;
+    next_charge_date: string | null;
     pledge_relationship_start: string;
     patron_status: 'active_patron' | 'declined_patron' | 'former_patron' | null;
   };
@@ -70,12 +61,13 @@ export interface PatreonMember {
   type: 'member';
 }
 
+// Patreon omits `included` when there is nothing to include (e.g. no memberships)
 export interface PatreonIdentifyResponse {
   data: PatreonUser;
-  included: PatreonMember[];
+  included?: PatreonMember[];
 }
 
 export interface PatreonWebhookBody {
   data: PatreonMember;
-  included: PatreonUser[];
+  included?: PatreonUser[];
 }

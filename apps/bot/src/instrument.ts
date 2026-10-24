@@ -14,8 +14,11 @@ const SENSITIVE_PATTERNS: [RegExp, string][] = [
   [/(\/(?:webhooks|interactions)\/\d+\/)[\w.-]+/g, `$1${FILTERED}`],
   // Recording keys in download/webapp links
   [/([?&](?:key|delete|token)=)[^&\s"'`]+/gi, `$1${FILTERED}`],
-  // Recording keys in Prisma invocation errors
+  // Recording keys in logged objects
   [/((?:access|delete|ennui)Key["']?\s*[:=]\s*)(["'`]?)[\w-]+\2/g, `$1"${FILTERED}"`],
+  // Row values in Postgres error details (unique/foreign key and constraint violations)
+  [/(Key \(.*?\)=\().*?(\) (?:already exists|is not present|is still referenced|conflicts with))/g, `$1${FILTERED}$2`],
+  [/(Failing row contains \().*(\))/g, `$1${FILTERED}$2`],
   // Discord bot tokens
   [/[\w-]{24,}\.[\w-]{6}\.[\w-]{27,}/g, FILTERED],
   // ANSI colors from the logger
@@ -60,7 +63,7 @@ function scrub<T>(value: T, depth = 0): T {
 
 const sentryOpts = getSentryOptions();
 if (sentryOpts) {
-  const tracesSampleRate = sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 0;
+  const tracesSampleRate = sentryOpts.sampleRate ? parseFloat(sentryOpts.sampleRate) : 1;
   const tracing = tracesSampleRate > 0;
 
   Sentry.init({
@@ -76,7 +79,7 @@ if (sentryOpts) {
       Sentry.onUnhandledRejectionIntegration({ mode: 'none' }),
       Sentry.nodeContextIntegration({ cloudResource: false, culture: false }),
       Sentry.rewriteFramesIntegration({ root: process.cwd() }),
-      ...(tracing ? [Sentry.httpIntegration(), Sentry.nativeNodeFetchIntegration(), Sentry.prismaIntegration()] : [])
+      ...(tracing ? [Sentry.httpIntegration(), Sentry.nativeNodeFetchIntegration(), Sentry.postgresIntegration({ ignoreConnectSpans: true })] : [])
     ],
     maxBreadcrumbs: 30,
     dataCollection: {

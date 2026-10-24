@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 
@@ -22,8 +22,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (!user || user.rewardTier === 0) return redirect(307, '/');
+  if ((await getRewardTier(auth.id)) === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
   if (error) return redirect(307, `/?error=${encodeURIComponent(error)}&from=google`);
@@ -63,24 +62,25 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
       else if (typeof emailAddress === 'string') serviceUserId = emailAddress;
     }
 
-    logger.info(`OAuth connection established (user=${user.id}, service=google, serviceUserId=${serviceUserId})`);
+    logger.info(`OAuth connection established (user=${auth.id}, service=google, serviceUserId=${serviceUserId})`);
 
-    await prisma.googleDriveUser.upsert({
-      where: { id: user.id },
-      update: { token: tokens.access_token, refreshToken: tokens.refresh_token },
-      create: { id: user.id, token: tokens.access_token, refreshToken: tokens.refresh_token }
-    });
+    const values = { token: tokens.access_token, refreshToken: tokens.refresh_token };
+    await db
+      .insertInto('GoogleDriveUser')
+      .values({ id: auth.id, ...values })
+      .onConflict((oc) => oc.column('id').doUpdateSet(values))
+      .execute();
   } catch (e) {
     if (isRedirect(e)) throw e;
     console.error('Failed to get Google info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=google');
   }
 
-  await prisma.user.upsert({
-    where: { id: user.id },
-    update: { driveService: 'google' },
-    create: { id: user.id, driveService: 'google' }
-  });
+  await db
+    .insertInto('User')
+    .values({ id: auth.id, driveService: 'google' })
+    .onConflict((oc) => oc.column('id').doUpdateSet({ driveService: 'google' }))
+    .execute();
 
   return redirect(307, '/?r=account_linked&from=google');
 };

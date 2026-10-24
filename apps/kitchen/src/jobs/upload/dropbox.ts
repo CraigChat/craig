@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 import { Dropbox, DropboxAuth, DropboxResponse, DropboxResponseError, files } from 'dropbox';
 
@@ -15,7 +15,7 @@ const DROPBOX_UPLOAD_FILE_SIZE_LIMIT = 150 * 1024 * 1024;
 export async function dropboxPreflight(userId: string) {
   if (!DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET || !DROPBOX_FOLDER_NAME) return false;
 
-  const driveUser = await prisma.dropboxUser.findUnique({ where: { id: userId } });
+  const driveUser = await db.selectFrom('DropboxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
   if (!driveUser) return false;
 
   const auth = new DropboxAuth({
@@ -31,7 +31,8 @@ export async function dropboxPreflight(userId: string) {
     await dbx.usersGetCurrentAccount();
   } catch (e) {
     logger.warn(`Error in dropbox preflight for user ${userId}`, e);
-    if (e instanceof DropboxResponseError && (e.status === 401 || e.status === 403)) await prisma.dropboxUser.delete({ where: { id: userId } });
+    if (e instanceof DropboxResponseError && (e.status === 401 || e.status === 403))
+      await db.deleteFrom('DropboxUser').where('id', '=', userId).execute();
     return false;
   }
 
@@ -39,7 +40,7 @@ export async function dropboxPreflight(userId: string) {
   const accessToken = auth.getAccessToken();
   const refreshToken = auth.getRefreshToken();
   if (accessToken !== driveUser.token || refreshToken !== driveUser.refreshToken)
-    await prisma.dropboxUser.update({ where: { id: userId }, data: { refreshToken, token: accessToken } });
+    await db.updateTable('DropboxUser').set({ refreshToken, token: accessToken }).where('id', '=', userId).execute();
 
   return true;
 }
@@ -48,7 +49,7 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
   if (!DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET || !DROPBOX_FOLDER_NAME) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await prisma.dropboxUser.findUnique({ where: { id: userId } });
+  const driveUser = await db.selectFrom('DropboxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
   if (!driveUser) return;
 
   const auth = new DropboxAuth({
@@ -136,10 +137,7 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
   const accessToken = auth.getAccessToken();
   const refreshToken = auth.getRefreshToken();
   if (accessToken !== driveUser.token || refreshToken !== driveUser.refreshToken)
-    await prisma.dropboxUser.update({
-      where: { id: userId },
-      data: { refreshToken, token: accessToken }
-    });
+    await db.updateTable('DropboxUser').set({ refreshToken, token: accessToken }).where('id', '=', userId).execute();
 
   job.outputData.uploadFileId = file.result.id;
   job.outputData.uploadFileURL = `https://www.dropbox.com/home/Apps/${encodeURIComponent(DROPBOX_FOLDER_NAME)}?preview=${encodeURIComponent(

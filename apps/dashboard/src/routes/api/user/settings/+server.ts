@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { json } from '@sveltejs/kit';
 import { destr } from 'destr';
 import { z } from 'zod';
@@ -60,7 +60,7 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
   const parsed = Schema.safeParse(body);
   if (!parsed.success) return errorResponse(APIErrorCode.INVALID_BODY, { status: 400 }, { errors: z.treeifyError(parsed.error) });
 
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
+  const user = await db.selectFrom('User').select(['rewardTier', 'driveService', 'driveOptions']).where('id', '=', auth.id).executeTakeFirst();
 
   if (
     (parsed.data.driveService ||
@@ -90,12 +90,12 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
   }
 
   const userDriveOptions = user?.driveOptions && typeof user.driveOptions === 'object' && !Array.isArray(user.driveOptions) ? user.driveOptions : {};
-  const driveOptions = { ...userDriveOptions, ...(parsed.data.driveOptions ?? {}) };
-  await prisma.user.upsert({
-    where: { id: auth.id },
-    create: { id: auth.id, ...parsed.data, driveOptions },
-    update: { ...parsed.data, driveOptions }
-  });
+  const driveOptions = JSON.stringify({ ...userDriveOptions, ...(parsed.data.driveOptions ?? {}) });
+  await db
+    .insertInto('User')
+    .values({ id: auth.id, ...parsed.data, driveOptions })
+    .onConflict((oc) => oc.column('id').doUpdateSet({ ...parsed.data, driveOptions }))
+    .execute();
 
   return json({ ok: true });
 };

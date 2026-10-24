@@ -1,3 +1,4 @@
+import { getGuildAccessRoles } from '@craig/db';
 import { CommandContext, CommandOptionType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis.js';
@@ -42,7 +43,7 @@ export default class Note extends GeneralCommand {
       };
     }
 
-    const hasPermission = checkRecordingPermission(ctx.member!, await this.prisma.guild.findUnique({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await getGuildAccessRoles(ctx.guildID));
     if (!hasPermission)
       return {
         content: t('recording.need_perms'),

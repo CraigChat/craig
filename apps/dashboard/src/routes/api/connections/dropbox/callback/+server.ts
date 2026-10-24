@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { Dropbox } from 'dropbox';
 
@@ -22,8 +22,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   const sessionCookie = cookies.get(SESSION_COOKIE);
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return redirect(307, '/login');
-  const user = await prisma.user.findUnique({ where: { id: auth.id } });
-  if (!user || user.rewardTier === 0) return redirect(307, '/');
+  if ((await getRewardTier(auth.id)) === 0) return redirect(307, '/');
 
   const error = url.searchParams.get('error');
   if (error) return redirect(307, `/?error=${encodeURIComponent(error)}&from=dropbox`);
@@ -55,24 +54,25 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     const dropboxUser = await dbx.usersGetCurrentAccount();
 
-    logger.info(`OAuth connection established (user=${user.id}, service=dropbox, serviceUserId=${dropboxUser.result.account_id})`);
+    logger.info(`OAuth connection established (user=${auth.id}, service=dropbox, serviceUserId=${dropboxUser.result.account_id})`);
 
-    await prisma.dropboxUser.upsert({
-      where: { id: user.id },
-      update: { token: tokens.access_token, refreshToken: tokens.refresh_token, name: dropboxUser.result.name.display_name },
-      create: { id: user.id, token: tokens.access_token, refreshToken: tokens.refresh_token, name: dropboxUser.result.name.display_name }
-    });
+    const values = { token: tokens.access_token, refreshToken: tokens.refresh_token, name: dropboxUser.result.name.display_name };
+    await db
+      .insertInto('DropboxUser')
+      .values({ id: auth.id, ...values })
+      .onConflict((oc) => oc.column('id').doUpdateSet(values))
+      .execute();
   } catch (e) {
     if (isRedirect(e)) throw e;
     console.error('Failed to get Dropbox info', e);
     return redirect(307, '/?error=__NO_USER_DATA&from=dropbox');
   }
 
-  await prisma.user.upsert({
-    where: { id: user.id },
-    update: { driveService: 'dropbox' },
-    create: { id: user.id, driveService: 'dropbox' }
-  });
+  await db
+    .insertInto('User')
+    .values({ id: auth.id, driveService: 'dropbox' })
+    .onConflict((oc) => oc.column('id').doUpdateSet({ driveService: 'dropbox' }))
+    .execute();
 
   return redirect(307, '/?r=account_linked&from=dropbox');
 };

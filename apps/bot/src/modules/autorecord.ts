@@ -1,4 +1,4 @@
-import { type AutoRecord, prisma } from '@craig/db';
+import { type AutoRecord, db, getGuildBlessing } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, ComponentType, MessageFlags } from 'slash-create';
 
@@ -65,13 +65,9 @@ export default class AutorecordModule extends BotModule {
     if (this.fetching) return;
     this.fetching = true;
     try {
-      const autorecords = (
-        await prisma.autoRecord.findMany({
-          where: {
-            clientId: this.client.bot.user.id
-          }
-        })
-      ).filter((autorecord) => this.client.bot.guilds.has(autorecord.guildId));
+      const autorecords = (await db.selectFrom('AutoRecord').selectAll().where('clientId', '=', this.client.bot.user.id).execute()).filter(
+        (autorecord) => this.client.bot.guilds.has(autorecord.guildId)
+      );
 
       this.logger.debug(`Fetched ${autorecords.length} autorecordings.`);
 
@@ -87,40 +83,25 @@ export default class AutorecordModule extends BotModule {
 
   async upsert(data: AutoRecordUpsert) {
     const clientId = this.client.bot.user.id;
-    const newAutoRecording: AutoRecord = await prisma.autoRecord.upsert({
-      where: {
-        clientId_guildId_channelId: {
-          clientId,
-          guildId: data.guildId,
-          channelId: data.channelId
-        }
-      },
-      update: {
-        userId: data.userId,
-        minimum: data.minimum,
-        triggerUsers: data.triggerUsers,
-        triggerRoles: data.triggerRoles,
-        postChannelId: data.postChannelId || null
-      },
-      create: {
-        clientId,
-        guildId: data.guildId,
-        channelId: data.channelId,
-        userId: data.userId,
-        postChannelId: data.postChannelId || null,
-        minimum: data.minimum,
-        triggerUsers: data.triggerUsers,
-        triggerRoles: data.triggerRoles
-      }
-    });
+    const values = {
+      userId: data.userId,
+      minimum: data.minimum,
+      triggerUsers: data.triggerUsers,
+      triggerRoles: data.triggerRoles,
+      postChannelId: data.postChannelId || null
+    };
+    const newAutoRecording = await db
+      .insertInto('AutoRecord')
+      .values({ clientId, guildId: data.guildId, channelId: data.channelId, ...values })
+      .onConflict((oc) => oc.columns(['clientId', 'guildId', 'channelId']).doUpdateSet(values))
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
     this.autorecords.set(newAutoRecording.channelId, newAutoRecording);
   }
 
   async delete(autoRecording: AutoRecord) {
-    await prisma.autoRecord.delete({
-      where: { id: autoRecording.id }
-    });
+    await db.deleteFrom('AutoRecord').where('id', '=', autoRecording.id).execute();
 
     this.autorecords.delete(autoRecording.channelId);
   }
@@ -182,13 +163,11 @@ export default class AutorecordModule extends BotModule {
     const channelId = channel.id;
 
     // Get rewards
-    const userData = await prisma.user.findUnique({
-      where: { id: autoRecording.userId },
-      select: { rewardTier: true, webapp: true, includeBots: true }
-    });
-    const blessing = await prisma.blessing.findUnique({ where: { guildId: guildId }, select: { userId: true } });
-    const blessingUser = blessing ? await prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
-    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
+    const [userData, blessing] = await Promise.all([
+      db.selectFrom('User').select(['rewardTier', 'webapp', 'includeBots']).where('id', '=', autoRecording.userId).executeTakeFirst(),
+      getGuildBlessing(guildId)
+    ]);
+    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessing?.rewardTier ?? 0);
 
     // Remove auto-recording if they lost the ability to autorecord
     if (!parsedRewards.rewards.features.includes('auto')) return void (await this.delete(autoRecording));

@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { type Prisma, prisma } from '@craig/db';
+import { db, type DbClient, updateRewardTiers } from '@craig/db';
 
 import {
   PATREON_CAMPAIGN_ID,
@@ -239,20 +239,6 @@ export class RefreshPatronsJob extends TaskJob {
     return patrons;
   }
 
-  resolveUserEntitlement(entitlements: { tier: number }[], userId: string) {
-    const maxTier = entitlements.some((entitlement) => entitlement.tier === -1)
-      ? -1
-      : entitlements.reduce((max, entitlement) => Math.max(max, entitlement.tier), 0);
-
-    return prisma.user.update({
-      where: { id: userId },
-      data: {
-        rewardTier: maxTier,
-        ...(maxTier === 0 ? { driveEnabled: false } : {})
-      }
-    });
-  }
-
   async run() {
     this.assertConfigured();
 
@@ -262,22 +248,19 @@ export class RefreshPatronsJob extends TaskJob {
       return;
     }
 
-    const operations: Prisma.PrismaPromise<unknown>[] = [];
+    const operations: ((tx: DbClient) => Promise<unknown>)[] = [];
     const now = new Date();
     const activePatronIds = new Set<string>();
     const affectedUserIds = new Set<string>();
     const activePatrons = patrons.filter((item) => item.status === 'active_patron');
-    const linkedUsers = await prisma.user.findMany({
-      where: {
-        patronId: {
-          in: activePatrons.map((patron) => patron.id)
-        }
-      },
-      select: {
-        id: true,
-        patronId: true
-      }
-    });
+    const linkedUsers =
+      activePatrons.length > 0
+        ? await db
+            .selectFrom('User')
+            .select(['id', 'patronId'])
+            .where((eb) => eb('patronId', '=', eb.fn.any(eb.val(activePatrons.map((patron) => patron.id)))))
+            .execute()
+        : [];
     const linkedUsersByPatronId = new Map<string, (typeof linkedUsers)[number][]>();
     for (const user of linkedUsers) {
       if (!user.patronId) continue;
@@ -290,12 +273,12 @@ export class RefreshPatronsJob extends TaskJob {
       const { id: patreonId, name, email, cents, tiers, discordId } = patron;
       activePatronIds.add(patreonId);
 
-      operations.push(
-        prisma.patreon.upsert({
-          where: { id: patreonId },
-          update: { name, email, cents, tiers, updatedAt: now },
-          create: { id: patreonId, name, email, cents, tiers }
-        })
+      operations.push((tx) =>
+        tx
+          .insertInto('Patreon')
+          .values({ id: patreonId, name, email, cents, tiers })
+          .onConflict((oc) => oc.column('id').doUpdateSet({ name, email, cents, tiers, updatedAt: now }))
+          .execute()
       );
 
       let resolvedDiscordId = discordId;
@@ -310,96 +293,57 @@ export class RefreshPatronsJob extends TaskJob {
       const unlinked = linkedUsersByPatronId.get(patreonId)?.filter((user) => user.id !== resolvedDiscordId) ?? [];
 
       if (unlinked.length > 0) {
-        operations.push(
-          prisma.user.updateMany({
-            where: {
-              patronId: patreonId,
-              id: { not: resolvedDiscordId }
-            },
-            data: { patronId: null }
-          })
+        operations.push((tx) =>
+          tx.updateTable('User').set({ patronId: null }).where('patronId', '=', patreonId).where('id', '!=', resolvedDiscordId).execute()
         );
 
         for (const user of unlinked) affectedUserIds.add(user.id);
       }
 
-      operations.push(
-        prisma.user.upsert({
-          where: { id: resolvedDiscordId },
-          update: { patronId: patreonId },
-          create: { id: resolvedDiscordId, patronId: patreonId }
-        })
+      operations.push((tx) =>
+        tx
+          .insertInto('User')
+          .values({ id: resolvedDiscordId, patronId: patreonId })
+          .onConflict((oc) => oc.column('id').doUpdateSet({ patronId: patreonId }))
+          .execute()
       );
 
-      operations.push(
-        prisma.entitlement.upsert({
-          where: {
-            userId_source: {
-              userId: resolvedDiscordId,
-              source: 'patreon'
-            }
-          },
-          update: {
-            tier: this.determineRewardTier(patron),
-            expiresAt: null,
-            sourceEntitlementId: patron.entitlementId
-          },
-          create: {
-            userId: resolvedDiscordId,
-            source: 'patreon',
-            tier: this.determineRewardTier(patron),
-            sourceEntitlementId: patron.entitlementId
-          }
-        })
+      const tier = this.determineRewardTier(patron);
+      operations.push((tx) =>
+        tx
+          .insertInto('Entitlement')
+          .values({ userId: resolvedDiscordId, source: 'patreon', tier, sourceEntitlementId: patron.entitlementId })
+          .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet({ tier, expiresAt: null, sourceEntitlementId: patron.entitlementId }))
+          .execute()
       );
     }
 
     this.logger.info(`Committing ${operations.length.toLocaleString()} Patreon changes.`);
-    if (operations.length > 0) await prisma.$transaction(operations);
+    if (operations.length > 0)
+      await db.transaction().execute(async (tx) => {
+        for (const operation of operations) await operation(tx);
+      });
 
     this.logger.info('Checking for stale Patreon entitlements.');
-    const staleEntitlementWhere: Prisma.EntitlementWhereInput = { source: 'patreon' };
+    let staleEntitlementQuery = db.selectFrom('Entitlement').select('Entitlement.userId').where('Entitlement.source', '=', 'patreon');
     if (activePatronIds.size > 0)
-      staleEntitlementWhere.user = {
-        OR: [{ patronId: null }, { patronId: { notIn: [...activePatronIds] } }]
-      };
+      staleEntitlementQuery = staleEntitlementQuery
+        .innerJoin('User', 'User.id', 'Entitlement.userId')
+        .where((eb) => eb.or([eb('User.patronId', 'is', null), eb.not(eb('User.patronId', '=', eb.fn.any(eb.val([...activePatronIds]))))]));
 
-    const staleEntitlements = await prisma.entitlement.findMany({
-      where: staleEntitlementWhere,
-      select: { userId: true }
-    });
+    const staleEntitlements = await staleEntitlementQuery.execute();
 
     if (staleEntitlements.length > 0) {
       const staleUserIds = staleEntitlements.map(({ userId }) => userId);
-      await prisma.entitlement.deleteMany({
-        where: {
-          source: 'patreon',
-          userId: { in: staleUserIds }
-        }
-      });
+      await db
+        .deleteFrom('Entitlement')
+        .where('source', '=', 'patreon')
+        .where((eb) => eb('userId', '=', eb.fn.any(eb.val(staleUserIds))))
+        .execute();
       for (const userId of staleUserIds) affectedUserIds.add(userId);
     }
 
     this.logger.info(`Re-evaluating ${affectedUserIds.size.toLocaleString()} users.`);
-    const entitlements = await prisma.entitlement.findMany({
-      where: {
-        userId: { in: [...affectedUserIds] },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-      },
-      select: {
-        userId: true,
-        tier: true
-      }
-    });
-    const entitlementsByUserId = new Map<string, { tier: number }[]>();
-    for (const entitlement of entitlements) {
-      const userEntitlements = entitlementsByUserId.get(entitlement.userId) ?? [];
-      userEntitlements.push(entitlement);
-      entitlementsByUserId.set(entitlement.userId, userEntitlements);
-    }
-
-    if (affectedUserIds.size > 0) {
-      await prisma.$transaction([...affectedUserIds].map((userId) => this.resolveUserEntitlement(entitlementsByUserId.get(userId) ?? [], userId)));
-    }
+    await updateRewardTiers([...affectedUserIds]);
   }
 }

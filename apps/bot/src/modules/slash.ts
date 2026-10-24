@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db, getGuildAccessRoles } from '@craig/db';
 import type { DAVESession } from '@snazzah/davey';
 import { EmojiManager } from '@snazzah/emoji-sync';
 import {
@@ -159,7 +159,7 @@ export default class SlashModule extends BotModule {
       });
     }
     if (recording.channel.guild.id !== ctx.guildID) return;
-    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await getGuildAccessRoles(ctx.guildID));
     if (!hasPermission && action !== 'e2ee' && action !== 'verificationcode')
       return ctx.send({
         content: t('recording.need_perms'),
@@ -292,7 +292,7 @@ export default class SlashModule extends BotModule {
       });
     }
 
-    const hasPermission = checkRecordingPermission(ctx.member!, await prisma.guild.findUnique({ where: { id: ctx.guildID } }));
+    const hasPermission = checkRecordingPermission(ctx.member!, await getGuildAccessRoles(ctx.guildID!));
     if (!hasPermission)
       return ctx.send({
         content: t('voicetest.need_perms'),
@@ -363,17 +363,19 @@ export default class SlashModule extends BotModule {
         const [setting] = args;
         if (setting !== 'webapp' && setting !== 'includeBots') return;
         try {
-          const userSettings = (await prisma.user.findUnique({
-            where: { id: ctx.user.id },
-            select: { webapp: true, includeBots: true }
-          })) || { webapp: false, includeBots: true };
-
-          const newSettings = await prisma.user.upsert({
-            where: { id: ctx.user.id },
-            update: { [setting]: !userSettings[setting] },
-            create: { id: ctx.user.id, [setting]: !userSettings[setting] },
-            select: { webapp: true, includeBots: true }
-          });
+          // Flip settings in SQL to avoid race conditions
+          const newSettings = await db
+            .insertInto('User')
+            // Default values
+            .values(setting === 'webapp' ? { id: ctx.user.id, webapp: true } : { id: ctx.user.id, includeBots: false })
+            .onConflict((oc) =>
+              oc.column('id').doUpdateSet((eb) =>
+                // Setting flips
+                setting === 'webapp' ? { webapp: eb.not(eb.ref('User.webapp')) } : { includeBots: eb.not(eb.ref('User.includeBots')) }
+              )
+            )
+            .returning(['webapp', 'includeBots'])
+            .executeTakeFirstOrThrow();
 
           await ctx.editParent(displayUserSettings(this.client as any, newSettings, t));
           await ctx.send({
