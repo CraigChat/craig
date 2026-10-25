@@ -17,7 +17,7 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
   const auth = sessionCookie?.trim() ? await checkAuth(sessionCookie) : null;
   if (!auth) return errorResponse(APIErrorCode.UNAUTHORIZED, { status: 401 });
 
-  await disconnectService(auth.id, 'dropbox', (tx) => tx.dropboxUser.deleteMany({ where: { id: auth.id } }));
+  await disconnectService(auth.id, 'dropbox', (tx) => tx.deleteFrom('DropboxUser').where('id', '=', auth.id).execute());
 
   return json({ ok: true });
 };

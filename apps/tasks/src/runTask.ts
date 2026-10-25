@@ -1,6 +1,6 @@
 import './util/env.js';
 
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 
 import { createJob, jobFactories, type JobName } from './jobs/index.js';
 import { logger } from './util/logger.js';
@@ -21,5 +21,5 @@ try {
   logger.error(`Task ${jobName} failed:`, e);
   process.exitCode = 1;
 } finally {
-  await prisma.$disconnect();
+  await db.destroy();
 }

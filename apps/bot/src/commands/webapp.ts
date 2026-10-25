@@ -53,11 +53,11 @@ export default class Webapp extends GeneralCommand {
 
     switch (ctx.subcommands[0]) {
       case 'on': {
-        await this.prisma.user.upsert({
-          where: { id: ctx.user.id },
-          update: { webapp: true },
-          create: { id: ctx.user.id, webapp: true }
-        });
+        await this.db
+          .insertInto('User')
+          .values({ id: ctx.user.id, webapp: true })
+          .onConflict((oc) => oc.column('id').doUpdateSet({ webapp: true }))
+          .execute();
 
         return {
           content: t('webapp.on'),
@@ -65,11 +65,11 @@ export default class Webapp extends GeneralCommand {
         };
       }
       case 'off': {
-        await this.prisma.user.upsert({
-          where: { id: ctx.user.id },
-          update: { webapp: false },
-          create: { id: ctx.user.id, webapp: false }
-        });
+        await this.db
+          .insertInto('User')
+          .values({ id: ctx.user.id, webapp: false })
+          .onConflict((oc) => oc.column('id').doUpdateSet({ webapp: false }))
+          .execute();
 
         return {
           content: t('webapp.off'),

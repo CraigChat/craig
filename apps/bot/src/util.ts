@@ -1,5 +1,4 @@
-import type { Ban, Guild } from '@craig/db';
-import { prisma, type User } from '@craig/db';
+import { db, getGuildBlessing, getRewardTier } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { stripIndentTransformer, TemplateTag } from 'common-tags';
 import {
@@ -26,11 +25,15 @@ export const version = packageJson.version;
 export const userAgent = `CraigBot (https://craig.chat ${version}) Node.js/${process.version}`;
 
 let lastBanUpdate = 0;
-let bans: Ban[] = [];
+let bans: { id: string; type: number }[] = [];
 
 export async function checkBan(userId: string) {
   if (Date.now() - lastBanUpdate > 30 * 1000) {
-    const nextBans = await prisma.ban.findMany().catch(() => null);
+    const nextBans = await db
+      .selectFrom('Ban')
+      .select(['id', 'type'])
+      .execute()
+      .catch(() => null);
     if (nextBans) {
       bans = nextBans;
       lastBanUpdate = Date.now();
@@ -61,17 +64,17 @@ export function makePlainError(err: Error) {
   return obj;
 }
 
-export function checkRecordingPermission(member: Member, guildData?: Guild | null) {
+export function checkRecordingPermission(member: Member, accessRoles?: string[] | null) {
   if (!member) return false;
   if (member.permissions.has('MANAGE_GUILD')) return true;
-  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) return true;
+  if (accessRoles && member.roles.some((r) => accessRoles.includes(r))) return true;
   return false;
 }
 
-export function checkRecordingPermissionEris(member: Dysnomia.Member, guildData?: Guild | null) {
+export function checkRecordingPermissionEris(member: Dysnomia.Member, accessRoles?: string[] | null) {
   if (!member) return false;
   if (member.permissions.has('manageGuild')) return true;
-  if (guildData && member.roles.some((r) => guildData.accessRoles.some((g) => g === r))) return true;
+  if (accessRoles && member.roles.some((r) => accessRoles.includes(r))) return true;
   return false;
 }
 
@@ -294,18 +297,10 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
 }
 
 export async function blessServer(userID: string, guildID: string, emojis: SlashModule['emojis'], t: TFunction): Promise<MessageOptions> {
-  const userData = await prisma.user.findUnique({ where: { id: userID }, select: { id: true, rewardTier: true } });
-  const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
-  const blessingUser = blessing
-    ? blessing.userId === userID
-      ? userData
-      : await prisma.user.findUnique({ where: { id: blessing.userId }, select: { id: true, rewardTier: true } })
-    : null;
+  const [userTier, blessing] = await Promise.all([getRewardTier(userID), getGuildBlessing(guildID)]);
+  const guildTier = blessing?.rewardTier || 0;
 
-  const userTier = userData?.rewardTier || 0;
-  const guildTier = blessingUser?.rewardTier || 0;
-
-  if (blessingUser && blessingUser.id === userID)
+  if (blessing && blessing.userId === userID)
     return {
       content: t('blessing.already_blessed'),
       ephemeral: true,
@@ -337,13 +332,15 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
       ephemeral: true
     };
 
-  // Remove other blessings
-  if (userTier !== -1) await prisma.blessing.deleteMany({ where: { userId: userID } });
+  await db.transaction().execute(async (tx) => {
+    // Remove other blessings
+    if (userTier !== -1) await tx.deleteFrom('Blessing').where('userId', '=', userID).execute();
 
-  await prisma.blessing.upsert({
-    where: { guildId: guildID },
-    update: { userId: userID },
-    create: { guildId: guildID, userId: userID }
+    await tx
+      .insertInto('Blessing')
+      .values({ guildId: guildID, userId: userID })
+      .onConflict((oc) => oc.column('guildId').doUpdateSet({ userId: userID }))
+      .execute();
   });
 
   return {
@@ -353,7 +350,7 @@ export async function blessServer(userID: string, guildID: string, emojis: Slash
 }
 
 export async function unblessServer(userID: string, guildID: string, t: TFunction): Promise<MessageOptions> {
-  const blessing = await prisma.blessing.findUnique({ where: { guildId: guildID }, select: { userId: true } });
+  const blessing = await db.selectFrom('Blessing').select('userId').where('guildId', '=', guildID).executeTakeFirst();
 
   if (!blessing || blessing.userId !== userID)
     return {
@@ -361,9 +358,7 @@ export async function unblessServer(userID: string, guildID: string, t: TFunctio
       ephemeral: true
     };
 
-  await prisma.blessing.delete({
-    where: { guildId: guildID }
-  });
+  await db.deleteFrom('Blessing').where('guildId', '=', guildID).execute();
 
   return {
     content: t('blessing.removed'),
@@ -374,28 +369,24 @@ export async function unblessServer(userID: string, guildID: string, t: TFunctio
 export async function paginateRecordings(client: CraigBot, userID: string, t: TFunction, requestedPage = 1) {
   const MAX_PAGE_AMOUNT = 5;
   const requested = Number.isFinite(requestedPage) ? Math.max(1, Math.trunc(requestedPage)) : 1;
-  const where = {
-    userId: userID,
-    clientId: client.bot.user.id,
-    expiresAt: { gt: new Date() }
-  };
-  const [recordings, recordingCount] = await prisma.$transaction([
-    prisma.recording.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (requested - 1) * MAX_PAGE_AMOUNT,
-      take: MAX_PAGE_AMOUNT,
-      select: {
-        id: true,
-        accessKey: true,
-        deleteKey: true,
-        channelId: true,
-        autorecorded: true,
-        createdAt: true,
-        expiresAt: true
-      }
-    }),
-    prisma.recording.count({ where })
+  const userRecordings = db
+    .selectFrom('Recording')
+    .where('userId', '=', userID)
+    .where('clientId', '=', client.bot.user.id)
+    .where('expiresAt', '>', new Date());
+  const getPage = (page: number) =>
+    userRecordings
+      .select(['id', 'accessKey', 'deleteKey', 'channelId', 'autorecorded', 'createdAt', 'expiresAt'])
+      .orderBy('createdAt', 'desc')
+      .offset((page - 1) * MAX_PAGE_AMOUNT)
+      .limit(MAX_PAGE_AMOUNT)
+      .execute();
+  const [recordings, recordingCount] = await Promise.all([
+    getPage(requested),
+    userRecordings
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .executeTakeFirstOrThrow()
+      .then((row) => row.count)
   ]);
 
   if (recordingCount === 0)
@@ -414,24 +405,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, t: TF
   const emojis = client.slash.emojis;
   const pages = Math.ceil(recordingCount / MAX_PAGE_AMOUNT);
   const page = Math.min(pages, requested);
-  const pagedRecordings =
-    page === requested
-      ? recordings
-      : await prisma.recording.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          skip: (page - 1) * MAX_PAGE_AMOUNT,
-          take: MAX_PAGE_AMOUNT,
-          select: {
-            id: true,
-            accessKey: true,
-            deleteKey: true,
-            channelId: true,
-            autorecorded: true,
-            createdAt: true,
-            expiresAt: true
-          }
-        });
+  const pagedRecordings = page === requested ? recordings : await getPage(page);
 
   return {
     flags: MessageFlags.IS_COMPONENTS_V2 + MessageFlags.EPHEMERAL,
@@ -536,7 +510,7 @@ export function formatVoiceCode(vpc: string, rows = 2) {
   return result.join('\n');
 }
 
-export function displayUserSettings(client: CraigBot, userSettings: Pick<User, 'webapp' | 'includeBots'>, t: TFunction) {
+export function displayUserSettings(client: CraigBot, userSettings: { webapp: boolean; includeBots: boolean }, t: TFunction) {
   const emojis = client.slash.emojis;
   const checkbox = (b: boolean) => emojis.getMarkdown(b ? 'check' : 'remove');
   return {

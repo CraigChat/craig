@@ -1,6 +1,6 @@
 import { open, stat } from 'node:fs/promises';
 
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 
 import { MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_REDIRECT, MICROSOFT_CLIENT_SECRET } from '../../util/config.js';
@@ -36,7 +36,7 @@ async function getRefreshedMicrosoftAccessToken(
 
   if (response.status === 200) {
     const { access_token, refresh_token } = await response.json();
-    await prisma.microsoftUser.update({ where: { id: userId }, data: { token: access_token, refreshToken: refresh_token } });
+    await db.updateTable('MicrosoftUser').set({ token: access_token, refreshToken: refresh_token }).where('id', '=', userId).execute();
     return { token: access_token, authInvalidated: false };
   }
 
@@ -47,11 +47,11 @@ async function getRefreshedMicrosoftAccessToken(
 
 export async function onedrivePreflight(userId: string) {
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return false;
-  const driveUser = await prisma.microsoftUser.findUnique({ where: { id: userId } });
+  const driveUser = await db.selectFrom('MicrosoftUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
   if (!driveUser) return false;
   const { token: accessToken, authInvalidated } = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
-    if (authInvalidated) await prisma.microsoftUser.delete({ where: { id: userId } });
+    if (authInvalidated) await db.deleteFrom('MicrosoftUser').where('id', '=', userId).execute();
     return false;
   }
 
@@ -101,11 +101,11 @@ export async function onedriveUpload(job: Job, info: RecordingInfo, fileName: st
   if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET || !MICROSOFT_CLIENT_REDIRECT) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await prisma.microsoftUser.findUnique({ where: { id: userId } });
+  const driveUser = await db.selectFrom('MicrosoftUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
   if (!driveUser) return;
   const { token: accessToken, authInvalidated } = await getRefreshedMicrosoftAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
-    if (authInvalidated) await prisma.microsoftUser.delete({ where: { id: userId } });
+    if (authInvalidated) await db.deleteFrom('MicrosoftUser').where('id', '=', userId).execute();
     throw new UploadError(
       authInvalidated
         ? 'Your authentication to Microsoft has been invalidated, please re-authenticate.'

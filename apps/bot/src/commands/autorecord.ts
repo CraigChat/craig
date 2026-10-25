@@ -1,3 +1,4 @@
+import { getGuildAccessRoles, getGuildBlessing } from '@craig/db';
 import { ButtonStyle, ChannelType, CommandContext, CommandOptionType, ComponentType, SlashCreator } from 'slash-create';
 
 import { processCooldown } from '../redis.js';
@@ -86,6 +87,16 @@ export default class AutoRecord extends GeneralCommand {
     });
   }
 
+  findAutoRecord(guildId: string, channelId: string) {
+    return this.db
+      .selectFrom('AutoRecord')
+      .selectAll()
+      .where('clientId', '=', this.client.bot.user.id)
+      .where('guildId', '=', guildId)
+      .where('channelId', '=', channelId)
+      .executeTakeFirst();
+  }
+
   async run(ctx: CommandContext) {
     const [t] = this.createT(ctx);
     if (!ctx.guildID) return t('responses.guild_only');
@@ -127,8 +138,8 @@ export default class AutoRecord extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
-    const hasPermission = checkRecordingPermission(ctx.member!, guildData);
+    const accessRoles = await getGuildAccessRoles(ctx.guildID);
+    const hasPermission = checkRecordingPermission(ctx.member!, accessRoles);
     if (!hasPermission)
       return {
         content: t('autorecord.need_perms'),
@@ -151,15 +162,7 @@ export default class AutoRecord extends GeneralCommand {
     switch (ctx.subcommands[0]) {
       case 'view': {
         if (ctx.options.view.channel) {
-          const autoRecording = await this.prisma.autoRecord.findUnique({
-            where: {
-              clientId_guildId_channelId: {
-                clientId: this.client.bot.user.id,
-                guildId: ctx.guildID,
-                channelId: ctx.options.view.channel
-              }
-            }
-          });
+          const autoRecording = await this.findAutoRecord(ctx.guildID, ctx.options.view.channel);
 
           if (!autoRecording)
             return {
@@ -185,9 +188,12 @@ export default class AutoRecord extends GeneralCommand {
           };
         }
 
-        const autoRecordings = await this.prisma.autoRecord.findMany({
-          where: { guildId: ctx.guildID, clientId: this.client.bot.user.id }
-        });
+        const autoRecordings = await this.db
+          .selectFrom('AutoRecord')
+          .selectAll()
+          .where('guildId', '=', ctx.guildID)
+          .where('clientId', '=', this.client.bot.user.id)
+          .execute();
 
         if (autoRecordings.length === 0)
           return {
@@ -218,9 +224,8 @@ export default class AutoRecord extends GeneralCommand {
       case 'on': {
         // Get rewards
         const userData = await this.entitlements.getCurrentUser(ctx);
-        const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
-        const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
-        const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
+        const blessing = await getGuildBlessing(guild.id);
+        const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessing?.rewardTier ?? 0);
         // Check if user can manage auto-recordings
         if (!parsedRewards.rewards.features.includes('auto'))
           return {
@@ -261,9 +266,13 @@ export default class AutoRecord extends GeneralCommand {
             ephemeral: true
           };
 
-        const autoRecordingCount = await this.prisma.autoRecord.count({
-          where: { guildId: ctx.guildID, clientId: this.client.bot.user.id }
-        });
+        const autoRecordingCount = await this.db
+          .selectFrom('AutoRecord')
+          .select((eb) => eb.fn.countAll<number>().as('count'))
+          .where('guildId', '=', ctx.guildID)
+          .where('clientId', '=', this.client.bot.user.id)
+          .executeTakeFirstOrThrow()
+          .then((row) => row.count);
 
         if (autoRecordingCount >= 10)
           return {
@@ -289,15 +298,7 @@ export default class AutoRecord extends GeneralCommand {
       case 'off': {
         const channel = ctx.options.off.channel as string;
 
-        const autoRecording = await this.prisma.autoRecord.findUnique({
-          where: {
-            clientId_guildId_channelId: {
-              clientId: this.client.bot.user.id,
-              guildId: ctx.guildID,
-              channelId: channel
-            }
-          }
-        });
+        const autoRecording = await this.findAutoRecord(ctx.guildID, channel);
 
         if (autoRecording) await this.autoRecord.delete(autoRecording);
         else
@@ -312,16 +313,13 @@ export default class AutoRecord extends GeneralCommand {
         };
       }
       case 'prune': {
-        const result = await this.prisma.autoRecord.deleteMany({
-          where: {
-            guildId: ctx.guildID,
-            clientId: this.client.bot.user.id,
-            channelId: { notIn: guild.channels.map((c) => c.id) }
-          }
-        });
+        const channelIds = guild.channels.map((c) => c.id);
+        let query = this.db.deleteFrom('AutoRecord').where('guildId', '=', ctx.guildID).where('clientId', '=', this.client.bot.user.id);
+        if (channelIds.length > 0) query = query.where('channelId', 'not in', channelIds);
+        const result = await query.executeTakeFirst();
 
         return {
-          content: t('autorecord.pruned', { count: result.count }),
+          content: t('autorecord.pruned', { count: Number(result.numDeletedRows) }),
           ephemeral: true
         };
       }

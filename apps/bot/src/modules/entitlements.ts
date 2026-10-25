@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { activeRewardTier, db, rewardTierUpdate } from '@craig/db';
 import Dysnomia from '@projectdysnomia/dysnomia';
 import { CommandContext, ComponentContext } from 'slash-create';
 
@@ -22,14 +22,12 @@ export default class EntitlementsModule extends BotModule {
   async getCurrentUser(ctx: ComponentContext | CommandContext) {
     const userId = ctx.user.id;
 
-    const dbEntitlement = await prisma.entitlement.findUnique({
-      where: {
-        userId_source: {
-          userId,
-          source: 'discord'
-        }
-      }
-    });
+    const dbEntitlement = await db
+      .selectFrom('Entitlement')
+      .select(['tier', 'sourceEntitlementId', 'expiresAt'])
+      .where('userId', '=', userId)
+      .where('source', '=', 'discord')
+      .executeTakeFirst();
 
     if (ctx.entitlements.length > 0) {
       // Find highest tier entitlement from ctx
@@ -49,65 +47,37 @@ export default class EntitlementsModule extends BotModule {
           dbEntitlement.sourceEntitlementId !== bestEntitlement.id ||
           (dbEntitlement.expiresAt?.toISOString() || null) !== (bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at).toISOString() : null);
         if (changed) {
-          await prisma.entitlement.upsert({
-            where: {
-              userId_source: {
-                userId,
-                source: 'discord'
-              }
-            },
-            create: {
-              userId,
-              source: 'discord',
-              tier: maxTier,
-              sourceEntitlementId: bestEntitlement.id,
-              expiresAt: bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at) : null
-            },
-            update: {
-              tier: maxTier,
-              sourceEntitlementId: bestEntitlement.id,
-              expiresAt: bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at) : null
-            }
+          await this.upsertDiscordEntitlement(userId, {
+            tier: maxTier,
+            sourceEntitlementId: bestEntitlement.id,
+            expiresAt: bestEntitlement.ends_at ? new Date(bestEntitlement.ends_at) : null
           });
         }
       }
-    } else if (dbEntitlement)
-      await prisma.entitlement.delete({
-        where: {
-          userId_source: {
-            userId,
-            source: 'discord'
-          }
-        }
-      });
+    } else if (dbEntitlement) await this.deleteDiscordEntitlement(userId);
 
     return await this.resolveUserEntitlement(userId);
   }
 
-  async resolveUserEntitlement(userId: string) {
-    const entitlements = await prisma.entitlement.findMany({
-      where: {
-        userId,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-      },
-      select: {
-        tier: true
-      }
-    });
+  resolveUserEntitlement(userId: string) {
+    return db
+      .insertInto('User')
+      .values({ id: userId, rewardTier: activeRewardTier(userId) })
+      .onConflict((oc) => oc.column('id').doUpdateSet(rewardTierUpdate))
+      .returning(['id', 'rewardTier', 'webapp', 'includeBots'])
+      .executeTakeFirstOrThrow();
+  }
 
-    const maxTier = entitlements.some((e) => e.tier === -1) ? -1 : entitlements.reduce((max, e) => Math.max(max, e.tier), 0);
+  upsertDiscordEntitlement(userId: string, data: { tier: number; sourceEntitlementId: string; expiresAt: Date | null; note?: string }) {
+    return db
+      .insertInto('Entitlement')
+      .values({ userId, source: 'discord', ...data })
+      .onConflict((oc) => oc.columns(['userId', 'source']).doUpdateSet(data))
+      .execute();
+  }
 
-    return prisma.user.upsert({
-      where: { id: userId },
-      create: {
-        id: userId,
-        rewardTier: maxTier
-      },
-      update: {
-        rewardTier: maxTier,
-        ...(maxTier === 0 ? { driveEnabled: false } : {})
-      }
-    });
+  deleteDiscordEntitlement(userId: string) {
+    return db.deleteFrom('Entitlement').where('userId', '=', userId).where('source', '=', 'discord').execute();
   }
 
   getTierFromSKU(sku: string) {
@@ -122,27 +92,11 @@ export default class EntitlementsModule extends BotModule {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
     const testEntitlement = !entitlement.startsAt;
-    await prisma.entitlement.upsert({
-      where: {
-        userId_source: {
-          userId: entitlement.userID,
-          source: 'discord'
-        }
-      },
-      create: {
-        userId: entitlement.userID,
-        source: 'discord',
-        tier,
-        sourceEntitlementId: entitlement.id,
-        expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
-        ...(testEntitlement ? { note: 'Test entitlement' } : {})
-      },
-      update: {
-        tier,
-        sourceEntitlementId: entitlement.id,
-        expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
-        ...(testEntitlement ? { note: 'Test entitlement' } : {})
-      }
+    await this.upsertDiscordEntitlement(entitlement.userID, {
+      tier,
+      sourceEntitlementId: entitlement.id,
+      expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
+      ...(testEntitlement ? { note: 'Test entitlement' } : {})
     });
     await this.resolveUserEntitlement(entitlement.userID);
     if (this.client.config.craig.entitlementWebhookURLs)
@@ -171,27 +125,11 @@ export default class EntitlementsModule extends BotModule {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
     const testEntitlement = !entitlement.startsAt;
-    await prisma.entitlement.upsert({
-      where: {
-        userId_source: {
-          userId: entitlement.userID,
-          source: 'discord'
-        }
-      },
-      create: {
-        userId: entitlement.userID,
-        source: 'discord',
-        tier,
-        sourceEntitlementId: entitlement.id,
-        expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
-        ...(testEntitlement ? { note: 'Test entitlement' } : {})
-      },
-      update: {
-        tier,
-        sourceEntitlementId: entitlement.id,
-        expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
-        ...(testEntitlement ? { note: 'Test entitlement' } : {})
-      }
+    await this.upsertDiscordEntitlement(entitlement.userID, {
+      tier,
+      sourceEntitlementId: entitlement.id,
+      expiresAt: entitlement.endsAt ? new Date(entitlement.endsAt) : null,
+      ...(testEntitlement ? { note: 'Test entitlement' } : {})
     });
     await this.resolveUserEntitlement(entitlement.userID);
     if (this.client.config.craig.entitlementWebhookURLs)
@@ -219,14 +157,7 @@ export default class EntitlementsModule extends BotModule {
   async onEntitlementDelete(entitlement: Dysnomia.Entitlement) {
     const tier = this.getTierFromSKU(entitlement.skuID);
     if (tier === undefined || !entitlement.userID) return;
-    await prisma.entitlement.delete({
-      where: {
-        userId_source: {
-          userId: entitlement.userID,
-          source: 'discord'
-        }
-      }
-    });
+    await this.deleteDiscordEntitlement(entitlement.userID);
     await this.resolveUserEntitlement(entitlement.userID);
     if (this.client.config.craig.entitlementWebhookURLs)
       await Promise.all(

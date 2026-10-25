@@ -1,4 +1,4 @@
-import { prisma } from '@craig/db';
+import { db } from '@craig/db';
 import {
   ApplicationCommandOption,
   ApplicationCommandOptionChoice,
@@ -57,8 +57,8 @@ export default abstract class GeneralCommand extends SlashCommand {
     return this.client.slash.emojis;
   }
 
-  get prisma(): typeof prisma {
-    return prisma;
+  get db(): typeof db {
+    return db;
   }
 
   get redis() {

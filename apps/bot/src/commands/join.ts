@@ -1,3 +1,4 @@
+import { getGuildAccessRoles, getGuildBlessing } from '@craig/db';
 import type Dysnomia from '@projectdysnomia/dysnomia';
 import { ButtonStyle, CommandContext, CommandOptionType, ComponentType, EditMessageOptions, MessageFlags, SlashCreator } from 'slash-create';
 
@@ -120,8 +121,8 @@ export default class Join extends GeneralCommand {
       };
     }
 
-    const guildData = await this.prisma.guild.findUnique({ where: { id: ctx.guildID } });
-    const hasPermission = checkRecordingPermission(ctx.member!, guildData);
+    const accessRoles = await getGuildAccessRoles(ctx.guildID);
+    const hasPermission = checkRecordingPermission(ctx.member!, accessRoles);
     if (!hasPermission)
       return {
         content: t('recording.need_perms'),
@@ -291,9 +292,8 @@ export default class Join extends GeneralCommand {
 
     // Get rewards
     const userData = await this.entitlements.getCurrentUser(ctx);
-    const blessing = await this.prisma.blessing.findUnique({ where: { guildId: guild.id }, select: { userId: true } });
-    const blessingUser = blessing ? await this.prisma.user.findUnique({ where: { id: blessing.userId }, select: { rewardTier: true } }) : null;
-    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessingUser?.rewardTier ?? 0);
+    const blessing = await getGuildBlessing(guild.id);
+    const parsedRewards = parseRewards(this.recorder.client.config, userData?.rewardTier ?? 0, blessing?.rewardTier ?? 0);
 
     // Check if user can record
     if (parsedRewards.rewards.recordHours <= 0)
