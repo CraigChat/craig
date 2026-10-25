@@ -60,13 +60,7 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
     if (body.data.attributes.patron_status !== 'active_patron') await db.deleteFrom('Patreon').where('id', '=', patron.id).execute();
     if (user) {
       const expiresAt = getPledgeExpiry(body.data.attributes);
-      if (expiresAt)
-        await db
-          .updateTable('Entitlement')
-          .set({ expiresAt })
-          .where('userId', '=', user.id)
-          .where('source', '=', 'patreon')
-          .execute();
+      if (expiresAt) await db.updateTable('Entitlement').set({ expiresAt }).where('userId', '=', user.id).where('source', '=', 'patreon').execute();
       else await deletePatreonEntitlement(user.id);
       console.info(new Date().toISOString(), `Re-evaluating rewards for user ${user.id} (${body.data.attributes.patron_status})`);
       await resolveUserEntitlement(user.id);
