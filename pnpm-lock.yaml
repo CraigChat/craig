@@ -242,8 +242,8 @@ importers:
         specifier: ^11.6.0
         version: 11.6.0(rollup@4.63.1)
       '@snazzah/davey':
-        specifier: ^0.1.12
-        version: 0.1.12(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+        specifier: ^0.2.0-beta.1
+        version: 0.2.0-beta.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       '@snazzah/emoji-sync':
         specifier: ^0.1.2
         version: 0.1.2
@@ -253,9 +253,6 @@ importers:
       cron:
         specifier: 'catalog:'
         version: 4.4.0
-      erlpack:
-        specifier: ^0.1.4
-        version: 0.1.4
       fastify:
         specifier: 'catalog:'
         version: 5.12.1
@@ -327,8 +324,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
       '@projectdysnomia/dysnomia':
-        specifier: github:projectdysnomia/dysnomia#00d8982d81d365c2cdb2ef5dac59af07977a65d7
-        version: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
+        specifier: github:Snazzah/dysnomia#da3811d70a678bf58480bf99b14fffeb55161427
+        version: https://codeload.github.com/Snazzah/dysnomia/tar.gz/da3811d70a678bf58480bf99b14fffeb55161427(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))
       common-tags:
         specifier: 'catalog:'
         version: 1.8.2
@@ -1832,12 +1829,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@napi-rs/wasm-runtime@1.1.5':
-    resolution: {integrity: sha512-AWPoBRJ9tsnVhor4sjO7rkni+7p+2IAEFj6cx06UgP10jkQHqay/36uRV/bFkgrh18D9vb4cr8Q0Pthskgzy+Q==}
-    peerDependencies:
-      '@emnapi/core': ^1.7.1
-      '@emnapi/runtime': ^1.7.1
-
   '@napi-rs/wasm-runtime@1.2.6':
     resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
@@ -2187,31 +2178,6 @@ packages:
 
   '@projectdysnomia/dysnomia@https://codeload.github.com/Snazzah/dysnomia/tar.gz/da3811d70a678bf58480bf99b14fffeb55161427':
     resolution: {gitHosted: true, integrity: sha512-6O+nzS9qNa/SwpEREZOoiJYxkRjBKoWZajzY7zDIo9MyKrbeo/6m2wnvSJ3j/994YPwvzCbwsDYxrwMx9uYuxw==, tarball: https://codeload.github.com/Snazzah/dysnomia/tar.gz/da3811d70a678bf58480bf99b14fffeb55161427}
-    version: 0.3.0-dev
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@discordjs/opus': ^0.10.0
-      erlpack: github:discord/erlpack
-      eventemitter3: ^5.0.1
-      pako: ^2.1.0
-      sodium-native: ^5.1.0
-      zlib-sync: ^0.1.9
-    peerDependenciesMeta:
-      '@discordjs/opus':
-        optional: true
-      erlpack:
-        optional: true
-      eventemitter3:
-        optional: true
-      pako:
-        optional: true
-      sodium-native:
-        optional: true
-      zlib-sync:
-        optional: true
-
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7':
-    resolution: {gitHosted: true, integrity: sha512-16ShjoS6DJyiwfsD/XAl4SGoj6D6cTvLl56vrq69KXdvsT9m9qSbTnuVqjL9jCpJ912lM6teFkw3Hy31EN06Bg==, tarball: https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7}
     version: 0.3.0-dev
     engines: {node: '>=18.0.0'}
     peerDependencies:
@@ -2930,22 +2896,10 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
-  '@snazzah/davey-android-arm-eabi@0.1.12':
-    resolution: {integrity: sha512-6VC/an+Sx5dI5skb+90rYcIB1jhm48Rl0nDaw0UNT4bz1rMjpVfmmZqeocYXMq96IdbBMlE6OTKGcBm2C3gkQg==}
-    engines: {node: '>= 10'}
-    cpu: [arm]
-    os: [android]
-
   '@snazzah/davey-android-arm-eabi@0.2.0-beta.1':
     resolution: {integrity: sha512-M0ONRIEoQ5vP9/bJ2C844BQ8Ho2qKQOK7KMeClVlSdytR8UjQalNBR/+ivF4fVnIOZSsshbczhi6YgiGz534yw==}
     engines: {node: '>= 10'}
     cpu: [arm]
-    os: [android]
-
-  '@snazzah/davey-android-arm64@0.1.12':
-    resolution: {integrity: sha512-0Bwd03/JsTFhlPhF4q/LW0RxSzntFpQdhz+TBdFljYSg8IEyA38saPJeTNjpIgDfhAumPzvhCdfS6O5qT8yXDw==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
     os: [android]
 
   '@snazzah/davey-android-arm64@0.2.0-beta.1':
@@ -2954,22 +2908,10 @@ packages:
     cpu: [arm64]
     os: [android]
 
-  '@snazzah/davey-darwin-arm64@0.1.12':
-    resolution: {integrity: sha512-lKMV6ITi9BQLt0fx/pAT7M8xcojVK7bryVJGdaW3bq8gABFslS3ti/KzrWabQvhpEV71FZe5mV0UcKHFVaTsZw==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [darwin]
-
   '@snazzah/davey-darwin-arm64@0.2.0-beta.1':
     resolution: {integrity: sha512-tVKs4O0URD9ATWacUrnBb4lD0hQ3kxOgeEeFgU1Hk3DI2H67JmLK519aChqEFclBrbn10jmfwCaO6WLTWylW4w==}
     engines: {node: '>= 10'}
     cpu: [arm64]
-    os: [darwin]
-
-  '@snazzah/davey-darwin-x64@0.1.12':
-    resolution: {integrity: sha512-vXXc/eW/e3TQeb7VsdtrPqs3/22j0aSqiP1ZXmZtDjQRBwgSxwItWYa6sh5MELP2EHB2igNlGzB6Hc0XlbGi4g==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
     os: [darwin]
 
   '@snazzah/davey-darwin-x64@0.2.0-beta.1':
@@ -2978,36 +2920,17 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@snazzah/davey-freebsd-x64@0.1.12':
-    resolution: {integrity: sha512-G1gas5HrC4Xp3mRY0+OeAqXS6fG2tRgBEc8gQh69Hw4YK9RV9mzQKcmoKMkBM72U1+2C+2u57dolnKKzwozByQ==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [freebsd]
-
   '@snazzah/davey-freebsd-x64@0.2.0-beta.1':
     resolution: {integrity: sha512-vszROyT6pGBnaHdto9Aaf+h3hF4j6Lm4KtaCmtQIgDV3dvO6LHjntRhs2oiio3srFILjxiXVWh/8sY57aNcpcA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [freebsd]
 
-  '@snazzah/davey-linux-arm-gnueabihf@0.1.12':
-    resolution: {integrity: sha512-97Fujh82r2Ll7dPZeNuoZ3yKfsqycf3c93OWXOo/ThNL/18Onl2Ht4SIvpX6VHhfeS9bDpHJ1lHCaz1b/i5ocw==}
-    engines: {node: '>= 10'}
-    cpu: [arm]
-    os: [linux]
-
   '@snazzah/davey-linux-arm-gnueabihf@0.2.0-beta.1':
     resolution: {integrity: sha512-nU2u5vGoOFJYlSdWZsQgwnZSJNtQr0LMclNVffy7+PI65aD8Ed930xe9ka+5TEczI6+9vMJ63mo4BTc7QxPU/Q==}
     engines: {node: '>= 10'}
     cpu: [arm]
     os: [linux]
-
-  '@snazzah/davey-linux-arm64-gnu@0.1.12':
-    resolution: {integrity: sha512-FWyAOv52cHKDM4BOsmImKKogHFvqNFoXmZcicNJbX3XpVl8Mas88ZoXQ+IA5V+qc9pNtAl1MbWwEZ9JrqAQtbg==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
 
   '@snazzah/davey-linux-arm64-gnu@0.2.0-beta.1':
     resolution: {integrity: sha512-RTkeJMGosGkH5UgFBaBX0spyNcRQtWpWYWEFScAEPlFt5sfWTEoenKwYr+Gr5sbTzTr0xekaGbLZnLaDlyAO/g==}
@@ -3016,26 +2939,12 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@snazzah/davey-linux-arm64-musl@0.1.12':
-    resolution: {integrity: sha512-ptRbLSQxtV6EjXppS5z7qaPDI0NRKhrkJYsTlAjEghmOvlAObozSCYYnMO6nbkt6Ab3+lWqyahClzcRNcD2ouw==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
   '@snazzah/davey-linux-arm64-musl@0.2.0-beta.1':
     resolution: {integrity: sha512-RF/YAHCrXIzY4df0bhSHEAGQf7z10FhVIeUzApj23lC3cocVJH4WhoIhwdpNGXqhvHfgtnwEl+W7YKrIfDJVtw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
-
-  '@snazzah/davey-linux-x64-gnu@0.1.12':
-    resolution: {integrity: sha512-w86fZvhJn0ErOoAQHt2UbQ95V/cgwvfvQ4GlTPQLCzt58nn+rLlXLgPn90qYlSQrZxFW38rKXwqVOMbm9p+pwQ==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
 
   '@snazzah/davey-linux-x64-gnu@0.2.0-beta.1':
     resolution: {integrity: sha512-NNxTeJdNngROheReSlcw9UCxibVXOX1G+s0VXUzpdm/0GgN9EPNHJFQARle0vdDuOIzfuz0vttp1N0Ag2EG+2A==}
@@ -3044,13 +2953,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@snazzah/davey-linux-x64-musl@0.1.12':
-    resolution: {integrity: sha512-LLNnO+hfG41ymeI+O1YHo5/0h3aKaetUNLdkBwpdJsjoyKMXZaeCnB+aHNkkupJCMPmWS0g6iPMCHUOqZSBcTg==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
   '@snazzah/davey-linux-x64-musl@0.2.0-beta.1':
     resolution: {integrity: sha512-CztUeSCtwrDkn472sTGKP8kcqylVbRF/whP43XBwxIbQWQRKW2P5zCjj6oPwQGLIt92zeCysRsJ/LTudXIOUPQ==}
     engines: {node: '>= 10'}
@@ -3058,32 +2960,15 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@snazzah/davey-wasm32-wasi@0.1.12':
-    resolution: {integrity: sha512-MPKFuqYVkDFXheR7qmtEY4FWxQ/ADfgsCojQWHi13sibUqCTR9q2F1LqNn2i9IVh3sh1sxeg87fdFMCH63pl7g==}
-    engines: {node: '>=14.0.0'}
-    cpu: [wasm32]
-
   '@snazzah/davey-wasm32-wasi@0.2.0-beta.1':
     resolution: {integrity: sha512-Ca79Fl1o5Oj6HzSyJarkyZmDX93aa7HHVJhNcOmh8sKr0SKBMt53G0BuJNROGJb/h9yeRF6Py1D5i3o59CPQ1A==}
     engines: {node: '>=14.0.0'}
     cpu: [wasm32]
 
-  '@snazzah/davey-win32-arm64-msvc@0.1.12':
-    resolution: {integrity: sha512-Uf4OYHyfbXpzyaOqIV8/h6kv166Qni5+Bxmc1E/ov4uhhKO8qXbOky8zbVOzu0U4cv5ll3s4IQ8jDAJkx/K75Q==}
-    engines: {node: '>= 10'}
-    cpu: [arm64]
-    os: [win32]
-
   '@snazzah/davey-win32-arm64-msvc@0.2.0-beta.1':
     resolution: {integrity: sha512-7JXUWOm8QZFBGwxR/31mGWFUX4oT2DBaj1pyqQWY96ZgFa1Y8fjI2ImD7J2IIv984MXfRyNTHPy5ODf78se3Tg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
-    os: [win32]
-
-  '@snazzah/davey-win32-ia32-msvc@0.1.12':
-    resolution: {integrity: sha512-nRVbKTsb2ldcPI8D4BDA7P/UeiMEMvR+wYuUMp7H1pRD/3dF2hKo+MzUU+Pn78EhuYA3CWHItiAcS/GsPld67A==}
-    engines: {node: '>= 10'}
-    cpu: [ia32]
     os: [win32]
 
   '@snazzah/davey-win32-ia32-msvc@0.2.0-beta.1':
@@ -3092,21 +2977,11 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@snazzah/davey-win32-x64-msvc@0.1.12':
-    resolution: {integrity: sha512-AgUA3itPDVkxQq7RIkgE1thCiWePwWjyfOZefBBxGIlMWpRUOSwF4vY9kNLnrScyJcFULdR+Zm8PwiwV8/RKnw==}
-    engines: {node: '>= 10'}
-    cpu: [x64]
-    os: [win32]
-
   '@snazzah/davey-win32-x64-msvc@0.2.0-beta.1':
     resolution: {integrity: sha512-S/2MK3fBJt1pvto1989YRMR3r5TjF3jyve/Ffs9bteXmyQCfY+Bcl9qoOt8CMRpHzh9Dwi53nWieQLjpcfDd3Q==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
-
-  '@snazzah/davey@0.1.12':
-    resolution: {integrity: sha512-V+NlX5931RwVamZhhEfZekMdcvXDKdMAmHW1AuGaykVQsNyBOq3bpmGpoKRBDCYgFWKIufJ0Dcg3m4cYhvUy6g==}
-    engines: {node: '>= 10'}
 
   '@snazzah/davey@0.2.0-beta.1':
     resolution: {integrity: sha512-ea3QnHuy6T5R75j70rlWnFnLFW8wkbWjcVQbU4MX+mjzXMtBLs9NcyfSpOhg05MOr4hrKng4T5xXePkOT5cF9w==}
@@ -3327,9 +3202,6 @@ packages:
     resolution: {integrity: sha512-0i0mVUa4kKk+/B3RwEwPMf9CB+T7ul56hn5FFHNA4VUNTOoLBEd6aNf3FaKfCatDNZ6cicCEf6if9QUTVyzzcA==}
     cpu: [arm64]
     os: [win32]
-
-  '@tybys/wasm-util@0.10.2':
-    resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
 
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
@@ -7366,13 +7238,6 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
-    dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.10.0
-      '@tybys/wasm-util': 0.10.2
-    optional: true
-
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
       '@emnapi/core': 1.10.0
@@ -7708,23 +7573,6 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@projectdysnomia/dysnomia@https://codeload.github.com/projectdysnomia/dysnomia/tar.gz/00d8982d81d365c2cdb2ef5dac59af07977a65d7(@discordjs/opus@0.10.0(supports-color@8.1.1))(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(erlpack@0.1.4)(eventemitter3@5.0.1)(sodium-native@5.1.0(bare-events@2.8.3))':
-    dependencies:
-      ws: 8.22.0
-    optionalDependencies:
-      '@discordjs/opus': 0.10.0(supports-color@8.1.1)
-      '@snazzah/davey': 0.1.12(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
-      '@stablelib/xchacha20poly1305': 1.0.1
-      erlpack: 0.1.4
-      eventemitter3: 5.0.1
-      opusscript: 0.1.1
-      sodium-native: 5.1.0(bare-events@2.8.3)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-      - bufferutil
-      - utf-8-validate
-
   '@quansync/fs@1.0.0':
     dependencies:
       quansync: 1.0.0
@@ -7862,7 +7710,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+      '@napi-rs/wasm-runtime': 1.2.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     optional: true
 
   '@rolldown/binding-win32-arm64-msvc@1.0.0-rc.17':
@@ -8180,72 +8028,34 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
-  '@snazzah/davey-android-arm-eabi@0.1.12':
-    optional: true
-
   '@snazzah/davey-android-arm-eabi@0.2.0-beta.1':
-    optional: true
-
-  '@snazzah/davey-android-arm64@0.1.12':
     optional: true
 
   '@snazzah/davey-android-arm64@0.2.0-beta.1':
     optional: true
 
-  '@snazzah/davey-darwin-arm64@0.1.12':
-    optional: true
-
   '@snazzah/davey-darwin-arm64@0.2.0-beta.1':
-    optional: true
-
-  '@snazzah/davey-darwin-x64@0.1.12':
     optional: true
 
   '@snazzah/davey-darwin-x64@0.2.0-beta.1':
     optional: true
 
-  '@snazzah/davey-freebsd-x64@0.1.12':
-    optional: true
-
   '@snazzah/davey-freebsd-x64@0.2.0-beta.1':
-    optional: true
-
-  '@snazzah/davey-linux-arm-gnueabihf@0.1.12':
     optional: true
 
   '@snazzah/davey-linux-arm-gnueabihf@0.2.0-beta.1':
     optional: true
 
-  '@snazzah/davey-linux-arm64-gnu@0.1.12':
-    optional: true
-
   '@snazzah/davey-linux-arm64-gnu@0.2.0-beta.1':
-    optional: true
-
-  '@snazzah/davey-linux-arm64-musl@0.1.12':
     optional: true
 
   '@snazzah/davey-linux-arm64-musl@0.2.0-beta.1':
     optional: true
 
-  '@snazzah/davey-linux-x64-gnu@0.1.12':
-    optional: true
-
   '@snazzah/davey-linux-x64-gnu@0.2.0-beta.1':
     optional: true
 
-  '@snazzah/davey-linux-x64-musl@0.1.12':
-    optional: true
-
   '@snazzah/davey-linux-x64-musl@0.2.0-beta.1':
-    optional: true
-
-  '@snazzah/davey-wasm32-wasi@0.1.12(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
-    dependencies:
-      '@napi-rs/wasm-runtime': 1.1.5(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
     optional: true
 
   '@snazzah/davey-wasm32-wasi@0.2.0-beta.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
@@ -8256,43 +8066,14 @@ snapshots:
       - '@emnapi/runtime'
     optional: true
 
-  '@snazzah/davey-win32-arm64-msvc@0.1.12':
-    optional: true
-
   '@snazzah/davey-win32-arm64-msvc@0.2.0-beta.1':
-    optional: true
-
-  '@snazzah/davey-win32-ia32-msvc@0.1.12':
     optional: true
 
   '@snazzah/davey-win32-ia32-msvc@0.2.0-beta.1':
     optional: true
 
-  '@snazzah/davey-win32-x64-msvc@0.1.12':
-    optional: true
-
   '@snazzah/davey-win32-x64-msvc@0.2.0-beta.1':
     optional: true
-
-  '@snazzah/davey@0.1.12(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
-    optionalDependencies:
-      '@snazzah/davey-android-arm-eabi': 0.1.12
-      '@snazzah/davey-android-arm64': 0.1.12
-      '@snazzah/davey-darwin-arm64': 0.1.12
-      '@snazzah/davey-darwin-x64': 0.1.12
-      '@snazzah/davey-freebsd-x64': 0.1.12
-      '@snazzah/davey-linux-arm-gnueabihf': 0.1.12
-      '@snazzah/davey-linux-arm64-gnu': 0.1.12
-      '@snazzah/davey-linux-arm64-musl': 0.1.12
-      '@snazzah/davey-linux-x64-gnu': 0.1.12
-      '@snazzah/davey-linux-x64-musl': 0.1.12
-      '@snazzah/davey-wasm32-wasi': 0.1.12(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
-      '@snazzah/davey-win32-arm64-msvc': 0.1.12
-      '@snazzah/davey-win32-ia32-msvc': 0.1.12
-      '@snazzah/davey-win32-x64-msvc': 0.1.12
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
 
   '@snazzah/davey@0.2.0-beta.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     optionalDependencies:
@@ -8313,7 +8094,6 @@ snapshots:
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
-    optional: true
 
   '@snazzah/emoji-sync@0.1.2':
     dependencies:
@@ -8587,11 +8367,6 @@ snapshots:
     optional: true
 
   '@turbo/windows-arm64@2.10.12':
-    optional: true
-
-  '@tybys/wasm-util@0.10.2':
-    dependencies:
-      tslib: 2.8.1
     optional: true
 
   '@tybys/wasm-util@0.10.4':
@@ -9158,6 +8933,7 @@ snapshots:
   bindings@1.5.0:
     dependencies:
       file-uri-to-path: 1.0.0
+    optional: true
 
   bintrees@1.0.2: {}
 
@@ -9517,6 +9293,7 @@ snapshots:
     dependencies:
       bindings: 1.5.0
       nan: 2.28.0
+    optional: true
 
   es-define-property@1.0.1: {}
 
@@ -9990,7 +9767,8 @@ snapshots:
     dependencies:
       flat-cache: 4.0.1
 
-  file-uri-to-path@1.0.0: {}
+  file-uri-to-path@1.0.0:
+    optional: true
 
   find-my-way@8.2.2:
     dependencies:
@@ -10776,7 +10554,8 @@ snapshots:
     dependencies:
       lru.min: 1.1.4
 
-  nan@2.28.0: {}
+  nan@2.28.0:
+    optional: true
 
   nanoid@3.3.11: {}
 
