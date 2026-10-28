@@ -1,10 +1,8 @@
-import { json } from '@sveltejs/kit';
-
 import { APIErrorCode } from '../types';
 
 export function errorResponse(code?: APIErrorCode, init?: ResponseInit, extra?: any) {
   function result(msg: string) {
-    return json({ error: msg, code: code ?? APIErrorCode.UNKNOWN_ERROR, ...extra }, init);
+    return Response.json({ error: msg, code: code ?? APIErrorCode.UNKNOWN_ERROR, ...extra }, init);
   }
 
   switch (code) {

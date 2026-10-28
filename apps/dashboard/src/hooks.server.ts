@@ -1,13 +1,12 @@
-import type { Handle, ServerInit } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 
-import { env } from '$env/dynamic/private';
-import { localeCookieName } from '$lib/cookie';
-import { resolveLocale } from '$lib/i18n';
-import { requiredEnv } from '$lib/server/env';
-import { assertJwtSecret } from '$lib/server/jwt';
+import { localeCookieName } from '#lib/cookie.js';
+import { resolveLocale } from '#lib/i18n.js';
+import { assertJwtSecret } from '#lib/server/jwt.js';
+import { JWT_SECRET } from '$app/env/private';
 
 export const init: ServerInit = () => {
-  assertJwtSecret(requiredEnv('JWT_SECRET', env.JWT_SECRET));
+  assertJwtSecret(JWT_SECRET);
 };
 
 const CYRILLIC_LANGS = ['be', 'ru', 'uk'];
@@ -25,6 +24,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     preload(input) {
       // Preload cyrillic for specific langs
       if (includeCyrillic && input.type === 'font' && !!/\/.+-cyrillic-wght-normal\..+\.woff2$/.exec(input.path)) return true;
+
       return (
         input.type === 'js' ||
         input.type === 'css' ||

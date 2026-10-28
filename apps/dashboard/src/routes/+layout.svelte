@@ -11,11 +11,11 @@
   import { locale } from 'svelte-i18n';
   import { Toaster } from 'svelte-sonner';
 
-  import { browser } from '$app/environment';
+  import Header from '#components/Header.svelte';
+  import { browser } from '$app/env';
+  import { PUBLIC_HOSTNAME, PUBLIC_PLAUSIBLE_HOSTNAME } from '$app/env/public';
   import { onNavigate } from '$app/navigation';
   import { updated } from '$app/state';
-  import Header from '$components/Header.svelte';
-  import { env } from '$env/dynamic/public';
 
   import type { LayoutData } from './$types';
 
@@ -29,14 +29,17 @@
     });
   }
 
-  onNavigate(pageview);
+  onNavigate((navigation) => {
+    if (!navigation.shallow) pageview();
+  });
   onMount(pageview);
 </script>
 
 <svelte:head>
   <title>Craig Dashboard</title>
-  {#if env.PUBLIC_PLAUSIBLE_HOSTNAME}
-    <script defer data-domain={env.PUBLIC_HOSTNAME} src="https://{env.PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"></script>
+
+  {#if PUBLIC_PLAUSIBLE_HOSTNAME}
+    <script defer data-domain={PUBLIC_HOSTNAME} src="https://{PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"></script>
   {/if}
 </svelte:head>
 

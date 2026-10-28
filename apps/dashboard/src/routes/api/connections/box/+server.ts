@@ -1,11 +1,9 @@
-import { json } from '@sveltejs/kit';
-
-import { disconnectService } from '$lib/server/data';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { rateLimitRequest } from '$lib/server/redis';
-import { errorResponse } from '$lib/server/util';
-import { APIErrorCode } from '$lib/types';
+import { disconnectService } from '#lib/server/data.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { rateLimitRequest } from '#lib/server/redis.js';
+import { errorResponse } from '#lib/server/util.js';
+import { APIErrorCode } from '#lib/types.js';
 
 import type { RequestHandler } from './$types';
 
@@ -19,5 +17,5 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
 
   await disconnectService(auth.id, 'box', (tx) => tx.deleteFrom('BoxUser').where('id', '=', auth.id).execute());
 
-  return json({ ok: true });
+  return Response.json({ ok: true });
 };

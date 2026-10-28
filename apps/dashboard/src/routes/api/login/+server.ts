@@ -1,14 +1,13 @@
 import { db } from '@craig/db';
-import { json, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { randomBytes } from 'crypto';
 import type { APIUser } from 'discord-api-types/v10';
 
-import { env } from '$env/dynamic/private';
-import { env as publicEnv } from '$env/dynamic/public';
-import { requiredEnv } from '$lib/server/env';
-import { SESSION_COOKIE, signSession } from '$lib/server/jwt';
-import { rateLimitRequest, redis } from '$lib/server/redis';
-import { sanitizePath } from '$lib/server/util';
+import { SESSION_COOKIE, signSession } from '#lib/server/jwt.js';
+import { rateLimitRequest, redis } from '#lib/server/redis.js';
+import { sanitizePath } from '#lib/server/util.js';
+import { DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, JWT_SECRET } from '$app/env/private';
+import { PUBLIC_DISCORD_CLIENT_ID } from '$app/env/public';
 
 import type { RequestHandler } from './$types';
 
@@ -18,11 +17,6 @@ const USER_URL = 'https://discord.com/api/v10/users/@me';
 const SCOPES = ['identify', 'guilds', 'guilds.members.read'];
 
 export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) => {
-  const publicDiscordClientID = requiredEnv('PUBLIC_DISCORD_CLIENT_ID', publicEnv.PUBLIC_DISCORD_CLIENT_ID);
-  const discordClientSecret = requiredEnv('DISCORD_CLIENT_SECRET', env.DISCORD_CLIENT_SECRET);
-  const discordRedirectURI = requiredEnv('DISCORD_REDIRECT_URI', env.DISCORD_REDIRECT_URI);
-  const jwtSecret = requiredEnv('JWT_SECRET', env.JWT_SECRET);
-
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'login', limit: 10, window: 60 });
   if (rlResponse) return rlResponse;
 
@@ -44,8 +38,8 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     await redis.set(`oauth_state:${state}`, JSON.stringify({ next: validatedNext }), 'EX', 300);
 
     const params = new URLSearchParams({
-      client_id: publicDiscordClientID,
-      redirect_uri: discordRedirectURI,
+      client_id: PUBLIC_DISCORD_CLIENT_ID,
+      redirect_uri: DISCORD_REDIRECT_URI,
       response_type: 'code',
       scope: SCOPES.join(' '),
       prompt: 'none',
@@ -61,9 +55,9 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   }
 
   const state = url.searchParams.get('state');
-  if (!state) return json({ error: 'Missing state' }, { status: 400 });
+  if (!state) return Response.json({ error: 'Missing state' }, { status: 400 });
   const stored = await redis.get(`oauth_state:${state}`);
-  if (!stored) return json({ error: 'Invalid or expired state' }, { status: 400 });
+  if (!stored) return Response.json({ error: 'Invalid or expired state' }, { status: 400 });
   await redis.del(`oauth_state:${state}`);
 
   let redirectTo: string = '/';
@@ -74,26 +68,26 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   } catch {}
 
   const body = new URLSearchParams({
-    client_id: publicDiscordClientID,
-    client_secret: discordClientSecret,
+    client_id: PUBLIC_DISCORD_CLIENT_ID,
+    client_secret: DISCORD_CLIENT_SECRET,
     grant_type: 'authorization_code',
     code,
-    redirect_uri: discordRedirectURI
+    redirect_uri: DISCORD_REDIRECT_URI
   });
   const tokenRes = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body
   });
-  if (!tokenRes.ok) return json({ error: 'Failed to get token' });
+  if (!tokenRes.ok) return Response.json({ error: 'Failed to get token' });
   const tokenData = await tokenRes.json();
 
-  if (tokenData.scope.split(' ').toSorted().join(' ') !== SCOPES.toSorted().join(' ')) return json({ error: 'Bad scope' }, { status: 400 });
+  if (tokenData.scope.split(' ').toSorted().join(' ') !== SCOPES.toSorted().join(' ')) return Response.json({ error: 'Bad scope' }, { status: 400 });
 
   const userRes = await fetch(USER_URL, {
     headers: { Authorization: `Bearer ${tokenData.access_token}` }
   });
-  if (!userRes.ok) return json({ error: 'Failed to get user' });
+  if (!userRes.ok) return Response.json({ error: 'Failed to get user' });
   const user: APIUser = await userRes.json();
   await redis.set(`user:${user.id}`, JSON.stringify(user), 'EX', 60 * 60);
 
@@ -108,7 +102,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
     .onConflict((oc) => oc.column('id').doUpdateSet(tokens))
     .execute();
 
-  const token = await signSession({ id: user.id }, jwtSecret);
+  const token = await signSession({ id: user.id }, JWT_SECRET);
   cookies.set(SESSION_COOKIE, token, { maxAge: 60 * 60 * 24 * 7, path: '/', httpOnly: true, secure: true, sameSite: 'lax' });
 
   redirect(307, redirectTo);

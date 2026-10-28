@@ -2,7 +2,7 @@
   import { Label, Switch } from 'bits-ui';
   import type { Snippet } from 'svelte';
 
-  import { cn } from '$lib/util';
+  import { cn } from '#lib/util.js';
 
   const id = $props.id();
   type Props = {

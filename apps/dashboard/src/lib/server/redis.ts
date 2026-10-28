@@ -1,13 +1,12 @@
 import { randomBytes } from 'node:crypto';
 
 import { getSemaphore } from '@henrygd/semaphore';
-import { json, type RequestEvent } from '@sveltejs/kit';
+import { type RequestEvent } from '@sveltejs/kit';
 import Redis from 'ioredis';
 
-import { env } from '$env/dynamic/private';
+import { JWT_SECRET } from '$app/env/private';
 
 import { REDIS_OPTIONS } from './config';
-import { requiredEnv } from './env';
 import { SESSION_COOKIE, verifySession } from './jwt';
 
 export const redis = new Redis(REDIS_OPTIONS);
@@ -85,14 +84,14 @@ export async function rateLimitRequest(
   try {
     const session = event.cookies.get(SESSION_COOKIE);
     if (session) {
-      const payload = await verifySession(session, requiredEnv('JWT_SECRET', env.JWT_SECRET));
+      const payload = await verifySession(session, JWT_SECRET);
       if (typeof payload.id === 'string') id = `user:${payload.id}`;
     }
   } catch {}
 
   const key = `rl:${id}:${prefix}`;
   const rl = await rateLimit(key, limit, window);
-  if (!rl.allowed) return json({ error: 'Rate limited' }, { status: 429 });
+  if (!rl.allowed) return Response.json({ error: 'Rate limited' }, { status: 429 });
 }
 
 export async function generateOAuthState(userId: string): Promise<string> {

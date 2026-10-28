@@ -2,19 +2,19 @@ import { db, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 
-import { env } from '$env/dynamic/private';
-import { env as envPub } from '$env/dynamic/public';
-import { googleScopes } from '$lib/oauth';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { logger } from '$lib/server/logger';
-import { googleOAuth2Client } from '$lib/server/oauth';
-import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
+import { googleScopes } from '#lib/oauth.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { logger } from '#lib/server/logger.js';
+import { googleOAuth2Client } from '#lib/server/oauth.js';
+import { rateLimitRequest, validateOAuthState } from '#lib/server/redis.js';
+import { GOOGLE_CLIENT_SECRET } from '$app/env/private';
+import { PUBLIC_GOOGLE_CLIENT_ID } from '$app/env/public';
 
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=google');
+  if (!PUBLIC_GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=google');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-google', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;

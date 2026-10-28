@@ -3,8 +3,8 @@
   import errorIcon from '@iconify-icons/mdi/close-octagon';
   import { t } from 'svelte-i18n';
 
+  import LogInSection from '#components/LogInSection.svelte';
   import { page } from '$app/state';
-  import LogInSection from '$components/LogInSection.svelte';
 </script>
 
 {#if page.error?.code === 'NO_AUTH'}

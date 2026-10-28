@@ -1,14 +1,14 @@
 import { db, type DbClient } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
 
-import { env } from '$env/dynamic/private';
-import { env as envPub } from '$env/dynamic/public';
-import { PATREON_REDIRECT_URI } from '$lib/oauth';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { logger } from '$lib/server/logger';
-import { determineRewardTier, type PatreonIdentifyResponse, resolveUserEntitlement } from '$lib/server/patreon';
-import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
+import { PATREON_REDIRECT_URI } from '#lib/oauth.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { logger } from '#lib/server/logger.js';
+import { determineRewardTier, type PatreonIdentifyResponse, resolveUserEntitlement } from '#lib/server/patreon.js';
+import { rateLimitRequest, validateOAuthState } from '#lib/server/redis.js';
+import { PATREON_CLIENT_SECRET } from '$app/env/private';
+import { PUBLIC_PATREON_CLIENT_ID } from '$app/env/public';
 
 import type { RequestHandler } from './$types';
 
@@ -21,7 +21,7 @@ function upsertPatronId(client: DbClient, userId: string, patronId: string) {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_PATREON_CLIENT_ID || !env.PATREON_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
+  if (!PUBLIC_PATREON_CLIENT_ID || !PATREON_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-patreon', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
@@ -46,8 +46,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
   if (!code || typeof code !== 'string') return redirect(307, '/');
 
   const body = new URLSearchParams({
-    client_id: envPub.PUBLIC_PATREON_CLIENT_ID,
-    client_secret: env.PATREON_CLIENT_SECRET,
+    client_id: PUBLIC_PATREON_CLIENT_ID,
+    client_secret: PATREON_CLIENT_SECRET,
     grant_type: 'authorization_code',
     redirect_uri: PATREON_REDIRECT_URI,
     code

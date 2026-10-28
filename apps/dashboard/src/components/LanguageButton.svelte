@@ -22,7 +22,7 @@
   import { locale, locales, t } from 'svelte-i18n';
   import Portal from 'svelte-portal';
 
-  import { localeCookieName } from '$lib/cookie';
+  import { localeCookieName } from '#lib/cookie.js';
 
   const fullLocales = ['en', 'tr', 'nl', 'ja'];
 

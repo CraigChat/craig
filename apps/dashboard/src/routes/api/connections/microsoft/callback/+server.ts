@@ -1,13 +1,13 @@
 import { db, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 
-import { env } from '$env/dynamic/private';
-import { env as envPub } from '$env/dynamic/public';
-import { microsoftScopes, toRedirectUri } from '$lib/oauth';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { logger } from '$lib/server/logger';
-import { rateLimitRequest, validateOAuthState } from '$lib/server/redis';
+import { microsoftScopes, toRedirectUri } from '#lib/oauth.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { logger } from '#lib/server/logger.js';
+import { rateLimitRequest, validateOAuthState } from '#lib/server/redis.js';
+import { MICROSOFT_CLIENT_SECRET } from '$app/env/private';
+import { PUBLIC_MICROSOFT_CLIENT_ID } from '$app/env/public';
 
 import type { RequestHandler } from './$types';
 
@@ -28,7 +28,7 @@ export interface MicrosoftUser {
 }
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) => {
-  if (!envPub.PUBLIC_MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=microsoft');
+  if (!PUBLIC_MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=microsoft');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-microsoft', limit: 5, window: 60 });
   if (rlResponse) return rlResponse;
@@ -55,8 +55,8 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
   try {
     const body = new URLSearchParams({
-      client_id: envPub.PUBLIC_MICROSOFT_CLIENT_ID,
-      client_secret: env.MICROSOFT_CLIENT_SECRET,
+      client_id: PUBLIC_MICROSOFT_CLIENT_ID,
+      client_secret: MICROSOFT_CLIENT_SECRET,
       grant_type: 'authorization_code',
       redirect_uri: toRedirectUri('microsoft'),
       code

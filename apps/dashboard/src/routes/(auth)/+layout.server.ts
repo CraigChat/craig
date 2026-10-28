@@ -1,8 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 
-import { getUserData } from '$lib/server/data';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
+import { getUserData } from '#lib/server/data.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
 
 import type { LayoutServerLoad } from './$types';
 
@@ -12,7 +12,7 @@ export const load: LayoutServerLoad = async ({ cookies, url }) => {
 
   if (!auth) {
     if (url.pathname === '/') return redirect(307, '/login');
-    return error(401, { code: 'NO_AUTH', message: 'You need to login to do this' });
+    return error(401, 'You need to login to do this', { code: 'NO_AUTH' });
   }
 
   return {

@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
 
 import type { PageServerLoad } from './$types';
 

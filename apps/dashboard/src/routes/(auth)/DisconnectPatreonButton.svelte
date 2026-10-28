@@ -3,12 +3,12 @@
   import { t } from 'svelte-i18n';
   import { toast } from 'svelte-sonner';
 
-  import { invalidateAll } from '$app/navigation';
-  import Button from '$components/Button.svelte';
-  import InnerModal from '$components/InnerModal.svelte';
-  import Modal from '$components/Modal.svelte';
-  import { loadingIcon } from '$lib/icons';
-  import { APIErrorCode, type APIErrorResponse } from '$lib/types';
+  import Button from '#components/Button.svelte';
+  import InnerModal from '#components/InnerModal.svelte';
+  import Modal from '#components/Modal.svelte';
+  import { loadingIcon } from '#lib/icons.js';
+  import { APIErrorCode, type APIErrorResponse } from '#lib/types.js';
+  import { refreshAll } from '$app/navigation';
 
   let showModal = $state(false);
   let disconnecting = $state(false);
@@ -31,7 +31,7 @@
         const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
         toast.error(`Error disconnecting Patreon: ${$t(`errors.${responseError}`)}`);
       } else {
-        await invalidateAll();
+        await refreshAll();
         toast.success('Disconnected your Patreon account.');
         showModal = false;
       }

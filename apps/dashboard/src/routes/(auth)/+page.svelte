@@ -9,15 +9,15 @@
   import { t } from 'svelte-i18n';
   import { toast } from 'svelte-sonner';
 
-  import { invalidateAll, replaceState } from '$app/navigation';
+  import DynamicTranslatable from '#components/DynamicTranslatable.svelte';
+  import Footer from '#components/Footer.svelte';
+  import RequiresTier from '#components/RequiresTier.svelte';
+  import SwitchField from '#components/SwitchField.svelte';
+  import { APIErrorCode, type APIErrorResponse } from '#lib/types.js';
+  import { CDNEndpoints, cn, getAvatar } from '#lib/util.js';
+  import { PUBLIC_PATREON_CLIENT_ID, PUBLIC_PATREON_URL } from '$app/env/public';
+  import { goto, refreshAll } from '$app/navigation';
   import { page } from '$app/state';
-  import DynamicTranslatable from '$components/DynamicTranslatable.svelte';
-  import Footer from '$components/Footer.svelte';
-  import RequiresTier from '$components/RequiresTier.svelte';
-  import SwitchField from '$components/SwitchField.svelte';
-  import { env } from '$env/dynamic/public';
-  import { APIErrorCode, type APIErrorResponse } from '$lib/types';
-  import { CDNEndpoints, cn, getAvatar } from '$lib/util';
 
   import type { PageProps } from './$types';
   import CloudUploadFormat from './CloudUploadFormat.svelte';
@@ -59,7 +59,7 @@
         const err: APIErrorResponse = await response.json().catch(() => null);
         const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
         toast.error(`${$t(`cloud_backup.settings_error`)}: ${$t(`errors.${responseError}`)}`);
-      } else await invalidateAll();
+      } else await refreshAll();
     } catch (e) {}
     loading = false;
   }
@@ -71,7 +71,7 @@
       url.searchParams.delete('r');
       url.searchParams.delete('error');
       url.searchParams.delete('from');
-      replaceState(url.toString(), {});
+      goto(url.toString(), { shallow: true, replace: true });
     }
   });
 </script>
@@ -166,19 +166,19 @@
       {/if}
       <span class="sm:text-lg">{$t(`supporter_tiers.${tier}`, { default: `Unknown Tier (${tier})` })}</span>
     </div>
-    {#if tier === 0 && env.PUBLIC_PATREON_URL}
+    {#if tier === 0 && PUBLIC_PATREON_URL}
       <a
         class="flex items-center gap-1 font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
-        href="https://patreon.com/{env.PUBLIC_PATREON_URL}"
+        href="https://patreon.com/{PUBLIC_PATREON_URL}"
         target="_blank"
       >
         <Icon icon={starIcon} class="size-5 text-teal-500" />
         <span>{$t('supporter_status.cta')}</span>
       </a>
-    {:else if bestEntitlement?.source === 'patreon' && env.PUBLIC_PATREON_URL}
+    {:else if bestEntitlement?.source === 'patreon' && PUBLIC_PATREON_URL}
       <a
         class="font-medium text-neutral-200 decoration-teal-500 transition hover:text-white hover:underline"
-        href="https://www.patreon.com/settings/memberships/{env.PUBLIC_PATREON_URL}"
+        href="https://www.patreon.com/settings/memberships/{PUBLIC_PATREON_URL}"
         target="_blank"
       >
         {$t('supporter_status.manage')}
@@ -188,7 +188,7 @@
     {/if}
   </div>
 
-  {#if env.PUBLIC_PATREON_CLIENT_ID}
+  {#if PUBLIC_PATREON_CLIENT_ID}
     <div class="flex flex-col items-center justify-between gap-2 rounded-lg border-2 border-neutral-600 bg-black/25 p-4 text-white sm:flex-row">
       <div class="flex items-center gap-2">
         <Icon icon={patreonIcon} class="size-6 sm:size-8" />

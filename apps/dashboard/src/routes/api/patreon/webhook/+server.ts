@@ -2,10 +2,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 
 import { db } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
-import { json } from '@sveltejs/kit';
 
-import { env } from '$env/dynamic/private';
-import { determineRewardTier, type PatreonWebhookBody, resolveUserEntitlement } from '$lib/server/patreon';
+import { determineRewardTier, type PatreonWebhookBody, resolveUserEntitlement } from '#lib/server/patreon.js';
+import { PATREON_WEBHOOK_SECRET } from '$app/env/private';
 
 import type { RequestHandler } from './$types';
 
@@ -117,27 +116,28 @@ async function handlePatreonEvent(event: PatreonEvent, body: PatreonWebhookBody)
 }
 
 export const POST: RequestHandler = async ({ request }) => {
-  if (!env.PATREON_WEBHOOK_SECRET) return json({ message: 'Unauthorized' }, { status: 401 });
+  if (!PATREON_WEBHOOK_SECRET) return Response.json({ message: 'Unauthorized' }, { status: 401 });
 
   const event: PatreonEvent = request.headers.get('x-patreon-event') as any;
   const signature = request.headers.get('x-patreon-signature');
+
   if (!event || !signature || !/^[0-9a-f]{32}$/i.test(signature) || request.headers.get('user-agent') !== 'Patreon HTTP Robot')
-    return json({ message: 'Unauthorized' }, { status: 401 });
-  if (Number(request.headers.get('content-length')) > MAX_BYTES) return json({ message: 'Payload too large' }, { status: 413 });
+    return Response.json({ message: 'Unauthorized' }, { status: 401 });
+  if (Number(request.headers.get('content-length')) > MAX_BYTES) return Response.json({ message: 'Payload too large' }, { status: 413 });
   const text = await request.text();
-  if (Buffer.byteLength(text) > MAX_BYTES) return json({ message: 'Payload too large' }, { status: 413 });
-  const hash = createHmac('md5', env.PATREON_WEBHOOK_SECRET).update(text).digest('hex');
+  if (Buffer.byteLength(text) > MAX_BYTES) return Response.json({ message: 'Payload too large' }, { status: 413 });
+  const hash = createHmac('md5', PATREON_WEBHOOK_SECRET).update(text).digest('hex');
   const hashBuffer = Buffer.from(hash);
   const signatureBuffer = Buffer.from(signature.toLowerCase());
   if (hashBuffer.length !== signatureBuffer.length || !timingSafeEqual(hashBuffer, signatureBuffer)) {
     console.log(`A Patreon webhook event (${event}) was rejected: ${hash} != ${signature} [expected]`);
-    return json({ message: 'Unauthorized' }, { status: 401 });
+    return Response.json({ message: 'Unauthorized' }, { status: 401 });
   }
   let body: PatreonWebhookBody;
   try {
     body = JSON.parse(text);
   } catch {
-    return json({ message: 'Invalid body' }, { status: 400 });
+    return Response.json({ message: 'Invalid body' }, { status: 400 });
   }
 
   const sem = getSemaphore(`patreon/${body.data?.relationships?.user?.data?.id ?? body.data?.id}`);
@@ -146,10 +146,10 @@ export const POST: RequestHandler = async ({ request }) => {
     await handlePatreonEvent(event, body);
   } catch (e) {
     console.error(`Failed to handle patreon event ${event}`, e);
-    return json({ message: 'Failed to handle event' }, { status: 500 });
+    return Response.json({ message: 'Failed to handle event' }, { status: 500 });
   } finally {
     sem.release();
   }
 
-  return json({ ok: true });
+  return Response.json({ ok: true });
 };

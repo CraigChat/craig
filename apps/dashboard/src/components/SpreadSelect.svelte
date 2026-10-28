@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { cn } from '$lib/util';
+  import { cn } from '#lib/util.js';
 
   interface Props {
     options: (string | null)[];

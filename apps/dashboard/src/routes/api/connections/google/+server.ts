@@ -1,13 +1,11 @@
-import { json } from '@sveltejs/kit';
-
-import { disconnectService } from '$lib/server/data';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { logger } from '$lib/server/logger';
-import { googleOAuth2Client } from '$lib/server/oauth';
-import { rateLimitRequest } from '$lib/server/redis';
-import { errorResponse } from '$lib/server/util';
-import { APIErrorCode } from '$lib/types';
+import { disconnectService } from '#lib/server/data.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { logger } from '#lib/server/logger.js';
+import { googleOAuth2Client } from '#lib/server/oauth.js';
+import { rateLimitRequest } from '#lib/server/redis.js';
+import { errorResponse } from '#lib/server/util.js';
+import { APIErrorCode } from '#lib/types.js';
 
 import type { RequestHandler } from './$types';
 
@@ -26,5 +24,5 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
   const revokable = googleUser?.refreshToken ?? googleUser?.token;
   if (revokable) await googleOAuth2Client.revokeToken(revokable).catch((e) => logger.warn(`Failed to revoke Google token (user=${auth.id})`, e));
 
-  return json({ ok: true });
+  return Response.json({ ok: true });
 };

@@ -1,14 +1,13 @@
 import { db } from '@craig/db';
-import { json } from '@sveltejs/kit';
 import { destr } from 'destr';
 import { z } from 'zod';
 
-import { DRIVE_SERVICES, type DriveService, isServiceConnected } from '$lib/server/data';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { rateLimitRequest } from '$lib/server/redis';
-import { errorResponse } from '$lib/server/util';
-import { APIErrorCode } from '$lib/types';
+import { DRIVE_SERVICES, type DriveService, isServiceConnected } from '#lib/server/data.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { rateLimitRequest } from '#lib/server/redis.js';
+import { errorResponse } from '#lib/server/util.js';
+import { APIErrorCode } from '#lib/types.js';
 
 import type { RequestHandler } from './$types';
 
@@ -97,5 +96,5 @@ export const POST: RequestHandler = async ({ cookies, getClientAddress, request 
     .onConflict((oc) => oc.column('id').doUpdateSet({ ...parsed.data, driveOptions }))
     .execute();
 
-  return json({ ok: true });
+  return Response.json({ ok: true });
 };

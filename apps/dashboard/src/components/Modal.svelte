@@ -3,7 +3,7 @@
   import Portal from 'svelte-portal';
   import { trapFocus } from 'trap-focus-svelte';
 
-  import { cn } from '$lib/util';
+  import { cn } from '#lib/util.js';
 
   function onModalClick(this: any, e: any) {
     if (e.target === this && allowClose) onclose?.();

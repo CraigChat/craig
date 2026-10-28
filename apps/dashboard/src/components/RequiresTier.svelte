@@ -3,9 +3,9 @@
   import starIcon from '@iconify-icons/mdi/star';
   import { t } from 'svelte-i18n';
 
+  import { cn } from '#lib/util.js';
+  import { PUBLIC_PATREON_URL } from '$app/env/public';
   import { page } from '$app/state';
-  import { env } from '$env/dynamic/public';
-  import { cn } from '$lib/util';
 
   import DynamicTranslatable from './DynamicTranslatable.svelte';
 
@@ -50,7 +50,7 @@
   </div>
   <div class="flex flex-wrap items-center justify-center gap-3">
     <a
-      href={noTier ? `https://patreon.com/${env.PUBLIC_PATREON_URL}` : `https://www.patreon.com/settings/memberships/${env.PUBLIC_PATREON_URL}`}
+      href={noTier ? `https://patreon.com/${PUBLIC_PATREON_URL}` : `https://www.patreon.com/settings/memberships/${PUBLIC_PATREON_URL}`}
       class={cn('rounded-lg bg-white/90 font-medium text-black transition-all hover:bg-white active:scale-98', {
         'px-4 py-2': !small,
         'px-4 py-1 text-sm': small

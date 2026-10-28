@@ -8,15 +8,15 @@
   import { t } from 'svelte-i18n';
   import { toast } from 'svelte-sonner';
 
-  import { invalidateAll } from '$app/navigation';
-  import Button from '$components/Button.svelte';
-  import InnerModal from '$components/InnerModal.svelte';
-  import Modal from '$components/Modal.svelte';
-  import { env } from '$env/dynamic/public';
-  import { updateSettings } from '$lib/data';
-  import { loadingIcon } from '$lib/icons';
-  import { APIErrorCode, type APIErrorResponse, type ConnectionsData } from '$lib/types';
-  import { cn } from '$lib/util';
+  import Button from '#components/Button.svelte';
+  import InnerModal from '#components/InnerModal.svelte';
+  import Modal from '#components/Modal.svelte';
+  import { updateSettings } from '#lib/data.js';
+  import { loadingIcon } from '#lib/icons.js';
+  import { APIErrorCode, type APIErrorResponse, type ConnectionsData } from '#lib/types.js';
+  import { cn } from '#lib/util.js';
+  import { PUBLIC_BOX_CLIENT_ID, PUBLIC_DROPBOX_CLIENT_ID, PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID } from '$app/env/public';
+  import { refreshAll } from '$app/navigation';
 
   let showModal = $state(false);
   let loading = $state(false);
@@ -35,7 +35,7 @@
       settingsUrl: 'https://myaccount.google.com/connections',
 
       mainServiceName: 'Google',
-      enabled: !!env.PUBLIC_GOOGLE_CLIENT_ID
+      enabled: !!PUBLIC_GOOGLE_CLIENT_ID
     },
     {
       id: 'onedrive',
@@ -45,7 +45,7 @@
 
       apiId: 'microsoft',
       mainServiceName: 'Microsoft',
-      enabled: !!env.PUBLIC_MICROSOFT_CLIENT_ID
+      enabled: !!PUBLIC_MICROSOFT_CLIENT_ID
     },
     {
       id: 'dropbox',
@@ -53,7 +53,7 @@
       name: 'Dropbox',
       settingsUrl: 'https://www.dropbox.com/account/connected_apps',
 
-      enabled: !!env.PUBLIC_DROPBOX_CLIENT_ID
+      enabled: !!PUBLIC_DROPBOX_CLIENT_ID
     },
     {
       id: 'box',
@@ -61,7 +61,7 @@
       name: 'Box',
       settingsUrl: 'https://app.box.com/integrations?myIntegrations=true',
 
-      enabled: !!env.PUBLIC_BOX_CLIENT_ID
+      enabled: !!PUBLIC_BOX_CLIENT_ID
     }
   ] as const;
 
@@ -78,7 +78,7 @@
         const responseError = err?.code ?? APIErrorCode.SERVER_ERROR;
         toast.error(`Error disconnecting ${service.name}: ${$t(`errors.${responseError}`)}`);
       } else {
-        await invalidateAll();
+        await refreshAll();
         const serviceName = 'mainServiceName' in service ? service.mainServiceName : service.name;
         toast.success($t('cloud_backup.disconnected_service', { values: { service: serviceName } }), {
           description: $t('cloud_backup.revoke_app_perms', { values: { service: serviceName } }),

@@ -1,15 +1,15 @@
 import { redirect } from '@sveltejs/kit';
 
-import { env as envPub } from '$env/dynamic/public';
-import { toRedirectUri } from '$lib/oauth';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { generateOAuthState, rateLimitRequest } from '$lib/server/redis';
+import { toRedirectUri } from '#lib/oauth.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { generateOAuthState, rateLimitRequest } from '#lib/server/redis.js';
+import { PUBLIC_PATREON_CLIENT_ID } from '$app/env/public';
 
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
-  if (!envPub.PUBLIC_PATREON_CLIENT_ID) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
+  if (!PUBLIC_PATREON_CLIENT_ID) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=patreon');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-patreon-url', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
@@ -20,11 +20,11 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
 
   const state = await generateOAuthState(auth.id);
   const params = new URLSearchParams({
-    client_id: envPub.PUBLIC_PATREON_CLIENT_ID,
+    client_id: PUBLIC_PATREON_CLIENT_ID,
     redirect_uri: toRedirectUri('patreon'),
     response_type: 'code',
     state
   });
 
-  return redirect(307, `https://www.patreon.com/oauth2/authorize?${params}`);
+  return redirect(307, `https://www.patreon.com/oauth2/authorize?${params}`, { external: true });
 };

@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 
-import { SESSION_COOKIE } from '$lib/server/jwt';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
 
 import type { RequestHandler } from './$types';
 

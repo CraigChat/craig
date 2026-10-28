@@ -1,12 +1,12 @@
 import { init, register } from 'svelte-i18n';
 
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 import { get, localeCookieName } from './cookie';
 
 export const defaultLocale = 'en';
 
-const localeFiles = import.meta.glob('$locale/*/dashboard.json');
+const localeFiles = import.meta.glob('../../../../locale/*/dashboard.json');
 
 export const supportedLocales: string[] = [];
 

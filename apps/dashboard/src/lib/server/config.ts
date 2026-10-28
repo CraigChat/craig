@@ -1,14 +1,14 @@
 import type { RedisOptions } from 'ioredis';
 
-import { dev } from '$app/environment';
-import { env } from '$env/dynamic/private';
+import { dev } from '$app/env';
+import { REDIS_DATABASE, REDIS_HOST, REDIS_PORT, REDIS_PREFIX } from '$app/env/private';
 
 export const debug = dev;
 
 export const REDIS_OPTIONS: RedisOptions = {
-  host: env.REDIS_HOST || 'localhost',
-  port: env.REDIS_PORT ? parseInt(env.REDIS_PORT, 10) : 6379,
-  db: env.REDIS_DATABASE ? parseInt(env.REDIS_DATABASE, 10) : 0,
-  keyPrefix: env.REDIS_PREFIX || 'craig:',
+  host: REDIS_HOST || 'localhost',
+  port: REDIS_PORT ? parseInt(REDIS_PORT, 10) : 6379,
+  db: REDIS_DATABASE ? parseInt(REDIS_DATABASE, 10) : 0,
+  keyPrefix: REDIS_PREFIX || 'craig:',
   lazyConnect: true
 };

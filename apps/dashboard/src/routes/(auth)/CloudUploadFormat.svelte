@@ -8,16 +8,16 @@
   import zipIcon from '@iconify-icons/mdi/folder-zip';
   import { t } from 'svelte-i18n';
 
-  import Button from '$components/Button.svelte';
-  import FormatButton from '$components/FormatButton.svelte';
-  import InnerModal from '$components/InnerModal.svelte';
-  import Modal from '$components/Modal.svelte';
-  import RequiresTier from '$components/RequiresTier.svelte';
-  import SpreadSelect from '$components/SpreadSelect.svelte';
-  import SwitchField from '$components/SwitchField.svelte';
-  import { savingSettings, updateSettings } from '$lib/data';
-  import { loadingIcon } from '$lib/icons';
-  import { convertT } from '$lib/util';
+  import Button from '#components/Button.svelte';
+  import FormatButton from '#components/FormatButton.svelte';
+  import InnerModal from '#components/InnerModal.svelte';
+  import Modal from '#components/Modal.svelte';
+  import RequiresTier from '#components/RequiresTier.svelte';
+  import SpreadSelect from '#components/SpreadSelect.svelte';
+  import SwitchField from '#components/SwitchField.svelte';
+  import { savingSettings, updateSettings } from '#lib/data.js';
+  import { loadingIcon } from '#lib/icons.js';
+  import { convertT } from '#lib/util.js';
 
   let showModal = $state(false);
 

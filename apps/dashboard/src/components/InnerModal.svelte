@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import { cn } from '$lib/util';
+  import { cn } from '#lib/util.js';
 
   interface Props {
     title: string;

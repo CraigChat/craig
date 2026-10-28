@@ -1,17 +1,17 @@
 import { getRewardTier } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
 
-import { env } from '$env/dynamic/private';
-import { env as envPub } from '$env/dynamic/public';
-import { boxScopes, toRedirectUri } from '$lib/oauth';
-import { checkAuth } from '$lib/server/discord';
-import { SESSION_COOKIE } from '$lib/server/jwt';
-import { generateOAuthState, rateLimitRequest } from '$lib/server/redis';
+import { boxScopes, toRedirectUri } from '#lib/oauth.js';
+import { checkAuth } from '#lib/server/discord.js';
+import { SESSION_COOKIE } from '#lib/server/jwt.js';
+import { generateOAuthState, rateLimitRequest } from '#lib/server/redis.js';
+import { BOX_CLIENT_SECRET } from '$app/env/private';
+import { PUBLIC_BOX_CLIENT_ID } from '$app/env/public';
 
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
-  if (!envPub.PUBLIC_BOX_CLIENT_ID || !env.BOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=box');
+  if (!PUBLIC_BOX_CLIENT_ID || !BOX_CLIENT_SECRET) return redirect(307, '/?error=__NO_ACCESS_TOKEN&from=box');
 
   const rlResponse = await rateLimitRequest({ cookies, getClientAddress }, { prefix: 'connect-box-url', limit: 20, window: 60 });
   if (rlResponse) return rlResponse;
@@ -23,12 +23,12 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress }) => {
 
   const state = await generateOAuthState(auth.id);
   const params = new URLSearchParams({
-    client_id: envPub.PUBLIC_BOX_CLIENT_ID,
+    client_id: PUBLIC_BOX_CLIENT_ID,
     redirect_uri: toRedirectUri('box'),
     response_type: 'code',
     scope: boxScopes.join(' '),
     state
   });
 
-  return redirect(307, `https://account.box.com/api/oauth2/authorize?${params}`);
+  return redirect(307, `https://account.box.com/api/oauth2/authorize?${params}`, { external: true });
 };
