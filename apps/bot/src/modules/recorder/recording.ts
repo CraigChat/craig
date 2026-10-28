@@ -467,10 +467,7 @@ export default class Recording {
           'connection'
         );
       });
-      connection.on('error', (err: any) => {
-        this.writeToLog(`Error: ${err}`, 'connection');
-        this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
-      });
+      connection.on('error', this.onConnectionError.bind(this));
       connection.on('warn', this.onConnectionWarn.bind(this));
       connection.on('debug', (m) => {
         this.writeToLog(`Debug: ${m}`, 'connection');
@@ -615,6 +612,23 @@ export default class Recording {
     this.stateDescription = `⚠️ ${stopWarning}`;
     await this.sendWarning(stopWarning, false);
     await this.stop();
+  }
+
+  async onConnectionError(err: any) {
+    this.writeToLog(`Error: ${err}`, 'connection');
+    this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
+
+    // The voice server's hostname couldn't be resolved
+    if (err?.code === 'ENOTFOUND' && this.active && this.state === RecordingState.RECORDING) {
+      this.state = RecordingState.ERROR;
+      this.stateDescription = `⚠️ ${this.t('recording.connection_error')}`;
+      try {
+        await this.stop(true);
+      } catch (e) {
+        this.recorder.logger.debug(`Recording ${this.id} failed to stop after connection error`, e);
+      }
+      await this.updateMessage();
+    }
   }
 
   async onConnectionDisconnect(err?: Error) {
