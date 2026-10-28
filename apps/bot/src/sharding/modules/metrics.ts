@@ -218,6 +218,29 @@ export default class MetricsModule extends ShardManagerModule {
       }
     });
 
+    new Counter({
+      name: 'craig_bot_recording_errors_total',
+      help: 'Counter for recording errors by type and code',
+      labelNames: ['type', 'code'],
+      async collect() {
+        try {
+          await timeout(
+            Promise.all(
+              Array.from(manager.shards.values()).map(async (shard) => {
+                if (shard.status === 'ready' || shard.status === 'resuming') {
+                  const result = (await shard.eval('this.metrics.collect("recordingErrors")')) as Record<string, number>;
+                  for (const key in result) {
+                    const [type, code] = key.split(':');
+                    this.inc({ type, code }, result[key]);
+                  }
+                }
+              })
+            )
+          );
+        } catch {}
+      }
+    });
+
     new Gauge({
       name: 'craig_bot_shard_latency_milliseconds',
       help: 'Gauge for millisecond latency per shard',

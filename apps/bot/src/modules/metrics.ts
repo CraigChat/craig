@@ -8,7 +8,8 @@ export default class MetricsModule extends BotModule {
     commandsRan: 0,
     gatewayEventsReceived: 0,
     commands: {} as Record<string, number>,
-    voiceServersConnected: {} as Record<string, number>
+    voiceServersConnected: {} as Record<string, number>,
+    recordingErrors: {} as Record<string, number>
   };
   private readonly handleRawWS = () => {
     this.stats.gatewayEventsReceived++;
@@ -37,11 +38,22 @@ export default class MetricsModule extends BotModule {
     else this.stats.voiceServersConnected[region]++;
   }
 
+  onRecordingError(type: string, code = 'none') {
+    const key = `${type}:${code}`;
+    if (!this.stats.recordingErrors[key]) this.stats.recordingErrors[key] = 1;
+    else this.stats.recordingErrors[key]++;
+  }
+
   collect(name: keyof typeof this.stats) {
     if (name === 'commands') {
       const commands = this.stats.commands;
       this.stats.commands = {};
       return commands;
+    }
+    if (name === 'recordingErrors') {
+      const stats = this.stats.recordingErrors;
+      this.stats.recordingErrors = {};
+      return stats;
     }
     if (name === 'voiceServersConnected') {
       const stats = this.stats.voiceServersConnected;

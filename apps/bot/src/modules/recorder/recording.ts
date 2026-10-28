@@ -28,6 +28,12 @@ const MAX_ACTIVITY_LOGS = 10;
 const MAX_LATENCY_WARNING = 500;
 const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
+
+// Only pass through Node-style error codes (e.g. ENOTFOUND) to keep metric label cardinality bounded
+function getErrorCode(err: unknown) {
+  const code = (err as any)?.code;
+  return typeof code === 'string' && /^E[A-Z0-9_]{1,40}$/.test(code) ? code : 'unknown';
+}
 const BAD_MESSAGE_CODES = [
   404,
   10003, // Unknown channel
@@ -202,6 +208,7 @@ export default class Recording {
       await this.connect();
     } catch (e) {
       this.recorder.traceVoiceTimeout(this.connection);
+      this.recorder.metrics.onRecordingError('connect_failed', getErrorCode(e));
       this.recorder.logger.error(
         `Failed to connect to ${this.channel.name} (${this.channel.id}) in ${this.channel.guild.name} (${this.channel.guild.id}) by ${this.user.username}#${this.user.discriminator} (${this.user.id})`,
         e
@@ -469,6 +476,7 @@ export default class Recording {
       });
       connection.on('error', (err: any) => {
         this.writeToLog(`Error: ${err}`, 'connection');
+        this.recorder.metrics.onRecordingError('connection', getErrorCode(err));
         this.recorder.logger.error(`Error in connection for recording ${this.id}`, err);
       });
       connection.on('warn', this.onConnectionWarn.bind(this));
@@ -506,6 +514,7 @@ export default class Recording {
     }
     if (this.state !== RecordingState.RECORDING) {
       this.pushToActivity(this.t('recording.panel.reconnect_fail'), false);
+      this.recorder.metrics.onRecordingError('reconnect_failed');
       this.sendWarning(this.t('recording.failed_to_reconnect'), false);
       this.recorder.logger.warn(`Recording ${this.id} could not properly reconnect`);
       try {
@@ -593,6 +602,7 @@ export default class Recording {
     if (!this.active || this.encryptionStopIssued || !message.startsWith('Invalidating transition ')) return;
 
     this.encryptionRecoveryAttempts++;
+    this.recorder.metrics.onRecordingError('decryption_tolerance_exceeded');
 
     const endpoint = this.connection?.endpoint;
     const context = {
@@ -611,6 +621,7 @@ export default class Recording {
     if (this.encryptionRecoveryAttempts < ENCRYPTION_RECOVERY_STOP_THRESHOLD) return;
 
     this.encryptionStopIssued = true;
+    this.recorder.metrics.onRecordingError('e2ee_stopped');
     const stopWarning = this.t('recording.e2ee_error');
     this.stateDescription = `⚠️ ${stopWarning}`;
     await this.sendWarning(stopWarning, false);
@@ -628,6 +639,7 @@ export default class Recording {
       rtcWorkerVersion: this.rtcWorkerVersion
     });
     if (err) {
+      this.recorder.metrics.onRecordingError('disconnect', String(this.recorder.parseVoiceDisconnectCode(err) ?? 'unknown'));
       this.state = RecordingState.RECONNECTING;
       if (err.message.startsWith('4006')) this.pushToActivity(this.t('recording.panel.discord_requested_reconnect'));
       else this.pushToActivity(this.t('recording.panel.disconnected_from_error'));
@@ -683,6 +695,7 @@ export default class Recording {
         this.encodeChunk(user, user.track, packetNo, chunk!);
         packetNo += 2;
       } catch (ex) {
+        this.recorder.metrics.onRecordingError('encode_failed');
         this.recorder.logger.error(`Failed to encode packet ${packetNo} for user ${user.id}`, ex);
       }
     }
