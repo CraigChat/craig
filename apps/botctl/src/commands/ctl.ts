@@ -171,7 +171,7 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
           return ephemeral(formatInfo(endpoint.name, info));
         }
         case 'shards':
-          return shardInfoResponse(formatShardInfo(await client.getShards()));
+          return shardInfoResponse(formatShardInfo(await client.getShards(), ctx.guildID));
         case 'rwa':
           return ephemeral(formatAction(await client.setRWA(parseShardSelector(options.shards || 'all'), Boolean(options.value)), 'Updated RWA.'));
         case 'restart':
