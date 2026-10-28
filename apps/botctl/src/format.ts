@@ -42,14 +42,14 @@ export function formatAction(result: ActionResult, success: string): string {
   `;
 }
 
-export function formatShardInfo(info: ShardInfo): string {
+export function formatShardInfo(info: ShardInfo, guildID?: string): string {
   const rows = [...info.shards].sort((a, b) => a.id - b.id);
   const totalGuilds = rows.reduce((acc, shard) => acc + (shard.guilds ?? 0), 0);
   const totalRecordings = rows.reduce((acc, shard) => acc + (shard.recordings ?? 0), 0);
   const averageLatency = rows.length ? Math.round(rows.reduce((acc, shard) => acc + (shard.latency ?? 0), 0) / rows.length) : 0;
   const averageUptime = rows.length ? rows.reduce((acc, shard) => acc + (shard.uptime ?? 0), 0) / rows.length : 0;
   const rwaShards = rows.filter((shard) => shard.respawnWhenAvailable).length;
-  const currentShardID = parseCurrentShardID(process.env.SHARD_ID);
+  const currentShardID = getGuildShardID(guildID, info.total);
   const summaryGuilds = totalGuilds.toLocaleString().padEnd(10, ' ');
   const summaryLatency = `${averageLatency}ms avg`.padEnd(11, ' ');
   const summaryUptime = `${formatDuration(averageUptime)} avg`.padEnd(14, ' ');
@@ -122,10 +122,9 @@ function padNumericValue(value: number | undefined, maxLength: number) {
   return (typeof value === 'number' ? value.toLocaleString() : '-').padEnd(maxLength, ' ');
 }
 
-function parseCurrentShardID(value?: string) {
-  if (!value) return undefined;
-  const id = parseInt(value, 10);
-  return Number.isInteger(id) ? id : undefined;
+function getGuildShardID(guildID: string | undefined, shardCount: number) {
+  if (!guildID || !/^\d+$/.test(guildID) || !shardCount) return undefined;
+  return Number((BigInt(guildID) >> 22n) % BigInt(shardCount));
 }
 
 export function redact(text: string, secrets: string[]) {
