@@ -30,6 +30,8 @@ export class Job extends EventEmitter {
   from?: string;
   tags?: Kitchen.JobTags;
   createdAt = new Date();
+  priority: Kitchen.JobPriority = 0;
+  enqueuedAt = this.createdAt;
   tmpDir: string;
   recFileBase: string;
   outputFile: string;
@@ -62,6 +64,8 @@ export class Job extends EventEmitter {
     super();
     this.id = opts.continueJobId || nanoid(30);
     this.continued = !!opts.continueJobId;
+    this.priority = opts.priority ?? 0;
+    this.enqueuedAt = opts.enqueuedAt ? new Date(opts.enqueuedAt) : this.createdAt;
     this.postTask = opts.postTask;
     this.recordingId = opts.id;
     this.type = opts.jobType;
@@ -80,6 +84,8 @@ export class Job extends EventEmitter {
       {
         id: jobJson.recordingId,
         continueJobId: jobJson.id,
+        priority: jobJson.priority,
+        enqueuedAt: jobJson.enqueuedAt ?? jobJson.createdAt,
         jobType: jobJson.type,
         from: jobJson.from,
         tags: jobJson.tags,
@@ -201,10 +207,12 @@ export class Job extends EventEmitter {
   }
 
   setStatus(status: this['status']) {
+    if (this.status === 'queued' && status !== 'queued') this.enqueuedAt = new Date();
     this.status = status;
     this.emit('status', status);
     if (['complete', 'error', 'cancelled'].includes(status)) {
       this.push.flush();
+      queueMicrotask(() => this.manager.queueIntervalTick().catch((error) => logger.error('Queue tick failed.', error)));
       jobFinishedCount.inc({
         job_type: this.type,
         job_export: this.exportString,
@@ -233,42 +241,56 @@ export class Job extends EventEmitter {
   }
 
   async queue() {
-    if (!QUEUE_SIZE || this.manager.getQueueLength() < QUEUE_SIZE || this.tags?.queueBypass) return this.run();
-    this.setStatus('queued');
+    if (this.status !== 'idle') return;
     await setStreamOpen(this.id);
+    if (this.status !== 'idle') {
+      if (this.abortController.signal.aborted && !this.startedAt) await deleteStreamOpen(this.id);
+      return;
+    }
+    this.setStatus('queued');
     logger.info(`Queued job ${this.id} (${this.recordingId})`, { type: this.type, resumed: this.continued, capacity: QUEUE_SIZE });
+    await this.manager.queueIntervalTick();
   }
 
   async run() {
+    if (this.status !== 'idle' && this.status !== 'queued') return;
     this.startedAt = new Date();
     this.setStatus('running');
     this.setState({ type: 'starting' });
-    await fs.mkdir(this.tmpDir, { recursive: true });
-    await setStreamOpen(this.id);
+    try {
+      await fs.mkdir(this.tmpDir, { recursive: true });
+      await setStreamOpen(this.id);
+      if (this.abortController.signal.aborted) {
+        await this.cleanup(true);
+        return;
+      }
 
-    logger.info(`Starting job ${this.id} (${this.recordingId})`, {
-      type: this.type,
-      export: this.exportString,
-      resumed: this.continued,
-      queueBypass: !!this.tags?.queueBypass,
-      ageMs: this.startedAt.valueOf() - this.createdAt.valueOf()
-    });
+      logger.info(`Starting job ${this.id} (${this.recordingId})`, {
+        type: this.type,
+        export: this.exportString,
+        resumed: this.continued,
+        queueBypass: !!this.tags?.queueBypass,
+        ageMs: this.startedAt.valueOf() - this.createdAt.valueOf()
+      });
 
-    if (this.type === 'recording') {
-      this.promise = processRecordingJob(this)
-        .then(() => this.#doPostTask())
-        .then(() => this.#onFinish())
-        .catch((e) => this.#onError(e));
-    } else if (this.type === 'avatars') {
-      this.promise = processAvatarsJob(this)
-        .then(() => this.#doPostTask())
-        .then(() => this.#onFinish())
-        .catch((e) => this.#onError(e));
-    } else if (this.type === 'transcription') {
-      this.promise = processTranscriptionJob(this)
-        .then(() => this.#doPostTask())
-        .then(() => this.#onFinish())
-        .catch((e) => this.#onError(e));
+      if (this.type === 'recording') {
+        this.promise = processRecordingJob(this)
+          .then(() => this.#doPostTask())
+          .then(() => this.#onFinish())
+          .catch((e) => this.#onError(e));
+      } else if (this.type === 'avatars') {
+        this.promise = processAvatarsJob(this)
+          .then(() => this.#doPostTask())
+          .then(() => this.#onFinish())
+          .catch((e) => this.#onError(e));
+      } else if (this.type === 'transcription') {
+        this.promise = processTranscriptionJob(this)
+          .then(() => this.#doPostTask())
+          .then(() => this.#onFinish())
+          .catch((e) => this.#onError(e));
+      }
+    } catch (error) {
+      await this.#onError(error);
     }
   }
 
@@ -355,6 +377,8 @@ export class Job extends EventEmitter {
       postTask: this.postTask,
       postTaskOptions: this.postTaskOptions,
       createdAt: this.createdAt.toISOString(),
+      priority: this.priority,
+      enqueuedAt: this.enqueuedAt.toISOString(),
       outputFile: this.outputFile,
       outputFileName: path.basename(this.outputFile),
       type: this.type,
