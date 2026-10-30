@@ -334,13 +334,18 @@ export default class Recording {
     if (!incident) return;
 
     const additionalCount = otherIncidents.length ? ` (+${otherIncidents.length})` : '';
+    const startedAt = Date.parse(incident.startedAt);
+    const upcoming = incident.status === 'maintenance' && startedAt > Date.now();
     const label =
       incident.status !== 'maintenance'
         ? this.t('recording.panel.ongoing_incident')
-        : Date.parse(incident.startedAt) <= Date.now()
-          ? this.t('recording.panel.ongoing_maintenance')
-          : this.t('recording.panel.upcoming_maintenance');
-    await this.pushToActivity(`🚧 ${label}: [${incident.title}](https://status.craig.chat/incidents/${incident.id})${additionalCount}`);
+        : upcoming
+          ? this.t('recording.panel.upcoming_maintenance')
+          : this.t('recording.panel.ongoing_maintenance');
+    const timestamp = upcoming ? ` <t:${Math.floor(startedAt / 1000)}:R>` : '';
+    await this.pushToActivity(
+      `🚧 ${label}: [${incident.title}](https://status.craig.chat/incidents/${incident.id})${additionalCount}${timestamp}`
+    );
   }
 
   async stop(internal = false, userID?: string) {
