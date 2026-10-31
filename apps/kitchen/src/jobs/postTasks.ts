@@ -1,9 +1,9 @@
 import { db } from '@craig/db';
-import { rename, unlink } from 'fs/promises';
+import { unlink } from 'fs/promises';
 import { basename, join } from 'path';
 
 import { DOWNLOADS_DIRECTORY } from '../util/config.js';
-import { pathExists } from '../util/index.js';
+import { moveFile, pathExists } from '../util/index.js';
 import logger from '../util/logger.js';
 import { getRecordingInfo } from '../util/recording.js';
 import type { Job } from './job.js';
@@ -20,7 +20,7 @@ export const postTasks: { [name: string]: (job: Job) => Promise<void> } = {
 async function moveToDownloads(job: Job) {
   const downloadPath = join(DOWNLOADS_DIRECTORY, basename(job.outputFile));
   if (await pathExists(downloadPath)) await unlink(downloadPath);
-  await rename(job.outputFile, downloadPath);
+  await moveFile(job.outputFile, downloadPath);
 }
 
 async function cloudUpload(job: Job) {

@@ -6,7 +6,7 @@ import { RecordingUser } from '@craig/types/recording';
 import { nanoid } from 'nanoid';
 
 import { DOWNLOAD_URL_PREFIX, DOWNLOADS_DIRECTORY, RUNPOD_API_KEY, RUNPOD_TRANSCRIPTION_ENDPOINT_ID } from '../../util/config.js';
-import { fileNameFromUser, runParallelFunction, wait } from '../../util/index.js';
+import { fileNameFromUser, moveFile, runParallelFunction, wait } from '../../util/index.js';
 import logger from '../../util/logger.js';
 import { encodeTranscriptionTrack, getStreamTypes } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
@@ -225,7 +225,7 @@ export async function processTranscriptionJob(job: Job) {
         const toPath = path.join(DOWNLOADS_DIRECTORY, fileName);
         if (cancelSignal.aborted) throw new Error('Job aborted');
         job.extraFiles.push(toPath);
-        return fs.rename(fromPath, toPath);
+        return moveFile(fromPath, toPath);
       })
   );
 

@@ -1,5 +1,5 @@
 import { setMaxListeners } from 'node:events';
-import { access } from 'node:fs/promises';
+import { access, copyFile, rename, unlink } from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -115,6 +115,25 @@ export async function pathExists(path: string) {
     return true;
   } catch (e) {
     return false;
+  }
+}
+
+// rename() fails with EXDEV across filesystems (e.g. TMP_DIRECTORY on a separate Docker volume),
+// so copy to a temp name next to the destination, then rename within that filesystem.
+export async function moveFile(from: string, to: string) {
+  try {
+    await rename(from, to);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'EXDEV') throw e;
+    const partialPath = path.join(path.dirname(to), `.partial-${path.basename(to)}`);
+    try {
+      await copyFile(from, partialPath);
+      await rename(partialPath, to);
+    } catch (copyError) {
+      await unlink(partialPath).catch(() => {});
+      throw copyError;
+    }
+    await unlink(from);
   }
 }
 
