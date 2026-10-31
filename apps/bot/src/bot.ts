@@ -173,17 +173,17 @@ export class CraigBot {
 
 export const client = new CraigBot(getBotConfig());
 
-process.once('SIGINT', async () => {
-  client.log('warn', 'sys', ['Caught SIGINT']);
+let shuttingDown = false;
+async function shutdown(signal: NodeJS.Signals) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  client.log('warn', 'sys', [`Caught ${signal}`]);
   await disconnect();
   process.exit(0);
-});
+}
 
-process.once('SIGTERM', async () => {
-  client.log('warn', 'sys', ['Caught SIGTERM']);
-  await disconnect();
-  process.exit(0);
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 process.on('unhandledRejection', (r) => {
   client.log('error', 'sys', ['Unhandled rejection:', r]);

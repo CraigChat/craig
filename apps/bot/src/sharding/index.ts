@@ -75,6 +75,29 @@ process.on('unhandledRejection', (r) => logger.error('Unhandled exception:', r))
   manager.on('ready', (shard, msg) => logger.info(`Shard ${shard.id} ready with ${msg.d?._guilds ?? '<unknown>'} guilds.`));
   manager.on('shardError', (shard, e) => logger.error(`Shard ${shard.id} encountered an error`, e));
 
+  // Wait for every shard to finish its own shutdown
+  let stopping = false;
+  const stop = async (signal: NodeJS.Signals) => {
+    if (stopping) return;
+    stopping = true;
+    logger.warn(`Caught ${signal}, waiting for shards to shut down...`);
+    manager.options.respawn = false;
+    await Promise.all(
+      Array.from(manager.shards.values()).map(
+        (shard) =>
+          new Promise<void>((resolve) => {
+            const child = shard.process;
+            if (!child || child.exitCode !== null || child.signalCode !== null) return resolve();
+            child.once('exit', () => resolve());
+            child.kill(signal);
+          })
+      )
+    );
+    process.exit(0);
+  };
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
+
   await manager.loadModules(ShardUtilModule, MetricsModule, ControlModule);
   logger.info(
     `Gateway recommends ${gatewayBot.shards} shard(s), max concurrency ${maxConcurrency}; launching ${shardCount} shard(s) at concurrency ${concurrency}.`
