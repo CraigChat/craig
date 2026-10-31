@@ -337,10 +337,19 @@ export default class Join extends GeneralCommand {
     const recNick = cutoffText(`![RECORDING] ${selfUser ? (selfUser.nick ?? selfUser.username) : this.client.bot.user.username}`, 32);
     await ctx.defer();
     let nickChanged = false;
+    let nickWarning: Promise<unknown> | undefined;
     if (selfUser && (!selfUser.nick || !selfUser.nick.includes('[RECORDING]')))
       try {
         const nickWarnTimeout = setTimeout(() => {
-          if (!nickChanged) ctx.editOriginal(t('join_command.nick_changing'));
+          if (!nickChanged)
+            nickWarning = ctx
+              .editOriginal(t('join_command.nick_changing'))
+              .catch((e) =>
+                this.client.commands.logger.warn(
+                  `Failed to send nickname warning for ${ctx.user.username}#${ctx.user.discriminator} (${ctx.user.id})`,
+                  e
+                )
+              );
         }, 3000) as unknown as number;
         await this.client.bot.editGuildMember(guild.id, '@me', { nick: recNick }, 'Setting recording status');
         nickChanged = true;
@@ -353,6 +362,9 @@ export default class Join extends GeneralCommand {
         );
         return t('join_command.nick_error');
       }
+
+    // Make sure to wait for the nickname message change before updating again to avoid CV2 clashing
+    await nickWarning;
 
     // Start recording
     const recording = new Recording(this.recorder, channel as any, member.user, t, locale);

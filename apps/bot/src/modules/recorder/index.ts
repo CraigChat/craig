@@ -242,7 +242,7 @@ export default class RecorderModule extends BotModule {
         : null
     ]);
 
-    if (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen) {
+    if (this.client.config.craig.systemNotificationURL && (!existingRegion || !voiceVersionSeen || !rtcWorkerVersionSeen)) {
       const title = `New ${[
         !existingRegion ? 'Voice Region' : undefined,
         !voiceVersionSeen ? 'Voice Version' : undefined,
