@@ -30,8 +30,7 @@ export interface CraigBotConfig {
 
   craig: {
     emoji: string;
-    downloadProtocol: string;
-    downloadDomain: string;
+    downloadURL: string;
     dashboardURL: string;
     systemNotificationURL?: string;
     homepage: string;
@@ -92,6 +91,13 @@ function listFromEnv(name: string): string[] {
 function pathFromEnv(name: string, fallback: string): string {
   const value = process.env[name];
   return value ? path.resolve(value) : fallback;
+}
+
+// DOWNLOAD_URL supersedes the legacy DOWNLOAD_PROTOCOL + DOWNLOAD_DOMAIN pair
+function downloadURLFromEnv(): string {
+  if (process.env.DOWNLOAD_URL) return process.env.DOWNLOAD_URL.replace(/\/+$/, '');
+  if (process.env.DOWNLOAD_DOMAIN) return `${process.env.DOWNLOAD_PROTOCOL || 'https'}://${process.env.DOWNLOAD_DOMAIN}`;
+  return 'http://localhost:5029';
 }
 
 function isLocalHost(host: string): boolean {
@@ -216,8 +222,7 @@ export function getBotConfig(): CraigBotConfig {
     },
     craig: {
       emoji: process.env.CRAIG_EMOJI_ID || '297187944295301122',
-      downloadProtocol: process.env.DOWNLOAD_PROTOCOL || 'https',
-      downloadDomain: process.env.DOWNLOAD_DOMAIN || 'localhost:5029',
+      downloadURL: downloadURLFromEnv(),
       dashboardURL: process.env.DASHBOARD_URL || 'https://my.craig.chat',
       systemNotificationURL: process.env.SYSTEM_NOTIFICATION_URL,
       homepage: process.env.CRAIG_HOMEPAGE || 'https://craig.chat/',

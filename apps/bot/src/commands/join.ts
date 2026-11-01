@@ -449,14 +449,14 @@ export default class Join extends GeneralCommand {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: t('common.download'),
-                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                url: `${this.client.config.craig.downloadURL}/rec/${recording.id}?key=${recording.accessKey}`,
                 emoji: this.emojis.getPartial('download') || undefined
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: t('join_command.delete_recording'),
-                url: `https://${this.client.config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
+                url: `${this.client.config.craig.downloadURL}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
                 emoji: this.emojis.getPartial('delete') || undefined
               }
             ]

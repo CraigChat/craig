@@ -261,16 +261,14 @@ export function makeDownloadMessage(recording: Recording, parsedRewards: ParsedR
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: t('common.download'),
-                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${recording.accessKey}`,
+                url: `${config.craig.downloadURL}/rec/${recording.id}?key=${recording.accessKey}`,
                 emoji: emojis.getPartial('download')
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.LINK,
                 label: t('join_command.delete_recording'),
-                url: `${config.craig.downloadProtocol ?? 'https'}://${config.craig.downloadDomain}/rec/${recording.id}?key=${
-                  recording.accessKey
-                }&delete=${recording.deleteKey}`,
+                url: `${config.craig.downloadURL}/rec/${recording.id}?key=${recording.accessKey}&delete=${recording.deleteKey}`,
                 emoji: emojis.getPartial('delete')
               }
             ]
@@ -400,8 +398,7 @@ export async function paginateRecordings(client: CraigBot, userID: string, t: TF
       ]
     } as EditMessageOptions;
 
-  const downloadDomain = client.config.craig.downloadDomain;
-  const baseUrl = `${client.config.craig.downloadProtocol ?? 'https'}://${downloadDomain}`;
+  const baseUrl = client.config.craig.downloadURL;
   const emojis = client.slash.emojis;
   const pages = Math.ceil(recordingCount / MAX_PAGE_AMOUNT);
   const page = Math.min(pages, requested);
