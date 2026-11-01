@@ -15,11 +15,10 @@ import fastifyWebsocket from '@fastify/websocket';
 import fastify from 'fastify';
 
 import { getShardFromConnectionToken, Shard, ShardIdentifyPayload, shardsConnected } from './shards.js';
-import { closeWebsocket, debug, logger, timeoutWebsocket, toBuffer } from './util.js';
+import { closeWebsocket, debug, getClientAddress, logger, timeoutWebsocket, toBuffer } from './util.js';
 
 const app = fastify({
   logger: debug,
-  trustProxy: process.env.TRUST_PROXY === 'true',
   routerOptions: { ignoreTrailingSlash: true }
 });
 
@@ -28,10 +27,7 @@ app.register(fastifyHelmet);
 app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
-  keyGenerator(req) {
-    const connectingIp = req.headers['cf-connecting-ip'];
-    return (Array.isArray(connectingIp) ? connectingIp[0] : connectingIp) || req.ip;
-  },
+  keyGenerator: getClientAddress,
   errorResponseBuilder() {
     return {
       ok: false,
