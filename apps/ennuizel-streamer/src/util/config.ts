@@ -13,4 +13,6 @@ export const PROC_CHRT_IDLE = process.env.PROC_CHRT_IDLE === 'true';
 
 export const HOST = process.env.HOST || 'localhost';
 export const PORT = process.env.PORT ? parseInt(process.env.PORT) : 9001;
-export const PROXY_HEADER = process.env.PROXY_HEADER ?? null;
+export const ADDRESS_HEADER = process.env.ADDRESS_HEADER?.toLowerCase() || '';
+export const XFF_DEPTH = parseInt(process.env.XFF_DEPTH || '1', 10);
+if (!Number.isInteger(XFF_DEPTH) || XFF_DEPTH < 1) throw new Error('XFF_DEPTH must be a positive integer');

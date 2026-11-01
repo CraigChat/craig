@@ -48,16 +48,18 @@
     />
     <span><DynamicTranslatable template={$t('supporter_status.feature_available_in')} replacements={{ tier }} /></span>
   </div>
-  <div class="flex flex-wrap items-center justify-center gap-3">
-    <a
-      href={noTier ? `https://patreon.com/${PUBLIC_PATREON_URL}` : `https://www.patreon.com/settings/memberships/${PUBLIC_PATREON_URL}`}
-      class={cn('rounded-lg bg-white/90 font-medium text-black transition-all hover:bg-white active:scale-98', {
-        'px-4 py-2': !small,
-        'px-4 py-1 text-sm': small
-      })}
-      target="_blank"
-    >
-      {$t(noTier ? 'supporter_status.cta' : 'supporter_status.manage')}
-    </a>
-  </div>
+  {#if PUBLIC_PATREON_URL}
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a
+        href={noTier ? `https://patreon.com/${PUBLIC_PATREON_URL}` : `https://www.patreon.com/settings/memberships/${PUBLIC_PATREON_URL}`}
+        class={cn('rounded-lg bg-white/90 font-medium text-black transition-all hover:bg-white active:scale-98', {
+          'px-4 py-2': !small,
+          'px-4 py-1 text-sm': small
+        })}
+        target="_blank"
+      >
+        {$t(noTier ? 'supporter_status.cta' : 'supporter_status.manage')}
+      </a>
+    </div>
+  {/if}
 </div>

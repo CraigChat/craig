@@ -343,9 +343,7 @@ export default class Recording {
           ? this.t('recording.panel.upcoming_maintenance')
           : this.t('recording.panel.ongoing_maintenance');
     const timestamp = upcoming ? ` <t:${Math.floor(startedAt / 1000)}:R>` : '';
-    await this.pushToActivity(
-      `🚧 ${label}: [${incident.title}](https://status.craig.chat/incidents/${incident.id})${additionalCount}${timestamp}`
-    );
+    await this.pushToActivity(`🚧 ${label}: [${incident.title}](https://status.craig.chat/incidents/${incident.id})${additionalCount}${timestamp}`);
   }
 
   async stop(internal = false, userID?: string) {

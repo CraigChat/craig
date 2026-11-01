@@ -91,4 +91,6 @@ jobs:
           submodules: true
           persist-credentials: false
       - name: Validate Compose config
-        run: docker compose --env-file docker.env.example config
+        run: |
+          cp docker.env.example docker.env
+          docker compose --env-file docker.env config

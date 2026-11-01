@@ -15,7 +15,7 @@
   import { browser } from '$app/env';
   import { PUBLIC_HOSTNAME, PUBLIC_PLAUSIBLE_HOSTNAME } from '$app/env/public';
   import { onNavigate } from '$app/navigation';
-  import { updated } from '$app/state';
+  import { page, updated } from '$app/state';
 
   import type { LayoutData } from './$types';
 
@@ -39,7 +39,11 @@
   <title>Craig Dashboard</title>
 
   {#if PUBLIC_PLAUSIBLE_HOSTNAME}
-    <script defer data-domain={PUBLIC_HOSTNAME} src="https://{PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"></script>
+    <script
+      defer
+      data-domain={PUBLIC_HOSTNAME || page.url.hostname}
+      src="https://{PUBLIC_PLAUSIBLE_HOSTNAME}/js/script.manual.tagged-events.js"
+    ></script>
   {/if}
 </svelte:head>
 

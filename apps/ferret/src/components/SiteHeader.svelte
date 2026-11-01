@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Icon from '@iconify/svelte';
   import discordIcon from '@iconify-icons/simple-icons/discord';
   import clsx from 'clsx';
@@ -7,9 +7,17 @@
   import { SUPPORT_SERVER_URL } from '$lib/util';
 
   import LanguageButton from './LanguageButton.svelte';
+
+  const ENV_TAGS: Record<string, { label: string; color: string }> = {
+    nightly: { label: 'Nightly', color: 'text-purple-400' },
+    development: { label: 'Development', color: 'text-red-400' },
+    selfhosted: { label: 'Self-hosted', color: 'text-teal-400' }
+  };
+
+  const envTag = ENV_TAGS[env.PUBLIC_CRAIG_ENV ?? ''];
 </script>
 
-<header class="z-[1] inline-flex items-center justify-between">
+<header class="z-1 inline-flex items-center justify-between">
   <a class="group relative flex items-center justify-center gap-2 sm:gap-3" href="https://craig.chat" target="_blank">
     <enhanced:img
       class="h-8 w-8 rounded-md sm:h-10 sm:w-10 sm:rounded-lg"
@@ -21,14 +29,9 @@
       class="font-display text-xl font-bold text-white underline decoration-transparent transition-colors group-hover:decoration-teal-500 sm:text-3xl"
     >
       Craig
-      {#if env.PUBLIC_CRAIG_ENV === 'nightly' || env.PUBLIC_CRAIG_ENV === 'development'}
-        <span
-          class={clsx(
-            'pointer-events-none absolute -bottom-2 right-0 rounded text-xs font-bold capitalize leading-none',
-            env.PUBLIC_CRAIG_ENV === 'nightly' ? 'text-purple-400' : 'text-red-400'
-          )}
-        >
-          {env.PUBLIC_CRAIG_ENV}
+      {#if envTag}
+        <span class={clsx('pointer-events-none absolute -bottom-2 right-0 rounded text-xs font-bold leading-none', envTag.color)}>
+          {envTag.label}
         </span>
       {/if}
     </div>

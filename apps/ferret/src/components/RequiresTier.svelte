@@ -25,13 +25,15 @@
     <Icon icon={starIcon} class="size-6 flex-none text-white sm:size-8" />
     <span><DynamicTranslatable template={$t('supporter_block.feature_available_in')} replacements={{ tier }} /></span>
   </div>
-  <div class="flex flex-wrap items-center justify-center gap-3">
-    <a
-      href="https://patreon.com/{env.PUBLIC_PATREON_URL}"
-      class="active:scale-98 rounded-lg bg-white/90 px-4 py-2 font-medium text-black transition-all hover:bg-white"
-      target="_blank"
-    >
-      {$t('supporter_block.cta')}
-    </a>
-  </div>
+  {#if env.PUBLIC_PATREON_URL}
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a
+        href="https://patreon.com/{env.PUBLIC_PATREON_URL}"
+        class="active:scale-98 rounded-lg bg-white/90 px-4 py-2 font-medium text-black transition-all hover:bg-white"
+        target="_blank"
+      >
+        {$t('supporter_block.cta')}
+      </a>
+    </div>
+  {/if}
 </div>

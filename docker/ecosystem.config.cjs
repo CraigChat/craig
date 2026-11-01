@@ -1,3 +1,5 @@
+// Every app also inherits the container's full environment (docker.env); the `env` blocks
+// below only pin container paths/ports and map shared settings to each app's own names.
 const sharedEnv = {
   NODE_ENV: 'production',
   REDIS_HOST: process.env.REDIS_HOST || 'redis',
@@ -9,6 +11,14 @@ const sharedEnv = {
   OUTPUT_DIRECTORY: process.env.OUTPUT_DIRECTORY || '/data/output'
 };
 
+const env = (name, fallback = '') => process.env[name] || fallback;
+const dashboardUrl = env('PUBLIC_BASE_URL', env('DASHBOARD_URL')).replace(/\/+$/, '');
+const downloadOrigin = process.env.DOWNLOAD_URL
+  ? new URL(process.env.DOWNLOAD_URL).origin
+  : process.env.DOWNLOAD_DOMAIN
+    ? `${env('DOWNLOAD_PROTOCOL', 'https')}://${process.env.DOWNLOAD_DOMAIN}`
+    : '';
+
 module.exports = {
   apps: [
     {
@@ -17,15 +27,15 @@ module.exports = {
       script: 'dist/sharding/index.mjs',
       wait_ready: true,
       log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
-      kill_timeout: 10000,
+      kill_timeout: 60000,
       env: {
         ...sharedEnv,
         BOT_SYNC_COMMANDS: 'true',
         BOT_EMOJI_FOLDER: '/opt/craig/bot/emojis',
         BOT_LOCALE_FOLDER: '/opt/craig/locale',
         BOT_VOICE_TEST_FOLDER: '/opt/craig/bot/audio',
-        KITCHEN_URL: process.env.KITCHEN_URL || 'http://127.0.0.1:9000',
-        WEBAPP_URL: process.env.WEBAPP_URL || 'ws://127.0.0.1:9002/shard'
+        KITCHEN_URL: env('KITCHEN_URL', 'http://127.0.0.1:9000'),
+        WEBAPP_URL: env('WEBAPP_URL', 'ws://127.0.0.1:9002/shard')
       }
     },
     {
@@ -34,12 +44,17 @@ module.exports = {
       script: 'dist/index.js',
       wait_ready: true,
       log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
-      kill_timeout: 10000,
+      kill_timeout: 30000,
       env: {
         ...sharedEnv,
-        HOST: '0.0.0.0',
+        HOST: '127.0.0.1',
         PORT: '9000',
-        TMP_DIRECTORY: process.env.TMP_DIRECTORY || '/tmp/craig'
+        TMP_DIRECTORY: env('TMP_DIRECTORY', '/tmp/craig'),
+        GOOGLE_CLIENT_ID: env('GOOGLE_CLIENT_ID', env('PUBLIC_GOOGLE_CLIENT_ID')),
+        MICROSOFT_CLIENT_ID: env('MICROSOFT_CLIENT_ID', env('PUBLIC_MICROSOFT_CLIENT_ID')),
+        MICROSOFT_CLIENT_REDIRECT: env('MICROSOFT_CLIENT_REDIRECT', dashboardUrl && `${dashboardUrl}/api/connections/microsoft/callback`),
+        DROPBOX_CLIENT_ID: env('DROPBOX_CLIENT_ID', env('PUBLIC_DROPBOX_CLIENT_ID')),
+        BOX_CLIENT_ID: env('BOX_CLIENT_ID', env('PUBLIC_BOX_CLIENT_ID'))
       }
     },
     {
@@ -53,7 +68,8 @@ module.exports = {
         ...sharedEnv,
         HOST: '0.0.0.0',
         PORT: '9100',
-        KITCHEN_URL: process.env.KITCHEN_URL || 'http://127.0.0.1:9000'
+        ORIGIN: env('FERRET_ORIGIN', downloadOrigin),
+        KITCHEN_URL: env('KITCHEN_URL', 'http://127.0.0.1:9000')
       }
     },
     {
@@ -80,7 +96,7 @@ module.exports = {
         ...sharedEnv,
         HOST: '0.0.0.0',
         PORT: '9002',
-        SHARD_AUTH: process.env.WEBAPP_TOKEN || ''
+        SHARD_AUTH: env('WEBAPP_TOKEN')
       }
     },
     {
@@ -103,7 +119,10 @@ module.exports = {
       wait_ready: true,
       log_date_format: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
       kill_timeout: 10000,
-      env: sharedEnv
+      env: {
+        ...sharedEnv,
+        TASKS_IGNORE: [env('TASKS_IGNORE'), 'refreshPatrons'].filter(Boolean).join(',')
+      }
     }
   ]
 };

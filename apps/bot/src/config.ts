@@ -29,7 +29,6 @@ export interface CraigBotConfig {
   };
 
   craig: {
-    emoji: string;
     downloadURL: string;
     dashboardURL: string;
     systemNotificationURL?: string;
@@ -221,7 +220,6 @@ export function getBotConfig(): CraigBotConfig {
       state: process.env.BOT_STATUS_TEXT || 'Recording VCs • craig.chat'
     },
     craig: {
-      emoji: process.env.CRAIG_EMOJI_ID || '297187944295301122',
       downloadURL: downloadURLFromEnv(),
       dashboardURL: process.env.DASHBOARD_URL || 'https://my.craig.chat',
       systemNotificationURL: process.env.SYSTEM_NOTIFICATION_URL,

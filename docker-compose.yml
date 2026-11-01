@@ -1,46 +1,37 @@
 name: craig
 
-x-shared-storage: &shared-storage
-  - ./craig-data:/data
-
-x-runtime-environment: &runtime-environment
-  NODE_ENV: production
-  DATABASE_URL: postgresql://${POSTGRES_USER:-craig}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker.env}@db:5432/${POSTGRES_DB:-craig}?schema=public
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  REDIS_DATABASE: ${REDIS_DATABASE:-0}
-  REDIS_PREFIX: ${REDIS_PREFIX:-craig:}
-  REC_DIRECTORY: /data/rec
-  DOWNLOADS_DIRECTORY: /data/downloads
-  OUTPUT_DIRECTORY: /data/output
-  BOT_LOCALE_FOLDER: /opt/craig/locale
-  KITCHEN_URL: http://127.0.0.1:9000
-  WEBAPP_URL: ws://127.0.0.1:9002/shard
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: '5'
 
 services:
   db:
     image: postgres:17-bookworm
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-craig}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in docker.env}
-      POSTGRES_DB: ${POSTGRES_DB:-craig}
+    env_file: docker.env
+    shm_size: 256mb
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-postgres}" -d "$${POSTGRES_DB:-$${POSTGRES_USER:-postgres}}"']
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *logging
 
   redis:
     image: redis:7-bookworm
     restart: unless-stopped
+    volumes:
+      - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *logging
 
   craig:
     image: ghcr.io/craigchat/craig:${CRAIG_IMAGE_TAG:-latest}
@@ -49,22 +40,25 @@ services:
       args:
         CRAIG_VERSION: ${CRAIG_VERSION:-local}
     restart: unless-stopped
-    env_file:
-      - path: docker.env
-        required: false
-    environment:
-      <<: *runtime-environment
-    volumes: *shared-storage
+    init: true
+    stop_grace_period: 90s
+    env_file: docker.env
+    volumes:
+      - ./craig-data:/data
+      - kitchen-tmp:/tmp/craig
     ports:
-      - ${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
-      - ${CRAIG_FERRET_HOST_PORT:-9100}:9100
-      - ${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
-      - ${CRAIG_WEBAPP_HOST_PORT:-9002}:9002
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_FERRET_HOST_PORT:-9100}:9100
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_WEBAPP_HOST_PORT:-9002}:9002
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    logging: *logging
 
 volumes:
   postgres-data:
+  redis-data:
+  kitchen-tmp:

@@ -36,6 +36,22 @@ tryConnect();
 NODE
 }
 
+# Build DATABASE_URL from the POSTGRES_* values in docker.env unless one was given explicitly
+if [ -z "${DATABASE_URL:-}" ]; then
+  if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+    echo "Set POSTGRES_PASSWORD (or DATABASE_URL) in docker.env." >&2
+    exit 1
+  fi
+  DATABASE_URL="$(node -e '
+// Same defaults as the postgres image: user "postgres", database named after the user
+const { POSTGRES_USER = "postgres", POSTGRES_PASSWORD, POSTGRES_HOST = "db", POSTGRES_PORT = "5432" } = process.env;
+const POSTGRES_DB = process.env.POSTGRES_DB || POSTGRES_USER;
+const e = encodeURIComponent;
+console.log(`postgresql://${e(POSTGRES_USER)}:${e(POSTGRES_PASSWORD)}@${POSTGRES_HOST}:${POSTGRES_PORT}/${e(POSTGRES_DB)}`);
+')"
+  export DATABASE_URL
+fi
+
 database_host_port() {
   node - <<'NODE'
 const url = process.env.DATABASE_URL;

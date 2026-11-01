@@ -39,3 +39,11 @@ apps/kitchen/cook/oggtracks
 apps/kitchen/cook/wavduration
 apps/ennuizel-streamer/cook/extnotes
 apps/ennuizel-streamer/cook/oggcorrect
+
+# Self-host data and secrets
+.git
+craig-data
+docker.env
+**/sentry.env
+**/*.env
+!**/*.env.example

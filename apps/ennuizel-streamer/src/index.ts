@@ -5,7 +5,8 @@ import { startMetricsServer } from '@craig/metrics';
 import destr from 'destr';
 import uWS from 'uWebSockets.js';
 
-import { HOST, PORT, PROXY_HEADER, REC_DIRECTORY } from './util/config.js';
+import { getClientAddress } from './util/address.js';
+import { HOST, PORT, REC_DIRECTORY } from './util/config.js';
 import { timeoutWebsocket, WebsocketData } from './util/index.js';
 import logger from './util/logger.js';
 import { openStreams, requestHistogram, streamsTotal } from './util/metrics.js';
@@ -118,7 +119,7 @@ const app = uWS
     /* Handlers */
     upgrade: (res, req, context) => {
       const timer = requestHistogram.startTimer({ route: '/ennuizel' });
-      const ip = PROXY_HEADER ? req.getHeader(PROXY_HEADER.toLowerCase()) : Buffer.from(res.getRemoteAddressAsText()).toString();
+      const ip = getClientAddress(res, req);
       logger.info(`New websocket connection request from ${ip}`);
 
       /* This immediately calls open handler, you must not use res after this call */
