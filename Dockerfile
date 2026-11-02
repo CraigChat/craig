@@ -88,13 +88,12 @@ RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmwa
     vorbis-tools \
     zip \
   && rm -rf /var/lib/apt/lists/* \
-  && npm install -g pm2@5.4.3 slash-up@1.4.2 \
+  && npm install -g slash-up@1.4.2 \
   && npm cache clean --force
 
 COPY --from=build /opt/craig /opt/craig
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/craig-entrypoint.sh
-COPY --chmod=755 docker/healthcheck.sh /usr/local/bin/craig-healthcheck.sh
-COPY docker/ecosystem.config.cjs /opt/craig/ecosystem.config.cjs
+COPY docker/services.cjs docker/launch.cjs docker/healthcheck.cjs /opt/craig/docker/
 
 ENV NODE_ENV=production \
   HOST=0.0.0.0 \
@@ -102,12 +101,9 @@ ENV NODE_ENV=production \
   DOWNLOADS_DIRECTORY=/data/downloads \
   OUTPUT_DIRECTORY=/data/output \
   TMP_DIRECTORY=/tmp/craig \
-  BOT_LOCALE_FOLDER=/opt/craig/locale \
-  KITCHEN_URL=http://127.0.0.1:9000 \
-  WEBAPP_URL=ws://127.0.0.1:9002/shard
+  BOT_LOCALE_FOLDER=/opt/craig/locale
 
-EXPOSE 9001 9002 9100 9200
+EXPOSE 9000 9001 9002 9100 9200
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["craig-healthcheck.sh"]
-
+# Pass the service to run: migrate, bot, kitchen, ferret, ennuizel-streamer, webapp-server, dashboard or tasks
 ENTRYPOINT ["craig-entrypoint.sh"]

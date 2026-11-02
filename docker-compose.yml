@@ -6,6 +6,24 @@ x-logging: &logging
     max-size: 20m
     max-file: '5'
 
+x-craig: &craig
+  image: ghcr.io/craigchat/craig:${CRAIG_IMAGE_TAG:-latest}
+  restart: unless-stopped
+  init: true
+  env_file: docker.env
+  logging: *logging
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    redis:
+      condition: service_healthy
+
+x-healthcheck: &healthcheck
+  interval: 30s
+  timeout: 10s
+  start_period: 60s
+  retries: 3
+
 services:
   db:
     image: postgres:17-bookworm
@@ -14,6 +32,7 @@ services:
     shm_size: 256mb
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks: [default, kitchen]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER:-postgres}" -d "$${POSTGRES_DB:-$${POSTGRES_USER:-postgres}}"']
       interval: 10s
@@ -26,6 +45,7 @@ services:
     restart: unless-stopped
     volumes:
       - redis-data:/data
+    networks: [default, kitchen]
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -33,30 +53,89 @@ services:
       retries: 5
     logging: *logging
 
-  craig:
-    image: ghcr.io/craigchat/craig:${CRAIG_IMAGE_TAG:-latest}
+  # Applies database migrations, then exits. Every Craig service waits for it.
+  migrate:
+    <<: *craig
     build:
       context: .
       args:
         CRAIG_VERSION: ${CRAIG_VERSION:-local}
-    restart: unless-stopped
-    init: true
-    stop_grace_period: 90s
-    env_file: docker.env
-    volumes:
-      - ./craig-data:/data
-      - kitchen-tmp:/tmp/craig
-    ports:
-      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_FERRET_HOST_PORT:-9100}:9100
-      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
-      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
-      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_WEBAPP_HOST_PORT:-9002}:9002
+    command: migrate
+    restart: 'no'
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-    logging: *logging
+
+  bot:
+    <<: *craig
+    command: bot
+    stop_grace_period: 90s
+    volumes:
+      - ./craig-data:/data
+    networks: [default, kitchen]
+
+  kitchen:
+    <<: *craig
+    command: kitchen
+    stop_grace_period: 35s
+    volumes:
+      - ./craig-data:/data
+      - kitchen-tmp:/tmp/craig
+    networks: [kitchen]
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'node', '/opt/craig/docker/healthcheck.cjs', 'kitchen']
+
+  ferret:
+    <<: *craig
+    command: ferret
+    volumes:
+      - ./craig-data:/data
+    networks: [default, kitchen]
+    ports:
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_FERRET_HOST_PORT:-9100}:9100
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'node', '/opt/craig/docker/healthcheck.cjs', 'ferret']
+
+  ennuizel-streamer:
+    <<: *craig
+    command: ennuizel-streamer
+    volumes:
+      - ./craig-data/rec:/data/rec:ro
+    ports:
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_ENNUIZEL_HOST_PORT:-9001}:9001
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'node', '/opt/craig/docker/healthcheck.cjs', 'ennuizel-streamer']
+
+  webapp-server:
+    <<: *craig
+    command: webapp-server
+    ports:
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_WEBAPP_HOST_PORT:-9002}:9002
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'node', '/opt/craig/docker/healthcheck.cjs', 'webapp-server']
+
+  dashboard:
+    <<: *craig
+    command: dashboard
+    ports:
+      - ${CRAIG_BIND_ADDRESS:-127.0.0.1}:${CRAIG_DASHBOARD_HOST_PORT:-9200}:9200
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'node', '/opt/craig/docker/healthcheck.cjs', 'dashboard']
+
+  tasks:
+    <<: *craig
+    command: tasks
+    volumes:
+      - ./craig-data:/data
+
+networks:
+  default:
+  kitchen:
 
 volumes:
   postgres-data:

@@ -1,7 +1,17 @@
 #!/bin/sh
 set -eu
 
-mkdir -p "${REC_DIRECTORY:-/data/rec}" "${DOWNLOADS_DIRECTORY:-/data/downloads}" "${OUTPUT_DIRECTORY:-/data/output}" "${TMP_DIRECTORY:-/tmp/craig}"
+# Usage: craig-entrypoint.sh <service>, where <service> is `migrate` or an app in services.cjs
+if [ "$#" -ne 1 ]; then
+  echo "Usage: craig-entrypoint.sh <service>" >&2
+  exit 1
+fi
+SERVICE="$1"
+
+# Only services that mount /data read-write create its folders
+if [ -w /data ]; then
+  mkdir -p "${REC_DIRECTORY:-/data/rec}" "${DOWNLOADS_DIRECTORY:-/data/downloads}" "${OUTPUT_DIRECTORY:-/data/output}"
+fi
 
 wait_for_tcp() {
   name="$1"
@@ -61,26 +71,16 @@ console.log(`${parsed.hostname} ${parsed.port || 5432}`);
 NODE
 }
 
+# Wait for DB
 if DB_TARGET="$(database_host_port)"; then
   set -- $DB_TARGET
   wait_for_tcp postgres "$1" "$2" "${CRAIG_STARTUP_TIMEOUT:-90}"
 fi
 
-wait_for_tcp redis "${REDIS_HOST:-redis}" "${REDIS_PORT:-6379}" "${CRAIG_STARTUP_TIMEOUT:-90}"
-
-PRISMA_CLI="${PRISMA_CLI:-/opt/craig/migrate/node_modules/.bin/prisma}"
-PRISMA_CONFIG="${PRISMA_CONFIG:-/opt/craig/migrate/prisma.config.ts}"
-
-if [ "${CRAIG_SKIP_MIGRATIONS:-false}" != "true" ]; then
-  if [ ! -x "$PRISMA_CLI" ]; then
-    echo "Prisma CLI is missing from the Craig runtime image." >&2
-    exit 1
-  fi
-  if [ ! -f "$PRISMA_CONFIG" ]; then
-    echo "Prisma config is missing from the Craig runtime image." >&2
-    exit 1
-  fi
-  "$PRISMA_CLI" migrate deploy --config "$PRISMA_CONFIG"
+if [ "$SERVICE" = migrate ]; then
+  exec /opt/craig/migrate/node_modules/.bin/prisma migrate deploy --config /opt/craig/migrate/prisma.config.ts
 fi
 
-exec pm2-runtime /opt/craig/ecosystem.config.cjs
+wait_for_tcp redis "${REDIS_HOST:-redis}" "${REDIS_PORT:-6379}" "${CRAIG_STARTUP_TIMEOUT:-90}"
+
+exec node /opt/craig/docker/launch.cjs "$SERVICE"
