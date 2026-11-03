@@ -53,7 +53,7 @@ export async function processAvatarsJob(job: Job) {
 
   // Avatar glow
   filters.push(
-    `[2:a]${ARESAMPLE},apad,dynaudnorm,volume=2,showvolume=r=30:b=0:c=0xFFFFFF:f=0.75:t=0:v=0,format=y8,scale=1:1:flags=area,scale=160:160:flags=neighbor,setsar=1[glow]`,
+    `[2:a]${ARESAMPLE},apad=whole_dur=${parseFloat(duration) + 30},dynaudnorm,volume=2,showvolume=r=30:b=0:c=0xFFFFFF:f=0.75:t=0:v=0,format=y8,scale=1:1:flags=area,scale=160:160:flags=neighbor,setsar=1[glow]`,
     `[1:v]alphaextract,setsar=1[glowa]`,
     `[glowa][glow]blend=darken[glow]`
   );
