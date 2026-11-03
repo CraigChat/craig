@@ -28,7 +28,7 @@
     "@craig/metrics": "workspace:*",
     "@discordjs/opus": "^0.10.0",
     "@henrygd/semaphore": "catalog:",
-    "@projectdysnomia/dysnomia": "github:Snazzah/dysnomia#da3811d70a678bf58480bf99b14fffeb55161427",
+    "@projectdysnomia/dysnomia": "github:Snazzah/dysnomia#7b40193d477e6a7c6becbc518a67071ca301753b",
     "@sentry/node": "^11.6.0",
     "@snazzah/davey": "^0.2.0-beta.1",
     "@snazzah/emoji-sync": "^0.1.2",
@@ -41,7 +41,7 @@
     "intl-messageformat": "^10.7.18",
     "ioredis": "catalog:",
     "nanoid": "catalog:",
-    "slash-create": "^6.8.1",
+    "slash-create": "^7.1.0",
     "sodium-native": "^5.1.0",
     "verkit": "^0.5.0",
     "ws": "catalog:"

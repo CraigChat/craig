@@ -25,7 +25,7 @@
     "@craig/logger": "workspace:*",
     "@projectdysnomia/dysnomia": "github:Snazzah/dysnomia#da3811d70a678bf58480bf99b14fffeb55161427",
     "common-tags": "catalog:",
-    "slash-create": "^6.8.1"
+    "slash-create": "^7.1.0"
   },
   "devDependencies": {
     "@types/common-tags": "catalog:",
