@@ -29,10 +29,23 @@ const MAX_LATENCY_WARNING = 500;
 const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
 
-// Only pass through Node-style error codes (e.g. ENOTFOUND) to keep metric label cardinality bounded
+// Only pass through Node-style error codes (e.g. ENOTFOUND), HTTP statuses and WebSocket close codes to keep metric label cardinality bounded
 function getErrorCode(err: unknown) {
   const code = (err as any)?.code;
-  return typeof code === 'string' && /^E[A-Z0-9_]{1,40}$/.test(code) ? code : 'unknown';
+  if (typeof code === 'string' && /^E[A-Z0-9_]{1,40}$/.test(code)) return code;
+
+  const message = (err as any)?.message;
+  if (typeof message !== 'string') return 'unknown';
+
+  // e.g. "Unexpected server response: 522" from ws during the handshake
+  const httpStatus = message.match(/^Unexpected server response: (\d{3})\b/);
+  if (httpStatus) return `HTTP_${httpStatus[1]}`;
+
+  // e.g. "1006: " from a voice websocket close
+  const closeCode = message.match(/^(\d{4}):/);
+  if (closeCode) return `WS_${closeCode[1]}`;
+
+  return 'unknown';
 }
 const BAD_MESSAGE_CODES = [
   404,
