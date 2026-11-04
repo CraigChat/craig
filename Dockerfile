@@ -8,7 +8,7 @@ ENV PATH=$PNPM_HOME:$PATH
 WORKDIR /workspace
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends build-essential ca-certificates git python3 unzip wget \
+  && apt-get install -y --no-install-recommends build-essential ca-certificates git libopus-dev python3 unzip wget \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 
@@ -21,6 +21,7 @@ ARG CRAIG_VERSION=unknown
 ENV CRAIG_VERSION=$CRAIG_VERSION
 
 RUN pnpm --filter @craig/kitchen run build-cook \
+  && ldd apps/kitchen/cook/oggdec | grep -q "libopus\.so\.0 => /" \
   && pnpm --filter @craig/ennuizel-streamer run build-cook \
   && pnpm turbo run build \
     --filter=@craig/bot \
@@ -80,6 +81,7 @@ RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmwa
     ffmpeg \
     flac \
     lame \
+    libopus0 \
     openssl \
     opus-tools \
     procps \
@@ -92,6 +94,8 @@ RUN sed -i 's/Components: main/Components: main contrib non-free non-free-firmwa
   && npm cache clean --force
 
 COPY --from=build /opt/craig /opt/craig
+# Fail the build if oggdec cannot find libopus in the runtime image
+RUN ldd /opt/craig/kitchen/cook/oggdec | grep -q "libopus\.so\.0 => /"
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/craig-entrypoint.sh
 COPY docker/services.cjs docker/launch.cjs docker/healthcheck.cjs /opt/craig/docker/
 

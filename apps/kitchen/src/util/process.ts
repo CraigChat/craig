@@ -97,7 +97,16 @@ export function timemarkToSeconds(timemark: string) {
   return secs;
 }
 
-function getTimemark(line: string): [string, number] | null {
+function getTimemark(chunk: string): [string, number] | null {
+  const lines = chunk.split(/[\r\n]+/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const timemark = getLineTimemark(lines[i]);
+    if (timemark) return timemark;
+  }
+  return null;
+}
+
+function getLineTimemark(line: string): [string, number] | null {
   // Remove all spaces after = and trim
   line = line.replace(/=\s+/g, '=').trim();
   const progressParts = line.split(' ');
@@ -136,35 +145,76 @@ interface EncodeTrackOptions extends EncodeMixTrackOptions {
 
 export async function encodeTrack({ recFileBase, codec, track, cancelSignal, encodeCommand, audioWritePath, job, dynaudnorm }: EncodeTrackOptions) {
   const duration = await getDuration({ recFileBase, cancelSignal, track });
+  const pOpts = procOpts();
+  const correctCommands = [
+    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
+    `${pOpts} ./cook/oggcorrect ${track}`
+  ];
+  const encodeOptions = { cancelSignal, track, encodeCommand, audioWritePath, job, duration };
+
+  if (codec === 'opus') {
+    const decodeCommands = dynaudnorm
+      ? [
+          `${pOpts} ./cook/oggdec -`,
+          `${pOpts} ffmpeg -f wav -i - -af anull,dynaudnorm -flags bitexact -f wav -`,
+          `${pOpts} ./cook/wavduration ${duration}`
+        ]
+      : [`${pOpts} ./cook/oggdec -d ${duration} -`];
+    const success = await runTrackEncode({
+      ...encodeOptions,
+      commands: [...correctCommands, ...decodeCommands, `${pOpts} ${encodeCommand}`],
+      checkCommand: correctCommands.length
+    });
+    if (success || cancelSignal.aborted) return success;
+    if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track} with oggdec, retrying with ffmpeg`);
+  }
 
   const ffmpegFilters = ['anull', ...(dynaudnorm ? ['dynaudnorm'] : [])].join(',');
-  const pOpts = procOpts();
-
-  const commands = [
-    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
-    `${pOpts} ./cook/oggcorrect ${track}`,
-    `${pOpts} ffmpeg -codec ${codec === 'opus' ? 'libopus' : codec} -copyts -i - -af ${ffmpegFilters} -flags bitexact -f wav -`,
-    `${pOpts} ./cook/wavduration ${duration}`,
-    `${pOpts} ${encodeCommand}`
-  ];
-
-  const directOutput = encodeCommand.includes('$OUTPUT');
-  const childProcess = runCommand(commands.join(' | '), {
-    cancelSignal,
-    buffer: false,
-    shell: true,
-    timeout: DEF_TIMEOUT,
-    cwd: ROOT_DIR,
-    env: directOutput ? { OUTPUT: audioWritePath } : undefined,
-    stdout: directOutput ? 'ignore' : { file: audioWritePath }
+  const success = await runTrackEncode({
+    ...encodeOptions,
+    commands: [
+      ...correctCommands,
+      `${pOpts} ffmpeg -codec ${codec === 'opus' ? 'libopus' : codec} -copyts -i - -af ${ffmpegFilters} -flags bitexact -f wav -`,
+      `${pOpts} ./cook/wavduration ${duration}`,
+      `${pOpts} ${encodeCommand}`
+    ]
   });
+  if (!success && job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
+  return success;
+}
+
+interface RunTrackEncodeOptions extends Omit<EncodeTrackOptions, 'recFileBase' | 'codec' | 'dynaudnorm'> {
+  commands: string[];
+  duration: string;
+  /** Index of a pipeline command whose exit status must also be 0 */
+  checkCommand?: number;
+}
+
+async function runTrackEncode({ cancelSignal, track, encodeCommand, audioWritePath, job, duration, commands, checkCommand }: RunTrackEncodeOptions) {
+  const directOutput = encodeCommand.includes('$OUTPUT');
+  const pipeline = commands.join(' | ');
+  const childProcess = runCommand(
+    checkCommand === undefined ? pipeline : `${pipeline}; s=("\${PIPESTATUS[@]}"); [ "\${s[${checkCommand}]}" = 0 ] && [ "\${s[-1]}" = 0 ]`,
+    {
+      cancelSignal,
+      buffer: false,
+      shell: checkCommand === undefined ? true : '/bin/bash',
+      timeout: DEF_TIMEOUT,
+      cwd: ROOT_DIR,
+      env: directOutput ? { OUTPUT: audioWritePath } : undefined,
+      stdout: directOutput ? 'ignore' : { file: audioWritePath }
+    }
+  );
 
   const durationNum = parseFloat(duration);
+  const warnings: string[] = [];
 
   try {
     childProcess
       .stderr!.on('data', (b) => {
-        const timemark = getTimemark(b.toString());
+        const text = b.toString();
+        if (text.includes('oggdec: warning')) warnings.push(...text.split('\n').filter((l: string) => l.startsWith('oggdec: warning')));
+        const timemark = getTimemark(text);
         if (timemark) {
           job?.setState({
             type: 'encoding',
@@ -177,12 +227,8 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
       })
       .once('error', () => {});
 
-    const success = await childProcess
-      .then(() => true)
-      .catch(() => {
-        if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
-        return false;
-      });
+    const success = await childProcess.then(() => true).catch(() => false);
+    if (job) for (const warning of warnings) logger.warn(`Job ${job.id} (${job.recordingId}) track ${track}: ${warning}`);
     return success;
   } finally {
     // Clean up event listeners and streams
