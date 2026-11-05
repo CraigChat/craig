@@ -136,34 +136,71 @@ interface EncodeMixTrackOptions extends CommonProcessOptions {
   audioWritePath: string;
 }
 
-interface EncodeTrackOptions extends EncodeMixTrackOptions {
+interface SplitTracksOptions extends CommonProcessOptions {
+  outPrefix: string;
+  tracks: number[];
+  job?: Job;
+}
+
+export interface SplitTrack {
+  file: string;
+  duration: string;
+}
+
+export async function splitTracks({ recFileBase, cancelSignal, outPrefix, tracks, job }: SplitTracksOptions) {
+  const result = new Map<number, SplitTrack>();
+  if (!tracks.length) return result;
+  const { stdout, stderr } = await runCommand(`${procOpts()} ./cook/oggsplit ${recFileBase} ${outPrefix} ${tracks.join(' ')}`, {
+    cancelSignal,
+    cwd: ROOT_DIR,
+    timeout: DEF_TIMEOUT
+  });
+  if (stderr && job) logger.warn(`Job ${job.id} (${job.recordingId}): ${stderr}`);
+  for (const line of stdout.split('\n')) {
+    const [track, duration] = line.split(' ');
+    if (track && duration) result.set(parseInt(track, 10), { file: `${outPrefix}${track}.ogg`, duration });
+  }
+  const missing = tracks.filter((track) => !result.has(track));
+  if (missing.length) throw new Error(`oggsplit did not write tracks ${missing.join(', ')}`);
+  return result;
+}
+
+interface EncodeTrackOptions extends SplitTrack {
+  cancelSignal: AbortSignal;
+  track: number;
+  audioWritePath: string;
   codec: StreamType;
   encodeCommand: string;
   dynaudnorm?: boolean;
   job?: Job;
 }
 
-export async function encodeTrack({ recFileBase, codec, track, cancelSignal, encodeCommand, audioWritePath, job, dynaudnorm }: EncodeTrackOptions) {
-  const duration = await getDuration({ recFileBase, cancelSignal, track });
+export async function encodeTrack({
+  file,
+  duration,
+  codec,
+  track,
+  cancelSignal,
+  encodeCommand,
+  audioWritePath,
+  job,
+  dynaudnorm
+}: EncodeTrackOptions) {
   const pOpts = procOpts();
-  const correctCommands = [
-    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
-    `${pOpts} ./cook/oggcorrect ${track}`
-  ];
   const encodeOptions = { cancelSignal, track, encodeCommand, audioWritePath, job, duration };
 
   if (codec === 'opus') {
     const decodeCommands = dynaudnorm
       ? [
-          `${pOpts} ./cook/oggdec -`,
+          `${pOpts} ./cook/oggdec ${file}`,
           `${pOpts} ffmpeg -f wav -i - -af anull,dynaudnorm -flags bitexact -f wav -`,
           `${pOpts} ./cook/wavduration ${duration}`
         ]
-      : [`${pOpts} ./cook/oggdec -d ${duration} -`];
+      : [`${pOpts} ./cook/oggdec -d ${duration} ${file}`];
     const success = await runTrackEncode({
       ...encodeOptions,
-      commands: [...correctCommands, ...decodeCommands, `${pOpts} ${encodeCommand}`],
-      checkCommand: correctCommands.length
+      commands: [...decodeCommands, `${pOpts} ${encodeCommand}`],
+      checkCommand: 0
     });
     if (success || cancelSignal.aborted) return success;
     if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track} with oggdec, retrying with ffmpeg`);
@@ -173,7 +210,7 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
   const success = await runTrackEncode({
     ...encodeOptions,
     commands: [
-      ...correctCommands,
+      `cat ${file}`,
       `${pOpts} ffmpeg -codec ${codec === 'opus' ? 'libopus' : codec} -copyts -i - -af ${ffmpegFilters} -flags bitexact -f wav -`,
       `${pOpts} ./cook/wavduration ${duration}`,
       `${pOpts} ${encodeCommand}`
@@ -183,9 +220,8 @@ export async function encodeTrack({ recFileBase, codec, track, cancelSignal, enc
   return success;
 }
 
-interface RunTrackEncodeOptions extends Omit<EncodeTrackOptions, 'recFileBase' | 'codec' | 'dynaudnorm'> {
+interface RunTrackEncodeOptions extends Omit<EncodeTrackOptions, 'file' | 'codec' | 'dynaudnorm'> {
   commands: string[];
-  duration: string;
   /** Index of a pipeline command whose exit status must also be 0 */
   checkCommand?: number;
 }

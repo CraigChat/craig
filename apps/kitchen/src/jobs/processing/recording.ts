@@ -20,7 +20,9 @@ import {
   getNotes,
   getStreamTypes,
   recordingWrite,
-  reEncodeTrack
+  reEncodeTrack,
+  SplitTrack,
+  splitTracks
 } from '../../util/process.js';
 import { procOpts } from '../../util/processOptions.js';
 import { getInfoText, getRecordingInfo } from '../../util/recording.js';
@@ -50,6 +52,7 @@ export async function processRecordingJob(job: Job) {
     const pOpts = procOpts();
     const projectMode = job.options?.container === 'aupzip' || job.options?.container === 'sesxzip';
     const localProcessingMode = job.options?.format?.startsWith('wavsfx') || job.options?.format?.startsWith('powersfx');
+    let splitFiles = new Map<number, SplitTrack>();
 
     async function createTrack(i: number) {
       const user = users[i];
@@ -83,15 +86,16 @@ export async function processRecordingJob(job: Job) {
           type: job.state.type,
           tracks: {
             ...(job.state.tracks || {}),
-            [track]: { progress: 0, processing: true }
+            [track]: { progress: 0 }
           }
         });
         if (projectMode) audioDir = path.join(tmpDir, `${job.recordingId}_data`);
         const [audioWritePath, encodeCommand] = getEncodeOptions(audioDir, fileName, job.options?.format);
         trackFiles.push([track, audioWritePath]);
         usedStreamTypes.push(streamTypes[i]);
+        const splitFile = splitFiles.get(track)!;
         const success = await encodeTrack({
-          recFileBase,
+          ...splitFile,
           cancelSignal,
           track,
           job,
@@ -99,13 +103,13 @@ export async function processRecordingJob(job: Job) {
           encodeCommand,
           audioWritePath,
           dynaudnorm: job.options?.skipDynaudnorm?.includes(i) ? false : !!job.options?.dynaudnorm
-        });
+        }).finally(() => fs.rm(splitFile.file, { force: true }));
 
         // Reprocess unsuccessful tracks to avoid annoyance with project programs
         if ((projectMode || localProcessingMode) && !success) await reEncodeTrack({ cancelSignal, audioWritePath });
 
         job.setState({
-          type: 'encoding',
+          type: job.state.type,
           tracks: {
             ...(job.state.tracks || {}),
             [track]: { progress: 100, warn: !success }
@@ -167,6 +171,14 @@ export async function processRecordingJob(job: Job) {
 
     if (projectMode) await fs.mkdir(path.join(tmpDir, `${job.recordingId}_data`));
 
+    // One pass over the recording splits and corrects every track (the mix container still runs oggcorrect per track)
+    if (job.options?.container !== 'mix') {
+      const tracks = users.map((_, i) => i + 1).filter((track) => !job.options?.ignoreTracks?.includes(track));
+      job.setState({ type: 'processing', tracks: Object.fromEntries(tracks.map((track) => [track, { progress: 0, processing: true }])) });
+      splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
+      job.setState({ type: 'encoding', tracks: {} });
+    }
+
     await runParallelFunction({
       parallel: job.options?.parallel,
       concurrency: job.options?.concurrency,
@@ -205,7 +217,7 @@ export async function processRecordingJob(job: Job) {
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
-        await runCommand(`${pOpts} zip -r -FI - . | cat "${sfxPath}" - > ${job.outputFile}`, {
+        await runCommand(`${pOpts} zip -1 -r -FI - . | cat "${sfxPath}" - > ${job.outputFile}`, {
           cancelSignal,
           timeout: DEF_TIMEOUT,
           shell: true,
@@ -367,7 +379,7 @@ export async function processRecordingJob(job: Job) {
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
-        await runCommand(`${pOpts} zip -rFI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
+        await runCommand(`${pOpts} zip -1 -rFI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
         break;
       }
     }
