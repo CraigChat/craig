@@ -197,17 +197,22 @@ export async function encodeTrack({
           `${pOpts} ./cook/wavduration ${duration}`
         ]
       : [`${pOpts} ./cook/oggdec -d ${duration} ${file}`];
-    const success = await runTrackEncode({
+    const result = await runTrackEncode({
       ...encodeOptions,
       commands: [...decodeCommands, `${pOpts} ${encodeCommand}`],
       checkCommand: 0
     });
-    if (success || cancelSignal.aborted) return success;
-    if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track} with oggdec, retrying with ffmpeg`);
+    if (result === 'ok') return true;
+    // Only a failed decode is worth retrying with ffmpeg; a failing encoder would fail the same way there
+    if (result !== 'checkFailed' || cancelSignal.aborted) {
+      if (job && !cancelSignal.aborted) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
+      return false;
+    }
+    if (job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to decode track ${track} with oggdec, retrying with ffmpeg`);
   }
 
   const ffmpegFilters = ['anull', ...(dynaudnorm ? ['dynaudnorm'] : [])].join(',');
-  const success = await runTrackEncode({
+  const result = await runTrackEncode({
     ...encodeOptions,
     commands: [
       `cat ${file}`,
@@ -216,13 +221,19 @@ export async function encodeTrack({
       `${pOpts} ${encodeCommand}`
     ]
   });
-  if (!success && job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
-  return success;
+  if (result !== 'ok' && job) logger.warn(`Job ${job.id} (${job.recordingId}) failed to encode track ${track}`);
+  return result === 'ok';
 }
+
+/** Exit status the pipeline uses when its checked command failed (see `checkCommand`) */
+const CHECK_FAILED_EXIT = 222;
 
 interface RunTrackEncodeOptions extends Omit<EncodeTrackOptions, 'file' | 'codec' | 'dynaudnorm'> {
   commands: string[];
-  /** Index of a pipeline command whose exit status must also be 0 */
+  /**
+   * Index of a pipeline command whose exit status must also be 0. If it is not, the result is 'checkFailed' even when
+   * the last command failed too, so the caller can tell a failed decode from a failed encode.
+   */
   checkCommand?: number;
 }
 
@@ -230,7 +241,9 @@ async function runTrackEncode({ cancelSignal, track, encodeCommand, audioWritePa
   const directOutput = encodeCommand.includes('$OUTPUT');
   const pipeline = commands.join(' | ');
   const childProcess = runCommand(
-    checkCommand === undefined ? pipeline : `${pipeline}; s=("\${PIPESTATUS[@]}"); [ "\${s[${checkCommand}]}" = 0 ] && [ "\${s[-1]}" = 0 ]`,
+    checkCommand === undefined
+      ? pipeline
+      : `${pipeline}; s=("\${PIPESTATUS[@]}"); [ "\${s[${checkCommand}]}" = 0 ] || exit ${CHECK_FAILED_EXIT}; exit "\${s[-1]}"`,
     {
       cancelSignal,
       buffer: false,
@@ -263,9 +276,12 @@ async function runTrackEncode({ cancelSignal, track, encodeCommand, audioWritePa
       })
       .once('error', () => {});
 
-    const success = await childProcess.then(() => true).catch(() => false);
+    const result = await childProcess.then(
+      () => 'ok' as const,
+      (e) => (checkCommand !== undefined && e?.exitCode === CHECK_FAILED_EXIT ? ('checkFailed' as const) : ('failed' as const))
+    );
     if (job) for (const warning of warnings) logger.warn(`Job ${job.id} (${job.recordingId}) track ${track}: ${warning}`);
-    return success;
+    return result;
   } finally {
     // Clean up event listeners and streams
     childProcess.stderr.removeAllListeners('data');

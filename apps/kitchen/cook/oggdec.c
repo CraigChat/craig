@@ -179,6 +179,7 @@ static void writeHeader(double duration, int haveDuration, int ch)
     unsigned char h[80];
     size_t n = 0;
     uint64_t bytes = haveDuration ? (uint64_t) (duration * SAMPLE_RATE * ch * 16 / 8) : 0xFFFFFFFFull - 36;
+    if (haveDuration) bytes -= bytes % (ch * 2); /* whole sample frames only: flac rejects a partial last frame */
     int ds64 = haveDuration && bytes >= (((uint64_t) 1) << 32) - 36;
     memcpy(h, ds64 ? "RF64" : "RIFF", 4);
     le32(h + 4, ds64 ? 0xFFFFFFFF : (uint32_t) (bytes + 36));
@@ -189,7 +190,7 @@ static void writeHeader(double duration, int haveDuration, int ch)
         le32(h + n + 4, 28);
         le64(h + n + 8, bytes + 64);
         le64(h + n + 16, bytes);
-        le64(h + n + 24, (uint64_t) (duration * SAMPLE_RATE));
+        le64(h + n + 24, bytes / (ch * 2));
         le32(h + n + 32, 0);
         n += 36;
     }
