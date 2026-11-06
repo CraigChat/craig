@@ -8,6 +8,7 @@
  *   -d D  pad/truncate to D seconds, same arithmetic as cook/wavduration
  *   -v    print decode statistics to stderr at the end
  */
+#define _GNU_SOURCE /* F_SETPIPE_SZ */
 #include <fcntl.h>
 #include <opus/opus.h>
 #include <stdint.h>
@@ -21,6 +22,7 @@
 #define SAMPLE_RATE 48000
 #define MAX_FRAME 5760 /* 120 ms, the longest Opus packet */
 #define PROGRESS_SAMPLES (5 * SAMPLE_RATE)
+#define PIPE_SIZE (1 << 20)
 
 /* ---- input: buffered Ogg page reader that resyncs on bad data ---- */
 
@@ -227,6 +229,9 @@ int main(int argc, char **argv)
         if ((inFd = open(argv[optind], O_RDONLY)) < 0) { perror(argv[optind]); return 1; }
         posix_fadvise(inFd, 0, 0, POSIX_FADV_SEQUENTIAL);
     } else inFd = 0;
+
+    // With the default 64 KB pipe, oggdec and the encoder take turns instead of running at the same time
+    fcntl(STDOUT_FILENO, F_SETPIPE_SZ, PIPE_SIZE);
 
     long len = nextPacket();
     if (len < 19 || memcmp(pkt, "OpusHead", 8)) return 2;
