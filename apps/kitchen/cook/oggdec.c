@@ -1,11 +1,10 @@
 /*
  * oggdec: decode one corrected Craig track (output of oggcorrect/oggsplit)
- * straight to WAV with libopus, replacing
- *     ffmpeg -codec libopus -copyts -i - -af anull -flags bitexact -f wav - | wavduration D
+ * straight to WAV with libopus, replacing ffmpeg piped to wavduration
  *
  *   oggdec [-d duration] [-v] <in.ogg|->  > out.wav
  *
- *   -d D  pad/truncate to D seconds, same arithmetic as cook/wavduration
+ *   -d D  pad/truncate to D seconds
  *   -v    print decode statistics to stderr at the end
  */
 #define _GNU_SOURCE /* F_SETPIPE_SZ */

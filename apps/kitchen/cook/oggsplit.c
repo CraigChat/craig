@@ -1,30 +1,7 @@
 /*
- * oggsplit: single-pass replacement for running `oggcorrect N` (and
- * `oggduration N`) once per track, in bounded memory.
+ * oggsplit: single-pass streamed split and correct all tracks from a recording (and handling the duration)
  *
  *   oggsplit <recFileBase> <outPrefix> [track ...]
- *
- * Reads <recFileBase>.header1/.header2/.data once and writes
- * <outPrefix><track>.ogg for each requested track (all tracks with an audio
- * header if none are given), each identical to
- *   cat header1 header2 data header1 header2 data | oggcorrect <track>
- * Then prints one "<track> <duration>" line per written track, with the value
- * `oggduration <track> < data` prints.
- *
- * Why it can stream: oggcorrect's correction works block by block. A block
- * ends where the next packet of the same track is silent (or, inside a silent
- * block, not silent) or more than 25 frames later, so a block is complete as
- * soon as the track's next packet is seen. Processing a block only reads that
- * block, the running granule position, and the next packet's input granule.
- * So each track keeps only its current block in memory; payloads are not
- * kept at all but re-read with pread() when the block is written.
- *
- * The correction arithmetic is copied from cook/oggcorrect.c unchanged. Where
- * oggcorrect reads out of bounds on malformed input (an ECVADD length larger
- * than its page, a code-3 Opus packet without its frame-count byte), oggsplit
- * skips or assumes one frame instead, and an audio page found outside .data is
- * skipped. These are counted and reported in one "oggsplit: warning:" line;
- * the exit code stays 0. Exit code 1 means bad arguments or an I/O error.
  */
 #include <fcntl.h>
 #include <stdint.h>
