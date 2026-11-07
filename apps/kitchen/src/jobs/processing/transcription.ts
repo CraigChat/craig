@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 import { DOWNLOAD_URL_PREFIX, DOWNLOADS_DIRECTORY, RUNPOD_API_KEY, RUNPOD_TRANSCRIPTION_ENDPOINT_ID } from '../../util/config.js';
 import { fileNameFromUser, moveFile, runParallelFunction, wait } from '../../util/index.js';
 import logger from '../../util/logger.js';
-import { encodeTranscriptionTrack, getStreamTypes } from '../../util/process.js';
+import { encodeTranscriptionTrack, getStreamTypes, splitTracks } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
 import { redis } from '../../util/redis.js';
 import { Job } from '../job.js';
@@ -183,20 +183,22 @@ export async function processTranscriptionJob(job: Job) {
       type: job.state.type,
       tracks: {
         ...(job.state.tracks || {}),
-        [track]: { progress: 0, processing: true }
+        [track]: { progress: 0 }
       }
     });
 
     const audioWritePath = path.join(tmpDir, fileName);
     writtenTracks.push([i, fileName]);
+    const splitFile = splitFiles.get(track)!;
     const success = await encodeTranscriptionTrack({
-      recFileBase,
+      file: splitFile.file,
+      duration: splitFile.duration,
       cancelSignal,
       track,
       job,
       codec: streamTypes[i],
       audioWritePath
-    });
+    }).finally(() => fs.rm(splitFile.file, { force: true }));
 
     job.setState({
       type: 'encoding',
@@ -207,12 +209,20 @@ export async function processTranscriptionJob(job: Job) {
     });
   }
 
+  // Split tracks over one pass
+  const tracks = users.map((_, i) => i + 1).filter((track) => !job.options?.ignoreTracks?.includes(track));
+  job.setState({ type: 'processing', tracks: Object.fromEntries(tracks.map((track) => [track, { progress: 0, processing: true }])) });
+  const splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
+  job.setState({ type: 'encoding', tracks: {} });
+
   await runParallelFunction({
     parallel: job.options?.parallel,
     concurrency: job.options?.concurrency,
     userCount: users.length,
     cancelSignal,
-    fn: createTrack
+    fn: createTrack,
+    // Order by largest split file first
+    order: users.map((_, i) => i).sort((a, b) => (splitFiles.get(b + 1)?.size ?? 0) - (splitFiles.get(a + 1)?.size ?? 0))
   });
 
   if (cancelSignal.aborted) throw new Error('Job aborted');

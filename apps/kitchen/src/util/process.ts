@@ -285,8 +285,11 @@ async function runTrackEncode({ cancelSignal, track, encodeCommand, audioWritePa
   }
 }
 
-interface CreateAvatarVideoOptions extends CommonProcessOptions {
-  codec: 'opus' | 'flac';
+interface CreateAvatarVideoOptions {
+  cancelSignal: AbortSignal;
+  /** Corrected track file from `splitTracks` */
+  file: string;
+  codec: StreamType;
   extraArgs?: string;
   filter: string;
   duration: number;
@@ -297,7 +300,7 @@ interface CreateAvatarVideoOptions extends CommonProcessOptions {
 }
 
 export async function createAvatarVideo({
-  recFileBase,
+  file,
   codec,
   track,
   cancelSignal,
@@ -309,27 +312,22 @@ export async function createAvatarVideo({
   job
 }: CreateAvatarVideoOptions) {
   const ffmpegCodec = codec === 'opus' ? 'libopus' : codec;
-  const pOpts = procOpts();
 
-  const commands = [
-    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
-    `${pOpts} ./cook/oggcorrect ${track}`,
-    [
-      `${pOpts} ffmpeg`,
-      '-framerate 30 -i "./assets/glower-avatar.png"',
-      '-framerate 30 -i "./assets/glower-glow.png"',
-      `-codec ${ffmpegCodec} -copyts -i -`,
-      `-framerate 30 -i "${avatarPath}"`,
-      `-filter_complex "${filter}"`,
-      "-map '[vid]'",
-      '-filter_complex_threads 1',
-      extraArgs || '',
-      `-t "${duration}"`,
-      `-y "${writePath}"`
-    ].join(' ')
-  ];
+  const command = [
+    `${procOpts()} ffmpeg -nostdin`,
+    '-framerate 30 -i "./assets/glower-avatar.png"',
+    '-framerate 30 -i "./assets/glower-glow.png"',
+    `-codec ${ffmpegCodec} -copyts -i "${file}"`,
+    `-framerate 30 -i "${avatarPath}"`,
+    `-filter_complex "${filter}"`,
+    "-map '[vid]'",
+    '-filter_complex_threads 1',
+    extraArgs || '',
+    `-t "${duration}"`,
+    `-y "${writePath}"`
+  ].join(' ');
 
-  const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
+  const childProcess = runCommand(command, { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
 
   childProcess.stdout!.resume();
 
@@ -518,20 +516,22 @@ export async function copyFFmpegLicense(writeStream: WriteStream, replaceValue =
   writeStream.write(license.replace(/^(.*)$/gm, replaceValue));
 }
 
-interface EncodeTranscriptionTrackOptions extends EncodeMixTrackOptions {
+interface EncodeTranscriptionTrackOptions extends Pick<SplitTrack, 'file' | 'duration'> {
+  cancelSignal: AbortSignal;
+  track: number;
+  audioWritePath: string;
   codec: StreamType;
   job?: Job;
 }
 
-export async function encodeTranscriptionTrack({ recFileBase, codec, track, cancelSignal, audioWritePath, job }: EncodeTranscriptionTrackOptions) {
-  const duration = await getDuration({ recFileBase, cancelSignal });
+export async function encodeTranscriptionTrack({ file, duration, codec, track, cancelSignal, audioWritePath, job }: EncodeTranscriptionTrackOptions) {
   const pOpts = procOpts();
+  const encodeArgs = '-f ogg -c:a libopus -ac 1 -ar 16000 -b:a 32k -application lowdelay';
 
-  const commands = [
-    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
-    `${pOpts} ./cook/oggcorrect ${track}`,
-    `${pOpts} ffmpeg -c:a ${codec === 'opus' ? 'libopus' : codec} -i - -f ogg -c:a libopus -ac 1 -ar 16000 -b:a 32k -application lowdelay -y "${audioWritePath}"`
-  ];
+  const commands =
+    codec === 'opus'
+      ? [`${pOpts} ./cook/oggdec ${file}`, `${pOpts} ffmpeg -nostdin -f wav -i - ${encodeArgs} -y "${audioWritePath}"`]
+      : [`${pOpts} ffmpeg -nostdin -c:a ${codec} -i "${file}" ${encodeArgs} -y "${audioWritePath}"`];
 
   const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
 
