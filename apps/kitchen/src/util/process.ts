@@ -1,5 +1,5 @@
 import { createReadStream, WriteStream } from 'node:fs';
-import { readFile, rename, rm } from 'node:fs/promises';
+import { readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { RecordingInfo, RecordingNote, RecordingUser, StreamType } from '@craig/types/recording';
@@ -145,6 +145,7 @@ interface SplitTracksOptions extends CommonProcessOptions {
 export interface SplitTrack {
   file: string;
   duration: string;
+  size: number;
 }
 
 export async function splitTracks({ recFileBase, cancelSignal, outPrefix, tracks, job }: SplitTracksOptions) {
@@ -158,10 +159,14 @@ export async function splitTracks({ recFileBase, cancelSignal, outPrefix, tracks
   if (stderr && job) logger.warn(`Job ${job.id} (${job.recordingId}): ${stderr}`);
   for (const line of stdout.split('\n')) {
     const [track, duration] = line.split(' ');
-    if (track && duration) result.set(parseInt(track, 10), { file: `${outPrefix}${track}.ogg`, duration });
+    if (track && duration) result.set(parseInt(track, 10), { file: `${outPrefix}${track}.ogg`, duration, size: 0 });
   }
   const missing = tracks.filter((track) => !result.has(track));
   if (missing.length) throw new Error(`oggsplit did not write tracks ${missing.join(', ')}`);
+
+  // Get sizes after split
+  await Promise.all([...result.values()].map(async (split) => (split.size = (await stat(split.file)).size)));
+
   return result;
 }
 
@@ -228,7 +233,7 @@ export async function encodeTrack({
 /** Exit status the pipeline uses when its checked command failed (see `checkCommand`) */
 const CHECK_FAILED_EXIT = 222;
 
-interface RunTrackEncodeOptions extends Omit<EncodeTrackOptions, 'file' | 'codec' | 'dynaudnorm'> {
+interface RunTrackEncodeOptions extends Omit<EncodeTrackOptions, 'file' | 'size' | 'codec' | 'dynaudnorm'> {
   commands: string[];
   /**
    * Index of a pipeline command whose exit status must also be 0. If it is not, the result is 'checkFailed' even when

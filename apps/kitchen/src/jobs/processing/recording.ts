@@ -184,8 +184,15 @@ export async function processRecordingJob(job: Job) {
       concurrency: job.options?.concurrency,
       userCount: users.length,
       cancelSignal,
-      fn: createTrack
+      fn: createTrack,
+      // Order by largest split file first
+      order: users.map((_, i) => i).sort((a, b) => (splitFiles.get(b + 1)?.size ?? 0) - (splitFiles.get(a + 1)?.size ?? 0))
     });
+
+    // Re-sort into track order
+    const byTrack = trackFiles.map((entry, i) => [entry, usedStreamTypes[i]] as const).sort(([[a]], [[b]]) => a - b);
+    trackFiles.splice(0, trackFiles.length, ...byTrack.map(([entry]) => entry));
+    usedStreamTypes.splice(0, usedStreamTypes.length, ...byTrack.map(([, type]) => type));
 
     switch (job.options?.container) {
       case 'mix': {
