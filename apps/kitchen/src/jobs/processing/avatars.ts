@@ -102,7 +102,7 @@ export async function processAvatarsJob(job: Job) {
       extraArgs:
         job.options?.format === 'mkvh264'
           ? '-c:v libx264 -crf 16'
-          : `-c:v libvpx -crf 10 -auto-alt-ref 0${job.options?.transparent ? ' -metadata:s:v:0 alpha_mode=1' : ''}`,
+          : `-c:v libvpx -threads 1 -cpu-used 4 -crf 10 -auto-alt-ref 0${job.options?.transparent ? ' -metadata:s:v:0 alpha_mode=1' : ''}`,
       writePath,
       avatarPath,
       duration: parseFloat(duration),

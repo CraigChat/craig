@@ -322,6 +322,7 @@ export async function createAvatarVideo({
       `-framerate 30 -i "${avatarPath}"`,
       `-filter_complex "${filter}"`,
       "-map '[vid]'",
+      '-filter_complex_threads 1',
       extraArgs || '',
       `-t "${duration}"`,
       `-y "${writePath}"`
