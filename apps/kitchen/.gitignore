@@ -1,6 +1,9 @@
 cook/extnotes
 cook/oggcorrect
+cook/oggdec
+cook/oggsplit
 cook/oggduration
+cook/tailduration
 cook/oggmultiplexer
 cook/oggstender
 cook/oggtracks

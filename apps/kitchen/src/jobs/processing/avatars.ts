@@ -5,7 +5,7 @@ import { RecordingUser } from '@craig/types/recording';
 
 import { AVATAR_CDN } from '../../util/config.js';
 import { fileNameFromUser, ROOT_DIR, runParallelFunction } from '../../util/index.js';
-import { createAvatarVideo, DEF_TIMEOUT, getDuration, getStreamTypes } from '../../util/process.js';
+import { createAvatarVideo, DEF_TIMEOUT, getDuration, getStreamTypes, splitTracks } from '../../util/process.js';
 import { procOpts } from '../../util/processOptions.js';
 import { getRecordingUsers } from '../../util/recording.js';
 import { runCommand } from '../../util/subprocess.js';
@@ -83,31 +83,36 @@ export async function processAvatarsJob(job: Job) {
       type: job.state.type,
       tracks: {
         ...(job.state.tracks || {}),
-        [track]: { progress: 0, processing: true }
+        [track]: { progress: 0 }
       }
     });
 
+    const splitFile = splitFiles.get(track)!;
     const avatarPath = path.join(tmpDir, `${fileName}.tmp.png`);
-    await writeAvatar(user, avatarPath);
-
     const writePath = path.join(tmpDir, `${fileName}.${job.options?.format === 'mkvh264' ? 'mkv' : 'webm'}`);
-    trackFiles.push(writePath);
+    let success: boolean;
+    try {
+      await writeAvatar(user, avatarPath);
+      trackFiles.push(writePath);
 
-    const success = await createAvatarVideo({
-      recFileBase,
-      cancelSignal,
-      track,
-      job,
-      codec: streamTypes[i],
-      extraArgs:
-        job.options?.format === 'mkvh264'
-          ? '-c:v libx264 -crf 16'
-          : `-c:v libvpx -crf 10 -auto-alt-ref 0${job.options?.transparent ? ' -metadata:s:v:0 alpha_mode=1' : ''}`,
-      writePath,
-      avatarPath,
-      duration: parseFloat(duration),
-      filter
-    });
+      success = await createAvatarVideo({
+        file: splitFile.file,
+        cancelSignal,
+        track,
+        job,
+        codec: streamTypes[i],
+        extraArgs:
+          job.options?.format === 'mkvh264'
+            ? '-c:v libx264 -crf 16'
+            : `-c:v libvpx -threads 1 -cpu-used 4 -crf 10 -auto-alt-ref 0${job.options?.transparent ? ' -metadata:s:v:0 alpha_mode=1' : ''}`,
+        writePath,
+        avatarPath,
+        duration: parseFloat(duration),
+        filter
+      });
+    } finally {
+      await fs.rm(splitFile.file, { force: true });
+    }
 
     if (splitChannels)
       await runCommand(
@@ -141,6 +146,10 @@ export async function processAvatarsJob(job: Job) {
     if (!success) job.outputData.usersWarned = [...(job.outputData.usersWarned || []), track];
   }
 
+  // Split tracks over one pass
+  const tracks = users.map((_, i) => i + 1).filter((track) => !job.options?.ignoreTracks?.includes(track));
+  job.setState({ type: 'processing', tracks: Object.fromEntries(tracks.map((track) => [track, { progress: 0, processing: true }])) });
+  const splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
   job.setState({ type: 'encoding', tracks: {} });
 
   await runParallelFunction({

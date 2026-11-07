@@ -25,8 +25,8 @@ SCRIPTBASE=`realpath "$SCRIPTBASE"`
 cd $SCRIPTBASE
 cd ../cook
 
-# Generic build stuff
-for i in *.c; do gcc -O3 -o ${i%.c} $i; done
+# Generic build stuff (oggdec needs libopus)
+for i in *.c; do gcc -O3 -o ${i%.c} $i -Wl,--as-needed -lopus -lm || exit 1; done
 # TODO we don't need inkscape
 # for i in *.svg; do inkscape -e ${i%.svg}.png $i; done
 

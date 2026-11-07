@@ -134,13 +134,17 @@ int main(int argc, char **argv)
         if (argc > 1)
             duration = atof(argv[1]);
         bytes = duration * fmtHeader.sampleRate * fmtHeader.channels * fmtHeader.bitsPerSample / 8;
+        // Whole sample frames only: encoders such as flac reject a partial last frame
+        uint32_t frameBytes = fmtHeader.channels * fmtHeader.bitsPerSample / 8;
+        if (frameBytes)
+            bytes -= bytes % frameBytes;
         if (bytes >= (((uint64_t) 1)<<32) - 36) {
             needDS64Header = 1;
             memcpy(wavHeader.magic, "RF64", 4);
             wavHeader.fileSize = dataSize = -1;
             ds64Header.fileSize = bytes + 64;
             ds64Header.dataSize = bytes;
-            ds64Header.sampleCount = duration * fmtHeader.sampleRate;
+            ds64Header.sampleCount = frameBytes ? bytes / frameBytes : (uint64_t) (duration * fmtHeader.sampleRate);
             ds64Header.zero = 0;
 
         } else {

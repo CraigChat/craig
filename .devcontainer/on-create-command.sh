@@ -1,7 +1,7 @@
 # Install apt dependencies
 sudo apt update
 # Craig Dependencies
-sudo apt install -y ffmpeg flac lame vorbis-tools opus-tools node-gyp libfltk1.3 libfltk1.3-dev
+sudo apt install -y ffmpeg flac lame vorbis-tools opus-tools libopus-dev node-gyp libfltk1.3 libfltk1.3-dev
 # Legacy dependencies
 sudo apt install -y at fluid
 # Some dependencies for building FFmpeg (https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu#GettheDependencies)
