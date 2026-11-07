@@ -51,23 +51,15 @@ export async function getStreamTypes({ recFileBase, cancelSignal }: CommonProces
 
 interface DurationOptions extends Omit<CommonProcessOptions, 'cancelSignal'> {
   cancelSignal?: AbortSignal;
-  track?: number;
 }
 
-export async function getDuration({ recFileBase, cancelSignal, track }: DurationOptions) {
-  const stream = createReadStream(`${recFileBase}.data`);
-  try {
-    const subprocess = runCommand(`${procOpts()} ./cook/oggduration${track ? ` ${track}` : ''}`, {
-      cancelSignal,
-      cwd: ROOT_DIR,
-      timeout: 5 * 60 * 1000
-    });
-    stream.pipe(subprocess.stdin!);
-    const { stdout } = await subprocess;
-    return stdout;
-  } finally {
-    stream.close();
-  }
+export async function getDuration({ recFileBase, cancelSignal }: DurationOptions) {
+  const { stdout } = await runCommand(`${procOpts()} ./cook/tailduration ${recFileBase}.data`, {
+    cancelSignal,
+    cwd: ROOT_DIR,
+    timeout: 10 * 1000
+  });
+  return stdout;
 }
 
 export function timemarkToSeconds(timemark: string) {
