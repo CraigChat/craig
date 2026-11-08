@@ -20,7 +20,8 @@ import {
   recordingWrite,
   reEncodeTrack,
   SplitTrack,
-  splitTracks
+  splitTracks,
+  ZIP_STORE_COMPRESSED
 } from '../../util/process.js';
 import { procOpts } from '../../util/processOptions.js';
 import { getInfoText, getRecordingInfo } from '../../util/recording.js';
@@ -153,6 +154,14 @@ export async function processRecordingJob(job: Job) {
     splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
     job.setState({ type: 'encoding', tracks: {} });
 
+    // Write raw.dat while processing tracks
+    let rawDatWrite: Promise<void> | undefined;
+    if (job.options?.container !== 'mix') {
+      const rawDatStream = addWriteStream(path.join(tmpDir, 'raw.dat'));
+      rawDatWrite = recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream, id, info, users });
+      rawDatWrite.catch(() => {});
+    }
+
     // Mix already has corrected ogg files
     if (job.options?.container !== 'mix') {
       await runParallelFunction({
@@ -200,12 +209,11 @@ export async function processRecordingJob(job: Job) {
         await fs.writeFile(path.join(tmpDir, 'info.txt'), infoText);
 
         job.setState({ type: 'writing', file: 'raw.dat' });
-        const rawDatStream = addWriteStream(path.join(tmpDir, 'raw.dat'));
-        await recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream, id, info, users });
+        await rawDatWrite;
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
-        await runCommand(`${pOpts} zip -1 -r -FI - . | cat "${sfxPath}" - > ${job.outputFile}`, {
+        await runCommand(`${pOpts} zip -1 -r -FI ${ZIP_STORE_COMPRESSED} - . | cat "${sfxPath}" - > ${job.outputFile}`, {
           cancelSignal,
           timeout: DEF_TIMEOUT,
           shell: true,
@@ -362,12 +370,12 @@ export async function processRecordingJob(job: Job) {
         await fs.writeFile(path.join(tmpDir, 'info.txt'), infoText);
 
         job.setState({ type: 'writing', file: 'raw.dat' });
-        const rawDatStream = addWriteStream(path.join(tmpDir, 'raw.dat'));
-        await recordingWrite({ recFileBase, cancelSignal, writeStream: rawDatStream, id, info, users });
+        await rawDatWrite;
+
 
         // Zip up stuff
         job.setState({ type: 'finalizing' });
-        await runCommand(`${pOpts} zip -1 -rFI ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
+        await runCommand(`${pOpts} zip -1 -rFI ${ZIP_STORE_COMPRESSED} ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
         break;
       }
     }

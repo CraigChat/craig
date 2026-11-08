@@ -1,6 +1,7 @@
 import { createReadStream, WriteStream } from 'node:fs';
 import { readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { finished } from 'node:stream/promises';
 
 import { RecordingInfo, RecordingNote, RecordingUser, StreamType } from '@craig/types/recording';
 
@@ -11,6 +12,8 @@ import { procOpts } from './processOptions.js';
 import { runCommand } from './subprocess.js';
 
 export const DEF_TIMEOUT = 14400 * 1000; // 4 hours
+
+export const ZIP_STORE_COMPRESSED = '-n .flac:.oga';
 
 interface CommonProcessOptions {
   recFileBase: string;
@@ -481,7 +484,7 @@ export async function recordingWrite({ recFileBase, cancelSignal, writeStream, i
 
   const recProcess = streamRecording({ recFileBase, cancelSignal });
   recProcess.stdout!.pipe(writeStream);
-  await recProcess;
+  await Promise.all([recProcess, finished(writeStream)]);
 }
 
 export async function copyFFmpegLicense(writeStream: WriteStream, replaceValue = '$1') {
