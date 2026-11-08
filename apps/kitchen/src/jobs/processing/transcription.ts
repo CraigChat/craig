@@ -6,7 +6,7 @@ import { RecordingUser } from '@craig/types/recording';
 import { nanoid } from 'nanoid';
 
 import { DOWNLOAD_URL_PREFIX, DOWNLOADS_DIRECTORY, RUNPOD_API_KEY, RUNPOD_TRANSCRIPTION_ENDPOINT_ID } from '../../util/config.js';
-import { fileNameFromUser, moveFile, runParallelFunction, wait } from '../../util/index.js';
+import { fileNameFromUser, linkOrCopyFile, moveFile, runParallelFunction, wait } from '../../util/index.js';
 import logger from '../../util/logger.js';
 import { encodeTranscriptionTrack, getStreamTypes, splitTracks } from '../../util/process.js';
 import { getRecordingUsers } from '../../util/recording.js';
@@ -339,7 +339,7 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
       writtenTracks.map(([i]) => users[i - 1].globalName || users[i - 1].username)
     );
 
-  // Copy files to download so runpod can get them
+  // Link/copy files to download so runpod can get them
   await Promise.all(
     writtenTracks.map(([track, filePath]) => {
       const fileName = path.basename(filePath);
@@ -347,7 +347,7 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
       if (cancelSignal.aborted) throw new Error('Job aborted');
       job.extraFiles.push(toPath);
       outputFileNames.push([track, path.basename(toPath)]);
-      return fs.copyFile(filePath, toPath);
+      return linkOrCopyFile(filePath, toPath);
     })
   );
 

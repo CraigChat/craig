@@ -1,5 +1,5 @@
 import { setMaxListeners } from 'node:events';
-import { access, copyFile, rename, unlink } from 'node:fs/promises';
+import { access, copyFile, link, rename, unlink } from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -134,6 +134,16 @@ export async function moveFile(from: string, to: string) {
       throw copyError;
     }
     await unlink(from);
+  }
+}
+
+export async function linkOrCopyFile(from: string, to: string) {
+  try {
+    await link(from, to);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code !== 'EXDEV' && code !== 'EPERM' && code !== 'ENOTSUP' && code !== 'EMLINK') throw e;
+    await copyFile(from, to);
   }
 }
 
