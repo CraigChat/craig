@@ -383,33 +383,6 @@ export async function reEncodeTrack({ cancelSignal, audioWritePath }: ReEncodeTr
   else await rename(tempPath, audioWritePath);
 }
 
-interface FileDurationOptions {
-  cancelSignal?: AbortSignal;
-  file: string;
-}
-
-export async function getFileDuration({ cancelSignal, file }: FileDurationOptions) {
-  const subprocess = await runCommand(`ffprobe -i "${file}" -show_entries format=duration -v quiet -of csv="p=0"`, {
-    cancelSignal,
-    shell: true,
-    timeout: 5 * 60 * 1000
-  });
-  return subprocess.stdout;
-}
-
-export async function encodeMixTrack({ recFileBase, track, cancelSignal, audioWritePath }: EncodeMixTrackOptions) {
-  const commands = [
-    ['cat', ...['header1', 'header2', 'data', 'header1', 'header2', 'data'].map((ext) => `${recFileBase}.${ext}`)].join(' '),
-    `${procOpts()} ./cook/oggcorrect ${track} > ${audioWritePath}`
-  ];
-  const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
-
-  childProcess.stdout!.resume();
-  childProcess.stderr!.resume();
-
-  await childProcess.catch(() => {});
-}
-
 export async function encodeMix({ recFileBase, tracks, cancelSignal, encodeCommand, audioWritePath, job }: EncodeMixOptions) {
   const duration = await getDuration({ recFileBase, cancelSignal });
   const pOpts = procOpts();

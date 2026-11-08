@@ -14,9 +14,7 @@ import {
   copyFFmpegLicense,
   DEF_TIMEOUT,
   encodeMix,
-  encodeMixTrack,
   encodeTrack,
-  getFileDuration,
   getNotes,
   getStreamTypes,
   recordingWrite,
@@ -250,7 +248,7 @@ export async function processRecordingJob(job: Job) {
             break;
           }
           case 'sesxzip': {
-            const durations = await Promise.all(trackFiles.map(([, file]) => getFileDuration({ cancelSignal, file })));
+            const durations = Array.from(splitFiles.values()).map((t) => t.duration);
             const absoluteDuration = Number(durations.sort((a, b) => Number(b) - Number(a))[0]);
             const now = new Date().toISOString();
 
