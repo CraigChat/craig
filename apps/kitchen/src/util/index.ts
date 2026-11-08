@@ -1,5 +1,5 @@
 import { setMaxListeners } from 'node:events';
-import { access, copyFile, rename, unlink } from 'node:fs/promises';
+import { access, copyFile, link, rename, unlink } from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -137,6 +137,16 @@ export async function moveFile(from: string, to: string) {
   }
 }
 
+export async function linkOrCopyFile(from: string, to: string) {
+  try {
+    await link(from, to);
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code !== 'EXDEV' && code !== 'EPERM' && code !== 'ENOTSUP' && code !== 'EMLINK') throw e;
+    await copyFile(from, to);
+  }
+}
+
 export function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -172,9 +182,11 @@ export interface RunParallelFunctionOptions {
   userCount: number;
   cancelSignal: AbortSignal;
   fn: (index: number) => Promise<void>;
+  order?: number[];
 }
 
-export async function runParallelFunction({ parallel, userCount, concurrency, cancelSignal, fn }: RunParallelFunctionOptions) {
+export async function runParallelFunction({ parallel, userCount, concurrency, cancelSignal, fn, order }: RunParallelFunctionOptions) {
+  const indices = order ?? range(userCount);
   function fnWrapped(i: number) {
     if (cancelSignal.aborted) throw new Error('Function was aborted');
     return fn(i);
@@ -183,7 +195,7 @@ export async function runParallelFunction({ parallel, userCount, concurrency, ca
   if (parallel) {
     setMaxListeners(userCount * 2, cancelSignal);
     if (concurrency) {
-      const pendingUsers = range(userCount);
+      const pendingUsers = [...indices];
       const promises: Promise<unknown>[] = [];
 
       // Run them all
@@ -201,8 +213,8 @@ export async function runParallelFunction({ parallel, userCount, concurrency, ca
 
       // Wait for them all to finish
       await Promise.all(promises);
-    } else await Promise.all(range(userCount).map(fnWrapped));
+    } else await Promise.all(indices.map(fnWrapped));
   } else {
-    for (let i = 0; i < userCount; i++) await fnWrapped(i);
+    for (const i of indices) await fnWrapped(i);
   }
 }
