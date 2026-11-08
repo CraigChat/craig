@@ -372,7 +372,6 @@ export async function processRecordingJob(job: Job) {
         job.setState({ type: 'writing', file: 'raw.dat' });
         await rawDatWrite;
 
-
         // Zip up stuff
         job.setState({ type: 'finalizing' });
         await runCommand(`${pOpts} zip -1 -rFI ${ZIP_STORE_COMPRESSED} ${job.outputFile} .`, { cancelSignal, timeout: DEF_TIMEOUT, cwd: tmpDir });
