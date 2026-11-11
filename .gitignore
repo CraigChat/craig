@@ -12,6 +12,7 @@ node_modules/
 .pnpm-store/
 .tmp/
 .docker/
+docs/
 *.zip
 
 # production
