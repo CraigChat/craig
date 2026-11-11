@@ -28,6 +28,7 @@ const MAX_ACTIVITY_LOGS = 10;
 const MAX_LATENCY_WARNING = 500;
 const opusSilenceFrame = Buffer.from([0xf8, 0xff, 0xfe]);
 const ENCRYPTION_RECOVERY_STOP_THRESHOLD = 5;
+const WS_OPEN = 1;
 
 // Only pass through Node-style error codes (e.g. ENOTFOUND), HTTP statuses and WebSocket close codes to keep metric label cardinality bounded
 function getErrorCode(err: unknown) {
@@ -139,6 +140,8 @@ export default class Recording {
   usersWarned = new Set<string>();
   usersIgnored = new Set<string>();
   usersFetching = new Set<string>();
+  /** Ignored SSRCs last sent to the voice server this session */
+  #sentIgnoredSSRCs = new Set<number>();
   trackNo = 1;
   notePacketNo = 0;
   bytesWritten = 0;
@@ -469,6 +472,8 @@ export default class Recording {
       this.connection?.removeAllListeners('debug');
       this.connection?.removeAllListeners('pong');
       this.connection?.removeAllListeners('ready');
+      this.connection?.removeAllListeners('userDisconnect');
+      this.connection?.removeAllListeners('speakingStart');
       this.connection?.removeAllListeners('transitioned');
       this.connection?.removeAllListeners('unknown');
       this.receiver?.removeAllListeners('data');
@@ -481,6 +486,8 @@ export default class Recording {
       connection.on('connect', this.onConnectionConnect.bind(this));
       connection.on('disconnect', this.onConnectionDisconnect.bind(this));
       connection.on('pong', this.onConnectionPong.bind(this));
+      connection.on('userDisconnect', this.onUserDisconnect.bind(this));
+      connection.on('speakingStart', this.onSpeakingStart.bind(this));
       connection.on('resumed', this.onConnectionResumed.bind(this));
       connection.on('unknown', this.onConnectionUnknown.bind(this));
       connection.on('transitioned', (transitionId: number) => {
@@ -498,6 +505,7 @@ export default class Recording {
       });
     }
 
+    const newConnection = this.connection !== connection;
     if (!alreadyConnected || !this.connection || !this.receiver) {
       const receiver = connection.receive('opus');
       receiver.on('data', this.onData.bind(this));
@@ -511,6 +519,7 @@ export default class Recording {
     const reconnected = this.state === RecordingState.RECONNECTING;
     this.state = RecordingState.RECORDING;
     if (reconnected) this.pushToActivity(this.t('recording.panel.reconnected'));
+    if (newConnection) this.#updateMediaSinkWants(true);
   }
 
   async retryConnect() {
@@ -590,6 +599,8 @@ export default class Recording {
 
     // Get voice & rtc worker versions
     this.connection?.sendWS(16, {});
+
+    this.#updateMediaSinkWants(true);
   }
 
   async onConnectionResumed() {
@@ -715,6 +726,22 @@ export default class Recording {
     }
   }
 
+  onUserDisconnect(userId: string) {
+    // dysnomia doesnt clean up disconnected SSRCs
+    if (this.connection)
+      for (const [ssrc, owner] of Object.entries(this.connection.ssrcUserMap))
+        if (owner === userId) {
+          delete this.connection.ssrcUserMap[Number(ssrc)];
+          break;
+        }
+
+    if (this.usersIgnored.has(userId)) this.#updateMediaSinkWants();
+  }
+
+  onSpeakingStart(userId: string) {
+    if (this.usersIgnored.has(userId)) this.#updateMediaSinkWants();
+  }
+
   // Data streaming //
 
   flush(user: RecordingUser, ct: number) {
@@ -750,6 +777,28 @@ export default class Recording {
   private logWrite(message: string) {
     if (this.closing) return void this.recorder.logger.error(`Tried to write log stream while closing! (message: ${message}, recording: ${this.id})`);
     this.writer?.writeLog(message);
+  }
+
+  // Using this to tell Discord to stop sending us packets for users we aren't recording
+  // https://github.com/discord/discord-api-docs/pull/8712
+  #updateMediaSinkWants(force = false) {
+    const ignoredSSRCs = new Set<number>();
+    for (const [ssrc, userId] of Object.entries(this.connection?.ssrcUserMap ?? {}))
+      if (this.usersIgnored.has(userId)) ignoredSSRCs.add(Number(ssrc));
+
+    if (
+      ignoredSSRCs.size === this.#sentIgnoredSSRCs.size &&
+      [...ignoredSSRCs].every((ssrc) => this.#sentIgnoredSSRCs.has(ssrc)) &&
+      !force
+    )
+      return;
+
+    if (this.connection?.ws?.readyState !== WS_OPEN) return;
+
+    const wants: Record<string, number> = { any: 100 };
+    for (const ssrc of ignoredSSRCs) wants[ssrc] = 0;
+    this.connection.sendWS(15, wants);
+    this.#sentIgnoredSSRCs = ignoredSSRCs;
   }
 
   encodeChunk(user: RecordingUser, streamNo: number, packetNo: number, chunk: Chunk) {
@@ -808,6 +857,7 @@ export default class Recording {
 
       if (user?.bot && !(this.options?.includeBots ?? true)) {
         this.usersIgnored.add(userID);
+        this.#updateMediaSinkWants();
         this.pushToActivity(`<@${userID}> was excluded from the recording.`);
         return;
       }
