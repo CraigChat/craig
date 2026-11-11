@@ -786,12 +786,7 @@ export default class Recording {
     for (const [ssrc, userId] of Object.entries(this.connection?.ssrcUserMap ?? {}))
       if (this.usersIgnored.has(userId)) ignoredSSRCs.add(Number(ssrc));
 
-    if (
-      ignoredSSRCs.size === this.#sentIgnoredSSRCs.size &&
-      [...ignoredSSRCs].every((ssrc) => this.#sentIgnoredSSRCs.has(ssrc)) &&
-      !force
-    )
-      return;
+    if (ignoredSSRCs.size === this.#sentIgnoredSSRCs.size && [...ignoredSSRCs].every((ssrc) => this.#sentIgnoredSSRCs.has(ssrc)) && !force) return;
 
     if (this.connection?.ws?.readyState !== WS_OPEN) return;
 
