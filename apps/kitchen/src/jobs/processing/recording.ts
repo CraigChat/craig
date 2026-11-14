@@ -286,7 +286,7 @@ export async function processRecordingJob(job: Job) {
                         </audioTrack>
                       `;
                     })}
-                    <masterTrack automationLaneOpenState="false" id="10000" index="${users.length + 1}" select="false" visible="true">
+                    <masterTrack automationLaneOpenState="false" id="10000" index="${trackFiles.length + 1}" select="false" visible="true">
                       <trackParameters trackHeight="53" trackHue="-1" trackMinimized="false">
                         <name>Master</name>
                       </trackParameters>
