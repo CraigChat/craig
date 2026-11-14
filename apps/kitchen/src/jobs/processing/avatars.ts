@@ -149,7 +149,7 @@ export async function processAvatarsJob(job: Job) {
   // Split tracks over one pass
   const tracks = users.map((_, i) => i + 1).filter((track) => !job.options?.ignoreTracks?.includes(track));
   job.setState({ type: 'processing', tracks: Object.fromEntries(tracks.map((track) => [track, { progress: 0, processing: true }])) });
-  const splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
+  const { tracks: splitFiles } = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
   job.setState({ type: 'encoding', tracks: {} });
 
   await runParallelFunction({

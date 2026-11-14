@@ -1,7 +1,11 @@
 /*
  * oggsplit: single-pass streamed split and correct all tracks from a recording (and handling the duration)
  *
- *   oggsplit <recFileBase> <outPrefix> [track ...]
+ *   oggsplit [-e eventGranule] <recFileBase> <outPrefix> [track ...]
+ *
+ * The origin of every track is the granule of the first data packet, or eventGranule (the earliest
+ * non-audio event, such as a note) if that is earlier. The first output line is
+ * "origin <origin> <firstDataGranule>", followed by "<track> <duration>" for each track.
  */
 #include <fcntl.h>
 #include <stdint.h>
@@ -313,7 +317,19 @@ static void noteGranule(const struct OggHeader *h, uint32_t packetSize, int inDa
 
 int main(int argc, char **argv)
 {
-    if (argc < 3) { fprintf(stderr, "Use: oggsplit <recFileBase> <outPrefix> [track...]\n"); return 1; }
+    /* -e EVENT: granule of the earliest event (note, etc.); it becomes the origin if it is before the first data packet */
+    int haveEvent = 0;
+    uint64_t eventGranule = 0;
+    if (argc >= 3 && !strcmp(argv[1], "-e")) {
+        char *end;
+        unsigned long long v = strtoull(argv[2], &end, 10);
+        if (!argv[2][0] || *end || argv[2][0] == '-') { fprintf(stderr, "oggsplit: invalid event granule \"%s\"\n", argv[2]); return 1; }
+        haveEvent = 1;
+        eventGranule = v;
+        argv += 2;
+        argc -= 2;
+    }
+    if (argc < 3) { fprintf(stderr, "Use: oggsplit [-e eventGranule] <recFileBase> <outPrefix> [track...]\n"); return 1; }
     char path[4096];
     struct Reader rd = {0};
     const char *ext[3] = { "header1", "header2", "data" };
@@ -342,11 +358,11 @@ int main(int argc, char **argv)
     int inData, have;
     int foundMeta = 0;
     uint32_t metaStreamNo = 0;
-    uint64_t granuleOffset = 0, pauseTime = 0;
+    uint64_t granuleOffset = 0, pauseTime = 0, firstDataGranule = 0;
 
     /* Header section (same rules as oggcorrect's first loop, every track at once) */
     while ((have = nextPage(&rd, &h, &buf, &packetSize, &off, &inData))) {
-        if (h.granulePos != 0) { granuleOffset = h.granulePos; break; }
+        if (h.granulePos != 0) { firstDataGranule = h.granulePos; break; }
         if (!foundMeta && packetSize >= 8 && !memcmp(buf, "ECMETA", 6)) { foundMeta = 1; metaStreamNo = h.streamNo; }
         if (h.streamNo >= MAX_TRACKS) continue;
         struct Track *tr = &tracks[h.streamNo];
@@ -371,6 +387,11 @@ int main(int argc, char **argv)
         if (packetSize > skip + 29 && !memcmp(buf + skip, "\x7f""FLAC", 5))
             tr->flacRate = ((uint32_t) buf[skip+27] << 12) + ((uint32_t) buf[skip+28] << 4) + ((uint32_t) buf[skip+29] >> 4);
     }
+
+    /* Origin: the first data packet, or the earliest event if it came before that */
+    if (!have) firstDataGranule = haveEvent ? eventGranule : 0;
+    granuleOffset = (haveEvent && eventGranule < firstDataGranule) ? eventGranule : firstDataGranule;
+    printf("origin %llu %llu\n", (unsigned long long) granuleOffset, (unsigned long long) firstDataGranule);
 
     /* Open outputs and pass the headers through. A requested track gets a file
      * even without an audio header, as `oggcorrect N` still produces output. */

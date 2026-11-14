@@ -2,7 +2,7 @@ import type { PathLike } from 'node:fs';
 import fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { StreamType } from '@craig/types/recording';
+import type { StreamType } from '@craig/types/recording';
 import { source, stripIndent } from 'common-tags';
 import { createWriteStream, WriteStream } from 'fs';
 import he from 'he';
@@ -17,6 +17,7 @@ import {
   encodeTrack,
   getNotes,
   getStreamTypes,
+  noteGranule,
   recordingWrite,
   reEncodeTrack,
   SplitTrack,
@@ -45,7 +46,8 @@ export async function processRecordingJob(job: Job) {
   try {
     const { info, users } = await getRecordingInfo(recFileBase, false);
     const streamTypes = await getStreamTypes({ recFileBase, cancelSignal });
-    const notes = await getNotes({ recFileBase, cancelSignal });
+    const notes = (await getNotes({ recFileBase, cancelSignal })).map((note) => ({ ...note, position: noteGranule(note) }));
+    const firstNoteGranule = notes.length ? Math.min(...notes.map((note) => note.position)) : undefined;
     const trackFiles: [number, string][] = [];
     const usedStreamTypes: StreamType[] = [];
     const pOpts = procOpts();
@@ -151,7 +153,17 @@ export async function processRecordingJob(job: Job) {
     // Split tracks over one pass
     const tracks = users.map((_, i) => i + 1).filter((track) => !job.options?.ignoreTracks?.includes(track));
     job.setState({ type: 'processing', tracks: Object.fromEntries(tracks.map((track) => [track, { progress: 0, processing: true }])) });
-    splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
+    // The first note becomes the origin if it's before the first data packet
+    const split = await splitTracks({
+      recFileBase,
+      cancelSignal,
+      outPrefix: path.join(tmpDir, 'split-'),
+      tracks,
+      eventGranule: firstNoteGranule,
+      job
+    });
+    splitFiles = split.tracks;
+    for (const note of notes) note.position = Math.max(0, note.position - split.origin);
     job.setState({ type: 'encoding', tracks: {} });
 
     // Write raw.dat while processing tracks
@@ -181,7 +193,7 @@ export async function processRecordingJob(job: Job) {
     } else {
       // Add these ourselves
       trackFiles.splice(0, trackFiles.length, ...Array.from(splitFiles.entries()).map(([i, t]) => [i, t.file] satisfies [number, string]));
-      usedStreamTypes.splice(0, trackFiles.length, ...Array.from(splitFiles.entries()).map(([i, t]) => streamTypes[i - 1]));
+      usedStreamTypes.splice(0, trackFiles.length, ...Array.from(splitFiles.entries()).map(([i]) => streamTypes[i - 1]));
     }
 
     switch (job.options?.container) {
@@ -234,14 +246,14 @@ export async function processRecordingJob(job: Job) {
               ...(notes.length !== 0
                 ? [
                     '\t<labeltrack name="Craig Notes" height="73" minimized="0">',
-                    ...notes.map(
-                      (note) =>
-                        `\t\t<label t="${note.time}" t1="${note.time}" title="${he
-                          .encode(note.note)
-                          .replace(/\\/g, '\\$1')
-                          .replace(/\n/g, '\\n')
-                          .replace(/\r/g, '\\r')}"/>`
-                    ),
+                    ...notes.map((note) => {
+                      const time = (note.position / 48000).toFixed(6);
+                      return `\t\t<label t="${time}" t1="${time}" title="${he
+                        .encode(note.note)
+                        .replace(/\\/g, '\\$1')
+                        .replace(/\n/g, '\\n')
+                        .replace(/\r/g, '\\r')}"/>`;
+                    }),
                     '\t</labeltrack>'
                   ]
                 : []),
@@ -327,7 +339,7 @@ export async function processRecordingJob(job: Job) {
                                         ${notes.map(
                                           (note) => source`
                                             <rdf:li rdf:parseType="Resource">
-                                              <xmpDM:startTime>${Math.ceil(Number(note.time) * 48000)}</xmpDM:startTime>
+                                              <xmpDM:startTime>${note.position}</xmpDM:startTime>
                                               <xmpDM:name>${he.encode(note.note)}</xmpDM:name>
                                             </rdf:li>
                                           `
@@ -359,7 +371,7 @@ export async function processRecordingJob(job: Job) {
         if (job.options?.includeTranscription && trackFiles.length > 0) {
           try {
             const dataStat = await fs.stat(`${recFileBase}.data`);
-            const transcription = await backgroundTranscription(job, trackFiles, users, dataStat.size);
+            const transcription = await backgroundTranscription(job, trackFiles, users, dataStat.size, split.originShift);
             await fs.writeFile(path.join(tmpDir, `transcription.${job.options?.includeTranscription ?? 'vtt'}`), transcription);
           } catch (e) {
             logger.warn(`Job ${job.id} failed to include transcription, moving on...`, e);

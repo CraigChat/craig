@@ -124,6 +124,17 @@ function makeTranscriptionFile(format: 'txt' | 'srt' | 'vtt', segments: Correcte
   return text.trim();
 }
 
+function shiftSegments(segments: CorrectedSegment[], seconds: number): CorrectedSegment[] {
+  if (!seconds) return segments;
+  const shift = (t: number) => Math.max(0, t + seconds);
+  return segments.map((s) => ({
+    ...s,
+    start: shift(s.start),
+    end: shift(s.end),
+    words: s.words.map((w) => ({ ...w, start: shift(w.start), end: shift(w.end) }))
+  }));
+}
+
 function sortKeyTracks(includedTracks: number[]): string {
   return [...includedTracks].sort((a, b) => a - b).join(',');
 }
@@ -212,7 +223,7 @@ export async function processTranscriptionJob(job: Job) {
   // Split tracks over one pass
   const tracks = users.map((_, i) => i + 1).filter((track) => !job.options?.ignoreTracks?.includes(track));
   job.setState({ type: 'processing', tracks: Object.fromEntries(tracks.map((track) => [track, { progress: 0, processing: true }])) });
-  const splitFiles = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
+  const { tracks: splitFiles } = await splitTracks({ recFileBase, cancelSignal, outPrefix: path.join(tmpDir, 'split-'), tracks, job });
   job.setState({ type: 'encoding', tracks: {} });
 
   await runParallelFunction({
@@ -323,7 +334,13 @@ async function _runRunpodRequest(job: Job, fileNames: string[]) {
   return runpodResponse;
 }
 
-export async function backgroundTranscription(job: Job, writtenTracks: [number, string][], users: RecordingUser[], dataSize: number) {
+export async function backgroundTranscription(
+  job: Job,
+  writtenTracks: [number, string][],
+  users: RecordingUser[],
+  dataSize: number,
+  originShift = 0
+) {
   if (!RUNPOD_API_KEY || !RUNPOD_TRANSCRIPTION_ENDPOINT_ID || !DOWNLOAD_URL_PREFIX) throw new Error('Missing environment variables.');
 
   const cancelSignal = job.abortController.signal;
@@ -335,7 +352,7 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
   if (cachedSegments)
     return makeTranscriptionFile(
       job.options?.includeTranscription || 'vtt',
-      cachedSegments,
+      shiftSegments(cachedSegments, originShift),
       writtenTracks.map(([i]) => users[i - 1].globalName || users[i - 1].username)
     );
 
@@ -356,7 +373,7 @@ export async function backgroundTranscription(job: Job, writtenTracks: [number, 
     outputFileNames.map(([, fileName]) => fileName)
   );
   const segments = runpodResponse.output.corrected_segments;
-  await setCachedTranscription(job.recordingId, dataSize, includedTracks, segments);
+  await setCachedTranscription(job.recordingId, dataSize, includedTracks, shiftSegments(segments, -originShift));
 
   return makeTranscriptionFile(
     job.options?.includeTranscription || 'vtt',

@@ -126,14 +126,10 @@ interface EncodeMixOptions extends CommonProcessOptions {
   job?: Job;
 }
 
-interface EncodeMixTrackOptions extends CommonProcessOptions {
-  track: number;
-  audioWritePath: string;
-}
-
 interface SplitTracksOptions extends CommonProcessOptions {
   outPrefix: string;
   tracks: number[];
+  eventGranule?: number;
   job?: Job;
 }
 
@@ -143,24 +139,48 @@ export interface SplitTrack {
   size: number;
 }
 
-export async function splitTracks({ recFileBase, cancelSignal, outPrefix, tracks, job }: SplitTracksOptions) {
-  const result = new Map<number, SplitTrack>();
+export interface SplitTracksResult {
+  tracks: Map<number, SplitTrack>;
+  /** Granule every split track starts at */
+  origin: number;
+  /** Seconds the origin is before the first data packet */
+  originShift: number;
+}
+
+export function noteGranule(note: RecordingNote) {
+  return Math.round(parseFloat(note.time) * 48000);
+}
+
+export async function splitTracks({ recFileBase, cancelSignal, outPrefix, tracks, eventGranule, job }: SplitTracksOptions) {
+  const event = eventGranule !== undefined && Number.isFinite(eventGranule) && eventGranule >= 0 ? Math.floor(eventGranule) : undefined;
+  const result: SplitTracksResult = { tracks: new Map(), origin: event ?? 0, originShift: 0 };
   if (!tracks.length) return result;
-  const { stdout, stderr } = await runCommand(`${procOpts()} ./cook/oggsplit ${recFileBase} ${outPrefix} ${tracks.join(' ')}`, {
+
+  const eventArg = event !== undefined ? `-e ${event} ` : '';
+  const { stdout, stderr } = await runCommand(`${procOpts()} ./cook/oggsplit ${eventArg}${recFileBase} ${outPrefix} ${tracks.join(' ')}`, {
     cancelSignal,
     cwd: ROOT_DIR,
     timeout: DEF_TIMEOUT
   });
   if (stderr && job) logger.warn(`Job ${job.id} (${job.recordingId}): ${stderr}`);
+  let originReported = false;
   for (const line of stdout.split('\n')) {
-    const [track, duration] = line.split(' ');
-    if (track && duration) result.set(parseInt(track, 10), { file: `${outPrefix}${track}.ogg`, duration, size: 0 });
+    const [first, second, third] = line.split(' ');
+    if (first === 'origin') {
+      const origin = parseInt(second, 10);
+      const firstDataGranule = parseInt(third, 10);
+      if (isNaN(origin) || isNaN(firstDataGranule)) continue;
+      result.origin = origin;
+      result.originShift = (firstDataGranule - origin) / 48000;
+      originReported = true;
+    } else if (first && second) result.tracks.set(parseInt(first, 10), { file: `${outPrefix}${first}.ogg`, duration: second, size: 0 });
   }
-  const missing = tracks.filter((track) => !result.has(track));
+  const missing = tracks.filter((track) => !result.tracks.has(track));
   if (missing.length) throw new Error(`oggsplit did not write tracks ${missing.join(', ')}`);
+  if (!originReported) throw new Error('oggsplit did not report an origin');
 
   // Get sizes after split
-  await Promise.all([...result.values()].map(async (split) => (split.size = (await stat(split.file)).size)));
+  await Promise.all([...result.tracks.values()].map(async (split) => (split.size = (await stat(split.file)).size)));
 
   return result;
 }
