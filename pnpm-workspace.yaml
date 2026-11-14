@@ -37,8 +37,8 @@ overrides:
   "supports-color": "8.1.1"
 minimumReleaseAgeExclude:
   - '@snazzah/davey*'
-  - '@mediabunny/flac-encoder@1.56.0'
-  - mediabunny@1.56.0
+  - '@mediabunny/flac-encoder@1.56.0 || 1.66.0'
+  - mediabunny@1.56.0 || 1.66.0
   - execa@10.1.0
   - slash-create@7.1.0
 patchedDependencies:
