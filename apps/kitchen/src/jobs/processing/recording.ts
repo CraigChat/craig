@@ -80,7 +80,7 @@ export async function processRecordingJob(job: Job) {
         codec: streamTypes[i],
         encodeCommand,
         audioWritePath,
-        dynaudnorm: job.options?.skipDynaudnorm?.includes(i) ? false : !!job.options?.dynaudnorm
+        dynaudnorm: job.options?.skipDynaudnorm?.includes(track) ? false : !!job.options?.dynaudnorm
       }).finally(() => fs.rm(splitFile.file, { force: true }));
 
       // Reprocess unsuccessful tracks to avoid annoyance with project programs
