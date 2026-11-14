@@ -256,8 +256,9 @@ export async function processRecordingJob(job: Job) {
             break;
           }
           case 'sesxzip': {
-            const durations = Array.from(splitFiles.values()).map((t) => t.duration);
-            const absoluteDuration = Number(durations.sort((a, b) => Number(b) - Number(a))[0]);
+            // Keyed by track so each clip gets its own duration, in trackFiles order
+            const durations = trackFiles.map(([track]) => Number(splitFiles.get(track)!.duration));
+            const absoluteDuration = Math.max(...durations);
             const now = new Date().toISOString();
 
             const output = source`
@@ -269,7 +270,7 @@ export async function processRecordingJob(job: Job) {
                 )}" sampleRate="48000">
                   <tracks>
                     ${trackFiles.map(([, file], i) => {
-                      const duration = Math.ceil(Number(durations[i]) * 48000);
+                      const duration = Math.ceil(durations[i] * 48000);
                       return stripIndent`
                         <audioTrack automationLaneOpenState="false" id="${i + 10001}" index="${i + 1}" select="true" visible="true">
                           <trackParameters trackHeight="53" trackHue="160" trackMinimized="false">
