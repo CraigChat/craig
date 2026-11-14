@@ -37,7 +37,7 @@
     "@prgm/sveltekit-progress-bar": "^3.0.2",
     "@sveltejs/adapter-auto": "^8.0.0",
     "@sveltejs/enhanced-img": "^1.0.0",
-    "@sveltejs/kit": "^3.1.0",
+    "@sveltejs/kit": "^3.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "bits-ui": "^2.19.0",
@@ -57,7 +57,7 @@
     "tailwindcss-animate": "^1.0.7",
     "trap-focus-svelte": "^1.1.0",
     "typescript": "~6.0.3",
-    "vite": "^8.2.2",
+    "vite": "^8.2.4",
     "vite-plugin-devtools-json": "^1.1.0"
   },
   "dependencies": {
@@ -65,7 +65,7 @@
     "@craig/db": "workspace:*",
     "@craig/logger": "workspace:*",
     "@henrygd/semaphore": "catalog:",
-    "@sveltejs/adapter-node": "^6.0.0",
+    "@sveltejs/adapter-node": "^5.5.8",
     "destr": "catalog:",
     "dropbox": "^10.34.0",
     "googleapis": "^149.0.0",
