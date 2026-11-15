@@ -21,6 +21,11 @@ function getKeyring() {
   return { current: Math.max(...keys.keys()), keys };
 }
 
+/** Will throw early if the keyring is messed up */
+export function assertTokenEncryptionKeys() {
+  getKeyring();
+}
+
 export function tokenPrefix() {
   return `e$k${getKeyring().current}:`;
 }

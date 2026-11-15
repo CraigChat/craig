@@ -1,3 +1,4 @@
+import { assertTokenEncryptionKeys } from '@craig/db';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 
 import { localeCookieName } from '#lib/cookie.js';
@@ -7,6 +8,7 @@ import { JWT_SECRET } from '$app/env/private';
 
 export const init: ServerInit = () => {
   assertJwtSecret(JWT_SECRET);
+  assertTokenEncryptionKeys();
 };
 
 const CYRILLIC_LANGS = ['be', 'ru', 'uk'];
