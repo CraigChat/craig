@@ -169,6 +169,7 @@ export class WebappClient {
       userTrackNo = this.userTrackNos[webUserID];
       user.connected = true;
       user.clientId = clientId;
+      this.monitorSetConnected(userTrackNo, `${user.data.username}#${user.data.discriminator}`, true, clientId);
     }
     this.recording.writeToLog(
       `New user from webapp. trackNo=${userTrackNo}, clientId=${clientId}, id=${webUserID}, dataType=${DataTypeFlag[dataType]}, continuous=${continuous}`,
@@ -465,10 +466,15 @@ export class WebappClient {
   }
 
   private unwrapMessage(message: Buffer) {
-    if (message.length < 12) return null;
+    if (message.length < 4) return null;
     const op: WebappOp = message.readUInt32LE(0);
+    if (message.length < 12) {
+      // READY and PONG carry no client ID
+      if (op === WebappOp.READY || op === WebappOp.PONG) return { op, clientId: '', message: Buffer.alloc(0) };
+      return null;
+    }
     const clientId = message.toString('utf8', 4, 12);
-    return { op, clientId, message: message.slice(12) };
+    return { op, clientId, message: message.subarray(12) };
   }
 
   private wrapMessage(message: Buffer, clientId: string, type = WebappOp.DATA) {
