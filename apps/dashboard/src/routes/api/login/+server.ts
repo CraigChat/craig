@@ -1,4 +1,4 @@
-import { db } from '@craig/db';
+import { db, encryptTokens } from '@craig/db';
 import { redirect } from '@sveltejs/kit';
 import { randomBytes } from 'crypto';
 import type { APIUser } from 'discord-api-types/v10';
@@ -92,8 +92,7 @@ export const GET: RequestHandler = async ({ url, cookies, getClientAddress }) =>
   await redis.set(`user:${user.id}`, JSON.stringify(user), 'EX', 60 * 60);
 
   const tokens = {
-    accessToken: tokenData.access_token,
-    refreshToken: tokenData.refresh_token,
+    ...encryptTokens('UserToken', user.id, { accessToken: tokenData.access_token, refreshToken: tokenData.refresh_token }),
     expiresAt: new Date(Date.now() + tokenData.expires_in * 1000)
   };
   await db

@@ -1,4 +1,4 @@
-import { db, getRewardTier } from '@craig/db';
+import { db, encryptTokens, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { Dropbox } from 'dropbox';
 
@@ -56,7 +56,10 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     logger.info(`OAuth connection established (user=${auth.id}, service=dropbox, serviceUserId=${dropboxUser.result.account_id})`);
 
-    const values = { token: tokens.access_token, refreshToken: tokens.refresh_token, name: dropboxUser.result.name.display_name };
+    const values = {
+      ...encryptTokens('DropboxUser', auth.id, { token: tokens.access_token, refreshToken: tokens.refresh_token }),
+      name: dropboxUser.result.name.display_name
+    };
     await db
       .insertInto('DropboxUser')
       .values({ id: auth.id, ...values })

@@ -28,6 +28,7 @@ pool.on('error', (err) => console.error('[db] Idle client error:', err.message))
 export const db = new Kysely<DB>({ dialect: new PostgresDialect({ pool }) });
 
 export type { DB };
+export * from './crypto.js';
 export * from './queries.js';
 export type * from './utils.js';
 export type { Insertable, Selectable, Updateable } from 'kysely';

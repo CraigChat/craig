@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
 
-import { db, type GoogleDriveUser } from '@craig/db';
+import { db, decryptTokens, encryptTokens, type GoogleDriveUser } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 import { type drive_v3, google } from 'googleapis';
 
@@ -32,7 +32,8 @@ async function findCraigDirectoryInGoogleDrive(drive: drive_v3.Drive, userId: st
   }
 }
 
-function createOAuthClient(driveUser: GoogleDriveUser) {
+function createOAuthClient({ id, token, refreshToken }: GoogleDriveUser) {
+  const driveUser = decryptTokens('GoogleDriveUser', id, { token, refreshToken });
   const oAuth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
 
   oAuth2Client.setCredentials({
@@ -44,11 +45,13 @@ function createOAuthClient(driveUser: GoogleDriveUser) {
     if (!tokens.access_token && !tokens.refresh_token) return;
     await db
       .updateTable('GoogleDriveUser')
-      .set({
-        ...(tokens.access_token && { token: tokens.access_token }),
-        ...(tokens.refresh_token && { refreshToken: tokens.refresh_token })
-      })
-      .where('id', '=', driveUser.id)
+      .set(
+        encryptTokens('GoogleDriveUser', id, {
+          ...(tokens.access_token && { token: tokens.access_token }),
+          ...(tokens.refresh_token && { refreshToken: tokens.refresh_token })
+        })
+      )
+      .where('id', '=', id)
       .execute();
   });
 

@@ -1,3 +1,5 @@
+import { decryptTokens } from '@craig/db';
+
 import { disconnectService } from '#lib/server/data.js';
 import { checkAuth } from '#lib/server/discord.js';
 import { SESSION_COOKIE } from '#lib/server/jwt.js';
@@ -21,7 +23,8 @@ export const DELETE: RequestHandler = async ({ cookies, getClientAddress }) => {
     return tx.deleteFrom('GoogleDriveUser').where('id', '=', auth.id).returning(['token', 'refreshToken']).executeTakeFirst();
   });
 
-  const revokable = googleUser?.refreshToken ?? googleUser?.token;
+  const tokens = googleUser && decryptTokens('GoogleDriveUser', auth.id, googleUser);
+  const revokable = tokens?.refreshToken ?? tokens?.token;
   if (revokable) await googleOAuth2Client.revokeToken(revokable).catch((e) => logger.warn(`Failed to revoke Google token (user=${auth.id})`, e));
 
   return Response.json({ ok: true });

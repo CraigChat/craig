@@ -1,4 +1,4 @@
-import { db, type UserToken } from '@craig/db';
+import { db, decryptTokens, encryptTokens, type UserToken } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
 
@@ -32,8 +32,7 @@ export async function checkAndRefreshTokens(userTokens: Pick<UserToken, 'id' | '
     await db
       .updateTable('UserToken')
       .set({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
+        ...encryptTokens('UserToken', userTokens.id, { accessToken: data.access_token, refreshToken: data.refresh_token }),
         expiresAt: new Date(Date.now() + data.expires_in * 1000)
       })
       .where('id', '=', userTokens.id)
@@ -64,7 +63,8 @@ export async function validateAuth(token: string | null) {
       .executeTakeFirst();
     if (!userToken) return null;
 
-    const accessToken = await checkAndRefreshTokens(userToken);
+    const { id, expiresAt, ...tokens } = userToken;
+    const accessToken = await checkAndRefreshTokens({ id, expiresAt, ...decryptTokens('UserToken', id, tokens) });
     if (!accessToken) return null;
 
     return { id: payload.id, accessToken };

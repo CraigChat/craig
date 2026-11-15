@@ -1,4 +1,4 @@
-import { db, getRewardTier } from '@craig/db';
+import { db, encryptTokens, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { decodeJwt } from 'jose';
 
@@ -64,7 +64,7 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     logger.info(`OAuth connection established (user=${auth.id}, service=google, serviceUserId=${serviceUserId})`);
 
-    const values = { token: tokens.access_token, refreshToken: tokens.refresh_token };
+    const values = encryptTokens('GoogleDriveUser', auth.id, { token: tokens.access_token, refreshToken: tokens.refresh_token });
     await db
       .insertInto('GoogleDriveUser')
       .values({ id: auth.id, ...values })
