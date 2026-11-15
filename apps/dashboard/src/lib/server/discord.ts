@@ -6,6 +6,7 @@ import { DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, JWT_SECRET } from '$app/en
 import { PUBLIC_DISCORD_CLIENT_ID } from '$app/env/public';
 
 import { verifySession } from './jwt';
+import { logger } from './logger';
 import { cacheData } from './redis';
 
 export async function checkAndRefreshTokens(userTokens: Pick<UserToken, 'id' | 'accessToken' | 'refreshToken' | 'expiresAt'>) {
@@ -63,8 +64,16 @@ export async function validateAuth(token: string | null) {
       .executeTakeFirst();
     if (!userToken) return null;
 
-    const { id, expiresAt, ...tokens } = userToken;
-    const accessToken = await checkAndRefreshTokens({ id, expiresAt, ...decryptTokens('UserToken', id, tokens) });
+    const { id, expiresAt, ...encrypted } = userToken;
+    let tokens;
+    try {
+      tokens = decryptTokens('UserToken', id, encrypted);
+    } catch (e) {
+      // treat as logged out
+      logger.warn(`Failed to decrypt Discord tokens (user=${id})`, e);
+      return null;
+    }
+    const accessToken = await checkAndRefreshTokens({ id, expiresAt, ...tokens });
     if (!accessToken) return null;
 
     return { id: payload.id, accessToken };
