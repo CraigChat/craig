@@ -15,7 +15,7 @@ import fastifyWebsocket from '@fastify/websocket';
 import fastify from 'fastify';
 
 import { getShardFromConnectionToken, Shard, ShardIdentifyPayload, shardsConnected } from './shards.js';
-import { closeWebsocket, debug, getClientAddress, logger, timeoutWebsocket, toBuffer } from './util.js';
+import { closeWebsocket, debug, getClientAddress, logger, safeCompare, timeoutWebsocket, toBuffer } from './util.js';
 
 const app = fastify({
   logger: debug,
@@ -89,7 +89,7 @@ app.register(async function (app) {
   // Shard Websocket
   app.get('/shard', { websocket: true }, (socket, req) => {
     const token = process.env.SHARD_AUTH || process.env.WEBAPP_TOKEN;
-    if (!token || req.headers.authorization !== token) return socket.close();
+    if (!token || !safeCompare(req.headers.authorization, token)) return socket.close();
     timeoutWebsocket(socket);
     socket.once('message', (data) => {
       // Shard will first identify with its information in JSON because lazy
@@ -135,7 +135,7 @@ app.route({
     if (!id || !key) return reply.status(400).send({ ok: false, error: 'Invalid id or key' });
     const shard = shardsConnected.get(id);
     if (!shard) return reply.status(404).send({ ok: false, error: 'Recording not found' });
-    if (shard.payload.ennuiKey !== key) return reply.status(401).send({ ok: false, error: 'Invalid key' });
+    if (!safeCompare(shard.payload.ennuiKey, key)) return reply.status(401).send({ ok: false, error: 'Invalid key' });
     reply.send({
       ok: true,
       recording: {

@@ -2,7 +2,7 @@ import { WebappOp, WebappOpCloseReason } from '@craig/common';
 import { nanoid } from 'nanoid';
 import { WebSocket } from 'ws';
 
-import { closeWebsocket, logger, toBuffer } from './util.js';
+import { closeWebsocket, logger, safeCompare, toBuffer } from './util.js';
 
 export const shardsConnected = new Map<string, Shard>();
 
@@ -120,7 +120,7 @@ export class Shard {
 
 export function getShardFromConnectionToken(token: string) {
   for (const shard of shardsConnected.values()) {
-    if (shard.connectionToken === token) return shard;
+    if (safeCompare(shard.connectionToken, token)) return shard;
   }
   return null;
 }

@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
+
 import { WebappOpCloseReason } from '@craig/common';
 import { Logger } from '@craig/logger';
 import type { FastifyRequest } from 'fastify';
@@ -22,6 +24,13 @@ export function getClientAddress(req: FastifyRequest) {
   const addresses = value.split(',');
   if (xffDepth > addresses.length) return req.ip;
   return addresses[addresses.length - xffDepth].trim();
+}
+
+export function safeCompare(a: string | undefined | null, b: string | undefined | null) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const hashA = createHash('sha256').update(a).digest();
+  const hashB = createHash('sha256').update(b).digest();
+  return timingSafeEqual(hashA, hashB);
 }
 
 export function toBuffer(data: RawData) {
