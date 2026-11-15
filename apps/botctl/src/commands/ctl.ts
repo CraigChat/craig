@@ -16,6 +16,7 @@ import { ControlClient, inspectEvalResult, type ShardSelector } from '../control
 import {
   codeBlock,
   formatAction,
+  formatEnvReload,
   formatInfo,
   formatOverviewInstances,
   formatShardInfo,
@@ -111,6 +112,12 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
         },
         {
           type: CommandOptionType.SUB_COMMAND,
+          name: 'env-reload',
+          description: 'Reload env files and respawn shards when they have no recordings.',
+          options: [botOption()]
+        },
+        {
+          type: CommandOptionType.SUB_COMMAND,
           name: 'status',
           description: 'Set the bot status.',
           options: [
@@ -176,6 +183,8 @@ export default class CtlCommand extends SlashCommand<BotCTLBot> {
           return ephemeral(formatAction(await client.setRWA(parseShardSelector(options.shards || 'all'), Boolean(options.value)), 'Updated RWA.'));
         case 'restart':
           return ephemeral(formatAction(await client.restart(parseShardSelector(options.shards || 'all')), 'Restarted shards.'));
+        case 'env-reload':
+          return ephemeral(formatEnvReload((await client.reloadEnv()).changed));
         case 'status':
           await client.setStatus(String(options.type), options.message ? String(options.message) : undefined);
           return ephemeral('Updated status.');

@@ -7,6 +7,7 @@ import {
   codeBlock,
   formatAction,
   formatEndpoints,
+  formatEnvReload,
   formatInfo,
   formatOverviewInstances,
   formatShardInfo,
@@ -63,6 +64,8 @@ async function main(args: string[]) {
       return console.log(
         formatAction(await client.setRWA(parseShardSelector(String(parsed.flags.shards || 'all')), parseBoolean(parsed.flags.value)), 'Updated RWA.')
       );
+    case 'env-reload':
+      return console.log(formatEnvReload((await client.reloadEnv()).changed));
     case 'status':
       await client.setStatus(requireStringFlag(parsed.flags.type, 'type'), optionalStringFlag(parsed.flags.message));
       return console.log('Updated status.');
@@ -220,5 +223,6 @@ Control:
   botctl rwa <name> --value true|false --shards all|0,1
   botctl maintenance <name[,name...]|all> [message]
   botctl restart <name> --shards all|0,1
+  botctl env-reload <name>
   botctl status <name> --type online|idle|dnd|default|custom [--message text]`);
 }

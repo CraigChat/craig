@@ -42,6 +42,11 @@ export function formatAction(result: ActionResult, success: string): string {
   `;
 }
 
+export function formatEnvReload(changed: string[]): string {
+  if (!changed.length) return 'No env changes found.';
+  return `Reloaded ${changed.length} env var(s): ${changed.join(', ')}`;
+}
+
 export function formatShardInfo(info: ShardInfo, guildID?: string): string {
   const rows = [...info.shards].sort((a, b) => a.id - b.id);
   const totalGuilds = rows.reduce((acc, shard) => acc + (shard.guilds ?? 0), 0);

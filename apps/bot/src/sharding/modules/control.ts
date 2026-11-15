@@ -1,9 +1,11 @@
+import { readFile } from 'node:fs/promises';
 import { BlockList, isIP } from 'node:net';
+import { parseEnv } from 'node:util';
 
 import fastify, { FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 
-import { getRedisOptions } from '../../config.js';
+import { getBotConfig, getEnvFiles, getRedisOptions } from '../../config.js';
 import * as logger from '../logger.js';
 import type ShardManager from '../manager.js';
 import ShardManagerModule from '../module.js';
@@ -202,6 +204,40 @@ export default class ControlModule extends ShardManagerModule {
       if (!['online', 'idle', 'dnd', 'default', 'custom'].includes(body.status)) return reply.status(400).send({ error: 'Invalid status' });
       await this.manager.broadcast({ t: 'setStatus', d: body });
       return { ok: true };
+    });
+
+    this.app.post('/env/reload', async (_req, reply) => {
+      const loaded: Record<string, string> = {};
+      for (const file of getEnvFiles()) {
+        const content = await readFile(file, 'utf8').catch((error) => {
+          if (error.code === 'ENOENT') return null;
+          throw error;
+        });
+        if (content === null) continue;
+        for (const [key, value] of Object.entries(parseEnv(content))) if (value !== undefined && !(key in loaded)) loaded[key] = value;
+      }
+
+      const changed = Object.keys(loaded).filter((key) => process.env[key] !== loaded[key]);
+      if (!changed.length) return { ok: true, changed };
+
+      // Update process.env and check if the bot config errors
+      const previous = Object.fromEntries(changed.map((key) => [key, process.env[key]]));
+      Object.assign(process.env, loaded);
+      try {
+        getBotConfig();
+      } catch (error) {
+        // Revert changes
+        for (const [key, value] of Object.entries(previous)) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+        return reply.status(400).send({ error: `Env not reloaded: ${formatError(error)}` });
+      }
+
+      // Shards fork with process.env, so respawning them picks up the new values
+      for (const shard of this.manager.shards.values()) shard.respawnWhenAvailable = true;
+      logger.info(`Reloaded env (${changed.join(', ')}), ${this.manager.shards.size} shards are set to RWA`);
+      return { ok: true, changed };
     });
 
     await this.redis.connect();

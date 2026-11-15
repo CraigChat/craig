@@ -64,6 +64,10 @@ export class ControlClient {
     return this.request<ActionResult>('POST', '/status', { status, message });
   }
 
+  reloadEnv(): Promise<{ ok: boolean; changed: string[] }> {
+    return this.request('POST', '/env/reload', {});
+  }
+
   eval(target: 'manager' | 'shard', script: string, shardId?: number): Promise<{ result: unknown; error?: string }> {
     return this.request('POST', '/eval', { target, script, shardId });
   }

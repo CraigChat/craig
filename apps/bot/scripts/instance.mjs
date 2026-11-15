@@ -34,6 +34,7 @@ const mergedEnv = {
 
 const pm2ProcessName = mergedEnv.PM2_PROCESS_NAME || mergedEnv.PM2_NAME || instanceName;
 mergedEnv.PM2_PROCESS_NAME = pm2ProcessName;
+mergedEnv.BOT_ENV_FILES = [instancePath, path.join(rootDir, '.env'), path.join(repoRoot, '.env')].join(',');
 
 let bin;
 let args;

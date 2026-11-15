@@ -18,7 +18,6 @@ interface AwaitedPromise<T = unknown> {
 export default class Shard extends EventEmitter {
   id: number;
   manager: ShardManager;
-  env: NodeJS.ProcessEnv;
   ready = false;
   preloaded = false;
   identified = false;
@@ -34,7 +33,6 @@ export default class Shard extends EventEmitter {
     super();
     this.id = id;
     this.manager = manager;
-    this.env = { ...process.env };
 
     this._exitListener = this._handleExit.bind(this, undefined);
   }
@@ -44,7 +42,7 @@ export default class Shard extends EventEmitter {
     this.process = childProcess
       .fork(path.resolve(process.cwd(), this.manager.options.file), args, {
         env: {
-          ...this.env,
+          ...process.env,
           SHARD_ID: String(this.id),
           SHARD_COUNT: String(this.manager.options.shardCount),
           DELAYED_START: 'true',

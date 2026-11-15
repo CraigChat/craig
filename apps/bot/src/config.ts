@@ -255,6 +255,11 @@ export function getBotConfig(): CraigBotConfig {
   };
 }
 
+export function getEnvFiles(): string[] {
+  const files = listFromEnv('BOT_ENV_FILES');
+  return (files.length ? files : ['../../.env.local', '../../.env', '.env.local', '.env']).map((file) => path.resolve(file));
+}
+
 export interface ShardManagerEnvOptions {
   file: string;
   emojiFolder: string;
