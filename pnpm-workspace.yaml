@@ -10,11 +10,11 @@ catalog:
   cron: ^4.3.4
   destr: ^2.0.5
   execa: ^10.1.0
-  fastify: ^5.12.1
+  fastify: ^5.12.6
   ws: ^8.22.0
   '@types/ws': ^8.18.1
   ioredis: ^6.0.0
-  nanoid: ^6.0.1
+  nanoid: ^6.0.2
   tsdown: 0.22.14
   tsx: ^4.23.13
   typescript: ^7.0.2
