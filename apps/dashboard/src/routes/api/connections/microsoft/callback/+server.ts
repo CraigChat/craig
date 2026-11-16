@@ -1,4 +1,4 @@
-import { db, getRewardTier } from '@craig/db';
+import { db, encryptTokens, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 
 import { microsoftScopes, toRedirectUri } from '#lib/oauth.js';
@@ -89,7 +89,11 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     logger.info(`OAuth connection established (user=${auth.id}, service=microsoft, serviceUserId=${me.id})`);
 
-    const values = { token: response.access_token, refreshToken: response.refresh_token, name: me.displayName, username: me.userPrincipalName };
+    const values = {
+      ...encryptTokens('MicrosoftUser', auth.id, { token: response.access_token, refreshToken: response.refresh_token }),
+      name: me.displayName,
+      username: me.userPrincipalName
+    };
     await db
       .insertInto('MicrosoftUser')
       .values({ id: auth.id, ...values })

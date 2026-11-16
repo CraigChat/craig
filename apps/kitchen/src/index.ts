@@ -1,6 +1,6 @@
 import './util/env.js';
 
-import { db } from '@craig/db';
+import { assertTokenEncryptionKeys, db } from '@craig/db';
 import { startMetricsServer } from '@craig/metrics';
 import type { DriveOptions } from '@craig/types';
 import type {
@@ -19,7 +19,7 @@ import { boxPreflight } from './jobs/upload/box.js';
 import { dropboxPreflight } from './jobs/upload/dropbox.js';
 import { googlePreflight } from './jobs/upload/google.js';
 import { onedrivePreflight } from './jobs/upload/onedrive.js';
-import { REC_DIRECTORY } from './util/config.js';
+import { BOX_CLIENT_ID, DROPBOX_CLIENT_ID, GOOGLE_CLIENT_ID, MICROSOFT_CLIENT_ID, REC_DIRECTORY } from './util/config.js';
 import { installLifecycleLogging, logEmergency, logLifecycle } from './util/lifecycle.js';
 import logger from './util/logger.js';
 import { registerWithManager, uploadCount } from './util/metrics.js';
@@ -281,6 +281,8 @@ app.post<{ Params: { id: string; userId: string }; Querystring: { locale?: strin
 
 const start = async () => {
   try {
+    if (GOOGLE_CLIENT_ID || MICROSOFT_CLIENT_ID || DROPBOX_CLIENT_ID || BOX_CLIENT_ID) assertTokenEncryptionKeys();
+
     const address = await app.listen({
       port: process.env.PORT ? parseInt(process.env.PORT) : 9000,
       host: process.env.HOST || 'localhost'

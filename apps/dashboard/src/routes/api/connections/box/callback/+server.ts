@@ -1,4 +1,4 @@
-import { db, getRewardTier } from '@craig/db';
+import { db, encryptTokens, getRewardTier } from '@craig/db';
 import { isRedirect, redirect } from '@sveltejs/kit';
 
 import { checkAuth } from '#lib/server/discord.js';
@@ -73,7 +73,10 @@ export const GET: RequestHandler = async ({ cookies, getClientAddress, url }) =>
 
     logger.info(`OAuth connection established (user=${auth.id}, service=box, serviceUserId=${me?.id ?? 'unknown'})`);
 
-    const values = { token: response.access_token, refreshToken: response.refresh_token, name: me?.name || '' };
+    const values = {
+      ...encryptTokens('BoxUser', auth.id, { token: response.access_token, refreshToken: response.refresh_token }),
+      name: me?.name || ''
+    };
     await db
       .insertInto('BoxUser')
       .values({ id: auth.id, ...values })

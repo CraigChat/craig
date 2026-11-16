@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 
-import { db } from '@craig/db';
+import { db, decryptTokens, encryptTokens } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 import { Dropbox, DropboxAuth, DropboxResponse, DropboxResponseError, files } from 'dropbox';
 
@@ -15,8 +15,9 @@ const DROPBOX_UPLOAD_FILE_SIZE_LIMIT = 150 * 1024 * 1024;
 export async function dropboxPreflight(userId: string) {
   if (!DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET || !DROPBOX_FOLDER_NAME) return false;
 
-  const driveUser = await db.selectFrom('DropboxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
-  if (!driveUser) return false;
+  const row = await db.selectFrom('DropboxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
+  if (!row) return false;
+  const driveUser = decryptTokens('DropboxUser', userId, row);
 
   const auth = new DropboxAuth({
     clientId: DROPBOX_CLIENT_ID,
@@ -40,7 +41,11 @@ export async function dropboxPreflight(userId: string) {
   const accessToken = auth.getAccessToken();
   const refreshToken = auth.getRefreshToken();
   if (accessToken !== driveUser.token || refreshToken !== driveUser.refreshToken)
-    await db.updateTable('DropboxUser').set({ refreshToken, token: accessToken }).where('id', '=', userId).execute();
+    await db
+      .updateTable('DropboxUser')
+      .set(encryptTokens('DropboxUser', userId, { refreshToken, token: accessToken }))
+      .where('id', '=', userId)
+      .execute();
 
   return true;
 }
@@ -49,8 +54,9 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
   if (!DROPBOX_CLIENT_ID || !DROPBOX_CLIENT_SECRET || !DROPBOX_FOLDER_NAME) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await db.selectFrom('DropboxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
-  if (!driveUser) return;
+  const row = await db.selectFrom('DropboxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
+  if (!row) return;
+  const driveUser = decryptTokens('DropboxUser', userId, row);
 
   const auth = new DropboxAuth({
     clientId: DROPBOX_CLIENT_ID,
@@ -137,7 +143,11 @@ export async function dropboxUpload(job: Job, info: RecordingInfo, fileName: str
   const accessToken = auth.getAccessToken();
   const refreshToken = auth.getRefreshToken();
   if (accessToken !== driveUser.token || refreshToken !== driveUser.refreshToken)
-    await db.updateTable('DropboxUser').set({ refreshToken, token: accessToken }).where('id', '=', userId).execute();
+    await db
+      .updateTable('DropboxUser')
+      .set(encryptTokens('DropboxUser', userId, { refreshToken, token: accessToken }))
+      .where('id', '=', userId)
+      .execute();
 
   job.outputData.uploadFileId = file.result.id;
   job.outputData.uploadFileURL = `https://www.dropbox.com/home/Apps/${encodeURIComponent(DROPBOX_FOLDER_NAME)}?preview=${encodeURIComponent(

@@ -1,4 +1,4 @@
-import { db, type UserToken } from '@craig/db';
+import { db, decryptTokens, encryptTokens, type UserToken } from '@craig/db';
 import { getSemaphore } from '@henrygd/semaphore';
 import type { APIUser } from 'discord-api-types/v10';
 
@@ -6,6 +6,7 @@ import { DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, JWT_SECRET } from '$app/en
 import { PUBLIC_DISCORD_CLIENT_ID } from '$app/env/public';
 
 import { verifySession } from './jwt';
+import { logger } from './logger';
 import { cacheData } from './redis';
 
 export async function checkAndRefreshTokens(userTokens: Pick<UserToken, 'id' | 'accessToken' | 'refreshToken' | 'expiresAt'>) {
@@ -32,8 +33,7 @@ export async function checkAndRefreshTokens(userTokens: Pick<UserToken, 'id' | '
     await db
       .updateTable('UserToken')
       .set({
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
+        ...encryptTokens('UserToken', userTokens.id, { accessToken: data.access_token, refreshToken: data.refresh_token }),
         expiresAt: new Date(Date.now() + data.expires_in * 1000)
       })
       .where('id', '=', userTokens.id)
@@ -64,7 +64,16 @@ export async function validateAuth(token: string | null) {
       .executeTakeFirst();
     if (!userToken) return null;
 
-    const accessToken = await checkAndRefreshTokens(userToken);
+    const { id, expiresAt, ...encrypted } = userToken;
+    let tokens;
+    try {
+      tokens = decryptTokens('UserToken', id, encrypted);
+    } catch (e) {
+      // treat as logged out
+      logger.warn(`Failed to decrypt Discord tokens (user=${id})`, e);
+      return null;
+    }
+    const accessToken = await checkAndRefreshTokens({ id, expiresAt, ...tokens });
     if (!accessToken) return null;
 
     return { id: payload.id, accessToken };

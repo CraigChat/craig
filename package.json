@@ -31,6 +31,7 @@
     "run-task": "pnpm -F tasks run-task",
     "entitlement": "dotenv -c -- tsx scripts/manageEntitlements.mts",
     "redact-user": "dotenv -c -- tsx scripts/redactUser.mts",
+    "encrypt-tokens": "dotenv -c -- tsx scripts/encryptTokens.mts",
     "ctl": "pnpm -F botctl cli",
     "bot-instance": "pnpm -F bot instance"
   },

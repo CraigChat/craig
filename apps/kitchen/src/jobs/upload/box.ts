@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { open, readFile, stat } from 'node:fs/promises';
 
-import { db } from '@craig/db';
+import { db, decryptTokens, encryptTokens } from '@craig/db';
 import { RecordingInfo } from '@craig/types/recording';
 
 import { BOX_CLIENT_ID, BOX_CLIENT_SECRET } from '../../util/config.js';
@@ -68,7 +68,11 @@ async function getRefreshedBoxAccessToken(
 
   if (response.status === 200) {
     const { access_token, refresh_token } = await response.json();
-    await db.updateTable('BoxUser').set({ token: access_token, refreshToken: refresh_token }).where('id', '=', userId).execute();
+    await db
+      .updateTable('BoxUser')
+      .set(encryptTokens('BoxUser', userId, { token: access_token, refreshToken: refresh_token }))
+      .where('id', '=', userId)
+      .execute();
     return { token: access_token, authInvalidated: false };
   }
 
@@ -142,8 +146,9 @@ async function findCraigDirectory(accessToken: string, userId: string) {
 
 export async function boxPreflight(userId: string) {
   if (!BOX_CLIENT_ID || !BOX_CLIENT_SECRET) return false;
-  const driveUser = await db.selectFrom('BoxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
-  if (!driveUser) return false;
+  const row = await db.selectFrom('BoxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
+  if (!row) return false;
+  const driveUser = decryptTokens('BoxUser', userId, row);
   const { token: accessToken, authInvalidated } = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
     if (authInvalidated) await db.deleteFrom('BoxUser').where('id', '=', userId).execute();
@@ -237,8 +242,9 @@ export async function boxUpload(job: Job, info: RecordingInfo, fileName: string)
   if (!BOX_CLIENT_ID || !BOX_CLIENT_SECRET) return;
 
   const userId = job.postTaskOptions!.userId!;
-  const driveUser = await db.selectFrom('BoxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
-  if (!driveUser) return;
+  const row = await db.selectFrom('BoxUser').select(['token', 'refreshToken']).where('id', '=', userId).executeTakeFirst();
+  if (!row) return;
+  const driveUser = decryptTokens('BoxUser', userId, row);
   const { token: accessToken, authInvalidated } = await getRefreshedBoxAccessToken(driveUser.token, driveUser.refreshToken, userId);
   if (!accessToken) {
     if (authInvalidated) await db.deleteFrom('BoxUser').where('id', '=', userId).execute();
