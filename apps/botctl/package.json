@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@craig/logger": "workspace:*",
-    "@projectdysnomia/dysnomia": "github:Snazzah/dysnomia#da3811d70a678bf58480bf99b14fffeb55161427",
+    "@projectdysnomia/dysnomia": "github:Snazzah/dysnomia#96155c75bb938ce84a209456d656aaa490287534",
     "common-tags": "catalog:",
     "slash-create": "^7.1.0"
   },

@@ -727,14 +727,6 @@ export default class Recording {
   }
 
   onUserDisconnect(userId: string) {
-    // dysnomia doesnt clean up disconnected SSRCs
-    if (this.connection)
-      for (const [ssrc, owner] of Object.entries(this.connection.ssrcUserMap))
-        if (owner === userId) {
-          delete this.connection.ssrcUserMap[Number(ssrc)];
-          break;
-        }
-
     if (this.usersIgnored.has(userId)) this.#updateMediaSinkWants();
   }
 
