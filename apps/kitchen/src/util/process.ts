@@ -213,7 +213,7 @@ export async function encodeTrack({
     const decodeCommands = dynaudnorm
       ? [
           `${pOpts} ./cook/oggdec ${file}`,
-          `${pOpts} ffmpeg -f wav -i - -af anull,dynaudnorm -flags bitexact -f wav -`,
+          `${pOpts} ffmpeg -f wav -i - -af anull,dynaudnorm -flags bitexact -ignore_length 1 -f wav -`,
           `${pOpts} ./cook/wavduration ${duration}`
         ]
       : [`${pOpts} ./cook/oggdec -d ${duration} ${file}`];
@@ -526,7 +526,7 @@ export async function encodeTranscriptionTrack({ file, duration, codec, track, c
 
   const commands =
     codec === 'opus'
-      ? [`${pOpts} ./cook/oggdec ${file}`, `${pOpts} ffmpeg -nostdin -f wav -i - ${encodeArgs} -y "${audioWritePath}"`]
+      ? [`${pOpts} ./cook/oggdec ${file} -d ${duration}`, `${pOpts} ffmpeg -nostdin -f wav -i - ${encodeArgs} -y "${audioWritePath}"`]
       : [`${pOpts} ffmpeg -nostdin -c:a ${codec} -i "${file}" ${encodeArgs} -y "${audioWritePath}"`];
 
   const childProcess = runCommand(commands.join(' | '), { cancelSignal, buffer: false, shell: true, timeout: DEF_TIMEOUT, cwd: ROOT_DIR });
